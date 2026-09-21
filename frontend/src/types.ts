@@ -34,10 +34,17 @@ export type Session = {
   error?: { message?: string } | unknown;
 };
 
+export type ActiveRun = {
+  sessionId: string;
+  startedAt: string;
+  cancelRequested?: boolean;
+};
+
 export type WorkspaceState = {
   workspace: string;
   health?: Health;
   sessions: Session[];
+  activeRuns: ActiveRun[];
 };
 
 export type RuntimeEvent = {
