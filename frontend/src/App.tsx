@@ -21,7 +21,8 @@ import { bridge, onRuntimeEvent } from "./lib/bridge";
 import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
-const MAX_VISIBLE_MESSAGES = 100;
+const MESSAGE_PAGE_SIZE = 100;
+const MAX_LOADED_MESSAGES = 500;
 
 type Policy = "read-only" | "workspace" | "full";
 
@@ -42,6 +43,13 @@ function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
 }
 
+function mergeMessages(current: Message[], incoming: Message[]): Message[] {
+  const bySeq = new Map<number, Message>();
+  for (const message of current) bySeq.set(message.seq, message);
+  for (const message of incoming) bySeq.set(message.seq, message);
+  return Array.from(bySeq.values()).sort((a, b) => a.seq - b.seq);
+}
+
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = copy[locale];
@@ -58,6 +66,8 @@ export default function App() {
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messageAtLatest, setMessageAtLatest] = useState(true);
+  const [messageLoadingOlder, setMessageLoadingOlder] = useState(false);
   const [workflowSummary, setWorkflowSummary] = useState<WorkflowSummary | null>(null);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
@@ -102,14 +112,16 @@ export default function App() {
   useEffect(() => {
     if (!selected) {
       setMessages([]);
+      setMessageAtLatest(true);
       setWorkflowSummary(null);
       return;
     }
     Promise.all([
-      bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES),
+      bridge.messagePage(selected, -1, MESSAGE_PAGE_SIZE),
       bridge.workflowSummary(selected),
-    ]).then(([recent, summary]) => {
-      setMessages(recent);
+    ]).then(([page, summary]) => {
+      setMessages(page.messages);
+      setMessageAtLatest(true);
       setWorkflowSummary(summary);
     }).catch(() => undefined);
   }, [selected]);
@@ -134,14 +146,18 @@ export default function App() {
       (event.type === "session.complete" || event.type === "session.interrupted" || event.type === "tool.end" || event.type === "workflow.transition" || event.type === "workflow.gate_waiting" || event.type === "workflow.approved")
     ) {
       Promise.all([
-        bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES),
+        messageAtLatest ? bridge.messagePage(selected, -1, MESSAGE_PAGE_SIZE) : Promise.resolve(null),
         bridge.workflowSummary(selected),
-      ]).then(([recent, summary]) => {
-        setMessages(recent);
+      ]).then(([page, summary]) => {
+        if (page) {
+          setMessages((currentMessages) =>
+            mergeMessages(currentMessages, page.messages).slice(-MAX_LOADED_MESSAGES)
+          );
+        }
         setWorkflowSummary(summary);
       }).catch(() => undefined);
     }
-  }), [selected]);
+  }), [messageAtLatest, selected]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
   const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
@@ -233,19 +249,57 @@ export default function App() {
 
   async function refreshCurrent(sessionId = selected) {
     if (!sessionId) return;
-    const [session, recent, summary] = await Promise.all([
+    const [session, page, summary] = await Promise.all([
       bridge.getSession(sessionId),
-      bridge.recentMessages(sessionId, MAX_VISIBLE_MESSAGES),
+      bridge.messagePage(sessionId, -1, MESSAGE_PAGE_SIZE),
       bridge.workflowSummary(sessionId),
     ]);
     if (sessionId === selected) {
-      setMessages(recent);
+      setMessages(page.messages);
+      setMessageAtLatest(true);
       setWorkflowSummary(summary);
     }
     setState((currentState) => ({
       ...currentState,
       sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
     }));
+  }
+
+  async function loadOlderMessages() {
+    if (!selected || messageLoadingOlder || messages.length === 0) return;
+    const before = messages[0].seq;
+    if (before <= 0) return;
+
+    setMessageLoadingOlder(true);
+    try {
+      const page = await bridge.messagePage(selected, before, MESSAGE_PAGE_SIZE);
+      setMessages((currentMessages) => {
+        const merged = mergeMessages(page.messages, currentMessages);
+        if (merged.length > MAX_LOADED_MESSAGES) {
+          setMessageAtLatest(false);
+          return merged.slice(0, MAX_LOADED_MESSAGES);
+        }
+        return merged;
+      });
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setMessageLoadingOlder(false);
+    }
+  }
+
+  async function jumpToLatestMessages() {
+    if (!selected) return;
+    setMessageLoadingOlder(true);
+    try {
+      const page = await bridge.messagePage(selected, -1, MESSAGE_PAGE_SIZE);
+      setMessages(page.messages);
+      setMessageAtLatest(true);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setMessageLoadingOlder(false);
+    }
   }
 
   async function pickWorkspace() {
@@ -255,6 +309,7 @@ export default function App() {
       setState(next);
       setRoute({ kind: "new-task" });
       setMessages([]);
+      setMessageAtLatest(true);
       setWorkflowSummary(null);
       setEvents([]);
       setSidebarOpen(false);
@@ -270,6 +325,7 @@ export default function App() {
       setState(next);
       setRoute({ kind: "new-task" });
       setMessages([]);
+      setMessageAtLatest(true);
       setWorkflowSummary(null);
       setEvents([]);
       setSidebarOpen(false);
@@ -329,6 +385,7 @@ export default function App() {
       }));
       setRoute({ kind: "thread", sessionId: session.id });
       setMessages([]);
+      setMessageAtLatest(true);
       setWorkflowSummary(null);
       setGoal("");
       try {
@@ -709,6 +766,9 @@ export default function App() {
           <ThreadWorkspace
             session={current}
             messages={messages}
+            hasOlderMessages={messages.length > 0 && messages[0].seq > 0}
+            historicalMessages={!messageAtLatest}
+            loadingOlderMessages={messageLoadingOlder}
             running={running}
             statusLabel={statusLabel(current.status, running)}
             workspaceName={basename(state.workspace)}
@@ -734,11 +794,16 @@ export default function App() {
               roleTool: t.messageRoleTool,
               roleSystem: t.messageRoleSystem,
               approvalTitle: t.approvalTitle,
-              approve: t.approve
+              approve: t.approve,
+              loadEarlier: t.loadEarlier,
+              backToLatest: t.backToLatest,
+              historyWindow: t.historyWindow
             }}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
             onApproveGate={approveGate}
+            onLoadOlderMessages={loadOlderMessages}
+            onJumpToLatest={jumpToLatestMessages}
             onCancel={cancelAgent}
             onSubmit={submitTask}
             onKeyDown={onComposerKeyDown}
