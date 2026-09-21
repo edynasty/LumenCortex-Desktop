@@ -115,7 +115,11 @@ export const copy = {
     checks: "检查结果",
     checkPassed: "通过",
     checkFailed: "失败",
-    checkTruncated: "输出已截断"
+    checkTruncated: "输出已截断",
+    context: "上下文",
+    attachFiles: "添加文件",
+    attachFolder: "添加文件夹",
+    removeContext: "移除上下文"
   },
   en: {
     newTask: "New task",
@@ -231,7 +235,11 @@ export const copy = {
     checks: "Checks",
     checkPassed: "Passed",
     checkFailed: "Failed",
-    checkTruncated: "Output truncated"
+    checkTruncated: "Output truncated",
+    context: "Context",
+    attachFiles: "Attach files",
+    attachFolder: "Attach folder",
+    removeContext: "Remove context"
   }
 } as const;
 
