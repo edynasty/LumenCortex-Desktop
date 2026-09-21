@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import type { Message } from "../../types";
+import type { Message, SessionRuntime } from "../../types";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
 import { SyntaxLine } from "../code/SyntaxLine";
+import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
@@ -14,7 +15,8 @@ import { useReviewState, type DiffScope } from "./useReviewState";
 import "./review.css";
 
 type Props = {
-  workspace: string;
+  sessionId: string;
+  runtime: SessionRuntime;
   messages: Message[];
   agentBusy: boolean;
   agentRunning: boolean;
@@ -47,6 +49,8 @@ type Props = {
     checkPassed: string;
     checkFailed: string;
     checkTruncated: string;
+    localRuntime: string;
+    worktreeRuntime: string;
   };
 };
 
@@ -56,8 +60,8 @@ function statusLabel(index: string, worktree: string) {
   return worktree === " " ? "M" : worktree;
 }
 
-export function ReviewWorkspace({ workspace, messages, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
-  const review = useReviewState(workspace);
+export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
+  const review = useReviewState(sessionId);
   const [mode, setMode] = useState<"unified" | "split">("unified");
   const [revertOpen, setRevertOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
@@ -102,6 +106,12 @@ export function ReviewWorkspace({ workspace, messages, agentBusy, agentRunning, 
               <div className="review-file-title">
                 <strong>{review.selectedPath || labels.title}</strong>
                 <span>+{stats.additions} −{stats.deletions}</span>
+                <RuntimeIdentity
+                  runtime={runtime}
+                  localLabel={labels.localRuntime}
+                  worktreeLabel={labels.worktreeRuntime}
+                  compact
+                />
               </div>
               <div className="review-toolbar-actions">
                 <SegmentedControl<DiffScope>
