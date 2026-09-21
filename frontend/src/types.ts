@@ -20,6 +20,12 @@ export type Health = {
   pressure: boolean;
 };
 
+export type SessionUIPatch = {
+  title?: string;
+  pinned?: boolean;
+  archived?: boolean;
+};
+
 export type Session = {
   id: string;
   createdAt: string;
