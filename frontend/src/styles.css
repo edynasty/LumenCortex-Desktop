@@ -627,53 +627,6 @@ button:disabled { opacity: .42; cursor: default !important; }
 .memory-meter { height: 3px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: #e5e5e1; }
 .memory-meter span { display: block; height: 100%; background: #7d8b7f; }
 
-.provider-pane { padding: 15px; }
-.provider-pane-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
-.provider-pane-head strong, .provider-pane-head code { display: block; }
-.provider-pane-head strong { font-size: 10.5px; font-weight: 620; }
-.provider-pane-head code { margin-top: 3px; color: var(--muted); font: 8.5px var(--mono); }
-.provider-pane > p { margin: 0 0 11px; color: var(--muted); font-size: 8.5px; line-height: 1.6; }
-.save-provider-button {
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 9px;
-  font-weight: 580;
-  cursor: pointer;
-}
-.provider-editor {
-  width: 100%;
-  min-height: 390px;
-  resize: vertical;
-  padding: 11px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  outline: 0;
-  background: #fff;
-  color: #30302d;
-  font: 10px/1.62 var(--mono);
-  tab-size: 2;
-}
-.provider-editor:focus { border-color: #b8b8b2; }
-.provider-model-list { display: grid; gap: 5px; margin-top: 12px; }
-.provider-model-list button {
-  display: grid;
-  gap: 3px;
-  width: 100%;
-  padding: 8px 9px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  text-align: left;
-  cursor: pointer;
-}
-.provider-model-list button:hover, .provider-model-list button.selected { border-color: #c9c9c3; background: var(--surface-soft); }
-.provider-model-list span { font-size: 9.5px; font-weight: 560; }
-.provider-model-list code { color: var(--muted); font: 8.5px var(--mono); }
-
 .terminal-pane { padding: 16px 15px; }
 .terminal-title { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; color: var(--text-soft); font-size: 10px; font-weight: 600; }
 .terminal-pane textarea {
