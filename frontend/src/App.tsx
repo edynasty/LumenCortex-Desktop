@@ -697,6 +697,7 @@ export default function App() {
         ) : route.kind === "review" && current ? (
           <ReviewWorkspace
             workspace={state.workspace}
+            messages={messages}
             agentBusy={busy}
             agentRunning={running}
             onSendInstruction={sendReviewInstruction}
@@ -723,7 +724,11 @@ export default function App() {
               reviewInstruction: t.reviewInstruction,
               reviewInstructionPlaceholder: t.reviewInstructionPlaceholder,
               sendToAgent: t.sendToAgent,
-              agentRunning: t.agentRunning
+              agentRunning: t.agentRunning,
+              checks: t.checks,
+              checkPassed: t.checkPassed,
+              checkFailed: t.checkFailed,
+              checkTruncated: t.checkTruncated
             }}
           />
         ) : !current ? (
