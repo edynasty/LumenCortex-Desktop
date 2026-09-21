@@ -11,6 +11,8 @@ import (
 var ErrWorktreeActive = errors.New("cannot remove worktree for an active agent run")
 
 type SessionRuntime = lcx.SessionRuntime
+type RuntimeOwner = lcx.RuntimeOwner
+type WorktreeConflict = lcx.WorktreeConflict
 
 const (
 	RuntimeLocal    = lcx.RuntimeLocal
@@ -138,4 +140,15 @@ func (r *Runtime) SessionGitPush(ctx context.Context, sessionID string) (GitActi
 		return GitActionResult{}, ErrNoWorkspace
 	}
 	return engine.SessionGitPush(ctx, sessionID)
+}
+
+
+func (r *Runtime) WorktreeConflicts(ctx context.Context) ([]WorktreeConflict, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return nil, ErrNoWorkspace
+	}
+	return engine.WorktreeConflicts(ctx)
 }
