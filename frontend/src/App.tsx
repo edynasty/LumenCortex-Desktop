@@ -65,6 +65,7 @@ export default function App() {
   });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
+  const [contextPaths, setContextPaths] = useState<string[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageAtLatest, setMessageAtLatest] = useState(true);
   const [messageLoadingOlder, setMessageLoadingOlder] = useState(false);
@@ -311,6 +312,7 @@ export default function App() {
       setMessages([]);
       setMessageAtLatest(true);
       setWorkflowSummary(null);
+      setContextPaths([]);
       setEvents([]);
       setSidebarOpen(false);
     } catch (err) {
@@ -329,6 +331,28 @@ export default function App() {
       setWorkflowSummary(null);
       setEvents([]);
       setSidebarOpen(false);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  function mergeContextPaths(paths: string[]) {
+    setContextPaths((current) => Array.from(new Set([...current, ...paths])).slice(0, 32));
+  }
+
+  async function pickContextFiles() {
+    if (!state.workspace) return;
+    try {
+      mergeContextPaths(await bridge.pickContextFiles());
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  async function pickContextDirectory() {
+    if (!state.workspace) return;
+    try {
+      mergeContextPaths(await bridge.pickContextDirectory());
     } catch (err) {
       setError(String(err));
     }
@@ -378,7 +402,7 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      const session = await bridge.createSession(task);
+      const session = await bridge.createSessionWithContext(task, contextPaths);
       setState((currentState) => ({
         ...currentState,
         sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
@@ -388,6 +412,7 @@ export default function App() {
       setMessageAtLatest(true);
       setWorkflowSummary(null);
       setGoal("");
+      setContextPaths([]);
       try {
         const started = await bridge.startAgent(session.id, agentConfig());
         const nextState = await bridge.state();
@@ -745,6 +770,13 @@ export default function App() {
             modelRef={modelRef}
             models={configuredModels}
             noModelsLabel={t.modelFallback}
+            contextPaths={contextPaths}
+            contextLabels={{
+              context: t.context,
+              files: t.attachFiles,
+              folder: t.attachFolder,
+              remove: t.removeContext
+            }}
             policyLabel={t.policy}
             policy={policy}
             policyLabels={{
@@ -760,6 +792,9 @@ export default function App() {
             textareaRef={composerRef}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
+            onPickContextFiles={pickContextFiles}
+            onPickContextFolder={pickContextDirectory}
+            onRemoveContextPath={(path) => setContextPaths((current) => current.filter((item) => item !== path))}
             onPolicyChange={setPolicy}
             onPickWorkspace={pickWorkspace}
             onOpenWorkspace={openWorkspace}
