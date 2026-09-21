@@ -100,6 +100,14 @@ func (a *App) RecentMessages(sessionID string, limit int) ([]backend.Message, er
 	return a.backend.RecentMessages(context.Background(), sessionID, limit)
 }
 
+func (a *App) DiscoverProviderModels(providerID string) ([]backend.DiscoveredModel, error) {
+	return a.backend.DiscoverProviderModels(providerID)
+}
+
+func (a *App) TestProviderConnection(providerID string) (backend.ProviderConnectionResult, error) {
+	return a.backend.TestProviderConnection(providerID)
+}
+
 func (a *App) GetProviderCatalog() (backend.ProviderCatalog, error) {
 	return a.backend.ProviderCatalog()
 }
