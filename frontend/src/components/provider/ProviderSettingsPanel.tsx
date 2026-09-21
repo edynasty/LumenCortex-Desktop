@@ -162,7 +162,7 @@ export function ProviderSettingsPanel({
     [catalog]
   );
 
-  async function saveCatalog(next: ProviderCatalog) {
+  async function saveCatalog(next: ProviderCatalog): Promise<boolean> {
     setSaving(true);
     try {
       const saved = await bridge.saveProviderCatalogScope(scope, next);
@@ -181,9 +181,10 @@ export function ProviderSettingsPanel({
           ? selectedModelRef
           : effective.model || availableRefs[0] || "";
       onSelectedModelRef(nextSelected);
+      return true;
     } catch (err) {
       onError(String(err));
-      throw err;
+      return false;
     } finally {
       setSaving(false);
     }
@@ -231,7 +232,7 @@ export function ProviderSettingsPanel({
       models: previous?.models || {},
     };
 
-    await saveCatalog(next);
+    if (!(await saveCatalog(next))) return;
     setEditingProvider(null);
     setProviderDraft(emptyProvider);
     setExpandedProvider(id);
@@ -244,7 +245,7 @@ export function ProviderSettingsPanel({
     if (next.model?.startsWith(providerId + "/")) {
       next.model = undefined;
     }
-    await saveCatalog(next);
+    if (!(await saveCatalog(next))) return;
     if (expandedProvider === providerId) setExpandedProvider(null);
   }
 
@@ -282,7 +283,7 @@ export function ProviderSettingsPanel({
     }
 
     provider.models[modelId] = modelFromDraft(modelDraft);
-    await saveCatalog(next);
+    if (!(await saveCatalog(next))) return;
     setEditingModel(null);
     setModelDraft(emptyModel);
   }
@@ -303,7 +304,7 @@ export function ProviderSettingsPanel({
     const next = cloneCatalog(catalog);
     const ref = providerId + "/" + modelId;
     next.model = next.model === ref ? undefined : ref;
-    await saveCatalog(next);
+    if (!(await saveCatalog(next))) return;
     onSelectedModelRef(ref);
   }
 
@@ -390,6 +391,7 @@ export function ProviderSettingsPanel({
                       <button
                         type="button"
                         className="provider-expand"
+                        aria-expanded={expanded}
                         onClick={() => setExpandedProvider(expanded ? null : providerId)}
                       >
                         {expanded ? (
@@ -470,6 +472,7 @@ export function ProviderSettingsPanel({
                                       type="button"
                                       className={localDefault ? "selected" : ""}
                                       title={t.setDefault}
+                                      aria-label={t.setDefault}
                                       onClick={() => void setDefaultModel(providerId, modelId)}
                                     >
                                       <Star size={13} strokeWidth={1.7} fill={localDefault ? "currentColor" : "none"} aria-hidden />
@@ -518,6 +521,7 @@ export function ProviderSettingsPanel({
             <button
               type="button"
               className="provider-advanced-toggle"
+              aria-expanded={advancedOpen}
               onClick={() => {
                 setAdvancedOpen((value) => !value);
                 if (!advancedOpen && !advancedDirty) {
