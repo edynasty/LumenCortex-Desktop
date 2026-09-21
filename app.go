@@ -96,6 +96,10 @@ func (a *App) CreateSession(goal string) (backend.Session, error) {
 	return a.backend.CreateSession(context.Background(), goal)
 }
 
+func (a *App) MessagePage(sessionID string, beforeSeq int64, limit int) (backend.MessagePage, error) {
+	return a.backend.MessagePage(context.Background(), sessionID, beforeSeq, limit)
+}
+
 func (a *App) RecentMessages(sessionID string, limit int) ([]backend.Message, error) {
 	return a.backend.RecentMessages(context.Background(), sessionID, limit)
 }
