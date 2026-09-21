@@ -1,5 +1,103 @@
 # LumenCortex Desktop UI Product Blueprint
 
+## Design package index
+
+This document is the **master index and implementation roadmap** for the Desktop product.
+
+### Design source of truth
+
+Figma:
+`https://www.figma.com/design/Jr6qaL9kGPtj45VYn9m62q`
+
+Figma pages:
+- `01 Design System`
+- `02 Product Screens`
+- `03 Flows & Specs`
+
+Current reference screens:
+- `Screen / New Task / 1440`
+- `Screen / Provider Settings / 1440`
+- `Screen / Running Thread / 1440`
+- `Screen / Review Diff / 1440`
+
+### Product and UX specifications
+
+- [Product Requirements](product-requirements.md)
+  - product vision,
+  - target users,
+  - JTBD,
+  - milestones,
+  - success metrics.
+
+- [Information Architecture](information-architecture.md)
+  - navigation,
+  - product object hierarchy,
+  - thread state model,
+  - Provider configuration hierarchy,
+  - responsive IA.
+
+- [Interaction Specification](interaction-spec.md)
+  - task submission,
+  - model selection,
+  - Provider management,
+  - thread supervision,
+  - approvals,
+  - review,
+  - errors,
+  - long-task behavior.
+
+- [Design System](design-system.md)
+  - desktop grid,
+  - design tokens,
+  - typography,
+  - icons,
+  - component contracts,
+  - density,
+  - accessibility.
+
+- [Screen Specifications](screen-specs.md)
+  - New Task,
+  - Provider Settings,
+  - Running Thread,
+  - Review / Diff,
+  - states and acceptance criteria.
+
+- [Frontend Development Standard](frontend-development-standard.md)
+  - implementation rules and UI quality gates.
+
+- [AI Development Standard](ai-development-standard.md)
+  - agent implementation discipline, validation and architecture rules.
+
+### Traceability matrix
+
+| Slice | Product spec | Figma | Runtime dependency | Implementation status |
+|---|---|---|---|---|
+| UI-01 Provider | PRD / Interaction / Screen Specs | Provider Settings | Provider catalog | In progress |
+| UI-02 New Task | PRD / Interaction / Screen Specs | New Task | Session + Provider | Not started |
+| UI-03 Sidebar | IA / Screen Specs | New Task + Running Thread | Session list | Not started |
+| UI-04 Thread | Interaction / Screen Specs | Running Thread | Agent events/messages | Not started |
+| UI-05 Review | PRD / Interaction / Screen Specs | Review Diff | Git/diff tools | Blocked by CORE-01 |
+| UI-06 Parallel | PRD / IA | Flows & Specs | Run supervisor/worktree | Blocked by CORE-04 |
+| UI-07 Extensions | PRD / IA | To be designed | MCP/LSP/Skills | Blocked by CORE-02/03 |
+
+### Design delivery rule
+
+A UI slice is not considered design-complete until it has:
+
+1. product intent,
+2. information placement,
+3. interaction/state specification,
+4. Figma desktop reference,
+5. responsive behavior,
+6. component mapping,
+7. backend/source-of-truth mapping,
+8. acceptance criteria,
+9. implementation TODO,
+10. QA checklist.
+
+---
+
+
 This document defines the product and UI direction for LumenCortex Desktop.
 
 It is informed by:
