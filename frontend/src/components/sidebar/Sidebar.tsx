@@ -9,10 +9,14 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Session } from "../../types";
+import { ThreadRow } from "./ThreadRow";
 
 export type SidebarThread = {
   session: Session;
+  title: string;
   active: boolean;
+  pinned: boolean;
+  archived: boolean;
   statusLabel: string;
 };
 
@@ -48,25 +52,26 @@ type Props = {
     runtimeReady: string;
     runtimeOnline: string;
     runtimeOffline: string;
+    renameThread: string;
+    pinThread: string;
+    unpinThread: string;
+    archiveThread: string;
+    restoreThread: string;
+    save: string;
+    cancel: string;
+    threadMenu: string;
   };
   onClose: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
   onSelectSession: (sessionId: string) => void;
+  onRenameSession: (sessionId: string, title: string) => void;
+  onPinSession: (sessionId: string, pinned: boolean) => void;
+  onArchiveSession: (sessionId: string, archived: boolean) => void;
   onOpenProviders: () => void;
   onSwitchLocale: () => void;
 };
-
-function formatClock(value: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 export function Sidebar({
   open,
@@ -84,6 +89,9 @@ export function Sidebar({
   onPickWorkspace,
   onOpenWorkspace,
   onSelectSession,
+  onRenameSession,
+  onPinSession,
+  onArchiveSession,
   onOpenProviders,
   onSwitchLocale,
 }: Props) {
@@ -95,7 +103,8 @@ export function Sidebar({
     return groups
       .map((group) => ({
         ...group,
-        sessions: group.sessions.filter(({ session }) =>
+        sessions: group.sessions.filter(({ session, title }) =>
+          title.toLowerCase().includes(normalized) ||
           session.goal.toLowerCase().includes(normalized) ||
           session.provider?.toLowerCase().includes(normalized) ||
           session.model?.toLowerCase().includes(normalized)
@@ -171,18 +180,31 @@ export function Sidebar({
               <span>{group.label}</span>
               <span>{group.sessions.length}</span>
             </div>
-            {group.sessions.map(({ session, active, statusLabel }) => (
-              <button
+            {group.sessions.map(({ session, title, active, pinned, archived, statusLabel }) => (
+              <ThreadRow
                 key={session.id}
-                className={`thread-item ${session.id === selectedSessionId ? "selected" : ""}`}
-                onClick={() => onSelectSession(session.id)}
-              >
-                <span className={`thread-dot ${active ? "live" : session.status}`} />
-                <span className="thread-copy">
-                  <strong>{session.goal}</strong>
-                  <small>{statusLabel} · {formatClock(session.updatedAt)}</small>
-                </span>
-              </button>
+                session={session}
+                title={title}
+                active={active}
+                pinned={pinned}
+                archived={archived}
+                selected={session.id === selectedSessionId}
+                statusLabel={statusLabel}
+                labels={{
+                  rename: labels.renameThread,
+                  pin: labels.pinThread,
+                  unpin: labels.unpinThread,
+                  archive: labels.archiveThread,
+                  restore: labels.restoreThread,
+                  save: labels.save,
+                  cancel: labels.cancel,
+                  menu: labels.threadMenu,
+                }}
+                onSelect={() => onSelectSession(session.id)}
+                onRename={(title) => onRenameSession(session.id, title)}
+                onPinnedChange={(value) => onPinSession(session.id, value)}
+                onArchivedChange={(value) => onArchiveSession(session.id, value)}
+              />
             ))}
           </section>
         ))}
