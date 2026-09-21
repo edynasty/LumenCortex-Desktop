@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 )
@@ -146,5 +147,37 @@ func TestProviderCatalogScopeReadsAndWritesRawSources(t *testing.T) {
 	}
 	if _, ok := effective.Providers["project"].Models["p"]; !ok {
 		t.Fatalf("project provider missing from effective catalog: %#v", effective)
+	}
+}
+
+
+func TestProviderCatalogRejectsLiteralAPIKeyOnSave(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	catalog := ProviderCatalog{
+		Providers: map[string]ProviderDefinition{
+			"demo": {
+				Package: "openai-compatible",
+				Settings: ProviderSettings{APIKey: "sk-literal-secret"},
+			},
+		},
+	}
+	err := saveProviderCatalog("", catalog)
+	if !errors.Is(err, ErrLiteralProviderSecret) {
+		t.Fatalf("err=%v, want ErrLiteralProviderSecret", err)
+	}
+}
+
+func TestProviderCatalogAllowsEnvironmentSecretReference(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	catalog := ProviderCatalog{
+		Providers: map[string]ProviderDefinition{
+			"demo": {
+				Package: "openai-compatible",
+				Settings: ProviderSettings{APIKey: "{env:DEMO_API_KEY}"},
+			},
+		},
+	}
+	if err := saveProviderCatalog("", catalog); err != nil {
+		t.Fatal(err)
 	}
 }
