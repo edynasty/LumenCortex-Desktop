@@ -404,7 +404,7 @@ export function ProviderSettingsPanel({
           <h2>{t.title}</h2>
           <p>{t.subtitle}</p>
         </div>
-        <button className="provider-primary-button" type="button" onClick={startAddProvider}>
+        <button className="provider-primary-button" type="button" onClick={() => startAddProvider()}>
           <Plus size={14} strokeWidth={1.8} aria-hidden />
           {t.addProvider}
         </button>
@@ -464,7 +464,7 @@ export function ProviderSettingsPanel({
               <Server size={22} strokeWidth={1.6} aria-hidden />
               <strong>{t.noProviders}</strong>
               <p>{scope === "workspace" ? t.emptyProjectScope : t.noProvidersBody}</p>
-              <button type="button" onClick={startAddProvider}>
+              <button type="button" onClick={() => startAddProvider()}>
                 <Plus size={14} strokeWidth={1.8} aria-hidden />
                 {t.addProvider}
               </button>
