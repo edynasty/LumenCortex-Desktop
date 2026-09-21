@@ -62,6 +62,6 @@ describe("ProviderSettingsPanel", () => {
       />
     );
 
-    expect(await screen.findByRole("button", { name: /^Project$/i })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: /Project.*Overrides this project only/i })).toBeDisabled();
   });
 });
