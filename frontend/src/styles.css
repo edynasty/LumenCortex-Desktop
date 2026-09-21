@@ -1201,3 +1201,46 @@
 .thread-rename-input:focus {
   border-color: #bbbcb7;
 }
+
+
+.runtime-identity {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.runtime-identity code {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--text-soft);
+  font: 8.5px/1.3 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-identity small {
+  color: var(--faint);
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.runtime-identity.worktree {
+  color: var(--blue);
+}
+
+.runtime-identity.compact {
+  gap: 3px;
+  font-size: inherit;
+}
+
+.runtime-identity.compact code {
+  max-width: 150px;
+  font-size: inherit;
+}
+
+.thread-copy small .runtime-identity {
+  display: inline-flex;
+  vertical-align: middle;
+}
