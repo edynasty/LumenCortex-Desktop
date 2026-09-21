@@ -76,6 +76,10 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 	if err != nil {
 		return WorkspaceState{}, err
 	}
+	if _, err := next.RecoverStaleRuns(ctx); err != nil {
+		_ = next.Close()
+		return WorkspaceState{}, err
+	}
 	nextSupervisor, err := lcx.NewRunSupervisor(next)
 	if err != nil {
 		_ = next.Close()
