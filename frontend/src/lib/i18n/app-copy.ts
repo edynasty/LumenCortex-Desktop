@@ -80,7 +80,9 @@ export const copy = {
     messageRoleUser: "你",
     messageRoleAssistant: "LumenCortex",
     messageRoleTool: "工具",
-    messageRoleSystem: "系统"
+    messageRoleSystem: "系统",
+    approvalTitle: "需要确认",
+    approve: "批准"
   },
   en: {
     newTask: "New task",
@@ -161,7 +163,9 @@ export const copy = {
     messageRoleUser: "You",
     messageRoleAssistant: "LumenCortex",
     messageRoleTool: "Tool",
-    messageRoleSystem: "System"
+    messageRoleSystem: "System",
+    approvalTitle: "Approval required",
+    approve: "Approve"
   }
 } as const;
 
