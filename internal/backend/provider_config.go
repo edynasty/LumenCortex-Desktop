@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -50,6 +54,16 @@ type ProviderModel struct {
 type ModelLimit struct {
 	Context int `json:"context,omitempty"`
 	Output  int `json:"output,omitempty"`
+}
+
+type DiscoveredModel struct {
+	ID string `json:"id"`
+}
+
+type ProviderConnectionResult struct {
+	OK     bool   `json:"ok"`
+	Models int    `json:"models"`
+	Message string `json:"message"`
 }
 
 func defaultProviderCatalog() ProviderCatalog {
@@ -384,4 +398,84 @@ func resolveEnvReference(value string) string {
 		return os.Getenv(name)
 	}
 	return value
+}
+
+
+func providerModelsURL(provider ProviderDefinition) (string, error) {
+	base := strings.TrimSpace(provider.Settings.BaseURL)
+	if base == "" {
+		endpoint := strings.TrimSpace(provider.Settings.Endpoint)
+		if endpoint != "" {
+			base = strings.TrimSuffix(endpoint, "/chat/completions")
+		}
+	}
+	if base == "" {
+		return "", errors.New("provider baseURL is required for model discovery")
+	}
+	parsed, err := url.Parse(base)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", errors.New("provider baseURL is invalid")
+	}
+	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/models"
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String(), nil
+}
+
+func discoverProviderModels(catalog ProviderCatalog, providerID string) ([]DiscoveredModel, error) {
+	provider, ok := catalog.Providers[providerID]
+	if !ok {
+		return nil, fmt.Errorf("%s: %w", providerID, ErrProviderNotFound)
+	}
+	if !supportedProviderPackage(provider.Package) {
+		return nil, fmt.Errorf("%s: %w", providerID, ErrProviderUnsupported)
+	}
+	modelsURL, err := providerModelsURL(provider)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodGet, modelsURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	if key := resolveEnvReference(provider.Settings.APIKey); key != "" {
+		req.Header.Set("Authorization", "Bearer "+key)
+	}
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 12 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("provider models request failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var payload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, fmt.Errorf("parse provider models response: %w", err)
+	}
+	out := make([]DiscoveredModel, 0, len(payload.Data))
+	seen := map[string]bool{}
+	for _, item := range payload.Data {
+		id := strings.TrimSpace(item.ID)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, DiscoveredModel{ID: id})
+		if len(out) >= 500 {
+			break
+		}
+	}
+	return out, nil
 }
