@@ -15,6 +15,7 @@ describe("frontend architecture", () => {
     const src = path.resolve(process.cwd(), "src");
     const offenders = walk(src)
       .filter((file) => !file.endsWith(path.join("lib", "bridge.ts")))
+      .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
       .filter((file) => {
         const content = fs.readFileSync(file, "utf8");
         return content.includes("window.go") || content.includes("window.runtime");
