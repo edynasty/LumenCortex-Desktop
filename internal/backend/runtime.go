@@ -245,6 +245,26 @@ func (r *Runtime) CancelAgent(sessionID string) bool {
 	return supervisor.Cancel(sessionID)
 }
 
+func (r *Runtime) WorkflowSummary(ctx context.Context, sessionID string) (any, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return nil, ErrNoWorkspace
+	}
+	return engine.WorkflowSummary(ctx, sessionID)
+}
+
+func (r *Runtime) ApproveWorkflowGate(ctx context.Context, sessionID, gateID, actor string) (any, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return nil, ErrNoWorkspace
+	}
+	return engine.ApproveWorkflowGate(ctx, sessionID, gateID, actor)
+}
+
 func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
