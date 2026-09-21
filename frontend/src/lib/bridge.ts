@@ -27,6 +27,7 @@ type AppAPI = {
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalog>;
   SaveProviderCatalogScope(scope: ProviderCatalogScope, config: ProviderCatalog): Promise<ProviderCatalog>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
+  ContinueAgent(sessionId: string, content: string, config: AgentConfig): Promise<Session>;
   CancelAgent(sessionId: string): Promise<boolean>;
   GetWorkflowSummary(sessionId: string): Promise<WorkflowSummary | null>;
   ApproveWorkflowGate(sessionId: string, gateId: string): Promise<WorkflowSummary>;
@@ -66,6 +67,7 @@ export const bridge = {
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
   saveProviderCatalogScope: (scope: ProviderCatalogScope, config: ProviderCatalog) => api().SaveProviderCatalogScope(scope, config),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
+  continueAgent: (sessionId: string, content: string, config: AgentConfig) => api().ContinueAgent(sessionId, content, config),
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
   workflowSummary: (sessionId: string) => api().GetWorkflowSummary(sessionId),
   approveWorkflowGate: (sessionId: string, gateId: string) => api().ApproveWorkflowGate(sessionId, gateId),
