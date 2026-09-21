@@ -756,7 +756,7 @@ Priority: **P0**
   - tool
   - system
 - [x] **UI-04.3 Render Markdown**
-- [ ] **UI-04.4 Render syntax-highlighted code blocks**
+- [x] **UI-04.4 Render syntax-highlighted code blocks**
 - [x] **UI-04.5 Collapse raw tool events by default**
 - [ ] **UI-04.6 Show meaningful milestones instead of event spam**
 - [x] **UI-04.7 Add expandable tool-call cards**
@@ -788,15 +788,15 @@ Runtime dependency:
 - [x] **UI-05.3 Add file change statistics**
 - [x] **UI-05.4 Add unified diff renderer**
 - [x] **UI-05.5 Add split diff renderer**
-- [ ] **UI-05.6 Add syntax highlighting**
-- [ ] **UI-05.7 Add inline review comments/instructions**
+- [x] **UI-05.6 Add syntax highlighting**
+- [x] **UI-05.7 Add inline review comments/instructions**
 - [x] **UI-05.8 Add per-file revert**
 - [x] **UI-05.9 Add stage/unstage**
 - [x] **UI-05.10 Add commit action**
 - [x] **UI-05.11 Add push action**
 - [ ] **UI-05.12 Add test/check summary beside changes**
 - [~] **UI-05.13 Lazy-load very large diffs**
-- [~] **UI-05.14 Add binary/large-file fallback states**
+- [x] **UI-05.14 Add binary/large-file fallback states**
 
 Acceptance:
 - A coding task can be reviewed without leaving LumenCortex.
