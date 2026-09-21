@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { Message } from "../../types";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
 import { SyntaxLine } from "../code/SyntaxLine";
@@ -6,12 +7,15 @@ import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { CheckSummary } from "./CheckSummary";
+import { extractCheckResults } from "./checks";
 import { diffStats, parseUnifiedDiff, splitDiffRows } from "./diff";
 import { useReviewState, type DiffScope } from "./useReviewState";
 import "./review.css";
 
 type Props = {
   workspace: string;
+  messages: Message[];
   agentBusy: boolean;
   agentRunning: boolean;
   onSendInstruction: (path: string, instruction: string) => Promise<void> | void;
@@ -39,6 +43,10 @@ type Props = {
     reviewInstructionPlaceholder: string;
     sendToAgent: string;
     agentRunning: string;
+    checks: string;
+    checkPassed: string;
+    checkFailed: string;
+    checkTruncated: string;
   };
 };
 
@@ -48,7 +56,7 @@ function statusLabel(index: string, worktree: string) {
   return worktree === " " ? "M" : worktree;
 }
 
-export function ReviewWorkspace({ workspace, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
+export function ReviewWorkspace({ workspace, messages, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
   const review = useReviewState(workspace);
   const [mode, setMode] = useState<"unified" | "split">("unified");
   const [revertOpen, setRevertOpen] = useState(false);
@@ -57,6 +65,7 @@ export function ReviewWorkspace({ workspace, agentBusy, agentRunning, onSendInst
   const lines = useMemo(() => parseUnifiedDiff(review.diff.content), [review.diff.content]);
   const rows = useMemo(() => splitDiffRows(lines), [lines]);
   const stats = useMemo(() => diffStats(lines), [lines]);
+  const checks = useMemo(() => extractCheckResults(messages), [messages]);
   const language = useMemo(() => languageFromPath(review.selectedPath), [review.selectedPath]);
   const binaryDiff = /(^|\n)(Binary files .* differ|GIT binary patch)(\n|$)/.test(review.diff.content);
   const canStage = Boolean(review.selectedFile && (review.selectedFile.worktree !== " " || review.selectedFile.index === "?"));
@@ -124,6 +133,16 @@ export function ReviewWorkspace({ workspace, agentBusy, agentRunning, onSendInst
             {review.diff.truncated && <div className="review-warning">{labels.truncated}</div>}
             {review.error && <div className="review-error">{review.error}</div>}
             {review.notice && <div className="review-notice">{review.notice}</div>}
+
+            <CheckSummary
+              results={checks}
+              labels={{
+                checks: labels.checks,
+                passed: labels.checkPassed,
+                failed: labels.checkFailed,
+                truncated: labels.checkTruncated,
+              }}
+            />
 
             <div className="review-diff">
               {review.loading ? (
