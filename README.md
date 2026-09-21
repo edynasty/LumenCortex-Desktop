@@ -1,9 +1,79 @@
 # LumenCortex Desktop
 
-A lightweight desktop workspace for LumenCortex.
+A lightweight desktop workspace for the LumenCortex bounded-memory coding-agent runtime.
 
-The desktop client is designed around the same bounded-memory runtime as LumenCortex: Session history stays durable, tool output streams instead of accumulating unbounded buffers, and the UI consumes bounded event windows.
+The first implementation targets macOS with **Wails v2 + Go + React/TypeScript**. The Desktop embeds the public LumenCortex Go `runtime.Engine` in-process by default instead of starting a second agent daemon.
 
-## Status
+## Current milestone
 
-Early implementation. The first milestone targets macOS with Wails + Go + React, while keeping the UI/runtime boundary portable to Windows and Linux.
+Implemented in the first vertical slice:
+
+- open a local workspace with the native directory picker,
+- embed the LumenCortex Go runtime,
+- reuse the workspace's `.lumencortex/lumencortex.db`,
+- list and create durable Sessions,
+- receive bounded live runtime/tool events,
+- run a shell smoke command inside a Session,
+- show runtime memory budget/pressure information,
+- keep only the latest 200 transient UI events,
+- build the frontend with React + Vite,
+- test the backend adapter against the real embedded runtime.
+
+The full Go Agent Loop, Workflow, Cognitive Graph, LSP/MCP and Subagent parity is being migrated in the Core repository. Desktop deliberately does not reimplement those systems.
+
+## Architecture
+
+```text
+React / TypeScript
+        │
+        │ Wails bindings
+        ▼
+Desktop Go adapter
+        │
+        ▼
+LumenCortex runtime.Engine
+        │
+        ├── SQLite Sessions
+        ├── bounded event stream
+        ├── bounded tool output
+        └── resource budget
+```
+
+See [docs/architecture.md](docs/architecture.md).
+
+## Development
+
+Requirements:
+
+- Go 1.27+
+- Node.js 24+
+- Wails v2.16.0+
+
+```bash
+go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+wails doctor
+wails dev
+```
+
+Frontend only:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend-only browser mode can render the shell, but Go-bound actions require running through Wails.
+
+## Memory model
+
+Desktop follows the Core invariants:
+
+```text
+Session size     != RAM size
+Tool output size != RAM size
+Graph size       != RAM size
+Task duration    != linear RSS growth
+```
+
+The UI must use paging/virtualization/bounded buffers for structures that can grow with task duration. Durable Session and cognitive state belong to Core storage rather than duplicated frontend state.
