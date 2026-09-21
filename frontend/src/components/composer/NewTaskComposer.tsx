@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, RefObject } from "react";
+import type { FormEvent, KeyboardEvent, Ref } from "react";
 import { ArrowUp, Folder, HardDrive, Settings2 } from "lucide-react";
 import "./new-task-composer.css";
 
@@ -28,7 +28,7 @@ type Props = {
   startLabel: string;
   goal: string;
   busy: boolean;
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  textareaRef: Ref<HTMLTextAreaElement>;
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onPolicyChange: (value: ComposerPolicy) => void;
