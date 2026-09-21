@@ -609,7 +609,7 @@ export default function App() {
             {health?.version && <code>{health.version}</code>}
           </div>
           <button
-            className="footer-button provider-settings-entry"
+            className={`footer-button provider-settings-entry ${workspaceView === "providers" ? "active" : ""}`}
             onClick={() => {
               setWorkspaceView("providers");
               setInspectorOpen(false);
