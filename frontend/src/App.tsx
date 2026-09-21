@@ -2,13 +2,14 @@ import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useS
 import {
   ArrowUp,
   ChevronRight,
+  CircleCheck,
+  Code2,
   Folder,
   Languages,
   Menu,
   PanelRight,
   Plus,
   Settings2,
-  Sparkles,
   Square,
   SquareTerminal,
   X
@@ -178,7 +179,7 @@ const copy = {
   }
 } as const;
 
-type IconName = "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "spark" | "close";
+type IconName = "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "close";
 
 function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   const props = { size, strokeWidth: 1.7, "aria-hidden": true as const };
@@ -192,7 +193,6 @@ function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
     case "terminal": return <SquareTerminal {...props} />;
     case "globe": return <Languages {...props} />;
     case "chevron": return <ChevronRight {...props} />;
-    case "spark": return <Sparkles {...props} />;
     case "close": return <X {...props} />;
   }
 }
@@ -536,7 +536,7 @@ export default function App() {
     <div className="app-shell">
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-head">
-          <div className="brand-mark"><Icon name="spark" size={17} /></div>
+          <div className="brand-mark" aria-hidden>LC</div>
           <div className="brand-copy">
             <strong>LumenCortex</strong>
             <span>Desktop</span>
@@ -658,7 +658,7 @@ export default function App() {
 
           {!state.workspace ? (
             <div className="center-state onboarding">
-              <div className="hero-mark"><Icon name="spark" size={30} /></div>
+              <div className="hero-mark"><Code2 size={25} strokeWidth={1.6} aria-hidden /></div>
               <h1>{t.openRepoTitle}</h1>
               <p>{t.openRepoBody}</p>
               <button className="primary-action" onClick={pickWorkspace}>
@@ -668,7 +668,7 @@ export default function App() {
             </div>
           ) : !current ? (
             <div className="center-state new-thread-state">
-              <div className="hero-mark small"><Icon name="spark" size={24} /></div>
+              <div className="hero-mark small"><Code2 size={22} strokeWidth={1.6} aria-hidden /></div>
               <h1>{t.buildTitle}</h1>
               <p>{t.buildBody}</p>
             </div>
@@ -676,7 +676,7 @@ export default function App() {
             <div className="thread-view">
               <div className="thread-content">
                 <section className="task-intro">
-                  <div className="task-icon"><Icon name="spark" size={16} /></div>
+                  <div className="task-icon"><Code2 size={15} strokeWidth={1.7} aria-hidden /></div>
                   <div>
                     <span>{t.newTask}</span>
                     <h1>{current.goal}</h1>
@@ -712,7 +712,7 @@ export default function App() {
 
                 {current.final && (
                   <section className="final-result">
-                    <div className="final-label"><Icon name="spark" size={14} /> {t.finalAnswer}</div>
+                    <div className="final-label"><CircleCheck size={14} strokeWidth={1.7} aria-hidden /> {t.finalAnswer}</div>
                     <p>{current.final}</p>
                   </section>
                 )}
