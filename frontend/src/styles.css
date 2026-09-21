@@ -79,6 +79,78 @@
   color: var(--text-soft);
 }
 .project-copy { min-width: 0; }
+
+.recent-projects {
+  display: grid;
+  gap: 2px;
+  padding: 2px 4px 7px;
+}
+
+.recent-projects > span {
+  padding: 3px 7px;
+  color: var(--faint);
+  font-size: 8.5px;
+}
+
+.recent-projects button {
+  min-width: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-projects button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.recent-projects button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-search {
+  height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 4px 4px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--faint);
+}
+
+.thread-search:focus-within {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+.thread-search input {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 9.5px;
+}
+
+.thread-search input::placeholder {
+  color: var(--faint);
+}
 .project-copy small, .project-copy strong { display: block; }
 .project-copy small { margin-bottom: 3px; color: var(--muted); font-size: 9px; }
 .project-copy strong {
