@@ -1069,3 +1069,28 @@
     flex-direction: column;
   }
 }
+
+
+.thread-tool-card.failed {
+  border-color: #ead0d3;
+}
+
+.thread-tool-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 9px 7px 45px;
+}
+
+.thread-tool-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 8px/1.3 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
