@@ -1,6 +1,7 @@
 import type { FormEvent, KeyboardEvent, Ref } from "react";
 import { ArrowUp, Folder, Settings2 } from "lucide-react";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { ContextAttachments } from "./ContextAttachments";
 import "./new-task-composer.css";
 
 export type ComposerPolicy = "read-only" | "workspace" | "full";
@@ -25,6 +26,13 @@ type Props = {
   modelRef: string;
   models: ModelOption[];
   noModelsLabel: string;
+  contextPaths: string[];
+  contextLabels: {
+    context: string;
+    files: string;
+    folder: string;
+    remove: string;
+  };
   policyLabel: string;
   policy: ComposerPolicy;
   policyLabels: Record<ComposerPolicy, string>;
@@ -36,6 +44,9 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
+  onPickContextFiles: () => void;
+  onPickContextFolder: () => void;
+  onRemoveContextPath: (path: string) => void;
   onPolicyChange: (value: ComposerPolicy) => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -57,6 +68,8 @@ export function NewTaskComposer({
   modelRef,
   models,
   noModelsLabel,
+  contextPaths,
+  contextLabels,
   policyLabel,
   policy,
   policyLabels,
@@ -68,6 +81,9 @@ export function NewTaskComposer({
   textareaRef,
   onGoalChange,
   onModelChange,
+  onPickContextFiles,
+  onPickContextFolder,
+  onRemoveContextPath,
   onPolicyChange,
   onPickWorkspace,
   onOpenWorkspace,
@@ -94,6 +110,15 @@ export function NewTaskComposer({
           aria-label={title}
           rows={4}
           autoFocus
+        />
+
+        <ContextAttachments
+          paths={contextPaths}
+          disabled={!workspace || busy}
+          labels={contextLabels}
+          onPickFiles={onPickContextFiles}
+          onPickFolder={onPickContextFolder}
+          onRemove={onRemoveContextPath}
         />
 
         <div className="new-task-controls">
