@@ -628,3 +628,42 @@
 .provider-dialog-button.danger:hover {
   background: #fff0f1;
 }
+
+
+.provider-presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 14px 0 10px;
+}
+
+.provider-presets > span {
+  margin-right: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.provider-presets button {
+  height: 27px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.provider-presets button:hover {
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+.provider-action-notice {
+  padding: 7px 12px;
+  border-top: 1px solid var(--border);
+  background: #f6faf7;
+  color: var(--green);
+  font-size: 9px;
+}
