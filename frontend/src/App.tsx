@@ -582,7 +582,6 @@ export default function App() {
             startLabel={t.start}
             goal={goal}
             busy={busy}
-            workflowSummary={workflowSummary}
             textareaRef={composerRef}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
@@ -607,6 +606,7 @@ export default function App() {
             policyLabel={policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}
             goal={goal}
             busy={busy}
+            workflowSummary={workflowSummary}
             textareaRef={composerRef}
             labels={{
               newTask: t.newTask,
