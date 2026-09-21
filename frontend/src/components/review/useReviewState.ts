@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
-import type { GitDiff, GitFileStatus, GitStatus } from "../../types";
+import type { GitDiff, GitFileStatus, GitStatus, WorktreeConflict } from "../../types";
 
 export type DiffScope = "worktree" | "staged";
 
 export function useReviewState(sessionId: string) {
   const [status, setStatus] = useState<GitStatus>({ files: [] });
+  const [conflicts, setConflicts] = useState<WorktreeConflict[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [scope, setScope] = useState<DiffScope>("worktree");
   const [diff, setDiff] = useState<GitDiff>({ content: "", bytes: 0, truncated: false, staged: false });
@@ -17,13 +18,18 @@ export function useReviewState(sessionId: string) {
   const refresh = useCallback(async () => {
     if (!sessionId) {
       setStatus({ files: [] });
+      setConflicts([]);
       setSelectedPath("");
       return;
     }
     setLoading(true);
     try {
-      const next = await bridge.sessionGitStatus(sessionId);
+      const [next, nextConflicts] = await Promise.all([
+        bridge.sessionGitStatus(sessionId),
+        bridge.worktreeConflicts(),
+      ]);
       setStatus(next);
+      setConflicts(nextConflicts);
       setSelectedPath((current) =>
         current && next.files.some((item) => item.path === current)
           ? current
@@ -90,6 +96,7 @@ export function useReviewState(sessionId: string) {
 
   return {
     status,
+    conflicts,
     selectedPath,
     setSelectedPath,
     selectedFile,
