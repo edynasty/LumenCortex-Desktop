@@ -1094,3 +1094,110 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+.thread-item-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.thread-item-row:hover,
+.thread-item-row.selected {
+  background: var(--surface-hover);
+}
+
+.thread-item-row.selected {
+  background: var(--surface-active);
+}
+
+.thread-item-row .thread-item-main {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+}
+
+.thread-item-row .thread-item-main:hover,
+.thread-item-row.selected .thread-item-main {
+  background: transparent;
+}
+
+.thread-menu-trigger {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.thread-item-row:hover .thread-menu-trigger,
+.thread-item-row.selected .thread-menu-trigger,
+.thread-menu-trigger[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.thread-menu-trigger:hover,
+.thread-menu-trigger[aria-expanded="true"] {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.thread-menu-popover {
+  left: auto;
+  right: 0;
+  top: calc(100% + 4px);
+  bottom: auto;
+  min-width: 154px;
+}
+
+.thread-context-menu {
+  display: grid;
+  padding: 5px;
+}
+
+.thread-context-menu button {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 9.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thread-context-menu button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.thread-context-menu button:disabled {
+  color: var(--faint);
+}
+
+.thread-rename-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  outline: 0;
+  font-size: 10.5px;
+}
+
+.thread-rename-input:focus {
+  border-color: #bbbcb7;
+}
