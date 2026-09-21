@@ -81,7 +81,7 @@ The UI must use paging/virtualization/bounded buffers for structures that can gr
 
 ## Provider configuration
 
-LumenCortex Desktop reads provider and model definitions from `lumencortex.json` in the workspace root. Model references use `provider/model`, similar to OpenCode.
+LumenCortex Desktop supports a global provider catalog at `~/.config/lumencortex/lumencortex.json` plus an optional `lumencortex.json` in the workspace root. Workspace settings override matching global provider/model settings. Model references use `provider/model`, similar to OpenCode.
 
 ```json
 {
@@ -110,7 +110,7 @@ LumenCortex Desktop reads provider and model definitions from `lumencortex.json`
 }
 ```
 
-The Desktop model picker is populated from this catalog. `settings.apiKey` supports `{env:VARIABLE_NAME}`; environment references are recommended so secrets do not need to be stored in the workspace file. If no configured model is selected, the existing `LCX_MODEL`, `LCX_BASE_URL`, `LCX_ENDPOINT`, and `LCX_API_KEY` environment fallbacks remain available.
+The Desktop model picker is populated from the effective merged catalog. With no workspace open, the Provider settings surface edits the global catalog; with a workspace open, it edits the workspace override. `settings.apiKey` supports `{env:VARIABLE_NAME}`; environment references are recommended so secrets do not need to be stored in either config file. If no configured model is selected, the existing `LCX_MODEL`, `LCX_BASE_URL`, `LCX_ENDPOINT`, and `LCX_API_KEY` environment fallbacks remain available.
 
 
 ## Engineering standards
