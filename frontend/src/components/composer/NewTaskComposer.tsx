@@ -1,5 +1,6 @@
 import type { FormEvent, KeyboardEvent, Ref } from "react";
 import { ArrowUp, Folder, HardDrive, Settings2 } from "lucide-react";
+import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import "./new-task-composer.css";
 
 export type ComposerPolicy = "read-only" | "workspace" | "full";
@@ -7,6 +8,8 @@ export type ComposerPolicy = "read-only" | "workspace" | "full";
 type ModelOption = {
   ref: string;
   label: string;
+  description?: string;
+  group?: string;
 };
 
 type Props = {
@@ -94,27 +97,32 @@ export function NewTaskComposer({
               <span>{workspace ? workspaceName : chooseProjectLabel}</span>
             </button>
 
-            <label className="composer-select-control">
-              <span className="sr-only">{modelLabel}</span>
-              <select value={modelRef} onChange={(event) => onModelChange(event.target.value)}>
-                <option value="">{noModelsLabel}</option>
-                {models.map((item) => (
-                  <option key={item.ref} value={item.ref}>{item.label}</option>
-                ))}
-              </select>
-            </label>
+            <DesktopSelect
+              ariaLabel={modelLabel}
+              value={modelRef}
+              placeholder={noModelsLabel}
+              className="composer-desktop-select model-select"
+              options={models.map<SelectOption>((item) => ({
+                value: item.ref,
+                label: item.label,
+                description: item.description,
+                group: item.group,
+              }))}
+              onChange={onModelChange}
+            />
 
-            <label className="composer-select-control">
-              <span className="sr-only">{policyLabel}</span>
-              <select
-                value={policy}
-                onChange={(event) => onPolicyChange(event.target.value as ComposerPolicy)}
-              >
-                <option value="read-only">{policyLabels["read-only"]}</option>
-                <option value="workspace">{policyLabels.workspace}</option>
-                <option value="full">{policyLabels.full}</option>
-              </select>
-            </label>
+            <DesktopSelect
+              ariaLabel={policyLabel}
+              value={policy}
+              placeholder={policyLabels.workspace}
+              className="composer-desktop-select policy-select"
+              options={[
+                { value: "read-only", label: policyLabels["read-only"] },
+                { value: "workspace", label: policyLabels.workspace },
+                { value: "full", label: policyLabels.full },
+              ]}
+              onChange={(value) => onPolicyChange(value as ComposerPolicy)}
+            />
 
             <span className="composer-static-control">
               <HardDrive size={13} strokeWidth={1.7} aria-hidden />
