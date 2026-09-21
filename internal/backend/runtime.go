@@ -243,6 +243,7 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 			close(run.done)
 		}()
 		_, _ = engine.RunAgent(runCtx, sessionID, client, lcx.AgentOptions{
+			ProviderName:        "openai-compatible",
 			Policy:              normalizedPolicy(cfg.Policy),
 			MaxSteps:            cfg.MaxSteps,
 			RecentMessages:      cfg.RecentMessages,
