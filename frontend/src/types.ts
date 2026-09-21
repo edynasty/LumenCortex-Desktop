@@ -91,6 +91,16 @@ export type ProviderConfig = {
   disableRetries?: boolean;
 };
 
+export type DiscoveredModel = {
+  id: string;
+};
+
+export type ProviderConnectionResult = {
+  ok: boolean;
+  models: number;
+  message: string;
+};
+
 export type ProviderModel = {
   name?: string;
   modelID?: string;
