@@ -13,6 +13,7 @@ import { ThreadRow } from "./ThreadRow";
 
 export type SidebarThread = {
   session: Session;
+  runtime: import("../../types").SessionRuntime;
   title: string;
   active: boolean;
   pinned: boolean;
@@ -60,6 +61,8 @@ type Props = {
     save: string;
     cancel: string;
     threadMenu: string;
+    localRuntime: string;
+    worktreeRuntime: string;
   };
   onClose: () => void;
   onNewTask: () => void;
@@ -180,10 +183,11 @@ export function Sidebar({
               <span>{group.label}</span>
               <span>{group.sessions.length}</span>
             </div>
-            {group.sessions.map(({ session, title, active, pinned, archived, statusLabel }) => (
+            {group.sessions.map(({ session, runtime, title, active, pinned, archived, statusLabel }) => (
               <ThreadRow
                 key={session.id}
                 session={session}
+                runtime={runtime}
                 title={title}
                 active={active}
                 pinned={pinned}
@@ -199,6 +203,8 @@ export function Sidebar({
                   save: labels.save,
                   cancel: labels.cancel,
                   menu: labels.threadMenu,
+                  localRuntime: labels.localRuntime,
+                  worktreeRuntime: labels.worktreeRuntime,
                 }}
                 onSelect={() => onSelectSession(session.id)}
                 onRename={(title) => onRenameSession(session.id, title)}
