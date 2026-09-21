@@ -144,6 +144,22 @@ func (a *App) ApproveWorkflowGate(sessionID, gateID string) (any, error) {
 	return a.backend.ApproveWorkflowGate(context.Background(), sessionID, gateID, "desktop-user")
 }
 
+func (a *App) SearchText(query, path string, limit int) (backend.SearchResult, error) {
+	return a.backend.SearchText(context.Background(), query, path, limit)
+}
+
+func (a *App) FindFiles(pattern, path string, limit int) (backend.FileResult, error) {
+	return a.backend.FindFiles(context.Background(), pattern, path, limit)
+}
+
+func (a *App) GitStatus() (backend.GitStatus, error) {
+	return a.backend.GitStatus(context.Background())
+}
+
+func (a *App) GitDiff(path string, staged bool) (backend.GitDiff, error) {
+	return a.backend.GitDiff(context.Background(), path, staged)
+}
+
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
 }
