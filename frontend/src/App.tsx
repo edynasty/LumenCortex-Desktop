@@ -716,8 +716,18 @@ export default function App() {
                 <div className="composer-footer">
                   <div className="composer-context">
                     <span><Icon name="folder" size={13} /> {basename(state.workspace)}</span>
+                    <select
+                      className="composer-model-select"
+                      value={modelRef}
+                      onChange={(event: ChangeEvent<HTMLSelectElement>) => setModelRef(event.target.value)}
+                      aria-label={t.modelSelect}
+                    >
+                      <option value="">{t.noModels}</option>
+                      {configuredModels.map((item) => (
+                        <option key={item.ref} value={item.ref}>{item.label}</option>
+                      ))}
+                    </select>
                     <span>{policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}</span>
-                    {selectedModelLabel && <span>{selectedModelLabel}</span>}
                   </div>
                   <div className="composer-actions">
                     <span className="composer-hint">{t.composerHint}</span>
