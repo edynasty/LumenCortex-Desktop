@@ -54,6 +54,8 @@ function messageText(message: Message) {
 
 function sessionStatusClass(session: Session) {
   switch (session.status) {
+    case "created":
+      return "status-dot created";
     case "completed":
       return "status-dot completed";
     case "interrupted":
@@ -198,16 +200,18 @@ export default function App() {
 
   async function startAgent() {
     if (!selected) return;
+    const sessionId = selected;
     setBusy(true);
     setError("");
+    setActiveRuns((currentRuns) => ({ ...currentRuns, [sessionId]: true }));
     try {
-      const session = await bridge.startAgent(selected, agentConfig());
-      setActiveRuns((currentRuns) => ({ ...currentRuns, [selected]: true }));
+      const session = await bridge.startAgent(sessionId, agentConfig());
       setState((currentState) => ({
         ...currentState,
         sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
       }));
     } catch (err) {
+      setActiveRuns((currentRuns) => ({ ...currentRuns, [sessionId]: false }));
       setError(String(err));
     } finally {
       setBusy(false);
