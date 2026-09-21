@@ -244,6 +244,42 @@ func saveProviderCatalogFile(path string, catalog ProviderCatalog) error {
 	return os.Rename(tmpName, path)
 }
 
+func loadProviderCatalogScope(workspace, scope string) (ProviderCatalog, error) {
+	switch strings.TrimSpace(scope) {
+	case "", "global":
+		path, err := globalProviderConfigPath()
+		if err != nil {
+			return ProviderCatalog{}, err
+		}
+		return loadProviderCatalogFile(path)
+	case "workspace":
+		if strings.TrimSpace(workspace) == "" {
+			return ProviderCatalog{}, ErrNoWorkspace
+		}
+		return loadProviderCatalogFile(providerConfigPath(workspace))
+	default:
+		return ProviderCatalog{}, fmt.Errorf("invalid provider config scope %q", scope)
+	}
+}
+
+func saveProviderCatalogScope(workspace, scope string, catalog ProviderCatalog) error {
+	switch strings.TrimSpace(scope) {
+	case "", "global":
+		path, err := globalProviderConfigPath()
+		if err != nil {
+			return err
+		}
+		return saveProviderCatalogFile(path, catalog)
+	case "workspace":
+		if strings.TrimSpace(workspace) == "" {
+			return ErrNoWorkspace
+		}
+		return saveProviderCatalogFile(providerConfigPath(workspace), catalog)
+	default:
+		return fmt.Errorf("invalid provider config scope %q", scope)
+	}
+}
+
 func validateProviderCatalog(catalog ProviderCatalog) error {
 	if catalog.Model != "" {
 		if _, _, err := splitModelRef(catalog.Model); err != nil {
