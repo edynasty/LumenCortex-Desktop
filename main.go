@@ -7,6 +7,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
@@ -24,7 +25,11 @@ func main() {
 		OnStartup:   app.startup,
 		OnShutdown:  app.shutdown,
 		Bind:         []interface{}{app},
-		BackgroundColour: &options.RGBA{R: 10, G: 13, B: 20, A: 255},
+		BackgroundColour: &options.RGBA{R: 247, G: 247, B: 245, A: 255},
+		Mac: &mac.Options{
+			Appearance: mac.NSAppearanceNameAqua,
+			TitleBar:   mac.TitleBarDefault(),
+		},
 	}); err != nil {
 		log.Fatal(err)
 	}
