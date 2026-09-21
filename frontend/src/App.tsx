@@ -2,6 +2,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 import {
   ArrowUp,
   Code2,
+  FileDiff,
   Menu,
   PanelRight,
   Square,
@@ -11,6 +12,7 @@ import { AppShell } from "./components/app-shell/AppShell";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
 import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
+import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -437,7 +439,7 @@ export default function App() {
       workspaceName={state.workspace ? basename(state.workspace) : ""}
       groups={sessionGroups}
       recentProjects={recentProjects}
-      selectedSessionId={route.kind === "thread" ? selected : ""}
+      selectedSessionId={route.kind === "thread" || route.kind === "review" ? selected : ""}
       providerActive={route.kind === "providers"}
       runtimeState={runtimeState}
       runtimeVersion={health?.version}
@@ -473,7 +475,7 @@ export default function App() {
     />
   );
 
-  const inspector = route.kind !== "providers" && route.kind !== "extensions" ? (
+  const inspector = route.kind === "thread" || route.kind === "new-task" ? (
     <Inspector
       tab={inspectorTab}
       events={selectedEvents}
@@ -531,7 +533,7 @@ export default function App() {
       <AppShell
         sidebar={sidebar}
         sidebarOpen={sidebarOpen}
-        inspectorOpen={inspectorOpen && route.kind !== "providers" && route.kind !== "extensions"}
+        inspectorOpen={inspectorOpen && (route.kind === "thread" || route.kind === "new-task")}
         inspector={inspector}
         closeLabel={t.close}
         onCloseSidebar={() => setSidebarOpen(false)}
@@ -542,11 +544,13 @@ export default function App() {
               <Icon name="menu" />
             </button>
             <div className="title-stack">
-              <strong>{route.kind === "providers" ? t.providerSettings : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
+              <strong>{route.kind === "providers" ? t.providerSettings : route.kind === "review" ? t.review : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
               <span>
                 {route.kind === "providers"
                   ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
-                  : state.workspace
+                  : route.kind === "review"
+                    ? (current?.goal || t.review)
+                    : state.workspace
                     ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
                     : t.runtimeReady}
               </span>
@@ -558,6 +562,21 @@ export default function App() {
               <button className="toolbar-button" onClick={() => setRoute({ kind: "new-task" })}>
                 <Code2 size={14} strokeWidth={1.7} aria-hidden />
                 <span>{t.backToWorkspace}</span>
+              </button>
+            )}
+            {route.kind === "thread" && current && (
+              <button className="toolbar-button" onClick={() => {
+                setRoute({ kind: "review", sessionId: current.id });
+                setInspectorOpen(false);
+              }}>
+                <FileDiff size={14} strokeWidth={1.7} aria-hidden />
+                <span>{t.review}</span>
+              </button>
+            )}
+            {route.kind === "review" && current && (
+              <button className="toolbar-button" onClick={() => setRoute({ kind: "thread", sessionId: current.id })}>
+                <Code2 size={14} strokeWidth={1.7} aria-hidden />
+                <span>{t.thread}</span>
               </button>
             )}
             {route.kind === "thread" && current && running && (
@@ -593,6 +612,30 @@ export default function App() {
             onSelectedModelRef={setModelRef}
             onEffectiveCatalogChange={setCatalog}
             onError={setError}
+          />
+        ) : route.kind === "review" && current ? (
+          <ReviewWorkspace
+            workspace={state.workspace}
+            labels={{
+              title: t.review,
+              changedFiles: t.changedFiles,
+              noChanges: t.noChanges,
+              unified: t.unified,
+              split: t.split,
+              worktree: t.worktree,
+              staged: t.staged,
+              stage: t.stage,
+              unstage: t.unstage,
+              revert: t.revert,
+              revertTitle: t.revertTitle,
+              revertBody: t.revertBody,
+              cancel: t.cancel,
+              commit: t.commit,
+              commitPlaceholder: t.commitPlaceholder,
+              push: t.push,
+              truncated: t.diffTruncated,
+              loading: t.loading
+            }}
           />
         ) : !current ? (
           <NewTaskComposer
