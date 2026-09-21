@@ -268,12 +268,11 @@ function formatClock(value: string) {
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => (localStorage.getItem("lcx-locale") === "en" ? "en" : "zh-CN"));
   const t = copy[locale];
-  const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [] });
+  const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [], activeRuns: [] });
   const [selected, setSelected] = useState("");
   const [goal, setGoal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
-  const [activeRuns, setActiveRuns] = useState<Record<string, boolean>>({});
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
   const [policy, setPolicy] = useState<Policy>("workspace");
@@ -316,13 +315,13 @@ export default function App() {
   useEffect(() => onRuntimeEvent((event) => {
     setEvents((current) => [...current, event].slice(-MAX_VISIBLE_EVENTS));
 
-    if (event.type === "session.complete" || event.type === "session.interrupted") {
-      if (event.sessionId) {
-        setActiveRuns((current) => ({ ...current, [event.sessionId as string]: false }));
-      }
-      bridge.listSessions(100, 0)
-        .then((sessions) => setState((current) => ({ ...current, sessions })))
-        .catch(() => undefined);
+    if (
+      event.type === "run.started" ||
+      event.type === "run.stopped" ||
+      event.type === "session.complete" ||
+      event.type === "session.interrupted"
+    ) {
+      bridge.state().then(setState).catch(() => undefined);
     }
 
     if (
@@ -335,7 +334,8 @@ export default function App() {
   }), [selected]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
-  const running = selected ? Boolean(activeRuns[selected]) : false;
+  const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
+  const running = selected ? activeRunIds.has(selected) : false;
   const health = state.health;
   const pressure = health && health.budget.softBytes > 0 ? Math.min(100, (health.usedBytes / health.budget.softBytes) * 100) : 0;
   const selectedEvents = useMemo(
@@ -358,7 +358,7 @@ export default function App() {
     const recentSessions: Session[] = [];
 
     for (const session of state.sessions) {
-      if (activeRuns[session.id] || session.status === "running") {
+      if (activeRunIds.has(session.id)) {
         runningSessions.push(session);
       } else if (session.status === "waiting_gate" || session.error) {
         attentionSessions.push(session);
@@ -372,7 +372,7 @@ export default function App() {
       { key: "attention", label: t.attentionThreads, sessions: attentionSessions },
       { key: "recent", label: t.recentThreads, sessions: recentSessions }
     ].filter((group) => group.sessions.length > 0);
-  }, [activeRuns, state.sessions, t.attentionThreads, t.recentThreads, t.runningThreads]);
+  }, [activeRunIds, state.sessions, t.attentionThreads, t.recentThreads, t.runningThreads]);
 
 
   function statusLabel(status?: string, isRunning = false) {
@@ -426,7 +426,6 @@ export default function App() {
       setSelected("");
       setMessages([]);
       setEvents([]);
-      setActiveRuns({});
       setWorkspaceView("workspace");
       setSidebarOpen(false);
     } catch (err) {
@@ -438,15 +437,14 @@ export default function App() {
     if (!sessionId) return;
     setBusy(true);
     setError("");
-    setActiveRuns((currentRuns) => ({ ...currentRuns, [sessionId]: true }));
     try {
       const session = await bridge.startAgent(sessionId, agentConfig());
-      setState((currentState) => ({
-        ...currentState,
-        sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
-      }));
+      const nextState = await bridge.state();
+      setState({
+        ...nextState,
+        sessions: nextState.sessions.map((item) => item.id === session.id ? session : item)
+      });
     } catch (err) {
-      setActiveRuns((currentRuns) => ({ ...currentRuns, [sessionId]: false }));
       setError(String(err));
     } finally {
       setBusy(false);
@@ -468,15 +466,14 @@ export default function App() {
       setSelected(session.id);
       setMessages([]);
       setGoal("");
-      setActiveRuns((currentRuns) => ({ ...currentRuns, [session.id]: true }));
       try {
         const started = await bridge.startAgent(session.id, agentConfig());
-        setState((currentState) => ({
-          ...currentState,
-          sessions: currentState.sessions.map((item) => item.id === started.id ? started : item)
-        }));
+        const nextState = await bridge.state();
+        setState({
+          ...nextState,
+          sessions: nextState.sessions.map((item) => item.id === started.id ? started : item)
+        });
       } catch (err) {
-        setActiveRuns((currentRuns) => ({ ...currentRuns, [session.id]: false }));
         setError(String(err));
       }
     } catch (err) {
@@ -491,8 +488,9 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      const cancelled = await bridge.cancelAgent(selected);
-      if (!cancelled) setActiveRuns((currentRuns) => ({ ...currentRuns, [selected]: false }));
+      await bridge.cancelAgent(selected);
+      const nextState = await bridge.state();
+      setState(nextState);
       await refreshCurrent(selected);
     } catch (err) {
       setError(String(err));
@@ -578,7 +576,7 @@ export default function App() {
                 <span>{group.sessions.length}</span>
               </div>
               {group.sessions.map((session) => {
-                const isActive = Boolean(activeRuns[session.id]);
+                const isActive = activeRunIds.has(session.id);
                 return (
                   <button
                     key={session.id}
