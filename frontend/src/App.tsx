@@ -18,6 +18,7 @@ import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
+import { sessionUI } from "./lib/session-ui";
 import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
@@ -188,41 +189,56 @@ export default function App() {
   }, [catalog]);
 
   const sessionGroups = useMemo<SidebarGroup[]>(() => {
-    const runningSessions: Session[] = [];
-    const attentionSessions: Session[] = [];
-    const recentSessions: Session[] = [];
+    const runningThreads: SidebarGroup["sessions"] = [];
+    const attentionThreads: SidebarGroup["sessions"] = [];
+    const pinnedThreads: SidebarGroup["sessions"] = [];
+    const recentThreads: SidebarGroup["sessions"] = [];
+    const archivedThreads: SidebarGroup["sessions"] = [];
 
     for (const session of state.sessions) {
-      if (activeRunIds.has(session.id)) {
-        runningSessions.push(session);
+      const ui = sessionUI(session);
+      const active = activeRunIds.has(session.id);
+      const thread = {
+        session,
+        title: ui.title,
+        active,
+        pinned: ui.pinned,
+        archived: ui.archived,
+        statusLabel: session.status === "running" && !active
+          ? t.interrupted
+          : statusLabel(session.status, active)
+      };
+
+      if (ui.archived) {
+        archivedThreads.push(thread);
+      } else if (active) {
+        runningThreads.push(thread);
       } else if (session.status === "waiting_gate" || session.error || session.status === "running") {
-        attentionSessions.push(session);
+        attentionThreads.push(thread);
+      } else if (ui.pinned) {
+        pinnedThreads.push(thread);
       } else {
-        recentSessions.push(session);
+        recentThreads.push(thread);
       }
     }
 
     return [
-      { key: "running", label: t.runningThreads, raw: runningSessions },
-      { key: "attention", label: t.attentionThreads, raw: attentionSessions },
-      { key: "recent", label: t.recentThreads, raw: recentSessions }
-    ]
-      .filter((group) => group.raw.length > 0)
-      .map((group) => ({
-        key: group.key,
-        label: group.label,
-        sessions: group.raw.map((session) => {
-          const active = activeRunIds.has(session.id);
-          return {
-            session,
-            active,
-            statusLabel: session.status === "running" && !active
-              ? t.interrupted
-              : statusLabel(session.status, active)
-          };
-        })
-      }));
-  }, [activeRunIds, state.sessions, t.attentionThreads, t.interrupted, t.recentThreads, t.runningThreads]);
+      { key: "running", label: t.runningThreads, sessions: runningThreads },
+      { key: "attention", label: t.attentionThreads, sessions: attentionThreads },
+      { key: "pinned", label: t.pinnedThreads, sessions: pinnedThreads },
+      { key: "recent", label: t.recentThreads, sessions: recentThreads },
+      { key: "archived", label: t.archivedThreads, sessions: archivedThreads }
+    ].filter((group) => group.sessions.length > 0);
+  }, [
+    activeRunIds,
+    state.sessions,
+    t.archivedThreads,
+    t.attentionThreads,
+    t.interrupted,
+    t.pinnedThreads,
+    t.recentThreads,
+    t.runningThreads
+  ]);
 
 
   function statusLabel(status?: string, isRunning = false) {
@@ -508,6 +524,25 @@ export default function App() {
     }
   }
 
+  async function updateSessionUI(sessionId: string, patch: { title?: string; pinned?: boolean; archived?: boolean }) {
+    setError("");
+    try {
+      const updated = await bridge.updateSessionUI(sessionId, patch);
+      setState((currentState) => ({
+        ...currentState,
+        sessions: currentState.sessions.map((session) => session.id === updated.id ? updated : session)
+      }));
+      if (patch.archived === true && selected === sessionId) {
+        setRoute({ kind: "new-task" });
+        setMessages([]);
+        setMessageAtLatest(true);
+        setWorkflowSummary(null);
+      }
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   function newTask() {
     setRoute({ kind: "new-task" });
     setMessages([]);
@@ -562,7 +597,15 @@ export default function App() {
         language: t.language,
         runtimeReady: t.runtimeReady,
         runtimeOnline: t.runtimeOnline,
-        runtimeOffline: t.runtimeOffline
+        runtimeOffline: t.runtimeOffline,
+        renameThread: t.renameThread,
+        pinThread: t.pinThread,
+        unpinThread: t.unpinThread,
+        archiveThread: t.archiveThread,
+        restoreThread: t.restoreThread,
+        save: t.save,
+        cancel: t.cancel,
+        threadMenu: t.threadMenu
       }}
       onClose={() => setSidebarOpen(false)}
       onNewTask={newTask}
@@ -572,6 +615,9 @@ export default function App() {
         setRoute({ kind: "thread", sessionId });
         setSidebarOpen(false);
       }}
+      onRenameSession={(sessionId, title) => void updateSessionUI(sessionId, { title })}
+      onPinSession={(sessionId, pinned) => void updateSessionUI(sessionId, { pinned })}
+      onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
       onOpenProviders={() => {
         setRoute({ kind: "providers" });
         setInspectorOpen(false);
