@@ -75,6 +75,7 @@ export const bridge = {
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
   getSession: (sessionId: string) => api().GetSession(sessionId),
   createSession: (goal: string) => api().CreateSession(goal),
+  messagePage: (sessionId: string, beforeSeq = -1, limit = 100) => api().MessagePage(sessionId, beforeSeq, limit),
   recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
   discoverProviderModels: (providerId: string) => api().DiscoverProviderModels(providerId),
   testProviderConnection: (providerId: string) => api().TestProviderConnection(providerId),
