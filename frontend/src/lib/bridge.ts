@@ -25,6 +25,9 @@ type AppAPI = {
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   GetSession(sessionId: string): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
+  CreateSessionWithContext(goal: string, paths: string[]): Promise<Session>;
+  PickContextFiles(): Promise<string[]>;
+  PickContextDirectory(): Promise<string[]>;
   MessagePage(sessionId: string, beforeSeq: number, limit: number): Promise<MessagePage>;
   RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
   DiscoverProviderModels(providerId: string): Promise<DiscoveredModel[]>;
@@ -75,6 +78,9 @@ export const bridge = {
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
   getSession: (sessionId: string) => api().GetSession(sessionId),
   createSession: (goal: string) => api().CreateSession(goal),
+  createSessionWithContext: (goal: string, paths: string[]) => api().CreateSessionWithContext(goal, paths),
+  pickContextFiles: () => api().PickContextFiles(),
+  pickContextDirectory: () => api().PickContextDirectory(),
   messagePage: (sessionId: string, beforeSeq = -1, limit = 100) => api().MessagePage(sessionId, beforeSeq, limit),
   recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
   discoverProviderModels: (providerId: string) => api().DiscoverProviderModels(providerId),
