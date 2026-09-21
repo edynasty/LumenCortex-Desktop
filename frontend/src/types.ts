@@ -17,6 +17,7 @@ export type Health = {
   database: string;
   budget: Budget;
   usedBytes: number;
+  activeAgents?: number;
   pressure: boolean;
 };
 
