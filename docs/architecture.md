@@ -10,6 +10,9 @@ React / TypeScript
 Desktop Go adapter
       │
       ▼
+LumenCortex runtime.RunSupervisor
+      │
+      ▼
 LumenCortex runtime.Engine
       │
       ├─ Sessions / SQLite
@@ -33,3 +36,14 @@ The Desktop follows the same bounded-memory contract as Core:
 The default target is **embedded mode**: Wails loads the public LumenCortex `runtime` package in the same Go process. This avoids a duplicate daemon, duplicate SQLite/cache state, and IPC serialization overhead.
 
 A daemon/remote mode may be added later for isolation and remote execution, but it is not the default architecture.
+
+
+## Frontend architecture
+
+The detailed frontend decision and ownership model is documented in [Frontend Architecture](frontend-architecture.md).
+
+Key rule:
+
+- React owns presentation state.
+- Core owns execution state.
+- `runtime.RunSupervisor` is the only source of truth for live agent runs.
