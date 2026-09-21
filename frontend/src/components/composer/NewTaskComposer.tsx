@@ -5,6 +5,7 @@ import { ContextAttachments } from "./ContextAttachments";
 import "./new-task-composer.css";
 
 export type ComposerPolicy = "read-only" | "workspace" | "full";
+export type ComposerRuntime = "local" | "worktree";
 
 type ModelOption = {
   ref: string;
@@ -36,7 +37,10 @@ type Props = {
   policyLabel: string;
   policy: ComposerPolicy;
   policyLabels: Record<ComposerPolicy, string>;
-  localLabel: string;
+  environmentLabel: string;
+  runtime: ComposerRuntime;
+  runtimeLabels: Record<ComposerRuntime, string>;
+  runtimeDescriptions: Record<ComposerRuntime, string>;
   hint: string;
   startLabel: string;
   goal: string;
@@ -48,6 +52,7 @@ type Props = {
   onPickContextFolder: () => void;
   onRemoveContextPath: (path: string) => void;
   onPolicyChange: (value: ComposerPolicy) => void;
+  onRuntimeChange: (value: ComposerRuntime) => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
   onOpenProviders: () => void;
@@ -73,7 +78,10 @@ export function NewTaskComposer({
   policyLabel,
   policy,
   policyLabels,
-  localLabel,
+  environmentLabel,
+  runtime,
+  runtimeLabels,
+  runtimeDescriptions,
   hint,
   startLabel,
   goal,
@@ -85,6 +93,7 @@ export function NewTaskComposer({
   onPickContextFolder,
   onRemoveContextPath,
   onPolicyChange,
+  onRuntimeChange,
   onPickWorkspace,
   onOpenWorkspace,
   onOpenProviders,
@@ -171,16 +180,23 @@ export function NewTaskComposer({
             />
 
             <DesktopSelect
-              ariaLabel={localLabel}
-              value="local"
-              placeholder={localLabel}
+              ariaLabel={environmentLabel}
+              value={runtime}
+              placeholder={runtimeLabels.local}
               className="composer-desktop-select environment-select"
-              options={[{
-                value: "local",
-                label: localLabel,
-                description: workspace ? workspaceName : undefined,
-              }]}
-              onChange={() => undefined}
+              options={[
+                {
+                  value: "local",
+                  label: runtimeLabels.local,
+                  description: runtimeDescriptions.local,
+                },
+                {
+                  value: "worktree",
+                  label: runtimeLabels.worktree,
+                  description: runtimeDescriptions.worktree,
+                },
+              ]}
+              onChange={(value) => onRuntimeChange(value as ComposerRuntime)}
             />
           </div>
 
