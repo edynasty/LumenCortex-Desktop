@@ -50,6 +50,7 @@ const copy = {
     saveConfig: "保存配置",
     modelSelect: "模型",
     noModels: "未配置模型，将使用 LCX_MODEL 环境变量",
+    modelFallback: "环境模型",
     runtimeReady: "运行时待命",
     runtimeOnline: "运行时在线",
     runtimeOffline: "运行时离线",
@@ -130,6 +131,7 @@ const copy = {
     saveConfig: "Save configuration",
     modelSelect: "Model",
     noModels: "No configured models; LCX_MODEL will be used",
+    modelFallback: "Environment model",
     runtimeReady: "Runtime ready",
     runtimeOnline: "Runtime online",
     runtimeOffline: "Runtime offline",
@@ -373,8 +375,8 @@ export default function App() {
   }, [activeRuns, state.sessions, t.attentionThreads, t.recentThreads, t.runningThreads]);
 
 
-  function statusLabel(status?: string) {
-    if (running) return t.active;
+  function statusLabel(status?: string, isRunning = false) {
+    if (isRunning) return t.active;
     switch (status) {
       case "created": return t.created;
       case "completed": return t.completed;
@@ -421,7 +423,7 @@ export default function App() {
     try {
       const next = await bridge.pickWorkspace();
       setState(next);
-      setSelected(next.sessions[0]?.id || "");
+      setSelected("");
       setMessages([]);
       setEvents([]);
       setActiveRuns({});
@@ -590,7 +592,7 @@ export default function App() {
                     <span className={`thread-dot ${isActive ? "live" : session.status}`} />
                     <span className="thread-copy">
                       <strong>{session.goal}</strong>
-                      <small>{isActive ? t.running : statusLabel(session.status)} · {formatClock(session.updatedAt)}</small>
+                      <small>{statusLabel(session.status, isActive)} · {formatClock(session.updatedAt)}</small>
                     </span>
                   </button>
                 );
@@ -639,7 +641,7 @@ export default function App() {
                   {workspaceView === "providers"
                     ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
                     : state.workspace
-                      ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status)}` : ""}`
+                      ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
                       : t.runtimeReady}
                 </span>
               </div>
@@ -647,7 +649,7 @@ export default function App() {
 
             <div className="topbar-actions">
               {workspaceView === "providers" && (
-                <button className="toolbar-button" onClick={newTask}>
+                <button className="toolbar-button" onClick={() => setWorkspaceView("workspace")}>
                   <Code2 size={14} strokeWidth={1.7} aria-hidden />
                   <span>{t.backToWorkspace}</span>
                 </button>
@@ -697,7 +699,8 @@ export default function App() {
               modelLabel={t.modelSelect}
               modelRef={modelRef}
               models={configuredModels}
-              noModelsLabel={t.noModels}
+              noModelsLabel={t.modelFallback}
+              policyLabel={t.policy}
               policy={policy}
               policyLabels={{
                 "read-only": t.readOnly,
@@ -730,7 +733,7 @@ export default function App() {
                     <span>{t.newTask}</span>
                     <h1>{current.goal}</h1>
                     <div className="task-meta">
-                      <span className={`status-pill ${running ? "running" : current.status}`}>{statusLabel(current.status)}</span>
+                      <span className={`status-pill ${running ? "running" : current.status}`}>{statusLabel(current.status, running)}</span>
                       {current.provider && <span>{current.provider}</span>}
                       {current.model && <span>{current.model}</span>}
                     </div>
@@ -740,7 +743,7 @@ export default function App() {
                 <section className="message-list">
                   {messages.map((message) => (
                     <article key={`${message.seq}-${message.role}`} className={`message-row ${roleClass(message.role)}`}>
-                      <div className="message-avatar">{message.role === "assistant" ? "LC" : message.role === "tool" ? "⌘" : "•"}</div>
+                      <div className="message-avatar">{message.role === "assistant" ? "LC" : message.role === "tool" ? "T" : message.role === "system" ? "S" : "U"}</div>
                       <div className="message-body">
                         <div className="message-head">
                           <strong>{roleLabel(message.role)}</strong>
