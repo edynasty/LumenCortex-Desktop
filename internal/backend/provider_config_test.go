@@ -2,6 +2,8 @@ package backend
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 )
@@ -179,5 +181,42 @@ func TestProviderCatalogAllowsEnvironmentSecretReference(t *testing.T) {
 	}
 	if err := saveProviderCatalog("", catalog); err != nil {
 		t.Fatal(err)
+	}
+}
+
+
+func TestDiscoverProviderModelsUsesEnvSecretAndBoundsCatalog(t *testing.T) {
+	t.Setenv("DEMO_DISCOVERY_KEY", "secret")
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		authorization = req.Header.Get("Authorization")
+		if req.URL.Path != "/v1/models" {
+			t.Fatalf("path=%s", req.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"id":"model-a"},{"id":"org/model-b"},{"id":"model-a"}]}`))
+	}))
+	defer server.Close()
+
+	catalog := ProviderCatalog{
+		Providers: map[string]ProviderDefinition{
+			"demo": {
+				Package: "openai-compatible",
+				Settings: ProviderSettings{
+					BaseURL: server.URL + "/v1",
+					APIKey: "{env:DEMO_DISCOVERY_KEY}",
+				},
+			},
+		},
+	}
+	models, err := discoverProviderModels(catalog, "demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if authorization != "Bearer secret" {
+		t.Fatalf("authorization=%q", authorization)
+	}
+	if len(models) != 2 || models[0].ID != "model-a" || models[1].ID != "org/model-b" {
+		t.Fatalf("models=%#v", models)
 	}
 }
