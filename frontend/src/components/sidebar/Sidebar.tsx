@@ -3,9 +3,11 @@ import {
   Folder,
   Languages,
   Plus,
+  Search,
   Settings2,
   X,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { Session } from "../../types";
 
 export type SidebarThread = {
@@ -27,6 +29,7 @@ type Props = {
   workspace: string;
   workspaceName: string;
   groups: SidebarGroup[];
+  recentProjects: string[];
   selectedSessionId: string;
   providerActive: boolean;
   runtimeState: RuntimeState;
@@ -38,6 +41,8 @@ type Props = {
     openProject: string;
     sessions: string;
     noSessions: string;
+    threadSearch: string;
+    recentProjects: string;
     providerSettings: string;
     language: string;
     runtimeReady: string;
@@ -47,6 +52,7 @@ type Props = {
   onClose: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
+  onOpenWorkspace: (path: string) => void;
   onSelectSession: (sessionId: string) => void;
   onOpenProviders: () => void;
   onSwitchLocale: () => void;
@@ -67,6 +73,7 @@ export function Sidebar({
   workspace,
   workspaceName,
   groups,
+  recentProjects,
   selectedSessionId,
   providerActive,
   runtimeState,
@@ -75,11 +82,27 @@ export function Sidebar({
   onClose,
   onNewTask,
   onPickWorkspace,
+  onOpenWorkspace,
   onSelectSession,
   onOpenProviders,
   onSwitchLocale,
 }: Props) {
+  const [query, setQuery] = useState("");
   const sessionCount = groups.reduce((total, group) => total + group.sessions.length, 0);
+  const visibleGroups = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return groups;
+    return groups
+      .map((group) => ({
+        ...group,
+        sessions: group.sessions.filter(({ session }) =>
+          session.goal.toLowerCase().includes(normalized) ||
+          session.provider?.toLowerCase().includes(normalized) ||
+          session.model?.toLowerCase().includes(normalized)
+        ),
+      }))
+      .filter((group) => group.sessions.length > 0);
+  }, [groups, query]);
   const runtimeLabel =
     runtimeState === "online"
       ? labels.runtimeOnline
@@ -114,13 +137,35 @@ export function Sidebar({
         <ChevronRight size={14} strokeWidth={1.7} aria-hidden />
       </button>
 
+      {recentProjects.length > 0 && (
+        <div className="recent-projects">
+          <span>{labels.recentProjects}</span>
+          {recentProjects.filter((path) => path !== workspace).slice(0, 4).map((path) => (
+            <button key={path} type="button" onClick={() => onOpenWorkspace(path)} title={path}>
+              <Folder size={12} strokeWidth={1.7} aria-hidden />
+              <span>{path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <label className="thread-search">
+        <Search size={13} strokeWidth={1.7} aria-hidden />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={labels.threadSearch}
+          aria-label={labels.threadSearch}
+        />
+      </label>
+
       <div className="sidebar-section-title sidebar-section-summary">
         <span>{labels.sessions}</span>
         <span>{sessionCount}</span>
       </div>
 
       <div className="thread-list">
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <section className="thread-group" key={group.key}>
             <div className="thread-group-title">
               <span>{group.label}</span>
@@ -142,6 +187,7 @@ export function Sidebar({
           </section>
         ))}
         {!sessionCount && <div className="sidebar-empty">{labels.noSessions}</div>}
+        {sessionCount > 0 && !visibleGroups.length && <div className="sidebar-empty">{labels.noSessions}</div>}
       </div>
 
       <div className="sidebar-footer">
