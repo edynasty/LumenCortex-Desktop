@@ -128,6 +128,10 @@ func (a *App) StartAgent(sessionID string, config backend.AgentConfig) (backend.
 	return a.backend.StartAgent(context.Background(), sessionID, config)
 }
 
+func (a *App) ContinueAgent(sessionID, content string, config backend.AgentConfig) (backend.Session, error) {
+	return a.backend.ContinueAgent(context.Background(), sessionID, content, config)
+}
+
 func (a *App) CancelAgent(sessionID string) bool {
 	return a.backend.CancelAgent(sessionID)
 }
