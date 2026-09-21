@@ -535,35 +535,6 @@ button:disabled { opacity: .42; cursor: default !important; }
 }
 .send-button:hover { background: #2b2c2a; }
 
-.provider-empty-state {
-  display: flex;
-  min-height: 320px;
-  padding: 64px 26px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  color: var(--muted);
-  text-align: center;
-}
-.provider-empty-state > svg { color: var(--text-soft); margin-bottom: 12px; }
-.provider-empty-state strong { color: var(--text); font-size: 11px; font-weight: 620; }
-.provider-empty-state p { max-width: 260px; margin: 7px 0 14px; font-size: 9.5px; line-height: 1.6; }
-.provider-open-workspace {
-  display: inline-flex;
-  height: 32px;
-  padding: 0 11px;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text-soft);
-  font-size: 9.5px;
-  font-weight: 560;
-  cursor: pointer;
-}
-.provider-open-workspace:hover { background: var(--surface-soft); }
-
 .inspector {
   min-width: 0;
   min-height: 0;
