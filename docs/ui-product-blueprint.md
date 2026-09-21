@@ -79,6 +79,12 @@ Current reference screens:
 - [Frontend Development Standard](frontend-development-standard.md)
   - implementation rules and UI quality gates.
 
+- [Frontend Architecture](frontend-architecture.md)
+  - React/Wails/Go ownership model,
+  - active-run source of truth,
+  - component/domain boundaries,
+  - primitive and state-management strategy.
+
 - [AI Development Standard](ai-development-standard.md)
   - agent implementation discipline, validation and architecture rules.
 
@@ -610,7 +616,7 @@ Status legend:
 - [ ] **P0.8 Split current CSS into design-token and global layers**
   - target: `styles/tokens.css`
   - target: `styles/global.css`
-- [ ] **P0.9 Establish reusable desktop primitives**
+- [~] **P0.9 Establish reusable desktop primitives**
   - Button
   - IconButton
   - SegmentedControl
@@ -716,7 +722,7 @@ Acceptance:
 
 Priority: **P0**
 
-- [ ] **UI-03.1 Refactor sidebar out of `App.tsx`**
+- [x] **UI-03.1 Refactor sidebar out of `App.tsx`**
 - [x] **UI-03.2 Add project switcher**
 - [ ] **UI-03.3 Persist recent projects**
 - [x] **UI-03.4 Group threads**
@@ -743,7 +749,7 @@ Acceptance:
 
 Priority: **P0**
 
-- [ ] **UI-04.1 Refactor thread view out of `App.tsx`**
+- [x] **UI-04.1 Refactor thread view out of `App.tsx`**
 - [ ] **UI-04.2 Build proper conversation message components**
   - user
   - assistant
@@ -908,8 +914,8 @@ Priority: **P1**
 - [ ] **CORE-04.2 Add bounded subagent scheduler**
 - [ ] **CORE-04.3 Persist parent/child session relationships**
 - [ ] **CORE-04.4 Aggregate child events**
-- [ ] **CORE-04.5 Move Desktop active-run map into Core supervisor**
-- [ ] **CORE-04.6 Recover stale `running` sessions as interrupted**
+- [x] **CORE-04.5 Move Desktop active-run map into Core supervisor**
+- [x] **CORE-04.6 Recover stale `running` sessions as interrupted**
 - [ ] **CORE-04.7 Add resumable checkpoints where useful**
 - [ ] **CORE-04.8 Add Desktop subagent tree/status UI**
 
@@ -919,13 +925,13 @@ Priority: **P1**
 
 Priority: **P0 / continuous**
 
-- [ ] **ARCH-01.1 Extract AppShell**
-- [ ] **ARCH-01.2 Extract Sidebar domain**
+- [x] **ARCH-01.1 Extract AppShell**
+- [x] **ARCH-01.2 Extract Sidebar domain**
 - [x] **ARCH-01.3 Extract Composer domain**
 - [x] **ARCH-01.4 Extract Provider domain**
-- [ ] **ARCH-01.5 Extract Thread domain**
-- [ ] **ARCH-01.6 Extract Inspector domain**
-- [ ] **ARCH-01.7 Create shared primitive components**
+- [x] **ARCH-01.5 Extract Thread domain**
+- [x] **ARCH-01.6 Extract Inspector domain**
+- [~] **ARCH-01.7 Create shared primitive components**
 - [ ] **ARCH-01.8 Centralize i18n copy**
 - [ ] **ARCH-01.9 Split design tokens from component CSS**
 - [ ] **ARCH-01.10 Add frontend unit/component test setup**
