@@ -1,11 +1,22 @@
-import type { RuntimeEvent, Session, ShellResult, WorkspaceState } from "../types";
+import type {
+  AgentConfig,
+  Message,
+  RuntimeEvent,
+  Session,
+  ShellResult,
+  WorkspaceState
+} from "../types";
 
 type AppAPI = {
   PickWorkspace(): Promise<WorkspaceState>;
   OpenWorkspace(path: string): Promise<WorkspaceState>;
   GetState(): Promise<WorkspaceState>;
   ListSessions(limit: number, offset: number): Promise<Session[]>;
+  GetSession(sessionId: string): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
+  RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
+  StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
+  CancelAgent(sessionId: string): Promise<boolean>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
 };
 
@@ -32,7 +43,11 @@ export const bridge = {
   pickWorkspace: () => api().PickWorkspace(),
   openWorkspace: (path: string) => api().OpenWorkspace(path),
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
+  getSession: (sessionId: string) => api().GetSession(sessionId),
   createSession: (goal: string) => api().CreateSession(goal),
+  recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
+  startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
+  cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
 };
 

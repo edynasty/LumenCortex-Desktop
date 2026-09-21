@@ -4,6 +4,13 @@ export type Budget = {
   maxAgents: number;
 };
 
+export type Usage = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  requests?: number;
+};
+
 export type Health = {
   version: string;
   workspace: string;
@@ -21,6 +28,10 @@ export type Session = {
   provider?: string;
   model?: string;
   goal: string;
+  metadata?: unknown;
+  final?: string;
+  usage?: Usage;
+  error?: { message?: string } | unknown;
 };
 
 export type WorkspaceState = {
@@ -35,6 +46,32 @@ export type RuntimeEvent = {
   type: string;
   sessionId?: string;
   data?: Record<string, unknown>;
+};
+
+export type Message = {
+  sessionId: string;
+  seq: number;
+  role: string;
+  json: unknown;
+};
+
+export type ProviderConfig = {
+  endpoint?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model?: string;
+  disableStreaming?: boolean;
+  disableRetries?: boolean;
+};
+
+export type AgentConfig = {
+  provider: ProviderConfig;
+  policy?: "read-only" | "workspace" | "full";
+  maxSteps?: number;
+  recentMessages?: number;
+  maxToolCallsPerStep?: number;
+  maxTokens?: number;
+  temperature?: number;
 };
 
 export type ShellResult = {

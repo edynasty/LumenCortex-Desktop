@@ -3,18 +3,32 @@ package backend
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/edynasty/LumenCortex/provider/openai"
 	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
-var ErrNoWorkspace = errors.New("no workspace is open")
+var (
+	ErrNoWorkspace     = errors.New("no workspace is open")
+	ErrAgentRunning    = errors.New("agent is already running for this session")
+	ErrModelRequired   = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
+	ErrInvalidPolicy   = errors.New("invalid agent policy")
+)
+
+type activeRun struct {
+	cancel context.CancelFunc
+	done   chan struct{}
+}
 
 type Runtime struct {
 	mu        sync.RWMutex
 	engine    *lcx.Engine
 	workspace string
+	runs      map[string]*activeRun
 }
 
 type Health = lcx.Health
@@ -23,13 +37,34 @@ type Message = lcx.Message
 type ShellResult = lcx.ShellResult
 type Event = lcx.Event
 
+type ProviderConfig struct {
+	Endpoint         string `json:"endpoint,omitempty"`
+	BaseURL          string `json:"baseUrl,omitempty"`
+	APIKey           string `json:"apiKey,omitempty"`
+	Model            string `json:"model,omitempty"`
+	DisableStreaming bool   `json:"disableStreaming,omitempty"`
+	DisableRetries   bool   `json:"disableRetries,omitempty"`
+}
+
+type AgentConfig struct {
+	Provider            ProviderConfig `json:"provider"`
+	Policy              string         `json:"policy,omitempty"`
+	MaxSteps            int            `json:"maxSteps,omitempty"`
+	RecentMessages      int            `json:"recentMessages,omitempty"`
+	MaxToolCallsPerStep int            `json:"maxToolCallsPerStep,omitempty"`
+	MaxTokens           int            `json:"maxTokens,omitempty"`
+	Temperature         *float64       `json:"temperature,omitempty"`
+}
+
 type WorkspaceState struct {
 	Workspace string    `json:"workspace"`
 	Health    *Health   `json:"health,omitempty"`
 	Sessions  []Session `json:"sessions"`
 }
 
-func New() *Runtime { return &Runtime{} }
+func New() *Runtime {
+	return &Runtime{runs: map[string]*activeRun{}}
+}
 
 func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceState, error) {
 	if path == "" {
@@ -46,10 +81,13 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 
 	r.mu.Lock()
 	previous := r.engine
+	previousRuns := r.runs
 	r.engine = next
 	r.workspace = abs
+	r.runs = map[string]*activeRun{}
 	r.mu.Unlock()
 
+	stopRuns(previousRuns)
 	if previous != nil {
 		_ = previous.Close()
 	}
@@ -58,14 +96,27 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 
 func (r *Runtime) Close() error {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.engine == nil {
-		return nil
-	}
-	err := r.engine.Close()
+	engine := r.engine
+	runs := r.runs
 	r.engine = nil
 	r.workspace = ""
-	return err
+	r.runs = map[string]*activeRun{}
+	r.mu.Unlock()
+
+	stopRuns(runs)
+	if engine == nil {
+		return nil
+	}
+	return engine.Close()
+}
+
+func stopRuns(runs map[string]*activeRun) {
+	for _, run := range runs {
+		run.cancel()
+	}
+	for _, run := range runs {
+		<-run.done
+	}
 }
 
 func (r *Runtime) State(ctx context.Context) (WorkspaceState, error) {
@@ -93,6 +144,16 @@ func (r *Runtime) ListSessions(ctx context.Context, limit, offset int) ([]Sessio
 		return nil, ErrNoWorkspace
 	}
 	return r.engine.ListSessions(ctx, limit, offset)
+}
+
+func (r *Runtime) GetSession(ctx context.Context, sessionID string) (Session, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.engine == nil {
+		return Session{}, ErrNoWorkspace
+	}
+	_, info, err := r.engine.Session(ctx, sessionID)
+	return info, err
 }
 
 func (r *Runtime) CreateSession(ctx context.Context, goal string) (Session, error) {
@@ -135,6 +196,76 @@ func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (Shel
 	return handle.RunShell(ctx, command)
 }
 
+func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentConfig) (Session, error) {
+	client, err := providerFromConfig(cfg.Provider)
+	if err != nil {
+		return Session{}, err
+	}
+	if !validPolicy(cfg.Policy) {
+		return Session{}, ErrInvalidPolicy
+	}
+
+	r.mu.Lock()
+	engine := r.engine
+	if engine == nil {
+		r.mu.Unlock()
+		return Session{}, ErrNoWorkspace
+	}
+	if _, exists := r.runs[sessionID]; exists {
+		r.mu.Unlock()
+		return Session{}, ErrAgentRunning
+	}
+	_, info, err := engine.Session(ctx, sessionID)
+	if err != nil {
+		r.mu.Unlock()
+		return Session{}, err
+	}
+	runCtx, cancel := context.WithCancel(context.Background())
+	run := &activeRun{cancel: cancel, done: make(chan struct{})}
+	r.runs[sessionID] = run
+	r.mu.Unlock()
+
+	info.Status = "running"
+	if info.Provider == "" {
+		info.Provider = "openai-compatible"
+	}
+	if info.Model == "" {
+		info.Model = client.Model()
+	}
+
+	go func() {
+		defer func() {
+			r.mu.Lock()
+			if current, ok := r.runs[sessionID]; ok && current == run {
+				delete(r.runs, sessionID)
+			}
+			r.mu.Unlock()
+			close(run.done)
+		}()
+		_, _ = engine.RunAgent(runCtx, sessionID, client, lcx.AgentOptions{
+			Policy:              normalizedPolicy(cfg.Policy),
+			MaxSteps:            cfg.MaxSteps,
+			RecentMessages:      cfg.RecentMessages,
+			MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
+			MaxTokens:           cfg.MaxTokens,
+			Temperature:         cfg.Temperature,
+		})
+	}()
+
+	return info, nil
+}
+
+func (r *Runtime) CancelAgent(sessionID string) bool {
+	r.mu.RLock()
+	run := r.runs[sessionID]
+	r.mu.RUnlock()
+	if run == nil {
+		return false
+	}
+	run.cancel()
+	return true
+}
+
 func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -143,4 +274,44 @@ func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	}
 	ch, stop := r.engine.Events(buffer)
 	return ch, stop, true
+}
+
+func providerFromConfig(cfg ProviderConfig) (*openai.Client, error) {
+	model := firstNonEmpty(cfg.Model, os.Getenv("LCX_MODEL"))
+	if model == "" {
+		return nil, ErrModelRequired
+	}
+	return openai.New(openai.Config{
+		Endpoint:         firstNonEmpty(cfg.Endpoint, os.Getenv("LCX_ENDPOINT")),
+		BaseURL:          firstNonEmpty(cfg.BaseURL, os.Getenv("LCX_BASE_URL")),
+		APIKey:           firstNonEmpty(cfg.APIKey, os.Getenv("LCX_API_KEY")),
+		Model:            model,
+		DisableStreaming: cfg.DisableStreaming,
+		DisableRetries:   cfg.DisableRetries,
+	})
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func normalizedPolicy(policy string) string {
+	if strings.TrimSpace(policy) == "" {
+		return "read-only"
+	}
+	return strings.TrimSpace(policy)
+}
+
+func validPolicy(policy string) bool {
+	switch normalizedPolicy(policy) {
+	case "read-only", "workspace", "full":
+		return true
+	default:
+		return false
+	}
 }
