@@ -116,6 +116,10 @@ func (a *App) RemoveSessionWorktree(sessionID string, force bool) error {
 	return a.backend.RemoveSessionWorktree(context.Background(), sessionID, force)
 }
 
+func (a *App) WorktreeConflicts() ([]backend.WorktreeConflict, error) {
+	return a.backend.WorktreeConflicts(context.Background())
+}
+
 func (a *App) PickContextFiles() ([]string, error) {
 	state, err := a.backend.State(context.Background())
 	if err != nil {
