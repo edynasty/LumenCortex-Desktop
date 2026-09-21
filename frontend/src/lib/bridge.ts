@@ -6,7 +6,8 @@ import type {
   RuntimeEvent,
   Session,
   ShellResult,
-  WorkspaceState
+  WorkspaceState,
+  WorkflowSummary
 } from "../types";
 
 type AppAPI = {
@@ -23,6 +24,8 @@ type AppAPI = {
   SaveProviderCatalogScope(scope: ProviderCatalogScope, config: ProviderCatalog): Promise<ProviderCatalog>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
   CancelAgent(sessionId: string): Promise<boolean>;
+  GetWorkflowSummary(sessionId: string): Promise<WorkflowSummary | null>;
+  ApproveWorkflowGate(sessionId: string, gateId: string): Promise<WorkflowSummary>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
 };
 
@@ -58,6 +61,8 @@ export const bridge = {
   saveProviderCatalogScope: (scope: ProviderCatalogScope, config: ProviderCatalog) => api().SaveProviderCatalogScope(scope, config),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
+  workflowSummary: (sessionId: string) => api().GetWorkflowSummary(sessionId),
+  approveWorkflowGate: (sessionId: string, gateId: string) => api().ApproveWorkflowGate(sessionId, gateId),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
 };
 
