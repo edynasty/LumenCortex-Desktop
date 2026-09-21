@@ -13,6 +13,7 @@ import type {
   ProviderCatalogScope,
   RuntimeEvent,
   Session,
+  SessionUIPatch,
   ShellResult,
   WorkspaceState,
   WorkflowSummary
@@ -24,6 +25,7 @@ type AppAPI = {
   GetState(): Promise<WorkspaceState>;
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   GetSession(sessionId: string): Promise<Session>;
+  UpdateSessionUI(sessionId: string, patch: SessionUIPatch): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
   CreateSessionWithContext(goal: string, paths: string[]): Promise<Session>;
   PickContextFiles(): Promise<string[]>;
@@ -77,6 +79,7 @@ export const bridge = {
   openWorkspace: (path: string) => api().OpenWorkspace(path),
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
   getSession: (sessionId: string) => api().GetSession(sessionId),
+  updateSessionUI: (sessionId: string, patch: SessionUIPatch) => api().UpdateSessionUI(sessionId, patch),
   createSession: (goal: string) => api().CreateSession(goal),
   createSessionWithContext: (goal: string, paths: string[]) => api().CreateSessionWithContext(goal, paths),
   pickContextFiles: () => api().PickContextFiles(),
