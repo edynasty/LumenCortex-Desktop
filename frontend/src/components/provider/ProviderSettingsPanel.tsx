@@ -10,6 +10,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
+import { Dialog } from "../primitives/Dialog";
 import { bridge } from "../../lib/bridge";
 import type {
   ProviderCatalog,
@@ -27,6 +28,10 @@ type ProviderDraft = {
   endpoint: string;
   apiKey: string;
 };
+
+type DeleteTarget =
+  | { kind: "provider"; providerId: string }
+  | { kind: "model"; providerId: string; modelId: string };
 
 type ModelDraft = {
   id: string;
@@ -126,6 +131,7 @@ export function ProviderSettingsPanel({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advancedJSON, setAdvancedJSON] = useState("");
   const [advancedDirty, setAdvancedDirty] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   useEffect(() => {
     if (!workspace && scope === "workspace") {
@@ -239,7 +245,6 @@ export function ProviderSettingsPanel({
   }
 
   async function removeProvider(providerId: string) {
-    if (!window.confirm(t.deleteProviderConfirm)) return;
     const next = cloneCatalog(catalog);
     delete next.providers[providerId];
     if (next.model?.startsWith(providerId + "/")) {
@@ -289,7 +294,6 @@ export function ProviderSettingsPanel({
   }
 
   async function removeModel(providerId: string, modelId: string) {
-    if (!window.confirm(t.deleteModelConfirm)) return;
     const next = cloneCatalog(catalog);
     const provider = next.providers[providerId];
     if (!provider?.models) return;
@@ -411,7 +415,7 @@ export function ProviderSettingsPanel({
                         <button type="button" aria-label={t.edit} onClick={() => startEditProvider(providerId, provider)}>
                           <Pencil size={13} strokeWidth={1.7} aria-hidden />
                         </button>
-                        <button type="button" className="danger" aria-label={t.remove} onClick={() => void removeProvider(providerId)}>
+                        <button type="button" className="danger" aria-label={t.remove} onClick={() => setDeleteTarget({ kind: "provider", providerId })}>
                           <Trash2 size={13} strokeWidth={1.7} aria-hidden />
                         </button>
                       </div>
@@ -480,7 +484,7 @@ export function ProviderSettingsPanel({
                                     <button type="button" aria-label={t.edit} onClick={() => startEditModel(providerId, modelId, model)}>
                                       <Pencil size={13} strokeWidth={1.7} aria-hidden />
                                     </button>
-                                    <button type="button" className="danger" aria-label={t.remove} onClick={() => void removeModel(providerId, modelId)}>
+                                    <button type="button" className="danger" aria-label={t.remove} onClick={() => setDeleteTarget({ kind: "model", providerId, modelId })}>
                                       <Trash2 size={13} strokeWidth={1.7} aria-hidden />
                                     </button>
                                   </div>
@@ -555,6 +559,44 @@ export function ProviderSettingsPanel({
           </div>
         </>
       )}
+
+      <Dialog
+        open={deleteTarget !== null}
+        title={t.remove}
+        description={deleteTarget?.kind === "provider" ? t.deleteProviderConfirm : t.deleteModelConfirm}
+        onOpenChange={(open) => {
+          if (!open && !saving) setDeleteTarget(null);
+        }}
+        footer={
+          <>
+            <button
+              type="button"
+              className="provider-dialog-button secondary"
+              disabled={saving}
+              onClick={() => setDeleteTarget(null)}
+            >
+              {t.cancel}
+            </button>
+            <button
+              type="button"
+              className="provider-dialog-button danger"
+              disabled={saving}
+              onClick={() => {
+                if (!deleteTarget) return;
+                const target = deleteTarget;
+                setDeleteTarget(null);
+                if (target.kind === "provider") {
+                  void removeProvider(target.providerId);
+                } else {
+                  void removeModel(target.providerId, target.modelId);
+                }
+              }}
+            >
+              {t.remove}
+            </button>
+          </>
+        }
+      />
     </div>
   );
 }
