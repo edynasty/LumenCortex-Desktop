@@ -92,6 +92,10 @@ func (a *App) GetSession(sessionID string) (backend.Session, error) {
 	return a.backend.GetSession(context.Background(), sessionID)
 }
 
+func (a *App) UpdateSessionUI(sessionID string, patch backend.SessionUIPatch) (backend.Session, error) {
+	return a.backend.UpdateSessionUI(context.Background(), sessionID, patch)
+}
+
 func (a *App) CreateSession(goal string) (backend.Session, error) {
 	return a.backend.CreateSession(context.Background(), goal)
 }
