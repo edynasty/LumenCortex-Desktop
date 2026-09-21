@@ -1,8 +1,12 @@
 import type {
   AgentConfig,
   DiscoveredModel,
+  FileResult,
+  GitDiff,
+  GitStatus,
   Message,
   ProviderConnectionResult,
+  SearchResult,
   ProviderCatalog,
   ProviderCatalogScope,
   RuntimeEvent,
@@ -31,6 +35,10 @@ type AppAPI = {
   CancelAgent(sessionId: string): Promise<boolean>;
   GetWorkflowSummary(sessionId: string): Promise<WorkflowSummary | null>;
   ApproveWorkflowGate(sessionId: string, gateId: string): Promise<WorkflowSummary>;
+  SearchText(query: string, path: string, limit: number): Promise<SearchResult>;
+  FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
+  GitStatus(): Promise<GitStatus>;
+  GitDiff(path: string, staged: boolean): Promise<GitDiff>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
 };
 
@@ -71,6 +79,10 @@ export const bridge = {
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
   workflowSummary: (sessionId: string) => api().GetWorkflowSummary(sessionId),
   approveWorkflowGate: (sessionId: string, gateId: string) => api().ApproveWorkflowGate(sessionId, gateId),
+  searchText: (query: string, path = "", limit = 200) => api().SearchText(query, path, limit),
+  findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
+  gitStatus: () => api().GitStatus(),
+  gitDiff: (path = "", staged = false) => api().GitDiff(path, staged),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
 };
 
