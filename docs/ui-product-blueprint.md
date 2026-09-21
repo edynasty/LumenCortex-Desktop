@@ -613,10 +613,10 @@ Status legend:
   - Apache-2.0
   - preserve applicable LICENSE / NOTICE obligations when source is reused
 - [x] **P0.7 Create this UI product blueprint**
-- [ ] **P0.8 Split current CSS into design-token and global layers**
+- [x] **P0.8 Split current CSS into design-token and global layers**
   - target: `styles/tokens.css`
   - target: `styles/global.css`
-- [~] **P0.9 Establish reusable desktop primitives**
+- [x] **P0.9 Establish reusable desktop primitives**
   - Button
   - IconButton
   - SegmentedControl
@@ -658,19 +658,19 @@ Priority: **P0**
 - [x] **UI-01.11 Keep raw JSON as an advanced editor**
 - [x] **UI-01.12 Sync Provider changes into Composer model picker**
 - [x] **UI-01.13 Test global/project/effective precedence**
-- [ ] **UI-01.14 Add Provider presets**
+- [x] **UI-01.14 Add Provider presets**
   - OpenAI
   - DeepSeek
   - OpenRouter
   - Anthropic-compatible adapter when runtime support exists
   - custom OpenAI-compatible
-- [ ] **UI-01.15 Add test-connection action**
-- [ ] **UI-01.16 Add `/models` discovery where provider supports it**
-- [ ] **UI-01.17 Add secret-state UX**
+- [x] **UI-01.15 Add test-connection action**
+- [x] **UI-01.16 Add `/models` discovery where provider supports it**
+- [x] **UI-01.17 Add secret-state UX**
   - distinguish configured env reference / missing secret
   - never reveal resolved secret value
-- [ ] **UI-01.18 Add delete/rename conflict validation**
-- [ ] **UI-01.19 Add Provider component tests**
+- [x] **UI-01.18 Add delete/rename conflict validation**
+- [x] **UI-01.19 Add Provider component tests**
 
 Acceptance:
 - Normal Provider/model configuration requires no JSON editing.
@@ -724,13 +724,13 @@ Priority: **P0**
 
 - [x] **UI-03.1 Refactor sidebar out of `App.tsx`**
 - [x] **UI-03.2 Add project switcher**
-- [ ] **UI-03.3 Persist recent projects**
+- [x] **UI-03.3 Persist recent projects**
 - [x] **UI-03.4 Group threads**
   - running
   - recent
   - completed
 - [x] **UI-03.5 Add active/running indicators**
-- [ ] **UI-03.6 Add thread search**
+- [x] **UI-03.6 Add thread search**
 - [ ] **UI-03.7 Add thread rename**
 - [ ] **UI-03.8 Add thread delete/archive when backend semantics are defined**
 - [ ] **UI-03.9 Add pinned threads**
@@ -750,20 +750,20 @@ Acceptance:
 Priority: **P0**
 
 - [x] **UI-04.1 Refactor thread view out of `App.tsx`**
-- [ ] **UI-04.2 Build proper conversation message components**
+- [x] **UI-04.2 Build proper conversation message components**
   - user
   - assistant
   - tool
   - system
-- [ ] **UI-04.3 Render Markdown**
+- [x] **UI-04.3 Render Markdown**
 - [ ] **UI-04.4 Render syntax-highlighted code blocks**
-- [ ] **UI-04.5 Collapse raw tool events by default**
+- [x] **UI-04.5 Collapse raw tool events by default**
 - [ ] **UI-04.6 Show meaningful milestones instead of event spam**
-- [ ] **UI-04.7 Add expandable tool-call cards**
+- [x] **UI-04.7 Add expandable tool-call cards**
 - [ ] **UI-04.8 Add file/command metadata to tool rows**
-- [ ] **UI-04.9 Add inline workflow approval UI**
+- [x] **UI-04.9 Add inline workflow approval UI**
 - [ ] **UI-04.10 Add Agent running plan/progress surface**
-- [ ] **UI-04.11 Add stop/resume controls**
+- [x] **UI-04.11 Add stop/resume controls**
 - [ ] **UI-04.12 Add copy/retry/follow-up actions**
 - [ ] **UI-04.13 Add bounded/paginated transcript loading**
 - [ ] **UI-04.14 Add scroll-to-latest behavior without breaking manual review**
@@ -783,20 +783,20 @@ Runtime dependency:
 - Core Git status/diff tools
 - durable changed-file metadata
 
-- [ ] **UI-05.1 Add Review as a first-class workspace tab/mode**
-- [ ] **UI-05.2 Add changed-file sidebar/list**
-- [ ] **UI-05.3 Add file change statistics**
-- [ ] **UI-05.4 Add unified diff renderer**
-- [ ] **UI-05.5 Add split diff renderer**
+- [x] **UI-05.1 Add Review as a first-class workspace tab/mode**
+- [x] **UI-05.2 Add changed-file sidebar/list**
+- [x] **UI-05.3 Add file change statistics**
+- [x] **UI-05.4 Add unified diff renderer**
+- [x] **UI-05.5 Add split diff renderer**
 - [ ] **UI-05.6 Add syntax highlighting**
 - [ ] **UI-05.7 Add inline review comments/instructions**
-- [ ] **UI-05.8 Add per-file revert**
-- [ ] **UI-05.9 Add stage/unstage**
-- [ ] **UI-05.10 Add commit action**
-- [ ] **UI-05.11 Add push action**
+- [x] **UI-05.8 Add per-file revert**
+- [x] **UI-05.9 Add stage/unstage**
+- [x] **UI-05.10 Add commit action**
+- [x] **UI-05.11 Add push action**
 - [ ] **UI-05.12 Add test/check summary beside changes**
-- [ ] **UI-05.13 Lazy-load very large diffs**
-- [ ] **UI-05.14 Add binary/large-file fallback states**
+- [~] **UI-05.13 Lazy-load very large diffs**
+- [~] **UI-05.14 Add binary/large-file fallback states**
 
 Acceptance:
 - A coding task can be reviewed without leaving LumenCortex.
@@ -856,15 +856,15 @@ Acceptance:
 
 Priority: **P0**
 
-- [ ] **CORE-01.1 Add bounded text search**
+- [x] **CORE-01.1 Add bounded text search**
   - prefer `rg` subprocess when installed
-- [ ] **CORE-01.2 Add file-name/glob search**
-- [ ] **CORE-01.3 Add Git status tool**
-- [ ] **CORE-01.4 Add Git diff tool**
-- [ ] **CORE-01.5 Add bounded diff output**
-- [ ] **CORE-01.6 Add file-change metadata**
-- [ ] **CORE-01.7 Expose coding/search tools to Agent**
-- [ ] **CORE-01.8 Add tests for large-output truncation and cancellation**
+- [x] **CORE-01.2 Add file-name/glob search**
+- [x] **CORE-01.3 Add Git status tool**
+- [x] **CORE-01.4 Add Git diff tool**
+- [x] **CORE-01.5 Add bounded diff output**
+- [x] **CORE-01.6 Add file-change metadata**
+- [x] **CORE-01.7 Expose coding/search tools to Agent**
+- [x] **CORE-01.8 Add tests for large-output truncation and cancellation**
 
 Dependency:
 - Enables UI-05 Review/Diff.
@@ -931,12 +931,12 @@ Priority: **P0 / continuous**
 - [x] **ARCH-01.4 Extract Provider domain**
 - [x] **ARCH-01.5 Extract Thread domain**
 - [x] **ARCH-01.6 Extract Inspector domain**
-- [~] **ARCH-01.7 Create shared primitive components**
-- [ ] **ARCH-01.8 Centralize i18n copy**
-- [ ] **ARCH-01.9 Split design tokens from component CSS**
-- [ ] **ARCH-01.10 Add frontend unit/component test setup**
-- [ ] **ARCH-01.11 Prevent new direct `window.go` access outside bridge**
-- [ ] **ARCH-01.12 Keep live UI buffers bounded**
+- [x] **ARCH-01.7 Create shared primitive components**
+- [x] **ARCH-01.8 Centralize i18n copy**
+- [x] **ARCH-01.9 Split design tokens from component CSS**
+- [x] **ARCH-01.10 Add frontend unit/component test setup**
+- [x] **ARCH-01.11 Prevent new direct `window.go` access outside bridge**
+- [x] **ARCH-01.12 Keep live UI buffers bounded**
 - [ ] **ARCH-01.13 Add screenshot/visual-regression workflow when practical**
 
 ---
