@@ -104,6 +104,18 @@ func (a *App) CreateSessionWithContext(goal string, paths []string) (backend.Ses
 	return a.backend.CreateSessionWithContext(context.Background(), goal, paths)
 }
 
+func (a *App) CreateSessionWithRuntime(goal string, paths []string, runtimeKind, base string) (backend.Session, error) {
+	return a.backend.CreateSessionWithRuntime(context.Background(), goal, paths, runtimeKind, base)
+}
+
+func (a *App) GetSessionRuntime(sessionID string) (backend.SessionRuntime, error) {
+	return a.backend.SessionRuntime(context.Background(), sessionID)
+}
+
+func (a *App) RemoveSessionWorktree(sessionID string, force bool) error {
+	return a.backend.RemoveSessionWorktree(context.Background(), sessionID, force)
+}
+
 func (a *App) PickContextFiles() ([]string, error) {
 	state, err := a.backend.State(context.Background())
 	if err != nil {
@@ -204,28 +216,56 @@ func (a *App) GitStatus() (backend.GitStatus, error) {
 	return a.backend.GitStatus(context.Background())
 }
 
+func (a *App) SessionGitStatus(sessionID string) (backend.GitStatus, error) {
+	return a.backend.SessionGitStatus(context.Background(), sessionID)
+}
+
 func (a *App) GitDiff(path string, staged bool) (backend.GitDiff, error) {
 	return a.backend.GitDiff(context.Background(), path, staged)
+}
+
+func (a *App) SessionGitDiff(sessionID, path string, staged bool) (backend.GitDiff, error) {
+	return a.backend.SessionGitDiff(context.Background(), sessionID, path, staged)
 }
 
 func (a *App) GitStage(path string) (backend.GitActionResult, error) {
 	return a.backend.GitStage(context.Background(), path)
 }
 
+func (a *App) SessionGitStage(sessionID, path string) (backend.GitActionResult, error) {
+	return a.backend.SessionGitStage(context.Background(), sessionID, path)
+}
+
 func (a *App) GitUnstage(path string) (backend.GitActionResult, error) {
 	return a.backend.GitUnstage(context.Background(), path)
+}
+
+func (a *App) SessionGitUnstage(sessionID, path string) (backend.GitActionResult, error) {
+	return a.backend.SessionGitUnstage(context.Background(), sessionID, path)
 }
 
 func (a *App) GitRevert(path string) (backend.GitActionResult, error) {
 	return a.backend.GitRevert(context.Background(), path)
 }
 
+func (a *App) SessionGitRevert(sessionID, path string) (backend.GitActionResult, error) {
+	return a.backend.SessionGitRevert(context.Background(), sessionID, path)
+}
+
 func (a *App) GitCommit(message string) (backend.GitActionResult, error) {
 	return a.backend.GitCommit(context.Background(), message)
 }
 
+func (a *App) SessionGitCommit(sessionID, message string) (backend.GitActionResult, error) {
+	return a.backend.SessionGitCommit(context.Background(), sessionID, message)
+}
+
 func (a *App) GitPush() (backend.GitActionResult, error) {
 	return a.backend.GitPush(context.Background())
+}
+
+func (a *App) SessionGitPush(sessionID string) (backend.GitActionResult, error) {
+	return a.backend.SessionGitPush(context.Background(), sessionID)
 }
 
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
