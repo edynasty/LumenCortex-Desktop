@@ -1,5 +1,5 @@
 import type { FormEvent, KeyboardEvent, Ref } from "react";
-import { ArrowUp, Folder, HardDrive, Settings2 } from "lucide-react";
+import { ArrowUp, Folder, Settings2 } from "lucide-react";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import "./new-task-composer.css";
 
@@ -18,6 +18,8 @@ type Props = {
   placeholder: string;
   workspace: string;
   workspaceName: string;
+  recentProjects: string[];
+  recentProjectsLabel: string;
   chooseProjectLabel: string;
   modelLabel: string;
   modelRef: string;
@@ -36,6 +38,7 @@ type Props = {
   onModelChange: (value: string) => void;
   onPolicyChange: (value: ComposerPolicy) => void;
   onPickWorkspace: () => void;
+  onOpenWorkspace: (path: string) => void;
   onOpenProviders: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -47,6 +50,8 @@ export function NewTaskComposer({
   placeholder,
   workspace,
   workspaceName,
+  recentProjects,
+  recentProjectsLabel,
   chooseProjectLabel,
   modelLabel,
   modelRef,
@@ -65,6 +70,7 @@ export function NewTaskComposer({
   onModelChange,
   onPolicyChange,
   onPickWorkspace,
+  onOpenWorkspace,
   onOpenProviders,
   onSubmit,
   onKeyDown,
@@ -97,6 +103,21 @@ export function NewTaskComposer({
               <span>{workspace ? workspaceName : chooseProjectLabel}</span>
             </button>
 
+            {recentProjects.length > 0 && (
+              <DesktopSelect
+                ariaLabel={recentProjectsLabel}
+                value={workspace}
+                placeholder={recentProjectsLabel}
+                className="composer-desktop-select project-select"
+                options={recentProjects.map<SelectOption>((path) => ({
+                  value: path,
+                  label: path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path,
+                  description: path,
+                }))}
+                onChange={onOpenWorkspace}
+              />
+            )}
+
             <DesktopSelect
               ariaLabel={modelLabel}
               value={modelRef}
@@ -124,10 +145,18 @@ export function NewTaskComposer({
               onChange={(value) => onPolicyChange(value as ComposerPolicy)}
             />
 
-            <span className="composer-static-control">
-              <HardDrive size={13} strokeWidth={1.7} aria-hidden />
-              {localLabel}
-            </span>
+            <DesktopSelect
+              ariaLabel={localLabel}
+              value="local"
+              placeholder={localLabel}
+              className="composer-desktop-select environment-select"
+              options={[{
+                value: "local",
+                label: localLabel,
+                description: workspace ? workspaceName : undefined,
+              }]}
+              onChange={() => undefined}
+            />
           </div>
 
           <div className="new-task-actions">
