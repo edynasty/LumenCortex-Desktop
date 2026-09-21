@@ -18,6 +18,7 @@ var (
 	ErrAgentRunning  = lcx.ErrRunAlreadyActive
 	ErrModelRequired = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
 	ErrInvalidPolicy = errors.New("invalid agent policy")
+	ErrArchiveActive  = errors.New("cannot archive an active agent run")
 )
 
 type Runtime struct {
@@ -39,6 +40,7 @@ type GitStatus = lcx.GitStatus
 type GitDiff = lcx.GitDiff
 type GitActionResult = lcx.GitActionResult
 type MessagePage = lcx.MessagePage
+type SessionUIPatch = lcx.SessionUIPatch
 
 type ProviderConfig struct {
 	Endpoint         string `json:"endpoint,omitempty"`
@@ -162,6 +164,20 @@ func (r *Runtime) ListSessions(ctx context.Context, limit, offset int) ([]Sessio
 		return nil, ErrNoWorkspace
 	}
 	return r.engine.ListSessions(ctx, limit, offset)
+}
+
+func (r *Runtime) UpdateSessionUI(ctx context.Context, sessionID string, patch SessionUIPatch) (Session, error) {
+	r.mu.RLock()
+	engine := r.engine
+	supervisor := r.supervisor
+	r.mu.RUnlock()
+	if engine == nil {
+		return Session{}, ErrNoWorkspace
+	}
+	if patch.Archived != nil && *patch.Archived && supervisor != nil && supervisor.Active(sessionID) {
+		return Session{}, ErrArchiveActive
+	}
+	return engine.UpdateSessionUI(ctx, sessionID, patch)
 }
 
 func (r *Runtime) GetSession(ctx context.Context, sessionID string) (Session, error) {
