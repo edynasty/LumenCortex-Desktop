@@ -48,6 +48,7 @@ type ProviderConfig struct {
 
 type AgentConfig struct {
 	Provider            ProviderConfig `json:"provider"`
+	ModelRef            string         `json:"modelRef,omitempty"`
 	Policy              string         `json:"policy,omitempty"`
 	MaxSteps            int            `json:"maxSteps,omitempty"`
 	RecentMessages      int            `json:"recentMessages,omitempty"`
@@ -197,7 +198,11 @@ func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (Shel
 }
 
 func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentConfig) (Session, error) {
-	client, err := providerFromConfig(cfg.Provider)
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+
+	client, providerName, err := providerFromAgentConfig(workspace, cfg)
 	if err != nil {
 		return Session{}, err
 	}
@@ -227,7 +232,7 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 
 	info.Status = "running"
 	if info.Provider == "" {
-		info.Provider = "openai-compatible"
+		info.Provider = providerName
 	}
 	if info.Model == "" {
 		info.Model = client.Model()
@@ -243,7 +248,7 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 			close(run.done)
 		}()
 		_, _ = engine.RunAgent(runCtx, sessionID, client, lcx.AgentOptions{
-			ProviderName:        "openai-compatible",
+			ProviderName:        providerName,
 			Policy:              normalizedPolicy(cfg.Policy),
 			MaxSteps:            cfg.MaxSteps,
 			RecentMessages:      cfg.RecentMessages,
@@ -275,6 +280,55 @@ func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	}
 	ch, stop := r.engine.Events(buffer)
 	return ch, stop, true
+}
+
+func (r *Runtime) ProviderCatalog() (ProviderCatalog, error) {
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+	return loadProviderCatalog(workspace)
+}
+
+func (r *Runtime) SaveProviderCatalog(catalog ProviderCatalog) (ProviderCatalog, error) {
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+	if err := saveProviderCatalog(workspace, catalog); err != nil {
+		return ProviderCatalog{}, err
+	}
+	return loadProviderCatalog(workspace)
+}
+
+func providerFromAgentConfig(workspace string, cfg AgentConfig) (*openai.Client, string, error) {
+	providerName := "openai-compatible"
+	providerCfg := cfg.Provider
+
+	if strings.TrimSpace(cfg.ModelRef) != "" || strings.TrimSpace(providerCfg.Model) == "" {
+		catalog, err := loadProviderCatalog(workspace)
+		if err != nil && !errors.Is(err, ErrNoWorkspace) {
+			return nil, "", err
+		}
+		ref := strings.TrimSpace(cfg.ModelRef)
+		if ref == "" && catalog.Model != "" {
+			ref = catalog.Model
+		}
+		if ref != "" {
+			resolved, name, err := resolveCatalogProvider(catalog, ref)
+			if err != nil {
+				return nil, "", err
+			}
+			resolved.DisableRetries = providerCfg.DisableRetries
+			resolved.DisableStreaming = providerCfg.DisableStreaming
+			providerCfg = resolved
+			providerName = name
+		}
+	}
+
+	client, err := providerFromConfig(providerCfg)
+	if err != nil {
+		return nil, "", err
+	}
+	return client, providerName, nil
 }
 
 func providerFromConfig(cfg ProviderConfig) (*openai.Client, error) {
