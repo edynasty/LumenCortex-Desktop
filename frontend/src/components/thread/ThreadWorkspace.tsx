@@ -5,8 +5,11 @@ import type {
   Ref,
 } from "react";
 import { ArrowUp, CircleCheck, Folder } from "lucide-react";
-import type { Message, Session } from "../../types";
+import type { Message, Session, WorkflowSummary } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { ApprovalCard } from "./ApprovalCard";
+import { Markdown } from "./Markdown";
+import { MessageItem } from "./MessageItem";
 
 type Props = {
   session: Session;
@@ -19,6 +22,7 @@ type Props = {
   policyLabel: string;
   goal: string;
   busy: boolean;
+  workflowSummary?: WorkflowSummary | null;
   textareaRef: Ref<HTMLTextAreaElement>;
   labels: {
     newTask: string;
@@ -34,53 +38,15 @@ type Props = {
     roleAssistant: string;
     roleTool: string;
     roleSystem: string;
+    approvalTitle: string;
+    approve: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
+  onApproveGate: (gateId: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
-
-function normalizePayload(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      return { content: value };
-    }
-  }
-  return {};
-}
-
-function messageText(message: Message) {
-  const payload = normalizePayload(message.json);
-  if (typeof payload.content === "string" && payload.content.trim()) return payload.content;
-  if (Array.isArray(payload.tool_calls)) {
-    const names = payload.tool_calls
-      .map((item) => {
-        if (!item || typeof item !== "object") return "";
-        const call = item as Record<string, unknown>;
-        return typeof call.name === "string" ? call.name : "";
-      })
-      .filter(Boolean);
-    if (names.length) return `Tool calls: ${names.join(", ")}`;
-  }
-  const raw = JSON.stringify(payload, null, 2);
-  return raw === "{}" ? "(empty message)" : raw;
-}
-
-function roleClass(role: string) {
-  if (role === "assistant") return "assistant";
-  if (role === "tool") return "tool";
-  if (role === "system") return "system";
-  return "user";
-}
 
 export function ThreadWorkspace({
   session,
@@ -93,20 +59,15 @@ export function ThreadWorkspace({
   policyLabel,
   goal,
   busy,
+  workflowSummary,
   textareaRef,
   labels,
   onGoalChange,
   onModelChange,
+  onApproveGate,
   onSubmit,
   onKeyDown,
 }: Props) {
-  function roleLabel(role: string) {
-    if (role === "assistant") return labels.roleAssistant;
-    if (role === "tool") return labels.roleTool;
-    if (role === "system") return labels.roleSystem;
-    return labels.roleUser;
-  }
-
   return (
     <>
       <div className="thread-view">
@@ -126,18 +87,16 @@ export function ThreadWorkspace({
 
           <section className="message-list">
             {messages.map((message) => (
-              <article key={`${message.seq}-${message.role}`} className={`message-row ${roleClass(message.role)}`}>
-                <div className="message-avatar">
-                  {message.role === "assistant" ? "LC" : message.role === "tool" ? "T" : message.role === "system" ? "S" : "U"}
-                </div>
-                <div className="message-body">
-                  <div className="message-head">
-                    <strong>{roleLabel(message.role)}</strong>
-                    <span>#{message.seq}</span>
-                  </div>
-                  <pre>{messageText(message)}</pre>
-                </div>
-              </article>
+              <MessageItem
+                key={`${message.seq}-${message.role}`}
+                message={message}
+                labels={{
+                  roleUser: labels.roleUser,
+                  roleAssistant: labels.roleAssistant,
+                  roleTool: labels.roleTool,
+                  roleSystem: labels.roleSystem,
+                }}
+              />
             ))}
 
             {!messages.length && (
@@ -148,13 +107,23 @@ export function ThreadWorkspace({
             )}
           </section>
 
+          {workflowSummary && session.status === "waiting_gate" && (
+            <ApprovalCard
+              summary={workflowSummary}
+              busy={busy}
+              approveLabel={labels.approve}
+              titleLabel={labels.approvalTitle}
+              onApprove={onApproveGate}
+            />
+          )}
+
           {session.final && (
             <section className="final-result">
               <div className="final-label">
                 <CircleCheck size={14} strokeWidth={1.7} aria-hidden />
                 {labels.finalAnswer}
               </div>
-              <p>{session.final}</p>
+              <Markdown text={session.final} />
             </section>
           )}
         </div>
