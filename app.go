@@ -9,9 +9,9 @@ import (
 )
 
 type App struct {
-	ctx     context.Context
-	backend *backend.Runtime
-	eventMu sync.Mutex
+	ctx        context.Context
+	backend    *backend.Runtime
+	eventMu    sync.Mutex
 	stopEvents func()
 }
 
@@ -98,4 +98,12 @@ func (a *App) RecentMessages(sessionID string, limit int) ([]backend.Message, er
 
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
+}
+
+func (a *App) RunAgent(request backend.AgentRunRequest) (backend.AgentResult, error) {
+	return a.backend.RunAgent(context.Background(), request)
+}
+
+func (a *App) CancelAgent(sessionID string) bool {
+	return a.backend.CancelAgent(sessionID)
 }

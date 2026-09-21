@@ -33,3 +33,12 @@ The Desktop follows the same bounded-memory contract as Core:
 The default target is **embedded mode**: Wails loads the public LumenCortex `runtime` package in the same Go process. This avoids a duplicate daemon, duplicate SQLite/cache state, and IPC serialization overhead.
 
 A daemon/remote mode may be added later for isolation and remote execution, but it is not the default architecture.
+
+
+## Agent execution
+
+Desktop now invokes the embedded Core `runtime.Engine.RunAgent` directly. Provider credentials are passed to an ephemeral OpenAI-compatible provider client and are not written to Desktop state or local storage.
+
+Long agent runs are cancellable per Session. Workspace switching and application shutdown cancel active runs before closing the embedded Core engine.
+
+The current UI intentionally keeps only a bounded recent event window; the authoritative transcript and workflow state remain in Core SQLite.

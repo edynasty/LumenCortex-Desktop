@@ -21,6 +21,13 @@ Implemented in the first vertical slice:
 
 The full Go Agent Loop, Workflow, Cognitive Graph, LSP/MCP and Subagent parity is being migrated in the Core repository. Desktop deliberately does not reimplement those systems.
 
+Additional current functionality:
+
+- Run the embedded Go Agent Loop against an OpenAI-compatible endpoint.
+- Select read-only / workspace / full tool policy per run.
+- Cancel an active agent run from the Desktop UI.
+- Observe live LLM, tool and Workflow events without persisting API credentials in frontend storage.
+
 ## Architecture
 
 ```text

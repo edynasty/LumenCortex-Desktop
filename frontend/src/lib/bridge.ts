@@ -1,4 +1,11 @@
-import type { RuntimeEvent, Session, ShellResult, WorkspaceState } from "../types";
+import type {
+  AgentResult,
+  AgentRunRequest,
+  RuntimeEvent,
+  Session,
+  ShellResult,
+  WorkspaceState
+} from "../types";
 
 type AppAPI = {
   PickWorkspace(): Promise<WorkspaceState>;
@@ -7,6 +14,8 @@ type AppAPI = {
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   CreateSession(goal: string): Promise<Session>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
+  RunAgent(request: AgentRunRequest): Promise<AgentResult>;
+  CancelAgent(sessionId: string): Promise<boolean>;
 };
 
 declare global {
@@ -33,7 +42,9 @@ export const bridge = {
   openWorkspace: (path: string) => api().OpenWorkspace(path),
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
   createSession: (goal: string) => api().CreateSession(goal),
-  runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
+  runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command),
+  runAgent: (request: AgentRunRequest) => api().RunAgent(request),
+  cancelAgent: (sessionId: string) => api().CancelAgent(sessionId)
 };
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {

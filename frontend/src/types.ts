@@ -45,3 +45,31 @@ export type ShellResult = {
   stderr: { total: number; truncated: boolean };
   cancelled: boolean;
 };
+
+export type AgentRunRequest = {
+  sessionId: string;
+  endpoint?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  model: string;
+  policy?: "read-only" | "workspace" | "full";
+  maxSteps?: number;
+  recentMessages?: number;
+  maxToolCalls?: number;
+  workflow?: string;
+  disableStreaming?: boolean;
+};
+
+export type AgentResult = {
+  sessionId: string;
+  status: string;
+  final?: string;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    requests: number;
+  };
+  waitingGate?: boolean;
+  workflow?: unknown;
+};

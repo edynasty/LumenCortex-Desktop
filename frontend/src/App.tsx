@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
-import type { RuntimeEvent, Session, WorkspaceState } from "./types";
+import type { AgentResult, AgentRunRequest, RuntimeEvent, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 200;
 
@@ -17,12 +17,19 @@ function basename(path: string) {
 
 export default function App() {
   const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [] });
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useState("");
   const [goal, setGoal] = useState("");
   const [command, setCommand] = useState("git status --short");
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [busy, setBusy] = useState(false);
+  const [agentRunning, setAgentRunning] = useState(false);
   const [error, setError] = useState("");
+
+  const [endpoint, setEndpoint] = useState("");
+  const [model, setModel] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [policy, setPolicy] = useState<"read-only" | "workspace" | "full">("workspace");
+  const [lastAgentResult, setLastAgentResult] = useState<AgentResult | null>(null);
 
   useEffect(() => {
     bridge.state().then(setState).catch(() => undefined);
@@ -40,6 +47,11 @@ export default function App() {
     [state.sessions, selected]
   );
 
+  async function refreshState() {
+    const next = await bridge.state();
+    setState(next);
+  }
+
   async function pickWorkspace() {
     setError("");
     try {
@@ -47,6 +59,7 @@ export default function App() {
       setState(next);
       setSelected(next.sessions[0]?.id || "");
       setEvents([]);
+      setLastAgentResult(null);
     } catch (err) {
       setError(String(err));
     }
@@ -65,10 +78,50 @@ export default function App() {
       }));
       setSelected(session.id);
       setGoal("");
+      setLastAgentResult(null);
     } catch (err) {
       setError(String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runAgent(event: FormEvent) {
+    event.preventDefault();
+    if (!selected || !model.trim() || agentRunning) return;
+    setAgentRunning(true);
+    setError("");
+    setLastAgentResult(null);
+    const request: AgentRunRequest = {
+      sessionId: selected,
+      endpoint: endpoint.trim() || undefined,
+      apiKey: apiKey || undefined,
+      model: model.trim(),
+      policy,
+      maxSteps: 24,
+      recentMessages: 8,
+      maxToolCalls: 8
+    };
+    try {
+      const result = await bridge.runAgent(request);
+      setLastAgentResult(result);
+      await refreshState();
+    } catch (err) {
+      const message = String(err);
+      if (!message.toLowerCase().includes("context canceled")) setError(message);
+      await refreshState().catch(() => undefined);
+    } finally {
+      setAgentRunning(false);
+    }
+  }
+
+  async function cancelAgent() {
+    if (!selected || !agentRunning) return;
+    setError("");
+    try {
+      await bridge.cancelAgent(selected);
+    } catch (err) {
+      setError(String(err));
     }
   }
 
@@ -119,9 +172,12 @@ export default function App() {
             <button
               key={session.id}
               className={session.id === selected ? "session active" : "session"}
-              onClick={() => setSelected(session.id)}
+              onClick={() => {
+                setSelected(session.id);
+                setLastAgentResult(null);
+              }}
             >
-              <span className="status-dot" />
+              <span className={session.status === "running" ? "status-dot running" : "status-dot"} />
               <span className="session-copy">
                 <strong>{session.goal}</strong>
                 <small>{session.status} · {session.id.slice(-8)}</small>
@@ -149,7 +205,7 @@ export default function App() {
             <div className="welcome-orb">LC</div>
             <h2>Open a repository to start.</h2>
             <p>
-              LumenCortex Desktop embeds the same runtime as the CLI. Session history stays on disk,
+              LumenCortex Desktop embeds the same Go runtime as the CLI. Session history stays on disk,
               runtime events stay bounded, and long tool output streams instead of accumulating in memory.
             </p>
             <button className="primary" onClick={pickWorkspace}>Open workspace</button>
@@ -187,16 +243,91 @@ export default function App() {
                       <code>{event.data ? JSON.stringify(event.data) : ""}</code>
                     </article>
                   ))}
-                  {!events.length && <p className="empty">Tool calls and runtime events will appear here.</p>}
+                  {!events.length && <p className="empty">Agent, tool and workflow events will appear here.</p>}
                 </div>
               </section>
 
               <aside className="panel inspector">
                 <div className="panel-title">
                   <div>
-                    <span className="eyebrow">RESOURCE</span>
-                    <h2>Runtime health</h2>
+                    <span className="eyebrow">AGENT</span>
+                    <h2>Embedded runner</h2>
                   </div>
+                  <span className={agentRunning ? "agent-state active" : "agent-state"}>
+                    {agentRunning ? "running" : current?.status || "idle"}
+                  </span>
+                </div>
+
+                <form onSubmit={runAgent} className="agent-form">
+                  <label>
+                    <span>Endpoint</span>
+                    <input
+                      value={endpoint}
+                      onChange={(event) => setEndpoint(event.target.value)}
+                      placeholder="https://…/v1/chat/completions"
+                      disabled={agentRunning}
+                    />
+                  </label>
+                  <label>
+                    <span>Model</span>
+                    <input
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      placeholder="model name"
+                      disabled={agentRunning}
+                    />
+                  </label>
+                  <label>
+                    <span>API key</span>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(event) => setApiKey(event.target.value)}
+                      placeholder="kept in memory only"
+                      autoComplete="off"
+                      disabled={agentRunning}
+                    />
+                  </label>
+                  <label>
+                    <span>Policy</span>
+                    <select
+                      value={policy}
+                      onChange={(event) => setPolicy(event.target.value as typeof policy)}
+                      disabled={agentRunning}
+                    >
+                      <option value="read-only">read-only</option>
+                      <option value="workspace">workspace</option>
+                      <option value="full">full (shell)</option>
+                    </select>
+                  </label>
+                  <div className="agent-actions">
+                    <button className="primary" disabled={!selected || !model.trim() || agentRunning}>
+                      Run agent
+                    </button>
+                    <button type="button" className="danger" disabled={!agentRunning} onClick={cancelAgent}>
+                      Cancel
+                    </button>
+                  </div>
+                  <p className="hint inline-hint">
+                    Credentials are not persisted by Desktop. Use full policy only when the agent must run shell verification.
+                  </p>
+                </form>
+
+                {lastAgentResult && (
+                  <div className="result-card">
+                    <div>
+                      <strong>{lastAgentResult.status}</strong>
+                      <span>{lastAgentResult.usage.totalTokens} tokens · {lastAgentResult.usage.requests} requests</span>
+                    </div>
+                    {lastAgentResult.final && <p>{lastAgentResult.final}</p>}
+                  </div>
+                )}
+
+                <div className="divider" />
+
+                <div className="panel-subtitle">
+                  <span className="eyebrow">RESOURCE</span>
+                  <strong>Runtime health</strong>
                 </div>
                 <dl className="metrics">
                   <div><dt>Working memory</dt><dd>{bytes(health?.usedBytes)}</dd></div>
@@ -215,9 +346,9 @@ export default function App() {
                     value={command}
                     onChange={(event) => setCommand(event.target.value)}
                     rows={3}
-                    disabled={!selected}
+                    disabled={!selected || agentRunning}
                   />
-                  <button className="secondary" disabled={busy || !selected || !command.trim()}>
+                  <button className="secondary" disabled={busy || agentRunning || !selected || !command.trim()}>
                     Run in session
                   </button>
                 </form>
