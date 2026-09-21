@@ -602,3 +602,29 @@
   from { opacity: 0; transform: translateY(-2px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+
+.provider-dialog-button {
+  height: 31px;
+  padding: 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 9.5px;
+  font-weight: 580;
+  cursor: pointer;
+}
+
+.provider-dialog-button.secondary:hover {
+  background: var(--surface-soft);
+}
+
+.provider-dialog-button.danger {
+  border-color: #e4c6c9;
+  background: #fff7f7;
+  color: var(--red);
+}
+
+.provider-dialog-button.danger:hover {
+  background: #fff0f1;
+}
