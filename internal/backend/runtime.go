@@ -37,6 +37,7 @@ type SearchResult = lcx.SearchResult
 type FileResult = lcx.FileResult
 type GitStatus = lcx.GitStatus
 type GitDiff = lcx.GitDiff
+type GitActionResult = lcx.GitActionResult
 
 type ProviderConfig struct {
 	Endpoint         string `json:"endpoint,omitempty"`
@@ -237,6 +238,56 @@ func (r *Runtime) GitDiff(ctx context.Context, path string, staged bool) (GitDif
 		return GitDiff{}, ErrNoWorkspace
 	}
 	return engine.GitDiff(ctx, path, staged)
+}
+
+func (r *Runtime) GitStage(ctx context.Context, path string) (GitActionResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitActionResult{}, ErrNoWorkspace
+	}
+	return engine.GitStage(ctx, path)
+}
+
+func (r *Runtime) GitUnstage(ctx context.Context, path string) (GitActionResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitActionResult{}, ErrNoWorkspace
+	}
+	return engine.GitUnstage(ctx, path)
+}
+
+func (r *Runtime) GitRevert(ctx context.Context, path string) (GitActionResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitActionResult{}, ErrNoWorkspace
+	}
+	return engine.GitRevert(ctx, path)
+}
+
+func (r *Runtime) GitCommit(ctx context.Context, message string) (GitActionResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitActionResult{}, ErrNoWorkspace
+	}
+	return engine.GitCommit(ctx, message)
+}
+
+func (r *Runtime) GitPush(ctx context.Context) (GitActionResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitActionResult{}, ErrNoWorkspace
+	}
+	return engine.GitPush(ctx)
 }
 
 func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (ShellResult, error) {
