@@ -25,6 +25,14 @@
   --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   --shadow-lg: 0 18px 50px rgba(20, 20, 16, .10);
   --shadow-sm: 0 8px 24px rgba(20, 20, 16, .08);
+  --motion-instant: 80ms;
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-panel: 200ms;
+  --motion-page: 220ms;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
 }
 
 * { box-sizing: border-box; }
@@ -37,6 +45,17 @@ button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-
   outline-offset: 1px;
 }
 button:disabled { opacity: .42; cursor: default !important; }
+
+button,
+select,
+input,
+textarea {
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-fast) var(--ease-standard);
+}
 
 .app-shell {
   display: grid;
@@ -167,6 +186,9 @@ button:disabled { opacity: .42; cursor: default !important; }
   padding: 8px 9px;
   border-radius: 8px;
   background: transparent;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 .thread-item:hover { background: var(--surface-hover); }
 .thread-item.selected { background: var(--surface-active); }
@@ -176,6 +198,7 @@ button:disabled { opacity: .42; cursor: default !important; }
   margin-top: 5px;
   border-radius: 50%;
   background: #b2b2ad;
+  transition: background-color var(--motion-fast) var(--ease-standard);
 }
 .thread-dot.live, .thread-dot.running { background: var(--green); }
 .thread-dot.completed { background: #7f8ea8; }
@@ -557,6 +580,7 @@ button:disabled { opacity: .42; cursor: default !important; }
   grid-template-rows: 50px minmax(0, 1fr);
   background: #fafaf9;
   border-left: 1px solid var(--border);
+  animation: inspectorEnter var(--motion-panel) var(--ease-out);
 }
 .inspector-head {
   display: flex;
@@ -682,11 +706,43 @@ button:disabled { opacity: .42; cursor: default !important; }
   background: #fff7f7;
   box-shadow: var(--shadow-lg);
   color: var(--red);
+  animation: toastEnter var(--motion-base) var(--ease-out);
 }
 .error-toast strong { font-size: 9px; }
 .error-toast span { min-width: 0; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
 .error-toast button { width: 24px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; color: var(--red); cursor: pointer; }
 .sidebar-backdrop { display: none; }
+
+
+@keyframes inspectorEnter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastEnter {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes backdropEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .thinking-pulse {
+    display: none;
+  }
+}
 
 @media (max-width: 1180px) {
   .workspace-shell.with-inspector {
@@ -712,7 +768,7 @@ button:disabled { opacity: .42; cursor: default !important; }
     bottom: 0;
     width: min(266px, 88vw);
     transform: translateX(-102%);
-    transition: transform .18s ease;
+    transition: transform var(--motion-panel) var(--ease-out);
     box-shadow: 18px 0 50px rgba(20,20,16,.12);
   }
   .sidebar.open { transform: translateX(0); }
@@ -723,6 +779,7 @@ button:disabled { opacity: .42; cursor: default !important; }
     inset: 0;
     border: 0;
     background: rgba(30,30,26,.18);
+    animation: backdropEnter var(--motion-base) var(--ease-out);
   }
   .sidebar-toggle, .mobile-only { display: grid; }
   .thread-content { width: min(calc(100% - 28px), 760px); }
