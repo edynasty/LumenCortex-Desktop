@@ -6,6 +6,7 @@ import type {
   GitDiff,
   GitStatus,
   Message,
+  MessagePage,
   ProviderConnectionResult,
   SearchResult,
   ProviderCatalog,
@@ -24,6 +25,7 @@ type AppAPI = {
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   GetSession(sessionId: string): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
+  MessagePage(sessionId: string, beforeSeq: number, limit: number): Promise<MessagePage>;
   RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
   DiscoverProviderModels(providerId: string): Promise<DiscoveredModel[]>;
   TestProviderConnection(providerId: string): Promise<ProviderConnectionResult>;
