@@ -2,6 +2,7 @@ import type {
   AgentConfig,
   DiscoveredModel,
   FileResult,
+  GitActionResult,
   GitDiff,
   GitStatus,
   Message,
@@ -39,6 +40,11 @@ type AppAPI = {
   FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
   GitStatus(): Promise<GitStatus>;
   GitDiff(path: string, staged: boolean): Promise<GitDiff>;
+  GitStage(path: string): Promise<GitActionResult>;
+  GitUnstage(path: string): Promise<GitActionResult>;
+  GitRevert(path: string): Promise<GitActionResult>;
+  GitCommit(message: string): Promise<GitActionResult>;
+  GitPush(): Promise<GitActionResult>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
 };
 
@@ -83,6 +89,11 @@ export const bridge = {
   findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
   gitStatus: () => api().GitStatus(),
   gitDiff: (path = "", staged = false) => api().GitDiff(path, staged),
+  gitStage: (path: string) => api().GitStage(path),
+  gitUnstage: (path: string) => api().GitUnstage(path),
+  gitRevert: (path: string) => api().GitRevert(path),
+  gitCommit: (message: string) => api().GitCommit(message),
+  gitPush: () => api().GitPush(),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
 };
 
