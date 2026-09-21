@@ -96,6 +96,46 @@ func (a *App) CreateSession(goal string) (backend.Session, error) {
 	return a.backend.CreateSession(context.Background(), goal)
 }
 
+func (a *App) CreateSessionWithContext(goal string, paths []string) (backend.Session, error) {
+	return a.backend.CreateSessionWithContext(context.Background(), goal, paths)
+}
+
+func (a *App) PickContextFiles() ([]string, error) {
+	state, err := a.backend.State(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if state.Workspace == "" {
+		return nil, backend.ErrNoWorkspace
+	}
+	paths, err := wailsruntime.OpenMultipleFilesDialog(a.ctx, wailsruntime.OpenDialogOptions{
+		Title:            "Attach workspace files",
+		DefaultDirectory: state.Workspace,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return a.backend.NormalizeContextPaths(paths)
+}
+
+func (a *App) PickContextDirectory() ([]string, error) {
+	state, err := a.backend.State(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if state.Workspace == "" {
+		return nil, backend.ErrNoWorkspace
+	}
+	path, err := wailsruntime.OpenDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
+		Title:            "Attach workspace folder",
+		DefaultDirectory: state.Workspace,
+	})
+	if err != nil || path == "" {
+		return nil, err
+	}
+	return a.backend.NormalizeContextPaths([]string{path})
+}
+
 func (a *App) MessagePage(sessionID string, beforeSeq int64, limit int) (backend.MessagePage, error) {
 	return a.backend.MessagePage(context.Background(), sessionID, beforeSeq, limit)
 }
