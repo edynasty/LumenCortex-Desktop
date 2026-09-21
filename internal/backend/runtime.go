@@ -236,6 +236,27 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 	})
 }
 
+func (r *Runtime) ContinueAgent(ctx context.Context, sessionID, content string, cfg AgentConfig) (Session, error) {
+	if strings.TrimSpace(content) == "" {
+		return Session{}, errors.New("follow-up content is required")
+	}
+
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return Session{}, ErrNoWorkspace
+	}
+	handle, _, err := engine.Session(ctx, sessionID)
+	if err != nil {
+		return Session{}, err
+	}
+	if _, err := handle.AppendMessage(ctx, "user", map[string]string{"content": strings.TrimSpace(content)}); err != nil {
+		return Session{}, err
+	}
+	return r.StartAgent(ctx, sessionID, cfg)
+}
+
 func (r *Runtime) CancelAgent(sessionID string) bool {
 	r.mu.RLock()
 	supervisor := r.supervisor
