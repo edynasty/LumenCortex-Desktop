@@ -7,6 +7,7 @@ import {
   Menu,
   PanelRight,
   Plus,
+  Settings2,
   Sparkles,
   Square,
   SquareTerminal,
@@ -37,10 +38,13 @@ const copy = {
     settings: "设置",
     providers: "提供商",
     providerConfig: "Provider 配置",
+    providerSettings: "模型与提供商",
+    providerNeedWorkspace: "先打开一个代码仓库，再为这个工作区配置 Provider 和模型。",
     providerConfigHint: "配置保存在工作区根目录 lumencortex.json。API Key 推荐使用 {env:VAR_NAME}，不要直接写入密钥。",
     saveConfig: "保存配置",
     modelSelect: "模型",
     noModels: "未配置模型，将使用 LCX_MODEL 环境变量",
+    runtimeReady: "运行时待命",
     runtimeOnline: "运行时在线",
     runtimeOffline: "运行时离线",
     openRepoTitle: "打开一个代码仓库",
@@ -110,10 +114,13 @@ const copy = {
     settings: "Settings",
     providers: "Providers",
     providerConfig: "Provider configuration",
+    providerSettings: "Models & providers",
+    providerNeedWorkspace: "Open a code repository first, then configure providers and models for that workspace.",
     providerConfigHint: "Stored as lumencortex.json in the workspace root. Prefer {env:VAR_NAME} for API keys instead of storing secrets directly.",
     saveConfig: "Save configuration",
     modelSelect: "Model",
     noModels: "No configured models; LCX_MODEL will be used",
+    runtimeReady: "Runtime ready",
     runtimeOnline: "Runtime online",
     runtimeOffline: "Runtime offline",
     openRepoTitle: "Open a code repository",
@@ -264,7 +271,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(() => window.innerWidth > 1180);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -583,10 +590,21 @@ export default function App() {
 
         <div className="sidebar-footer">
           <div className="runtime-line">
-            <span className={`runtime-dot ${health ? "online" : ""}`} />
-            <span>{health ? t.runtimeOnline : t.runtimeOffline}</span>
+            <span className={`runtime-dot ${health ? "online" : state.workspace ? "offline" : "ready"}`} />
+            <span>{health ? t.runtimeOnline : state.workspace ? t.runtimeOffline : t.runtimeReady}</span>
             {health?.version && <code>{health.version}</code>}
           </div>
+          <button
+            className="footer-button provider-settings-entry"
+            onClick={() => {
+              setInspectorTab("providers");
+              setInspectorOpen(true);
+              setSidebarOpen(false);
+            }}
+          >
+            <Settings2 size={14} strokeWidth={1.7} aria-hidden />
+            <span>{t.providerSettings}</span>
+          </button>
           <button className="footer-button" onClick={switchLocale}>
             <Icon name="globe" size={14} />
             <span>{t.language}</span>
@@ -813,40 +831,52 @@ export default function App() {
               )}
 
               {inspectorTab === "providers" && (
-                <div className="provider-pane">
-                  <div className="provider-pane-head">
-                    <div>
-                      <strong>{t.providerConfig}</strong>
-                      <code>lumencortex.json</code>
+                state.workspace ? (
+                  <div className="provider-pane">
+                    <div className="provider-pane-head">
+                      <div>
+                        <strong>{t.providerConfig}</strong>
+                        <code>lumencortex.json</code>
+                      </div>
+                      <button
+                        className="save-provider-button"
+                        type="button"
+                        disabled={!providerDirty}
+                        onClick={saveProviderConfig}
+                      >
+                        {t.saveConfig}
+                      </button>
                     </div>
-                    <button
-                      className="save-provider-button"
-                      type="button"
-                      disabled={!providerDirty}
-                      onClick={saveProviderConfig}
-                    >
-                      {t.saveConfig}
+                    <p>{t.providerConfigHint}</p>
+                    <textarea
+                      className="provider-editor"
+                      value={providerJSON}
+                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                        setProviderJSON(event.target.value);
+                        setProviderDirty(true);
+                      }}
+                      spellCheck={false}
+                    />
+                    <div className="provider-model-list">
+                      {configuredModels.map((item) => (
+                        <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
+                          <span>{item.label}</span>
+                          <code>{item.ref}</code>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="provider-empty-state">
+                    <Settings2 size={20} strokeWidth={1.6} aria-hidden />
+                    <strong>{t.providerSettings}</strong>
+                    <p>{t.providerNeedWorkspace}</p>
+                    <button className="provider-open-workspace" type="button" onClick={pickWorkspace}>
+                      <Folder size={14} strokeWidth={1.7} aria-hidden />
+                      {t.chooseFolder}
                     </button>
                   </div>
-                  <p>{t.providerConfigHint}</p>
-                  <textarea
-                    className="provider-editor"
-                    value={providerJSON}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-                      setProviderJSON(event.target.value);
-                      setProviderDirty(true);
-                    }}
-                    spellCheck={false}
-                  />
-                  <div className="provider-model-list">
-                    {configuredModels.map((item) => (
-                      <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
-                        <span>{item.label}</span>
-                        <code>{item.ref}</code>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                )
               )}
 
               {inspectorTab === "terminal" && (
