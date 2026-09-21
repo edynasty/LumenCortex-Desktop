@@ -1,6 +1,7 @@
 import type {
   AgentConfig,
   Message,
+  ProviderCatalog,
   RuntimeEvent,
   Session,
   ShellResult,
@@ -15,6 +16,8 @@ type AppAPI = {
   GetSession(sessionId: string): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
   RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
+  GetProviderCatalog(): Promise<ProviderCatalog>;
+  SaveProviderCatalog(config: ProviderCatalog): Promise<ProviderCatalog>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
   CancelAgent(sessionId: string): Promise<boolean>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
@@ -46,6 +49,8 @@ export const bridge = {
   getSession: (sessionId: string) => api().GetSession(sessionId),
   createSession: (goal: string) => api().CreateSession(goal),
   recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
+  providerCatalog: () => api().GetProviderCatalog(),
+  saveProviderCatalog: (config: ProviderCatalog) => api().SaveProviderCatalog(config),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
