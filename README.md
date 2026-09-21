@@ -111,3 +111,14 @@ LumenCortex Desktop reads provider and model definitions from `lumencortex.json`
 ```
 
 The Desktop model picker is populated from this catalog. `settings.apiKey` supports `{env:VARIABLE_NAME}`; environment references are recommended so secrets do not need to be stored in the workspace file. If no configured model is selected, the existing `LCX_MODEL`, `LCX_BASE_URL`, `LCX_ENDPOINT`, and `LCX_API_KEY` environment fallbacks remain available.
+
+
+## Engineering standards
+
+Repository development is governed by:
+
+- [AGENTS.md](AGENTS.md) — mandatory repository contract for AI coding agents.
+- [Frontend Development Standard](docs/frontend-development-standard.md) — UI/UX, responsive layout, icons, state ownership, provider UX, i18n, and frontend acceptance rules.
+- [AI Development Standard](docs/ai-development-standard.md) — architecture boundaries, implementation discipline, security, bounded-memory rules, testing, validation, and definition of done.
+
+For AI-assisted development, read `AGENTS.md` first. These standards use MUST/SHOULD language intentionally; changes that conflict with them should update the standard explicitly rather than silently bypass it.
