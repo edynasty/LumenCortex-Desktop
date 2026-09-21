@@ -20,6 +20,16 @@ export type Health = {
   pressure: boolean;
 };
 
+export type RuntimeKind = "local" | "worktree";
+
+export type SessionRuntime = {
+  kind: RuntimeKind;
+  path: string;
+  branch?: string;
+  base?: string;
+  head?: string;
+};
+
 export type SessionUIPatch = {
   title?: string;
   pinned?: boolean;
