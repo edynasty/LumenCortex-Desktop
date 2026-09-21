@@ -177,6 +177,10 @@
   padding: 0 8px 0 4px;
 }
 
+.provider-card-head {
+  transition: background-color var(--motion-fast) var(--ease-standard);
+}
+
 .provider-card-head:hover {
   background: var(--surface-soft);
 }
@@ -273,6 +277,7 @@
 .provider-card-body {
   border-top: 1px solid var(--border);
   background: #fbfbfa;
+  animation: providerReveal var(--motion-base) var(--ease-out);
 }
 
 .provider-model-wrap + .provider-model-wrap {
@@ -507,6 +512,7 @@
 
 .provider-advanced-body {
   padding: 9px 4px 0;
+  animation: providerReveal var(--motion-base) var(--ease-out);
 }
 
 .provider-advanced-body p {
@@ -589,4 +595,10 @@
   .provider-model-form {
     padding-left: 13px;
   }
+}
+
+
+@keyframes providerReveal {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
