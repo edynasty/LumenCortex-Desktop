@@ -77,3 +77,37 @@ Task duration    != linear RSS growth
 ```
 
 The UI must use paging/virtualization/bounded buffers for structures that can grow with task duration. Durable Session and cognitive state belong to Core storage rather than duplicated frontend state.
+
+
+## Provider configuration
+
+LumenCortex Desktop reads provider and model definitions from `lumencortex.json` in the workspace root. Model references use `provider/model`, similar to OpenCode.
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/edynasty/LumenCortex-Desktop/main/docs/lumencortex.schema.json",
+  "model": "deepseek/coder",
+  "providers": {
+    "deepseek": {
+      "name": "DeepSeek",
+      "package": "openai-compatible",
+      "settings": {
+        "baseURL": "https://api.deepseek.com/v1",
+        "apiKey": "{env:DEEPSEEK_API_KEY}"
+      },
+      "models": {
+        "coder": {
+          "name": "DeepSeek Coder",
+          "modelID": "deepseek-chat",
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The Desktop model picker is populated from this catalog. `settings.apiKey` supports `{env:VARIABLE_NAME}`; environment references are recommended so secrets do not need to be stored in the workspace file. If no configured model is selected, the existing `LCX_MODEL`, `LCX_BASE_URL`, `LCX_ENDPOINT`, and `LCX_API_KEY` environment fallbacks remain available.
