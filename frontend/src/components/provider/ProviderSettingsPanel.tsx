@@ -6,9 +6,11 @@ import {
   FileJson2,
   Pencil,
   Plus,
+  RefreshCw,
   Server,
   Star,
   Trash2,
+  Wifi,
 } from "lucide-react";
 import { Dialog } from "../primitives/Dialog";
 import { bridge } from "../../lib/bridge";
@@ -19,6 +21,7 @@ import type {
   ProviderModel,
 } from "../../types";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
+import { providerPresets, type ProviderPreset } from "./provider-presets";
 import "./provider-settings.css";
 
 type ProviderDraft = {
@@ -145,6 +148,8 @@ export function ProviderSettingsPanel({
   const [advancedJSON, setAdvancedJSON] = useState("");
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [providerAction, setProviderAction] = useState<string | null>(null);
+  const [providerNotice, setProviderNotice] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!workspace && scope === "workspace") {
@@ -209,8 +214,14 @@ export function ProviderSettingsPanel({
     }
   }
 
-  function startAddProvider() {
-    setProviderDraft(emptyProvider);
+  function startAddProvider(preset?: ProviderPreset) {
+    setProviderDraft(preset ? {
+      id: preset.id,
+      name: preset.name,
+      baseURL: preset.baseURL,
+      endpoint: "",
+      apiKey: preset.envVar,
+    } : emptyProvider);
     setEditingProvider("new");
     setEditingModel(null);
   }
@@ -325,6 +336,57 @@ export function ProviderSettingsPanel({
     onSelectedModelRef(ref);
   }
 
+  function modelKeyFromUpstream(id: string, existing: Record<string, ProviderModel>): string {
+    const base = id
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "model";
+    let key = base;
+    let suffix = 2;
+    while (existing[key] && existing[key].modelID !== id) {
+      key = `${base}-${suffix++}`;
+    }
+    return key;
+  }
+
+  async function testConnection(providerId: string) {
+    setProviderAction("test:" + providerId);
+    try {
+      const result = await bridge.testProviderConnection(providerId);
+      setProviderNotice((current) => ({ ...current, [providerId]: result.message }));
+    } catch (err) {
+      onError(String(err));
+    } finally {
+      setProviderAction(null);
+    }
+  }
+
+  async function discoverModels(providerId: string) {
+    setProviderAction("discover:" + providerId);
+    try {
+      const discovered = await bridge.discoverProviderModels(providerId);
+      const next = cloneCatalog(catalog);
+      const provider = next.providers[providerId];
+      if (!provider) return;
+      provider.models ||= {};
+      for (const item of discovered) {
+        const key = modelKeyFromUpstream(item.id, provider.models);
+        provider.models[key] ||= { name: item.id, modelID: item.id };
+      }
+      if (!(await saveCatalog(next))) return;
+      setExpandedProvider(providerId);
+      setProviderNotice((current) => ({
+        ...current,
+        [providerId]: t.discoveredModels.replace("{count}", String(discovered.length)),
+      }));
+    } catch (err) {
+      onError(String(err));
+    } finally {
+      setProviderAction(null);
+    }
+  }
+
   async function saveAdvancedJSON() {
     try {
       const parsed = JSON.parse(advancedJSON) as ProviderCatalog;
@@ -346,6 +408,16 @@ export function ProviderSettingsPanel({
           <Plus size={14} strokeWidth={1.8} aria-hidden />
           {t.addProvider}
         </button>
+      </div>
+
+      <div className="provider-presets" aria-label={t.presets}>
+        <span>{t.presets}</span>
+        {providerPresets.map((preset) => (
+          <button key={preset.id} type="button" onClick={() => startAddProvider(preset)}>
+            {preset.name}
+          </button>
+        ))}
+        <button type="button" onClick={() => startAddProvider()}>{t.custom}</button>
       </div>
 
       <div className="provider-scope-bar">
@@ -425,6 +497,24 @@ export function ProviderSettingsPanel({
                         </span>
                       </button>
                       <div className="provider-card-actions">
+                        <button
+                          type="button"
+                          aria-label={t.testConnection}
+                          title={t.testConnection}
+                          disabled={providerAction !== null}
+                          onClick={() => void testConnection(providerId)}
+                        >
+                          <Wifi size={13} strokeWidth={1.7} aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={t.discoverModels}
+                          title={t.discoverModels}
+                          disabled={providerAction !== null}
+                          onClick={() => void discoverModels(providerId)}
+                        >
+                          <RefreshCw size={13} strokeWidth={1.7} aria-hidden />
+                        </button>
                         <button type="button" aria-label={t.edit} onClick={() => startEditProvider(providerId, provider)}>
                           <Pencil size={13} strokeWidth={1.7} aria-hidden />
                         </button>
@@ -433,6 +523,10 @@ export function ProviderSettingsPanel({
                         </button>
                       </div>
                     </div>
+
+                    {providerNotice[providerId] && (
+                      <div className="provider-action-notice">{providerNotice[providerId]}</div>
+                    )}
 
                     {expanded && (
                       <div className="provider-card-body">
