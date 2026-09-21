@@ -842,7 +842,9 @@ export default function App() {
               checkFailed: t.checkFailed,
               checkTruncated: t.checkTruncated,
               localRuntime: t.localRuntime,
-              worktreeRuntime: t.worktreeRuntime
+              worktreeRuntime: t.worktreeRuntime,
+              conflictTitle: t.worktreeConflictTitle,
+              conflictHint: t.worktreeConflictHint
             }}
           />
         ) : !current ? (
