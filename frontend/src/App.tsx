@@ -14,6 +14,7 @@ import {
   SquareTerminal,
   X
 } from "lucide-react";
+import { NewTaskComposer } from "./components/composer/NewTaskComposer";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkspaceState } from "./types";
@@ -22,7 +23,8 @@ const MAX_VISIBLE_EVENTS = 180;
 const MAX_VISIBLE_MESSAGES = 100;
 
 type Locale = "zh-CN" | "en";
-type InspectorTab = "activity" | "run" | "providers" | "terminal";
+type InspectorTab = "activity" | "run" | "terminal";
+type WorkspaceView = "workspace" | "providers";
 type Policy = "read-only" | "workspace" | "full";
 
 const copy = {
@@ -34,6 +36,9 @@ const copy = {
     sessions: "会话",
     noSessions: "还没有会话",
     today: "最近",
+    runningThreads: "进行中",
+    attentionThreads: "需要处理",
+    recentThreads: "最近",
     activity: "活动",
     run: "运行",
     terminal: "终端",
@@ -90,6 +95,8 @@ const copy = {
     collapseSidebar: "收起侧栏",
     expandSidebar: "打开侧栏",
     startAnother: "开始另一个任务",
+    backToWorkspace: "返回工作区",
+    newTaskSubtitle: "描述任务，选择项目、模型和权限，然后直接开始。运行细节和工具轨迹会在任务开始后按需显示。",
     waiting: "等待确认",
     created: "待启动",
     completed: "已完成",
@@ -109,6 +116,9 @@ const copy = {
     sessions: "Threads",
     noSessions: "No threads yet",
     today: "Recent",
+    runningThreads: "Running",
+    attentionThreads: "Needs attention",
+    recentThreads: "Recent",
     activity: "Activity",
     run: "Run",
     terminal: "Terminal",
@@ -165,6 +175,8 @@ const copy = {
     collapseSidebar: "Collapse sidebar",
     expandSidebar: "Open sidebar",
     startAnother: "Start another task",
+    backToWorkspace: "Back to workspace",
+    newTaskSubtitle: "Describe the task, choose a project, model, and permission profile, then start. Runtime detail appears only when it becomes useful.",
     waiting: "Waiting for approval",
     created: "Ready",
     completed: "Completed",
@@ -270,6 +282,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("workspace");
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -337,6 +350,28 @@ export default function App() {
     );
   }, [catalog]);
 
+  const sessionGroups = useMemo(() => {
+    const runningSessions: Session[] = [];
+    const attentionSessions: Session[] = [];
+    const recentSessions: Session[] = [];
+
+    for (const session of state.sessions) {
+      if (activeRuns[session.id] || session.status === "running") {
+        runningSessions.push(session);
+      } else if (session.status === "waiting_gate" || session.error) {
+        attentionSessions.push(session);
+      } else {
+        recentSessions.push(session);
+      }
+    }
+
+    return [
+      { key: "running", label: t.runningThreads, sessions: runningSessions },
+      { key: "attention", label: t.attentionThreads, sessions: attentionSessions },
+      { key: "recent", label: t.recentThreads, sessions: recentSessions }
+    ].filter((group) => group.sessions.length > 0);
+  }, [activeRuns, state.sessions, t.attentionThreads, t.recentThreads, t.runningThreads]);
+
 
   function statusLabel(status?: string) {
     if (running) return t.active;
@@ -390,6 +425,7 @@ export default function App() {
       setMessages([]);
       setEvents([]);
       setActiveRuns({});
+      setWorkspaceView("workspace");
       setSidebarOpen(false);
     } catch (err) {
       setError(String(err));
@@ -482,6 +518,8 @@ export default function App() {
     setSelected("");
     setMessages([]);
     setGoal("");
+    setWorkspaceView("workspace");
+    setInspectorOpen(false);
     setSidebarOpen(false);
     window.setTimeout(() => composerRef.current?.focus(), 0);
   }
@@ -511,7 +549,7 @@ export default function App() {
           </button>
         </div>
 
-        <button className="new-task-button" onClick={newTask} disabled={!state.workspace}>
+        <button className="new-task-button" onClick={newTask}>
           <Icon name="plus" size={15} />
           <span>{t.newTask}</span>
         </button>
@@ -525,31 +563,40 @@ export default function App() {
           <Icon name="chevron" size={14} />
         </button>
 
-        <div className="sidebar-section-title">
+        <div className="sidebar-section-title sidebar-section-summary">
           <span>{t.sessions}</span>
           <span>{state.sessions.length}</span>
         </div>
 
         <div className="thread-list">
-          {state.sessions.map((session) => {
-            const isActive = Boolean(activeRuns[session.id]);
-            return (
-              <button
-                key={session.id}
-                className={`thread-item ${session.id === selected ? "selected" : ""}`}
-                onClick={() => {
-                  setSelected(session.id);
-                  setSidebarOpen(false);
-                }}
-              >
-                <span className={`thread-dot ${isActive ? "live" : session.status}`} />
-                <span className="thread-copy">
-                  <strong>{session.goal}</strong>
-                  <small>{isActive ? t.running : statusLabel(session.status)} · {formatClock(session.updatedAt)}</small>
-                </span>
-              </button>
-            );
-          })}
+          {sessionGroups.map((group) => (
+            <section className="thread-group" key={group.key}>
+              <div className="thread-group-title">
+                <span>{group.label}</span>
+                <span>{group.sessions.length}</span>
+              </div>
+              {group.sessions.map((session) => {
+                const isActive = Boolean(activeRuns[session.id]);
+                return (
+                  <button
+                    key={session.id}
+                    className={`thread-item ${session.id === selected && workspaceView === "workspace" ? "selected" : ""}`}
+                    onClick={() => {
+                      setSelected(session.id);
+                      setWorkspaceView("workspace");
+                      setSidebarOpen(false);
+                    }}
+                  >
+                    <span className={`thread-dot ${isActive ? "live" : session.status}`} />
+                    <span className="thread-copy">
+                      <strong>{session.goal}</strong>
+                      <small>{isActive ? t.running : statusLabel(session.status)} · {formatClock(session.updatedAt)}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </section>
+          ))}
           {!state.sessions.length && <div className="sidebar-empty">{t.noSessions}</div>}
         </div>
 
@@ -562,8 +609,8 @@ export default function App() {
           <button
             className="footer-button provider-settings-entry"
             onClick={() => {
-              setInspectorTab("providers");
-              setInspectorOpen(true);
+              setWorkspaceView("providers");
+              setInspectorOpen(false);
               setSidebarOpen(false);
             }}
           >
@@ -579,7 +626,7 @@ export default function App() {
 
       {sidebarOpen && <button className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-label={t.close} />}
 
-      <section className={`workspace-shell ${inspectorOpen ? "with-inspector" : ""} ${inspectorOpen && inspectorTab === "providers" ? "provider-inspector-open" : ""}`}>
+      <section className={`workspace-shell ${inspectorOpen && workspaceView === "workspace" ? "with-inspector" : ""}`}>
         <main className="workspace-main">
           <header className="topbar">
             <div className="topbar-left">
@@ -587,56 +634,93 @@ export default function App() {
                 <Icon name="menu" />
               </button>
               <div className="title-stack">
-                <strong>{current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
-                {state.workspace && (
-                  <span>
-                    {t.local}
-                    {current?.model ? ` · ${current.model}` : ""}
-                    {current ? ` · ${statusLabel(current.status)}` : ""}
-                  </span>
-                )}
+                <strong>{workspaceView === "providers" ? t.providerSettings : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
+                <span>
+                  {workspaceView === "providers"
+                    ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
+                    : state.workspace
+                      ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status)}` : ""}`
+                      : t.runtimeReady}
+                </span>
               </div>
             </div>
 
             <div className="topbar-actions">
-              {current && running && (
+              {workspaceView === "providers" && (
+                <button className="toolbar-button" onClick={newTask}>
+                  <Code2 size={14} strokeWidth={1.7} aria-hidden />
+                  <span>{t.backToWorkspace}</span>
+                </button>
+              )}
+              {workspaceView === "workspace" && current && running && (
                 <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
                   <Icon name="stop" size={14} />
                   <span>{t.stop}</span>
                 </button>
               )}
-              {current && !running && (current.status === "created" || current.status === "interrupted") && (
+              {workspaceView === "workspace" && current && !running && (current.status === "created" || current.status === "interrupted") && (
                 <button className="toolbar-button" onClick={() => startAgent()} disabled={busy}>
                   <Icon name="play" size={14} />
                   <span>{current.status === "interrupted" ? t.resume : t.start}</span>
                 </button>
               )}
-              <button
-                className={`icon-button ${inspectorOpen ? "active" : ""}`}
-                onClick={() => setInspectorOpen((open) => !open)}
-                aria-label={t.inspector}
-              >
-                <Icon name="panel" />
-              </button>
+              {workspaceView === "workspace" && (
+                <button
+                  className={`icon-button ${inspectorOpen ? "active" : ""}`}
+                  onClick={() => setInspectorOpen((open) => !open)}
+                  aria-label={t.inspector}
+                >
+                  <Icon name="panel" />
+                </button>
+              )}
             </div>
           </header>
 
-          {!state.workspace ? (
-            <div className="center-state onboarding">
-              <div className="hero-mark"><Code2 size={25} strokeWidth={1.6} aria-hidden /></div>
-              <h1>{t.openRepoTitle}</h1>
-              <p>{t.openRepoBody}</p>
-              <button className="primary-action" onClick={pickWorkspace}>
-                <Icon name="folder" size={16} />
-                {t.chooseFolder}
-              </button>
-            </div>
+          {workspaceView === "providers" ? (
+            <ProviderSettingsPanel
+              locale={locale}
+              workspace={state.workspace}
+              effectiveCatalog={catalog}
+              selectedModelRef={modelRef}
+              onSelectedModelRef={setModelRef}
+              onEffectiveCatalogChange={setCatalog}
+              onError={setError}
+            />
           ) : !current ? (
-            <div className="center-state new-thread-state">
-              <div className="hero-mark small"><Code2 size={22} strokeWidth={1.6} aria-hidden /></div>
-              <h1>{t.buildTitle}</h1>
-              <p>{t.buildBody}</p>
-            </div>
+            <NewTaskComposer
+              title={t.buildTitle}
+              subtitle={t.newTaskSubtitle}
+              placeholder={t.composerPlaceholder}
+              workspace={state.workspace}
+              workspaceName={state.workspace ? basename(state.workspace) : ""}
+              chooseProjectLabel={t.openProject}
+              modelLabel={t.modelSelect}
+              modelRef={modelRef}
+              models={configuredModels}
+              noModelsLabel={t.noModels}
+              policy={policy}
+              policyLabels={{
+                "read-only": t.readOnly,
+                workspace: t.workspace,
+                full: t.full
+              }}
+              localLabel={t.local}
+              hint={t.composerHint}
+              startLabel={t.start}
+              goal={goal}
+              busy={busy}
+              textareaRef={composerRef}
+              onGoalChange={setGoal}
+              onModelChange={setModelRef}
+              onPolicyChange={setPolicy}
+              onPickWorkspace={pickWorkspace}
+              onOpenProviders={() => {
+                setWorkspaceView("providers");
+                setInspectorOpen(false);
+              }}
+              onSubmit={submitTask}
+              onKeyDown={onComposerKeyDown}
+            />
           ) : (
             <div className="thread-view">
               <div className="thread-content">
@@ -685,7 +769,7 @@ export default function App() {
             </div>
           )}
 
-          {state.workspace && (
+          {workspaceView === "workspace" && state.workspace && current && (
             <div className="composer-dock">
               <form className="composer" onSubmit={submitTask}>
                 <textarea
@@ -724,13 +808,12 @@ export default function App() {
           )}
         </main>
 
-        {inspectorOpen && (
-          <aside className={`inspector ${inspectorTab === "providers" ? "provider-inspector" : ""}`}>
+        {inspectorOpen && workspaceView === "workspace" && (
+          <aside className="inspector">
             <div className="inspector-head">
               <div className="inspector-tabs">
                 <button className={inspectorTab === "activity" ? "active" : ""} onClick={() => setInspectorTab("activity")}>{t.activity}</button>
                 <button className={inspectorTab === "run" ? "active" : ""} onClick={() => setInspectorTab("run")}>{t.run}</button>
-                <button className={inspectorTab === "providers" ? "active" : ""} onClick={() => setInspectorTab("providers")}>{t.providers}</button>
                 <button className={inspectorTab === "terminal" ? "active" : ""} onClick={() => setInspectorTab("terminal")}>{t.terminal}</button>
               </div>
               <button className="icon-button inspector-close" onClick={() => setInspectorOpen(false)} aria-label={t.close}>
@@ -764,7 +847,14 @@ export default function App() {
                         {configuredModels.map((item) => <option key={item.ref} value={item.ref}>{item.label}</option>)}
                       </select>
                     </label>
-                    <button className="provider-link-button" type="button" onClick={() => setInspectorTab("providers")}>
+                    <button
+                      className="provider-link-button"
+                      type="button"
+                      onClick={() => {
+                        setWorkspaceView("providers");
+                        setInspectorOpen(false);
+                      }}
+                    >
                       {t.providerConfig}
                     </button>
                     <p className="settings-note">{t.envFallback}</p>
@@ -793,18 +883,6 @@ export default function App() {
                     <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
                   </div>
                 </div>
-              )}
-
-              {inspectorTab === "providers" && (
-                <ProviderSettingsPanel
-                  locale={locale}
-                  workspace={state.workspace}
-                  effectiveCatalog={catalog}
-                  selectedModelRef={modelRef}
-                  onSelectedModelRef={setModelRef}
-                  onEffectiveCatalogChange={setCatalog}
-                  onError={setError}
-                />
               )}
 
               {inspectorTab === "terminal" && (
