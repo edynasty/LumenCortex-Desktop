@@ -100,6 +100,14 @@ func (a *App) RecentMessages(sessionID string, limit int) ([]backend.Message, er
 	return a.backend.RecentMessages(context.Background(), sessionID, limit)
 }
 
+func (a *App) GetProviderCatalog() (backend.ProviderCatalog, error) {
+	return a.backend.ProviderCatalog()
+}
+
+func (a *App) SaveProviderCatalog(config backend.ProviderCatalog) (backend.ProviderCatalog, error) {
+	return a.backend.SaveProviderCatalog(config)
+}
+
 func (a *App) StartAgent(sessionID string, config backend.AgentConfig) (backend.Session, error) {
 	return a.backend.StartAgent(context.Background(), sessionID, config)
 }
