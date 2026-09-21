@@ -4,7 +4,7 @@ import type {
   KeyboardEvent,
   Ref,
 } from "react";
-import { ArrowUp, CircleCheck, Folder } from "lucide-react";
+import { ArrowUp, CircleCheck, Folder, Square } from "lucide-react";
 import type { Message, Session, WorkflowSummary } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import { ApprovalCard } from "./ApprovalCard";
@@ -44,6 +44,7 @@ type Props = {
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onApproveGate: (gateId: string) => void;
+  onCancel: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
@@ -65,6 +66,7 @@ export function ThreadWorkspace({
   onGoalChange,
   onModelChange,
   onApproveGate,
+  onCancel,
   onSubmit,
   onKeyDown,
 }: Props) {
@@ -155,9 +157,21 @@ export function ThreadWorkspace({
             </div>
             <div className="composer-actions">
               <span className="composer-hint">{labels.composerHint}</span>
-              <button className="send-button" disabled={busy || !goal.trim()} aria-label={labels.start}>
-                <ArrowUp size={15} strokeWidth={1.9} aria-hidden />
-              </button>
+              {running ? (
+                <button
+                  className="send-button stop"
+                  type="button"
+                  disabled={busy}
+                  aria-label={labels.running}
+                  onClick={onCancel}
+                >
+                  <Square size={13} strokeWidth={1.9} aria-hidden />
+                </button>
+              ) : (
+                <button className="send-button" disabled={busy || !goal.trim()} aria-label={labels.start}>
+                  <ArrowUp size={15} strokeWidth={1.9} aria-hidden />
+                </button>
+              )}
             </div>
           </div>
         </form>
