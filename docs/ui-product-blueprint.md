@@ -695,10 +695,10 @@ Priority: **P0**
   - read-only
   - workspace
   - full
-- [ ] **UI-02.6 Add run-environment picker**
+- [x] **UI-02.6 Add run-environment picker**
   - Local initially
   - Worktree only after runtime support exists
-- [ ] **UI-02.7 Add context attachment entry**
+- [x] **UI-02.7 Add context attachment entry**
   - files
   - folders
   - future Skills/MCP context
@@ -706,7 +706,7 @@ Priority: **P0**
   - Enter = run
   - Shift+Enter = newline
   - Cmd/Ctrl+Enter optional explicit run shortcut
-- [ ] **UI-02.9 Add recent project quick-pick**
+- [x] **UI-02.9 Add recent project quick-pick**
 - [x] **UI-02.10 Add empty-model state linking directly to Provider settings**
 - [ ] **UI-02.11 Add running/cancel state directly in Composer**
 - [ ] **UI-02.12 Verify 1440 / 1180 / 820 / 560 layouts**
