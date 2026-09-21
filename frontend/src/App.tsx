@@ -1,21 +1,18 @@
-import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUp,
-  ChevronRight,
-  CircleCheck,
   Code2,
-  Folder,
-  Languages,
   Menu,
   PanelRight,
-  Plus,
-  Settings2,
   Square,
-  SquareTerminal,
   X
 } from "lucide-react";
+import { AppShell } from "./components/app-shell/AppShell";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
+import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
+import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
+import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkspaceState } from "./types";
 
@@ -23,7 +20,6 @@ const MAX_VISIBLE_EVENTS = 180;
 const MAX_VISIBLE_MESSAGES = 100;
 
 type Locale = "zh-CN" | "en";
-type InspectorTab = "activity" | "run" | "terminal";
 type WorkspaceView = "workspace" | "providers";
 type Policy = "read-only" | "workspace" | "full";
 
@@ -192,77 +188,21 @@ const copy = {
   }
 } as const;
 
-type IconName = "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "close";
+type IconName = "menu" | "panel" | "play" | "stop" | "close";
 
 function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   const props = { size, strokeWidth: 1.7, "aria-hidden": true as const };
   switch (name) {
     case "menu": return <Menu {...props} />;
-    case "plus": return <Plus {...props} />;
-    case "folder": return <Folder {...props} />;
     case "panel": return <PanelRight {...props} />;
     case "play": return <ArrowUp {...props} />;
     case "stop": return <Square {...props} />;
-    case "terminal": return <SquareTerminal {...props} />;
-    case "globe": return <Languages {...props} />;
-    case "chevron": return <ChevronRight {...props} />;
     case "close": return <X {...props} />;
   }
 }
 
 function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
-}
-
-function bytes(value = 0) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
-  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
-function normalizePayload(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
-    } catch {
-      return { content: value };
-    }
-  }
-  return {};
-}
-
-function messageText(message: Message) {
-  const payload = normalizePayload(message.json);
-  if (typeof payload.content === "string" && payload.content.trim()) return payload.content;
-  if (Array.isArray(payload.tool_calls)) {
-    const names = payload.tool_calls
-      .map((item) => {
-        if (!item || typeof item !== "object") return "";
-        const call = item as Record<string, unknown>;
-        return typeof call.name === "string" ? call.name : "";
-      })
-      .filter(Boolean);
-    if (names.length) return `Tool calls: ${names.join(", ")}`;
-  }
-  const raw = JSON.stringify(payload, null, 2);
-  return raw === "{}" ? "(empty message)" : raw;
-}
-
-function roleClass(role: string) {
-  if (role === "assistant") return "assistant";
-  if (role === "tool") return "tool";
-  if (role === "system") return "system";
-  return "user";
-}
-
-function formatClock(value: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 export default function App() {
@@ -360,7 +300,7 @@ export default function App() {
     );
   }, [catalog]);
 
-  const sessionGroups = useMemo(() => {
+  const sessionGroups = useMemo<SidebarGroup[]>(() => {
     const runningSessions: Session[] = [];
     const attentionSessions: Session[] = [];
     const recentSessions: Session[] = [];
@@ -368,7 +308,7 @@ export default function App() {
     for (const session of state.sessions) {
       if (activeRunIds.has(session.id)) {
         runningSessions.push(session);
-      } else if (session.status === "waiting_gate" || session.error) {
+      } else if (session.status === "waiting_gate" || session.error || session.status === "running") {
         attentionSessions.push(session);
       } else {
         recentSessions.push(session);
@@ -376,11 +316,26 @@ export default function App() {
     }
 
     return [
-      { key: "running", label: t.runningThreads, sessions: runningSessions },
-      { key: "attention", label: t.attentionThreads, sessions: attentionSessions },
-      { key: "recent", label: t.recentThreads, sessions: recentSessions }
-    ].filter((group) => group.sessions.length > 0);
-  }, [activeRunIds, state.sessions, t.attentionThreads, t.recentThreads, t.runningThreads]);
+      { key: "running", label: t.runningThreads, raw: runningSessions },
+      { key: "attention", label: t.attentionThreads, raw: attentionSessions },
+      { key: "recent", label: t.recentThreads, raw: recentSessions }
+    ]
+      .filter((group) => group.raw.length > 0)
+      .map((group) => ({
+        key: group.key,
+        label: group.label,
+        sessions: group.raw.map((session) => {
+          const active = activeRunIds.has(session.id);
+          return {
+            session,
+            active,
+            statusLabel: session.status === "running" && !active
+              ? t.interrupted
+              : statusLabel(session.status, active)
+          };
+        })
+      }));
+  }, [activeRunIds, state.sessions, t.attentionThreads, t.interrupted, t.recentThreads, t.runningThreads]);
 
 
   function statusLabel(status?: string, isRunning = false) {
@@ -393,13 +348,6 @@ export default function App() {
       case "running": return t.running;
       default: return status || t.unknown;
     }
-  }
-
-  function roleLabel(role: string) {
-    if (role === "assistant") return t.messageRoleAssistant;
-    if (role === "tool") return t.messageRoleTool;
-    if (role === "system") return t.messageRoleSystem;
-    return t.messageRoleUser;
   }
 
   function agentConfig(): AgentConfig {
@@ -459,7 +407,7 @@ export default function App() {
     }
   }
 
-  async function submitTask(event: FormEvent) {
+  async function submitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const task = goal.trim();
     if (!task || !state.workspace || busy) return;
@@ -507,7 +455,7 @@ export default function App() {
     }
   }
 
-  async function runShell(event: FormEvent) {
+  async function runShell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !command.trim()) return;
     setBusy(true);
@@ -543,369 +491,247 @@ export default function App() {
     }
   }
 
+  const modelSelectOptions = configuredModels.map((item) => ({
+    value: item.ref,
+    label: item.label,
+    description: item.description,
+    group: item.group
+  }));
+
+  const runtimeState = health ? "online" : state.workspace ? "offline" : "ready";
+
+  const sidebar = (
+    <Sidebar
+      open={sidebarOpen}
+      workspace={state.workspace}
+      workspaceName={state.workspace ? basename(state.workspace) : ""}
+      groups={sessionGroups}
+      selectedSessionId={workspaceView === "workspace" ? selected : ""}
+      providerActive={workspaceView === "providers"}
+      runtimeState={runtimeState}
+      runtimeVersion={health?.version}
+      labels={{
+        close: t.close,
+        newTask: t.newTask,
+        project: t.project,
+        openProject: t.openProject,
+        sessions: t.sessions,
+        noSessions: t.noSessions,
+        providerSettings: t.providerSettings,
+        language: t.language,
+        runtimeReady: t.runtimeReady,
+        runtimeOnline: t.runtimeOnline,
+        runtimeOffline: t.runtimeOffline
+      }}
+      onClose={() => setSidebarOpen(false)}
+      onNewTask={newTask}
+      onPickWorkspace={pickWorkspace}
+      onSelectSession={(sessionId) => {
+        setSelected(sessionId);
+        setWorkspaceView("workspace");
+        setSidebarOpen(false);
+      }}
+      onOpenProviders={() => {
+        setWorkspaceView("providers");
+        setInspectorOpen(false);
+        setSidebarOpen(false);
+      }}
+      onSwitchLocale={switchLocale}
+    />
+  );
+
+  const inspector = workspaceView === "workspace" ? (
+    <Inspector
+      tab={inspectorTab}
+      events={selectedEvents}
+      modelRef={modelRef}
+      models={modelSelectOptions}
+      policy={policy}
+      maxSteps={maxSteps}
+      health={health}
+      pressure={pressure}
+      command={command}
+      selectedSessionId={selected}
+      running={running}
+      busy={busy}
+      labels={{
+        activity: t.activity,
+        run: t.run,
+        terminal: t.terminal,
+        close: t.close,
+        noActivity: t.noActivity,
+        provider: t.provider,
+        modelSelect: t.modelSelect,
+        noModels: t.noModels,
+        providerConfig: t.providerConfig,
+        envFallback: t.envFallback,
+        policy: t.policy,
+        readOnly: t.readOnly,
+        workspace: t.workspace,
+        full: t.full,
+        maxSteps: t.maxSteps,
+        runtime: t.runtime,
+        workingMemory: t.workingMemory,
+        softBudget: t.softBudget,
+        hardBudget: t.hardBudget,
+        maxAgents: t.maxAgents,
+        shellCommand: t.shellCommand,
+        runCommand: t.runCommand,
+        shellHint: t.shellHint
+      }}
+      onTabChange={setInspectorTab}
+      onClose={() => setInspectorOpen(false)}
+      onModelChange={setModelRef}
+      onOpenProviders={() => {
+        setWorkspaceView("providers");
+        setInspectorOpen(false);
+      }}
+      onPolicyChange={setPolicy}
+      onMaxStepsChange={setMaxSteps}
+      onCommandChange={setCommand}
+      onRunShell={runShell}
+    />
+  ) : undefined;
+
   return (
-    <div className="app-shell">
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-head">
-          <div className="brand-mark" aria-hidden>LC</div>
-          <div className="brand-copy">
-            <strong>LumenCortex</strong>
-            <span>Desktop</span>
+    <>
+      <AppShell
+        sidebar={sidebar}
+        sidebarOpen={sidebarOpen}
+        inspectorOpen={inspectorOpen && workspaceView === "workspace"}
+        inspector={inspector}
+        closeLabel={t.close}
+        onCloseSidebar={() => setSidebarOpen(false)}
+      >
+        <header className="topbar">
+          <div className="topbar-left">
+            <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label={t.expandSidebar}>
+              <Icon name="menu" />
+            </button>
+            <div className="title-stack">
+              <strong>{workspaceView === "providers" ? t.providerSettings : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
+              <span>
+                {workspaceView === "providers"
+                  ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
+                  : state.workspace
+                    ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
+                    : t.runtimeReady}
+              </span>
+            </div>
           </div>
-          <button className="icon-button mobile-only" onClick={() => setSidebarOpen(false)} aria-label={t.close}>
-            <Icon name="close" />
-          </button>
-        </div>
 
-        <button className="new-task-button" onClick={newTask}>
-          <Icon name="plus" size={15} />
-          <span>{t.newTask}</span>
-        </button>
-
-        <button className="project-button" onClick={pickWorkspace}>
-          <span className="project-icon"><Icon name="folder" size={16} /></span>
-          <span className="project-copy">
-            <small>{t.project}</small>
-            <strong>{state.workspace ? basename(state.workspace) : t.openProject}</strong>
-          </span>
-          <Icon name="chevron" size={14} />
-        </button>
-
-        <div className="sidebar-section-title sidebar-section-summary">
-          <span>{t.sessions}</span>
-          <span>{state.sessions.length}</span>
-        </div>
-
-        <div className="thread-list">
-          {sessionGroups.map((group) => (
-            <section className="thread-group" key={group.key}>
-              <div className="thread-group-title">
-                <span>{group.label}</span>
-                <span>{group.sessions.length}</span>
-              </div>
-              {group.sessions.map((session) => {
-                const isActive = activeRunIds.has(session.id);
-                return (
-                  <button
-                    key={session.id}
-                    className={`thread-item ${session.id === selected && workspaceView === "workspace" ? "selected" : ""}`}
-                    onClick={() => {
-                      setSelected(session.id);
-                      setWorkspaceView("workspace");
-                      setSidebarOpen(false);
-                    }}
-                  >
-                    <span className={`thread-dot ${isActive ? "live" : session.status}`} />
-                    <span className="thread-copy">
-                      <strong>{session.goal}</strong>
-                      <small>{statusLabel(session.status, isActive)} · {formatClock(session.updatedAt)}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </section>
-          ))}
-          {!state.sessions.length && <div className="sidebar-empty">{t.noSessions}</div>}
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="runtime-line">
-            <span className={`runtime-dot ${health ? "online" : state.workspace ? "offline" : "ready"}`} />
-            <span>{health ? t.runtimeOnline : state.workspace ? t.runtimeOffline : t.runtimeReady}</span>
-            {health?.version && <code>{health.version}</code>}
+          <div className="topbar-actions">
+            {workspaceView === "providers" && (
+              <button className="toolbar-button" onClick={() => setWorkspaceView("workspace")}>
+                <Code2 size={14} strokeWidth={1.7} aria-hidden />
+                <span>{t.backToWorkspace}</span>
+              </button>
+            )}
+            {workspaceView === "workspace" && current && running && (
+              <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
+                <Icon name="stop" size={14} />
+                <span>{t.stop}</span>
+              </button>
+            )}
+            {workspaceView === "workspace" && current && !running && (current.status === "created" || current.status === "interrupted") && (
+              <button className="toolbar-button" onClick={() => startAgent()} disabled={busy}>
+                <Icon name="play" size={14} />
+                <span>{current.status === "interrupted" ? t.resume : t.start}</span>
+              </button>
+            )}
+            {workspaceView === "workspace" && (
+              <button
+                className={`icon-button ${inspectorOpen ? "active" : ""}`}
+                onClick={() => setInspectorOpen((open) => !open)}
+                aria-label={t.inspector}
+              >
+                <Icon name="panel" />
+              </button>
+            )}
           </div>
-          <button
-            className={`footer-button provider-settings-entry ${workspaceView === "providers" ? "active" : ""}`}
-            onClick={() => {
+        </header>
+
+        {workspaceView === "providers" ? (
+          <ProviderSettingsPanel
+            locale={locale}
+            workspace={state.workspace}
+            effectiveCatalog={catalog}
+            selectedModelRef={modelRef}
+            onSelectedModelRef={setModelRef}
+            onEffectiveCatalogChange={setCatalog}
+            onError={setError}
+          />
+        ) : !current ? (
+          <NewTaskComposer
+            title={t.buildTitle}
+            subtitle={t.newTaskSubtitle}
+            placeholder={t.composerPlaceholder}
+            workspace={state.workspace}
+            workspaceName={state.workspace ? basename(state.workspace) : ""}
+            chooseProjectLabel={t.openProject}
+            modelLabel={t.modelSelect}
+            modelRef={modelRef}
+            models={configuredModels}
+            noModelsLabel={t.modelFallback}
+            policyLabel={t.policy}
+            policy={policy}
+            policyLabels={{
+              "read-only": t.readOnly,
+              workspace: t.workspace,
+              full: t.full
+            }}
+            localLabel={t.local}
+            hint={t.composerHint}
+            startLabel={t.start}
+            goal={goal}
+            busy={busy}
+            textareaRef={composerRef}
+            onGoalChange={setGoal}
+            onModelChange={setModelRef}
+            onPolicyChange={setPolicy}
+            onPickWorkspace={pickWorkspace}
+            onOpenProviders={() => {
               setWorkspaceView("providers");
               setInspectorOpen(false);
-              setSidebarOpen(false);
             }}
-          >
-            <Settings2 size={14} strokeWidth={1.7} aria-hidden />
-            <span>{t.providerSettings}</span>
-          </button>
-          <button className="footer-button" onClick={switchLocale}>
-            <Icon name="globe" size={14} />
-            <span>{t.language}</span>
-          </button>
-        </div>
-      </aside>
-
-      {sidebarOpen && <button className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-label={t.close} />}
-
-      <section className={`workspace-shell ${inspectorOpen && workspaceView === "workspace" ? "with-inspector" : ""}`}>
-        <main className="workspace-main">
-          <header className="topbar">
-            <div className="topbar-left">
-              <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label={t.expandSidebar}>
-                <Icon name="menu" />
-              </button>
-              <div className="title-stack">
-                <strong>{workspaceView === "providers" ? t.providerSettings : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
-                <span>
-                  {workspaceView === "providers"
-                    ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
-                    : state.workspace
-                      ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
-                      : t.runtimeReady}
-                </span>
-              </div>
-            </div>
-
-            <div className="topbar-actions">
-              {workspaceView === "providers" && (
-                <button className="toolbar-button" onClick={() => setWorkspaceView("workspace")}>
-                  <Code2 size={14} strokeWidth={1.7} aria-hidden />
-                  <span>{t.backToWorkspace}</span>
-                </button>
-              )}
-              {workspaceView === "workspace" && current && running && (
-                <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
-                  <Icon name="stop" size={14} />
-                  <span>{t.stop}</span>
-                </button>
-              )}
-              {workspaceView === "workspace" && current && !running && (current.status === "created" || current.status === "interrupted") && (
-                <button className="toolbar-button" onClick={() => startAgent()} disabled={busy}>
-                  <Icon name="play" size={14} />
-                  <span>{current.status === "interrupted" ? t.resume : t.start}</span>
-                </button>
-              )}
-              {workspaceView === "workspace" && (
-                <button
-                  className={`icon-button ${inspectorOpen ? "active" : ""}`}
-                  onClick={() => setInspectorOpen((open) => !open)}
-                  aria-label={t.inspector}
-                >
-                  <Icon name="panel" />
-                </button>
-              )}
-            </div>
-          </header>
-
-          {workspaceView === "providers" ? (
-            <ProviderSettingsPanel
-              locale={locale}
-              workspace={state.workspace}
-              effectiveCatalog={catalog}
-              selectedModelRef={modelRef}
-              onSelectedModelRef={setModelRef}
-              onEffectiveCatalogChange={setCatalog}
-              onError={setError}
-            />
-          ) : !current ? (
-            <NewTaskComposer
-              title={t.buildTitle}
-              subtitle={t.newTaskSubtitle}
-              placeholder={t.composerPlaceholder}
-              workspace={state.workspace}
-              workspaceName={state.workspace ? basename(state.workspace) : ""}
-              chooseProjectLabel={t.openProject}
-              modelLabel={t.modelSelect}
-              modelRef={modelRef}
-              models={configuredModels}
-              noModelsLabel={t.modelFallback}
-              policyLabel={t.policy}
-              policy={policy}
-              policyLabels={{
-                "read-only": t.readOnly,
-                workspace: t.workspace,
-                full: t.full
-              }}
-              localLabel={t.local}
-              hint={t.composerHint}
-              startLabel={t.start}
-              goal={goal}
-              busy={busy}
-              textareaRef={composerRef}
-              onGoalChange={setGoal}
-              onModelChange={setModelRef}
-              onPolicyChange={setPolicy}
-              onPickWorkspace={pickWorkspace}
-              onOpenProviders={() => {
-                setWorkspaceView("providers");
-                setInspectorOpen(false);
-              }}
-              onSubmit={submitTask}
-              onKeyDown={onComposerKeyDown}
-            />
-          ) : (
-            <div className="thread-view">
-              <div className="thread-content">
-                <section className="task-intro">
-                  <div className="task-icon"><Code2 size={15} strokeWidth={1.7} aria-hidden /></div>
-                  <div>
-                    <span>{t.newTask}</span>
-                    <h1>{current.goal}</h1>
-                    <div className="task-meta">
-                      <span className={`status-pill ${running ? "running" : current.status}`}>{statusLabel(current.status, running)}</span>
-                      {current.provider && <span>{current.provider}</span>}
-                      {current.model && <span>{current.model}</span>}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="message-list">
-                  {messages.map((message) => (
-                    <article key={`${message.seq}-${message.role}`} className={`message-row ${roleClass(message.role)}`}>
-                      <div className="message-avatar">{message.role === "assistant" ? "LC" : message.role === "tool" ? "T" : message.role === "system" ? "S" : "U"}</div>
-                      <div className="message-body">
-                        <div className="message-head">
-                          <strong>{roleLabel(message.role)}</strong>
-                          <span>#{message.seq}</span>
-                        </div>
-                        <pre>{messageText(message)}</pre>
-                      </div>
-                    </article>
-                  ))}
-
-                  {!messages.length && (
-                    <div className="inline-empty">
-                      {running && <span className="thinking-pulse"><i /><i /><i /></span>}
-                      <p>{running ? t.running : t.noMessages}</p>
-                    </div>
-                  )}
-                </section>
-
-                {current.final && (
-                  <section className="final-result">
-                    <div className="final-label"><CircleCheck size={14} strokeWidth={1.7} aria-hidden /> {t.finalAnswer}</div>
-                    <p>{current.final}</p>
-                  </section>
-                )}
-              </div>
-            </div>
-          )}
-
-          {workspaceView === "workspace" && state.workspace && current && (
-            <div className="composer-dock">
-              <form className="composer" onSubmit={submitTask}>
-                <textarea
-                  ref={composerRef}
-                  value={goal}
-                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setGoal(event.target.value)}
-                  onKeyDown={onComposerKeyDown}
-                  placeholder={current ? `${t.startAnother}…` : t.composerPlaceholder}
-                  rows={1}
-                />
-                <div className="composer-footer">
-                  <div className="composer-context">
-                    <span><Icon name="folder" size={13} /> {basename(state.workspace)}</span>
-                    <select
-                      className="composer-model-select"
-                      value={modelRef}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) => setModelRef(event.target.value)}
-                      aria-label={t.modelSelect}
-                    >
-                      <option value="">{t.noModels}</option>
-                      {configuredModels.map((item) => (
-                        <option key={item.ref} value={item.ref}>{item.label}</option>
-                      ))}
-                    </select>
-                    <span>{policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}</span>
-                  </div>
-                  <div className="composer-actions">
-                    <span className="composer-hint">{t.composerHint}</span>
-                    <button className="send-button" disabled={busy || !goal.trim()} aria-label={t.start}>
-                      <Icon name="play" size={15} />
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          )}
-        </main>
-
-        {inspectorOpen && workspaceView === "workspace" && (
-          <aside className="inspector">
-            <div className="inspector-head">
-              <div className="inspector-tabs">
-                <button className={inspectorTab === "activity" ? "active" : ""} onClick={() => setInspectorTab("activity")}>{t.activity}</button>
-                <button className={inspectorTab === "run" ? "active" : ""} onClick={() => setInspectorTab("run")}>{t.run}</button>
-                <button className={inspectorTab === "terminal" ? "active" : ""} onClick={() => setInspectorTab("terminal")}>{t.terminal}</button>
-              </div>
-              <button className="icon-button inspector-close" onClick={() => setInspectorOpen(false)} aria-label={t.close}>
-                <Icon name="close" size={14} />
-              </button>
-            </div>
-
-            <div className="inspector-body">
-              {inspectorTab === "activity" && (
-                <div className="activity-list">
-                  {selectedEvents.slice().reverse().map((event) => (
-                    <div className="activity-item" key={`${event.seq}-${event.at}`}>
-                      <div className="activity-rail"><span /></div>
-                      <div className="activity-copy">
-                        <div><strong>{event.type}</strong><time>{formatClock(event.at)}</time></div>
-                        {event.data && <code>{JSON.stringify(event.data)}</code>}
-                      </div>
-                    </div>
-                  ))}
-                  {!selectedEvents.length && <div className="inspector-empty">{t.noActivity}</div>}
-                </div>
-              )}
-
-              {inspectorTab === "run" && (
-                <div className="run-settings">
-                  <div className="settings-group">
-                    <div className="settings-title">{t.provider}</div>
-                    <label>{t.modelSelect}
-                      <select value={modelRef} onChange={(event: ChangeEvent<HTMLSelectElement>) => setModelRef(event.target.value)}>
-                        <option value="">{t.noModels}</option>
-                        {configuredModels.map((item) => <option key={item.ref} value={item.ref}>{item.label}</option>)}
-                      </select>
-                    </label>
-                    <button
-                      className="provider-link-button"
-                      type="button"
-                      onClick={() => {
-                        setWorkspaceView("providers");
-                        setInspectorOpen(false);
-                      }}
-                    >
-                      {t.providerConfig}
-                    </button>
-                    <p className="settings-note">{t.envFallback}</p>
-                  </div>
-
-                  <div className="settings-group">
-                    <div className="settings-title">{t.run}</div>
-                    <label>{t.policy}
-                      <select value={policy} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPolicy(event.target.value as Policy)}>
-                        <option value="read-only">{t.readOnly}</option>
-                        <option value="workspace">{t.workspace}</option>
-                        <option value="full">{t.full}</option>
-                      </select>
-                    </label>
-                    <label>{t.maxSteps}<input type="number" min={1} max={200} value={maxSteps} onChange={(event: ChangeEvent<HTMLInputElement>) => setMaxSteps(Math.max(1, Number(event.target.value) || 1))} /></label>
-                  </div>
-
-                  <div className="settings-group runtime-group">
-                    <div className="settings-title">{t.runtime}</div>
-                    <dl>
-                      <div><dt>{t.workingMemory}</dt><dd>{bytes(health?.usedBytes)}</dd></div>
-                      <div><dt>{t.softBudget}</dt><dd>{bytes(health?.budget.softBytes)}</dd></div>
-                      <div><dt>{t.hardBudget}</dt><dd>{bytes(health?.budget.hardBytes)}</dd></div>
-                      <div><dt>{t.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
-                    </dl>
-                    <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
-                  </div>
-                </div>
-              )}
-
-              {inspectorTab === "terminal" && (
-                <form className="terminal-pane" onSubmit={runShell}>
-                  <div className="terminal-title"><Icon name="terminal" size={15} /> {t.shellCommand}</div>
-                  <textarea value={command} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setCommand(event.target.value)} rows={7} disabled={!selected || running} />
-                  <button className="secondary-action" disabled={busy || !selected || running || !command.trim()}>{t.runCommand}</button>
-                  <p>{t.shellHint}</p>
-                </form>
-              )}
-            </div>
-          </aside>
+            onSubmit={submitTask}
+            onKeyDown={onComposerKeyDown}
+          />
+        ) : (
+          <ThreadWorkspace
+            session={current}
+            messages={messages}
+            running={running}
+            statusLabel={statusLabel(current.status, running)}
+            workspaceName={basename(state.workspace)}
+            modelRef={modelRef}
+            models={modelSelectOptions}
+            policyLabel={policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}
+            goal={goal}
+            busy={busy}
+            textareaRef={composerRef}
+            labels={{
+              newTask: t.newTask,
+              running: t.running,
+              noMessages: t.noMessages,
+              finalAnswer: t.finalAnswer,
+              startAnother: t.startAnother,
+              composerPlaceholder: t.composerPlaceholder,
+              composerHint: t.composerHint,
+              noModels: t.noModels,
+              start: t.start,
+              roleUser: t.messageRoleUser,
+              roleAssistant: t.messageRoleAssistant,
+              roleTool: t.messageRoleTool,
+              roleSystem: t.messageRoleSystem
+            }}
+            onGoalChange={setGoal}
+            onModelChange={setModelRef}
+            onSubmit={submitTask}
+            onKeyDown={onComposerKeyDown}
+          />
         )}
-      </section>
+      </AppShell>
 
       {error && (
         <div className="error-toast" role="alert">
@@ -914,6 +740,6 @@ export default function App() {
           <button onClick={() => setError("")} aria-label={t.close}><Icon name="close" size={14} /></button>
         </div>
       )}
-    </div>
+    </>
   );
 }
