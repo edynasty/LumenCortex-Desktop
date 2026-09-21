@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -104,4 +103,3 @@ func (r *Runtime) CreateSessionWithContext(ctx context.Context, goal string, pat
 	return info, err
 }
 
-var _ = errors.Is
