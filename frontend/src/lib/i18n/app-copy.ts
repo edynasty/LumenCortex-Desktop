@@ -108,7 +108,10 @@ export const copy = {
     reviewInstruction: "审查意见",
     reviewInstructionPlaceholder: "告诉 Agent 这个文件需要怎么改…",
     sendToAgent: "发送给 Agent",
-    agentRunning: "Agent 正在运行"
+    agentRunning: "Agent 正在运行",
+    loadEarlier: "加载更早消息",
+    backToLatest: "返回最新",
+    historyWindow: "正在查看历史消息窗口"
   },
   en: {
     newTask: "New task",
@@ -217,7 +220,10 @@ export const copy = {
     reviewInstruction: "Review instruction",
     reviewInstructionPlaceholder: "Tell the agent what should change in this file…",
     sendToAgent: "Send to agent",
-    agentRunning: "Agent is running"
+    agentRunning: "Agent is running",
+    loadEarlier: "Load earlier",
+    backToLatest: "Back to latest",
+    historyWindow: "Viewing an older message window"
   }
 } as const;
 
