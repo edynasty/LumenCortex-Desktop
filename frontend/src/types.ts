@@ -82,6 +82,14 @@ export type Message = {
   json: unknown;
 };
 
+export type MessagePage = {
+  messages: Message[];
+  hasMore: boolean;
+  nextBefore: number;
+};
+
+
+
 export type ProviderConfig = {
   endpoint?: string;
   baseUrl?: string;
