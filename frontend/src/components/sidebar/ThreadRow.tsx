@@ -1,12 +1,14 @@
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
-import type { Session } from "../../types";
+import type { Session, SessionRuntime } from "../../types";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
 import { Popover } from "../primitives/Popover";
+import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 
 type Props = {
   session: Session;
+  runtime: SessionRuntime;
   title: string;
   active: boolean;
   selected: boolean;
@@ -20,6 +22,8 @@ type Props = {
     save: string;
     cancel: string;
     menu: string;
+    localRuntime: string;
+    worktreeRuntime: string;
   };
   pinned: boolean;
   archived: boolean;
@@ -41,6 +45,7 @@ function formatClock(value: string) {
 
 export function ThreadRow({
   session,
+  runtime,
   title,
   active,
   selected,
@@ -69,7 +74,16 @@ export function ThreadRow({
         <span className={`thread-dot ${active ? "live" : session.status}`} />
         <span className="thread-copy">
           <strong>{title}</strong>
-          <small>{statusLabel} · {formatClock(session.updatedAt)}</small>
+          <small>
+            {statusLabel} · {formatClock(session.updatedAt)}
+            {" · "}
+            <RuntimeIdentity
+              runtime={runtime}
+              localLabel={labels.localRuntime}
+              worktreeLabel={labels.worktreeRuntime}
+              compact
+            />
+          </small>
         </span>
       </button>
 
