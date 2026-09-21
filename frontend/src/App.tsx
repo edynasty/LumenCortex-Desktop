@@ -14,6 +14,7 @@ import {
   SquareTerminal,
   X
 } from "lucide-react";
+import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkspaceState } from "./types";
 
@@ -261,8 +262,6 @@ export default function App() {
   const [activeRuns, setActiveRuns] = useState<Record<string, boolean>>({});
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
-  const [providerJSON, setProviderJSON] = useState("");
-  const [providerDirty, setProviderDirty] = useState(false);
   const [policy, setPolicy] = useState<Policy>("workspace");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
@@ -288,8 +287,6 @@ export default function App() {
     bridge.providerCatalog().then((next) => {
       setCatalog(next);
       setModelRef((current) => current || next.model || "");
-      setProviderJSON(JSON.stringify(next, null, 2));
-      setProviderDirty(false);
     }).catch((err) => setError(String(err)));
   }, [state.workspace]);
 
@@ -481,25 +478,6 @@ export default function App() {
     }
   }
 
-  async function saveProviderConfig() {
-    setError("");
-    try {
-      const parsed = JSON.parse(providerJSON) as ProviderCatalog;
-      if (!parsed.providers) parsed.providers = {};
-      const saved = await bridge.saveProviderCatalog(parsed);
-      setCatalog(saved);
-      setProviderJSON(JSON.stringify(saved, null, 2));
-      setProviderDirty(false);
-      if (!modelRef || !Object.entries(saved.providers || {}).some(([providerID, provider]) =>
-        Object.keys(provider.models || {}).some((modelID) => providerID + "/" + modelID === modelRef)
-      )) {
-        setModelRef(saved.model || "");
-      }
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
   function newTask() {
     setSelected("");
     setMessages([]);
@@ -601,7 +579,7 @@ export default function App() {
 
       {sidebarOpen && <button className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-label={t.close} />}
 
-      <section className={`workspace-shell ${inspectorOpen ? "with-inspector" : ""}`}>
+      <section className={`workspace-shell ${inspectorOpen ? "with-inspector" : ""} ${inspectorOpen && inspectorTab === "providers" ? "provider-inspector-open" : ""}`}>
         <main className="workspace-main">
           <header className="topbar">
             <div className="topbar-left">
@@ -747,7 +725,7 @@ export default function App() {
         </main>
 
         {inspectorOpen && (
-          <aside className="inspector">
+          <aside className={`inspector ${inspectorTab === "providers" ? "provider-inspector" : ""}`}>
             <div className="inspector-head">
               <div className="inspector-tabs">
                 <button className={inspectorTab === "activity" ? "active" : ""} onClick={() => setInspectorTab("activity")}>{t.activity}</button>
@@ -818,40 +796,15 @@ export default function App() {
               )}
 
               {inspectorTab === "providers" && (
-                <div className="provider-pane">
-                  <div className="provider-pane-head">
-                    <div>
-                      <strong>{t.providerConfig}</strong>
-                      <code>{state.workspace ? "lumencortex.json" : "~/.config/lumencortex/lumencortex.json"}</code>
-                    </div>
-                    <button
-                      className="save-provider-button"
-                      type="button"
-                      disabled={!providerDirty}
-                      onClick={saveProviderConfig}
-                    >
-                      {t.saveConfig}
-                    </button>
-                  </div>
-                  <p>{t.providerConfigHint}</p>
-                  <textarea
-                    className="provider-editor"
-                    value={providerJSON}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-                      setProviderJSON(event.target.value);
-                      setProviderDirty(true);
-                    }}
-                    spellCheck={false}
-                  />
-                  <div className="provider-model-list">
-                    {configuredModels.map((item) => (
-                      <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
-                        <span>{item.label}</span>
-                        <code>{item.ref}</code>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <ProviderSettingsPanel
+                  locale={locale}
+                  workspace={state.workspace}
+                  effectiveCatalog={catalog}
+                  selectedModelRef={modelRef}
+                  onSelectedModelRef={setModelRef}
+                  onEffectiveCatalogChange={setCatalog}
+                  onError={setError}
+                />
               )}
 
               {inspectorTab === "terminal" && (
