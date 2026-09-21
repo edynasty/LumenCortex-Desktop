@@ -6,14 +6,16 @@ import type {
   Ref,
 } from "react";
 import { ArrowUp, CircleCheck, Folder, Square } from "lucide-react";
-import type { Message, Session, WorkflowSummary } from "../../types";
+import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { ApprovalCard } from "./ApprovalCard";
 import { Markdown } from "./Markdown";
 import { MessageItem } from "./MessageItem";
 
 type Props = {
   session: Session;
+  runtime: SessionRuntime;
   messages: Message[];
   hasOlderMessages: boolean;
   historicalMessages: boolean;
@@ -47,6 +49,8 @@ type Props = {
     loadEarlier: string;
     backToLatest: string;
     historyWindow: string;
+    localRuntime: string;
+    worktreeRuntime: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -60,6 +64,7 @@ type Props = {
 
 export function ThreadWorkspace({
   session,
+  runtime,
   messages,
   hasOlderMessages,
   historicalMessages,
@@ -116,6 +121,12 @@ export function ThreadWorkspace({
                 <span className={`status-pill ${running ? "running" : session.status}`}>{statusLabel}</span>
                 {session.provider && <span>{session.provider}</span>}
                 {session.model && <span>{session.model}</span>}
+                <RuntimeIdentity
+                  runtime={runtime}
+                  localLabel={labels.localRuntime}
+                  worktreeLabel={labels.worktreeRuntime}
+                  compact
+                />
               </div>
             </div>
           </section>
@@ -205,6 +216,12 @@ export function ThreadWorkspace({
                 className="composer-model-trigger"
               />
               <span>{policyLabel}</span>
+              <RuntimeIdentity
+                runtime={runtime}
+                localLabel={labels.localRuntime}
+                worktreeLabel={labels.worktreeRuntime}
+                compact
+              />
             </div>
             <div className="composer-actions">
               <span className="composer-hint">{labels.composerHint}</span>
