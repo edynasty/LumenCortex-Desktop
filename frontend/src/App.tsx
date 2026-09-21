@@ -345,10 +345,18 @@ export default function App() {
 
   const configuredModels = useMemo(() => {
     return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
-      Object.entries(provider.models || {}).map(([modelID, definition]) => ({
-        ref: providerID + "/" + modelID,
-        label: (provider.name || providerID) + " / " + (definition.name || modelID)
-      }))
+      Object.entries(provider.models || {}).map(([modelID, definition]) => {
+        const metadata = [
+          definition.modelID && definition.modelID !== modelID ? definition.modelID : "",
+          definition.limit?.context ? Math.round(definition.limit.context / 1024) + "K ctx" : ""
+        ].filter(Boolean).join(" · ");
+        return {
+          ref: providerID + "/" + modelID,
+          label: definition.name || modelID,
+          group: provider.name || providerID,
+          description: metadata
+        };
+      })
     );
   }, [catalog]);
 
