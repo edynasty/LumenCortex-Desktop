@@ -3,13 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderSettingsPanel } from "./ProviderSettingsPanel";
 
-const providerCatalogScope = vi.fn();
-const providerCatalog = vi.fn();
+const mocks = vi.hoisted(() => ({
+  providerCatalogScope: vi.fn(),
+  providerCatalog: vi.fn(),
+}));
 
 vi.mock("../../lib/bridge", () => ({
   bridge: {
-    providerCatalogScope,
-    providerCatalog,
+    providerCatalogScope: mocks.providerCatalogScope,
+    providerCatalog: mocks.providerCatalog,
     saveProviderCatalogScope: vi.fn(),
     testProviderConnection: vi.fn(),
     discoverProviderModels: vi.fn(),
@@ -18,10 +20,10 @@ vi.mock("../../lib/bridge", () => ({
 
 describe("ProviderSettingsPanel", () => {
   beforeEach(() => {
-    providerCatalogScope.mockReset();
-    providerCatalog.mockReset();
-    providerCatalogScope.mockResolvedValue({ providers: {} });
-    providerCatalog.mockResolvedValue({ providers: {} });
+    mocks.providerCatalogScope.mockReset();
+    mocks.providerCatalog.mockReset();
+    mocks.providerCatalogScope.mockResolvedValue({ providers: {} });
+    mocks.providerCatalog.mockResolvedValue({ providers: {} });
   });
 
   it("hydrates a safe DeepSeek preset without exposing a literal secret field", async () => {
@@ -38,7 +40,7 @@ describe("ProviderSettingsPanel", () => {
       />
     );
 
-    await waitFor(() => expect(providerCatalogScope).toHaveBeenCalled());
+    await waitFor(() => expect(mocks.providerCatalogScope).toHaveBeenCalled());
     await user.click(screen.getByRole("button", { name: "DeepSeek" }));
 
     expect(screen.getByDisplayValue("deepseek")).toBeInTheDocument();
