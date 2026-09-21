@@ -17,7 +17,8 @@ import type {
   SessionUIPatch,
   ShellResult,
   WorkspaceState,
-  WorkflowSummary
+  WorkflowSummary,
+  WorktreeConflict
 } from "../types";
 
 type AppAPI = {
@@ -32,6 +33,7 @@ type AppAPI = {
   CreateSessionWithRuntime(goal: string, paths: string[], runtimeKind: string, base: string): Promise<Session>;
   GetSessionRuntime(sessionId: string): Promise<SessionRuntime>;
   RemoveSessionWorktree(sessionId: string, force: boolean): Promise<void>;
+  WorktreeConflicts(): Promise<WorktreeConflict[]>;
   PickContextFiles(): Promise<string[]>;
   PickContextDirectory(): Promise<string[]>;
   MessagePage(sessionId: string, beforeSeq: number, limit: number): Promise<MessagePage>;
@@ -96,6 +98,7 @@ export const bridge = {
   createSessionWithRuntime: (goal: string, paths: string[], runtimeKind: string, base = "HEAD") => api().CreateSessionWithRuntime(goal, paths, runtimeKind, base),
   sessionRuntime: (sessionId: string) => api().GetSessionRuntime(sessionId),
   removeSessionWorktree: (sessionId: string, force = false) => api().RemoveSessionWorktree(sessionId, force),
+  worktreeConflicts: () => api().WorktreeConflicts(),
   pickContextFiles: () => api().PickContextFiles(),
   pickContextDirectory: () => api().PickContextDirectory(),
   messagePage: (sessionId: string, beforeSeq = -1, limit = 100) => api().MessagePage(sessionId, beforeSeq, limit),
