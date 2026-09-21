@@ -303,3 +303,55 @@
     width: 100%;
   }
 }
+
+
+.review-checks {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.review-checks-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.review-check-list {
+  display: grid;
+  gap: 4px;
+}
+
+.review-check {
+  min-height: 27px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-soft);
+}
+
+.review-check.passed { color: var(--green); }
+.review-check.failed { color: var(--red); }
+
+.review-check code {
+  overflow: hidden;
+  color: var(--text-soft);
+  font: 8.5px/1.4 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-check span,
+.review-check small {
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.review-check small { color: var(--amber); }
