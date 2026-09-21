@@ -1024,3 +1024,48 @@
   display: block;
   min-height: 1.65em;
 }
+
+
+.thread-history-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  margin: 2px 0 6px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.thread-history-controls > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.thread-history-controls button {
+  height: 25px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font-size: 8.5px;
+  cursor: pointer;
+}
+
+.thread-history-controls button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .thread-history-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
