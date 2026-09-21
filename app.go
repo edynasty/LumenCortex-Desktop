@@ -124,6 +124,14 @@ func (a *App) CancelAgent(sessionID string) bool {
 	return a.backend.CancelAgent(sessionID)
 }
 
+func (a *App) GetWorkflowSummary(sessionID string) (any, error) {
+	return a.backend.WorkflowSummary(context.Background(), sessionID)
+}
+
+func (a *App) ApproveWorkflowGate(sessionID, gateID string) (any, error) {
+	return a.backend.ApproveWorkflowGate(context.Background(), sessionID, gateID, "desktop-user")
+}
+
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
 }
