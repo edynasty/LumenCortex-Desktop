@@ -51,6 +51,8 @@ type Props = {
     checkTruncated: string;
     localRuntime: string;
     worktreeRuntime: string;
+    conflictTitle: string;
+    conflictHint: string;
   };
 };
 
@@ -72,6 +74,16 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
   const checks = useMemo(() => extractCheckResults(messages), [messages]);
   const language = useMemo(() => languageFromPath(review.selectedPath), [review.selectedPath]);
   const binaryDiff = /(^|\n)(Binary files .* differ|GIT binary patch)(\n|$)/.test(review.diff.content);
+  const relevantConflicts = useMemo(
+    () => review.conflicts.filter((conflict) =>
+      conflict.owners.some((owner) =>
+        runtime.kind === "local"
+          ? owner.kind === "local"
+          : owner.sessionId === sessionId
+      )
+    ),
+    [review.conflicts, runtime.kind, sessionId]
+  );
   const canStage = Boolean(review.selectedFile && (review.selectedFile.worktree !== " " || review.selectedFile.index === "?"));
   const canUnstage = Boolean(review.selectedFile && review.selectedFile.index !== " " && review.selectedFile.index !== "?");
 
@@ -143,6 +155,17 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
             {review.diff.truncated && <div className="review-warning">{labels.truncated}</div>}
             {review.error && <div className="review-error">{review.error}</div>}
             {review.notice && <div className="review-notice">{review.notice}</div>}
+            {relevantConflicts.length > 0 && (
+              <div className="review-conflicts">
+                <strong>{labels.conflictTitle}</strong>
+                <span>{labels.conflictHint}</span>
+                <div>
+                  {relevantConflicts.map((conflict) => (
+                    <code key={conflict.path}>{conflict.path}</code>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <CheckSummary
               results={checks}
