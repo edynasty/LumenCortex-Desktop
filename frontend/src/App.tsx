@@ -1,12 +1,25 @@
 import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowUp,
+  ChevronRight,
+  Folder,
+  Languages,
+  Menu,
+  PanelRight,
+  Plus,
+  Sparkles,
+  Square,
+  SquareTerminal,
+  X
+} from "lucide-react";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
-import type { AgentConfig, Message, RuntimeEvent, Session, WorkspaceState } from "./types";
+import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MAX_VISIBLE_MESSAGES = 100;
 
 type Locale = "zh-CN" | "en";
-type InspectorTab = "activity" | "run" | "terminal";
+type InspectorTab = "activity" | "run" | "providers" | "terminal";
 type Policy = "read-only" | "workspace" | "full";
 
 const copy = {
@@ -22,6 +35,12 @@ const copy = {
     run: "运行",
     terminal: "终端",
     settings: "设置",
+    providers: "提供商",
+    providerConfig: "Provider 配置",
+    providerConfigHint: "配置保存在工作区根目录 lumencortex.json。API Key 推荐使用 {env:VAR_NAME}，不要直接写入密钥。",
+    saveConfig: "保存配置",
+    modelSelect: "模型",
+    noModels: "未配置模型，将使用 LCX_MODEL 环境变量",
     runtimeOnline: "运行时在线",
     runtimeOffline: "运行时离线",
     openRepoTitle: "打开一个代码仓库",
@@ -89,6 +108,12 @@ const copy = {
     run: "Run",
     terminal: "Terminal",
     settings: "Settings",
+    providers: "Providers",
+    providerConfig: "Provider configuration",
+    providerConfigHint: "Stored as lumencortex.json in the workspace root. Prefer {env:VAR_NAME} for API keys instead of storing secrets directly.",
+    saveConfig: "Save configuration",
+    modelSelect: "Model",
+    noModels: "No configured models; LCX_MODEL will be used",
     runtimeOnline: "Runtime online",
     runtimeOffline: "Runtime offline",
     openRepoTitle: "Open a code repository",
@@ -146,31 +171,22 @@ const copy = {
   }
 } as const;
 
-function Icon({ name, size = 16 }: { name: "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "spark" | "close"; size?: number }) {
-  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+type IconName = "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "spark" | "close";
+
+function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
+  const props = { size, strokeWidth: 1.7, "aria-hidden": true as const };
   switch (name) {
-    case "menu":
-      return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
-    case "plus":
-      return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
-    case "folder":
-      return <svg {...common}><path d="M3.5 7.5h6l2-2h9a1 1 0 0 1 1 1v11a1.5 1.5 0 0 1-1.5 1.5h-16A1.5 1.5 0 0 1 2.5 17.5V9A1.5 1.5 0 0 1 4 7.5Z" /></svg>;
-    case "panel":
-      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>;
-    case "play":
-      return <svg {...common}><path d="m9 7 8 5-8 5Z" /></svg>;
-    case "stop":
-      return <svg {...common}><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>;
-    case "terminal":
-      return <svg {...common}><path d="m5 7 4 5-4 5M11 17h8" /></svg>;
-    case "globe":
-      return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>;
-    case "chevron":
-      return <svg {...common}><path d="m9 6 6 6-6 6" /></svg>;
-    case "spark":
-      return <svg {...common}><path d="m12 3 1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8L12 3ZM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" /></svg>;
-    case "close":
-      return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
+    case "menu": return <Menu {...props} />;
+    case "plus": return <Plus {...props} />;
+    case "folder": return <Folder {...props} />;
+    case "panel": return <PanelRight {...props} />;
+    case "play": return <ArrowUp {...props} />;
+    case "stop": return <Square {...props} />;
+    case "terminal": return <SquareTerminal {...props} />;
+    case "globe": return <Languages {...props} />;
+    case "chevron": return <ChevronRight {...props} />;
+    case "spark": return <Sparkles {...props} />;
+    case "close": return <X {...props} />;
   }
 }
 
@@ -238,10 +254,10 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [activeRuns, setActiveRuns] = useState<Record<string, boolean>>({});
-  const [baseUrl, setBaseUrl] = useState("");
-  const [endpoint, setEndpoint] = useState("");
-  const [model, setModel] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
+  const [modelRef, setModelRef] = useState("");
+  const [providerJSON, setProviderJSON] = useState("");
+  const [providerDirty, setProviderDirty] = useState(false);
   const [policy, setPolicy] = useState<Policy>("workspace");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
@@ -262,6 +278,22 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("lcx-locale", locale);
   }, [locale]);
+
+  useEffect(() => {
+    if (!state.workspace) {
+      setCatalog({ providers: {} });
+      setModelRef("");
+      setProviderJSON("");
+      setProviderDirty(false);
+      return;
+    }
+    bridge.providerCatalog().then((next) => {
+      setCatalog(next);
+      setModelRef((current) => current || next.model || "");
+      setProviderJSON(JSON.stringify(next, null, 2));
+      setProviderDirty(false);
+    }).catch((err) => setError(String(err)));
+  }, [state.workspace]);
 
   useEffect(() => {
     if (!selected) {
@@ -301,6 +333,20 @@ export default function App() {
     [events, selected]
   );
 
+  const configuredModels = useMemo(() => {
+    return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
+      Object.entries(provider.models || {}).map(([modelID, definition]) => ({
+        ref: providerID + "/" + modelID,
+        label: (provider.name || providerID) + " / " + (definition.name || modelID)
+      }))
+    );
+  }, [catalog]);
+
+  const selectedModelLabel = useMemo(
+    () => configuredModels.find((item) => item.ref === modelRef)?.label || modelRef,
+    [configuredModels, modelRef]
+  );
+
   function statusLabel(status?: string) {
     if (running) return t.active;
     switch (status) {
@@ -322,12 +368,8 @@ export default function App() {
 
   function agentConfig(): AgentConfig {
     return {
-      provider: {
-        baseUrl: baseUrl.trim() || undefined,
-        endpoint: endpoint.trim() || undefined,
-        apiKey: apiKey || undefined,
-        model: model.trim() || undefined
-      },
+      provider: {},
+      modelRef: modelRef || undefined,
       policy,
       maxSteps,
       recentMessages: 12,
@@ -442,6 +484,25 @@ export default function App() {
       setError(String(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function saveProviderConfig() {
+    setError("");
+    try {
+      const parsed = JSON.parse(providerJSON) as ProviderCatalog;
+      if (!parsed.providers) parsed.providers = {};
+      const saved = await bridge.saveProviderCatalog(parsed);
+      setCatalog(saved);
+      setProviderJSON(JSON.stringify(saved, null, 2));
+      setProviderDirty(false);
+      if (!modelRef || !Object.entries(saved.providers || {}).some(([providerID, provider]) =>
+        Object.keys(provider.models || {}).some((modelID) => providerID + "/" + modelID === modelRef)
+      )) {
+        setModelRef(saved.model || "");
+      }
+    } catch (err) {
+      setError(String(err));
     }
   }
 
@@ -656,7 +717,7 @@ export default function App() {
                   <div className="composer-context">
                     <span><Icon name="folder" size={13} /> {basename(state.workspace)}</span>
                     <span>{policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}</span>
-                    {model && <span>{model}</span>}
+                    {selectedModelLabel && <span>{selectedModelLabel}</span>}
                   </div>
                   <div className="composer-actions">
                     <span className="composer-hint">{t.composerHint}</span>
@@ -676,6 +737,7 @@ export default function App() {
               <div className="inspector-tabs">
                 <button className={inspectorTab === "activity" ? "active" : ""} onClick={() => setInspectorTab("activity")}>{t.activity}</button>
                 <button className={inspectorTab === "run" ? "active" : ""} onClick={() => setInspectorTab("run")}>{t.run}</button>
+                <button className={inspectorTab === "providers" ? "active" : ""} onClick={() => setInspectorTab("providers")}>{t.providers}</button>
                 <button className={inspectorTab === "terminal" ? "active" : ""} onClick={() => setInspectorTab("terminal")}>{t.terminal}</button>
               </div>
               <button className="icon-button inspector-close" onClick={() => setInspectorOpen(false)} aria-label={t.close}>
@@ -703,10 +765,15 @@ export default function App() {
                 <div className="run-settings">
                   <div className="settings-group">
                     <div className="settings-title">{t.provider}</div>
-                    <label>{t.model}<input value={model} onChange={(event: ChangeEvent<HTMLInputElement>) => setModel(event.target.value)} placeholder="LCX_MODEL" /></label>
-                    <label>{t.baseUrl}<input value={baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setBaseUrl(event.target.value)} placeholder="LCX_BASE_URL" /></label>
-                    <label>{t.endpoint}<input value={endpoint} onChange={(event: ChangeEvent<HTMLInputElement>) => setEndpoint(event.target.value)} placeholder="/chat/completions" /></label>
-                    <label>{t.apiKey}<input type="password" value={apiKey} onChange={(event: ChangeEvent<HTMLInputElement>) => setApiKey(event.target.value)} placeholder="LCX_API_KEY" autoComplete="off" /></label>
+                    <label>{t.modelSelect}
+                      <select value={modelRef} onChange={(event: ChangeEvent<HTMLSelectElement>) => setModelRef(event.target.value)}>
+                        <option value="">{t.noModels}</option>
+                        {configuredModels.map((item) => <option key={item.ref} value={item.ref}>{item.label}</option>)}
+                      </select>
+                    </label>
+                    <button className="provider-link-button" type="button" onClick={() => setInspectorTab("providers")}>
+                      {t.providerConfig}
+                    </button>
                     <p className="settings-note">{t.envFallback}</p>
                   </div>
 
@@ -731,6 +798,43 @@ export default function App() {
                       <div><dt>{t.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
                     </dl>
                     <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
+                  </div>
+                </div>
+              )}
+
+              {inspectorTab === "providers" && (
+                <div className="provider-pane">
+                  <div className="provider-pane-head">
+                    <div>
+                      <strong>{t.providerConfig}</strong>
+                      <code>lumencortex.json</code>
+                    </div>
+                    <button
+                      className="save-provider-button"
+                      type="button"
+                      disabled={!providerDirty}
+                      onClick={saveProviderConfig}
+                    >
+                      {t.saveConfig}
+                    </button>
+                  </div>
+                  <p>{t.providerConfigHint}</p>
+                  <textarea
+                    className="provider-editor"
+                    value={providerJSON}
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                      setProviderJSON(event.target.value);
+                      setProviderDirty(true);
+                    }}
+                    spellCheck={false}
+                  />
+                  <div className="provider-model-list">
+                    {configuredModels.map((item) => (
+                      <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
+                        <span>{item.label}</span>
+                        <code>{item.ref}</code>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
