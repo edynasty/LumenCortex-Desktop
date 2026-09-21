@@ -240,8 +240,13 @@ export function ProviderSettingsPanel({
       return;
     }
 
-    const next = cloneCatalog(catalog);
     const previousId = editingProvider && editingProvider !== "new" ? editingProvider : null;
+    if (catalog.providers[id] && previousId !== id) {
+      onError(t.providerIdConflict);
+      return;
+    }
+
+    const next = cloneCatalog(catalog);
     const previous = previousId ? next.providers[previousId] : undefined;
 
     if (previousId && previousId !== id) {
@@ -295,6 +300,12 @@ export function ProviderSettingsPanel({
     const modelId = modelDraft.id.trim();
     if (!modelId || modelId.includes("/")) {
       onError(t.invalidModelId);
+      return;
+    }
+
+    const currentProvider = catalog.providers[editingModel.providerId];
+    if (currentProvider?.models?.[modelId] && editingModel.modelId !== modelId) {
+      onError(t.modelIdConflict);
       return;
     }
 
