@@ -31,6 +31,18 @@ export type SessionRuntime = {
   head?: string;
 };
 
+export type RuntimeOwner = {
+  sessionId?: string;
+  kind: RuntimeKind;
+  path: string;
+  branch?: string;
+};
+
+export type WorktreeConflict = {
+  path: string;
+  owners: RuntimeOwner[];
+};
+
 export type SessionUIPatch = {
   title?: string;
   pinned?: boolean;
