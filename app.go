@@ -160,6 +160,26 @@ func (a *App) GitDiff(path string, staged bool) (backend.GitDiff, error) {
 	return a.backend.GitDiff(context.Background(), path, staged)
 }
 
+func (a *App) GitStage(path string) (backend.GitActionResult, error) {
+	return a.backend.GitStage(context.Background(), path)
+}
+
+func (a *App) GitUnstage(path string) (backend.GitActionResult, error) {
+	return a.backend.GitUnstage(context.Background(), path)
+}
+
+func (a *App) GitRevert(path string) (backend.GitActionResult, error) {
+	return a.backend.GitRevert(context.Background(), path)
+}
+
+func (a *App) GitCommit(message string) (backend.GitActionResult, error) {
+	return a.backend.GitCommit(context.Background(), message)
+}
+
+func (a *App) GitPush() (backend.GitActionResult, error) {
+	return a.backend.GitPush(context.Background())
+}
+
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
 }
