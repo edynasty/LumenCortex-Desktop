@@ -73,8 +73,8 @@ Current reference screens:
 | Slice | Product spec | Figma | Runtime dependency | Implementation status |
 |---|---|---|---|---|
 | UI-01 Provider | PRD / Interaction / Screen Specs | Provider Settings | Provider catalog | In progress |
-| UI-02 New Task | PRD / Interaction / Screen Specs | New Task | Session + Provider | Not started |
-| UI-03 Sidebar | IA / Screen Specs | New Task + Running Thread | Session list | Not started |
+| UI-02 New Task | PRD / Interaction / Screen Specs | New Task | Session + Provider | In progress |
+| UI-03 Sidebar | IA / Screen Specs | New Task + Running Thread | Session list | In progress |
 | UI-04 Thread | Interaction / Screen Specs | Running Thread | Agent events/messages | Not started |
 | UI-05 Review | PRD / Interaction / Screen Specs | Review Diff | Git/diff tools | Blocked by CORE-01 |
 | UI-06 Parallel | PRD / IA | Flows & Specs | Run supervisor/worktree | Blocked by CORE-04 |
@@ -664,14 +664,14 @@ Acceptance:
 
 Priority: **P0**
 
-- [ ] **UI-02.1 Replace current empty-state task screen with Composer-first layout**
-- [ ] **UI-02.2 Make the Composer the visual center of the new-task workspace**
-- [ ] **UI-02.3 Add project selector inside Composer**
-- [ ] **UI-02.4 Add model picker as a popover/select**
+- [x] **UI-02.1 Replace current empty-state task screen with Composer-first layout**
+- [x] **UI-02.2 Make the Composer the visual center of the new-task workspace**
+- [x] **UI-02.3 Add project selector inside Composer**
+- [x] **UI-02.4 Add model picker as a popover/select**
   - provider name
   - model name
   - context/reasoning metadata where available
-- [ ] **UI-02.5 Add permission-profile picker**
+- [x] **UI-02.5 Add permission-profile picker**
   - read-only
   - workspace
   - full
@@ -682,12 +682,12 @@ Priority: **P0**
   - files
   - folders
   - future Skills/MCP context
-- [ ] **UI-02.8 Add keyboard behavior**
+- [x] **UI-02.8 Add keyboard behavior**
   - Enter = run
   - Shift+Enter = newline
   - Cmd/Ctrl+Enter optional explicit run shortcut
 - [ ] **UI-02.9 Add recent project quick-pick**
-- [ ] **UI-02.10 Add empty-model state linking directly to Provider settings**
+- [x] **UI-02.10 Add empty-model state linking directly to Provider settings**
 - [ ] **UI-02.11 Add running/cancel state directly in Composer**
 - [ ] **UI-02.12 Verify 1440 / 1180 / 820 / 560 layouts**
 
@@ -703,13 +703,13 @@ Acceptance:
 Priority: **P0**
 
 - [ ] **UI-03.1 Refactor sidebar out of `App.tsx`**
-- [ ] **UI-03.2 Add project switcher**
+- [x] **UI-03.2 Add project switcher**
 - [ ] **UI-03.3 Persist recent projects**
-- [ ] **UI-03.4 Group threads**
+- [x] **UI-03.4 Group threads**
   - running
   - recent
   - completed
-- [ ] **UI-03.5 Add active/running indicators**
+- [x] **UI-03.5 Add active/running indicators**
 - [ ] **UI-03.6 Add thread search**
 - [ ] **UI-03.7 Add thread rename**
 - [ ] **UI-03.8 Add thread delete/archive when backend semantics are defined**
@@ -907,7 +907,7 @@ Priority: **P0 / continuous**
 
 - [ ] **ARCH-01.1 Extract AppShell**
 - [ ] **ARCH-01.2 Extract Sidebar domain**
-- [ ] **ARCH-01.3 Extract Composer domain**
+- [x] **ARCH-01.3 Extract Composer domain**
 - [x] **ARCH-01.4 Extract Provider domain**
 - [ ] **ARCH-01.5 Extract Thread domain**
 - [ ] **ARCH-01.6 Extract Inspector domain**
