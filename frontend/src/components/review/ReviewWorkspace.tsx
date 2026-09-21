@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { GitBranch, RotateCcw, Upload } from "lucide-react";
+import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
+import { languageFromPath } from "../../lib/syntax";
+import { SyntaxLine } from "../code/SyntaxLine";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
@@ -10,6 +12,9 @@ import "./review.css";
 
 type Props = {
   workspace: string;
+  agentBusy: boolean;
+  agentRunning: boolean;
+  onSendInstruction: (path: string, instruction: string) => Promise<void> | void;
   labels: {
     title: string;
     changedFiles: string;
@@ -29,6 +34,11 @@ type Props = {
     push: string;
     truncated: string;
     loading: string;
+    binaryDiff: string;
+    reviewInstruction: string;
+    reviewInstructionPlaceholder: string;
+    sendToAgent: string;
+    agentRunning: string;
   };
 };
 
@@ -38,14 +48,17 @@ function statusLabel(index: string, worktree: string) {
   return worktree === " " ? "M" : worktree;
 }
 
-export function ReviewWorkspace({ workspace, labels }: Props) {
+export function ReviewWorkspace({ workspace, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
   const review = useReviewState(workspace);
   const [mode, setMode] = useState<"unified" | "split">("unified");
   const [revertOpen, setRevertOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
+  const [instruction, setInstruction] = useState("");
   const lines = useMemo(() => parseUnifiedDiff(review.diff.content), [review.diff.content]);
   const rows = useMemo(() => splitDiffRows(lines), [lines]);
   const stats = useMemo(() => diffStats(lines), [lines]);
+  const language = useMemo(() => languageFromPath(review.selectedPath), [review.selectedPath]);
+  const binaryDiff = /(^|\n)(Binary files .* differ|GIT binary patch)(\n|$)/.test(review.diff.content);
   const canStage = Boolean(review.selectedFile && (review.selectedFile.worktree !== " " || review.selectedFile.index === "?"));
   const canUnstage = Boolean(review.selectedFile && review.selectedFile.index !== " " && review.selectedFile.index !== "?");
 
@@ -115,13 +128,18 @@ export function ReviewWorkspace({ workspace, labels }: Props) {
             <div className="review-diff">
               {review.loading ? (
                 <div className="review-loading">{labels.loading}</div>
+              ) : binaryDiff ? (
+                <EmptyState title={labels.binaryDiff} body={review.selectedPath} />
               ) : mode === "unified" ? (
                 <div className="review-unified">
                   {lines.map((line, index) => (
                     <div className={`diff-line ${line.kind}`} key={index}>
                       <span>{line.oldLine ?? ""}</span>
                       <span>{line.newLine ?? ""}</span>
-                      <code>{line.kind === "add" ? "+" : line.kind === "delete" ? "-" : line.kind === "context" ? " " : ""}{line.text}</code>
+                      <code>
+                        <span className="diff-prefix">{line.kind === "add" ? "+" : line.kind === "delete" ? "-" : line.kind === "context" ? " " : ""}</span>
+                        {line.kind === "meta" ? line.text : <SyntaxLine text={line.text} language={language} />}
+                      </code>
                     </div>
                   ))}
                 </div>
@@ -131,17 +149,43 @@ export function ReviewWorkspace({ workspace, labels }: Props) {
                     <div className="split-row" key={index}>
                       <div className={`split-cell ${row.left?.kind || ""}`}>
                         <span>{row.left?.oldLine ?? ""}</span>
-                        <code>{row.left?.text || ""}</code>
+                        <code>{row.left?.kind === "meta" ? (row.left?.text || "") : <SyntaxLine text={row.left?.text || ""} language={language} />}</code>
                       </div>
                       <div className={`split-cell ${row.right?.kind || ""}`}>
                         <span>{row.right?.newLine ?? ""}</span>
-                        <code>{row.right?.text || ""}</code>
+                        <code>{row.right?.kind === "meta" ? (row.right?.text || "") : <SyntaxLine text={row.right?.text || ""} language={language} />}</code>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
+            <section className="review-feedback">
+              <div className="review-feedback-label">
+                <MessageSquareText size={13} strokeWidth={1.7} aria-hidden />
+                <span>{labels.reviewInstruction}</span>
+              </div>
+              <textarea
+                rows={2}
+                value={instruction}
+                onChange={(event) => setInstruction(event.target.value)}
+                placeholder={labels.reviewInstructionPlaceholder}
+                disabled={agentBusy || agentRunning || !review.selectedPath}
+              />
+              <Button
+                variant="primary"
+                disabled={agentBusy || agentRunning || !review.selectedPath || !instruction.trim()}
+                onClick={async () => {
+                  const value = instruction.trim();
+                  if (!value) return;
+                  await onSendInstruction(review.selectedPath, value);
+                  setInstruction("");
+                }}
+              >
+                {agentRunning ? labels.agentRunning : labels.sendToAgent}
+              </Button>
+            </section>
 
             <footer className="review-footer">
               <input
