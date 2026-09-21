@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/edynasty/LumenCortex-Desktop/main/docs/lumencortex.schema.json",
+  "title": "LumenCortex workspace configuration",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "model": {
+      "type": "string",
+      "description": "Default provider/model reference.",
+      "pattern": "^[^/]+/.+$"
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/provider"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "package": {
+          "type": "string",
+          "description": "Currently supports OpenAI-compatible chat completion providers."
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "baseURL": { "type": "string" },
+            "endpoint": { "type": "string" },
+            "apiKey": {
+              "type": "string",
+              "description": "Prefer {env:VARIABLE_NAME}."
+            }
+          },
+          "additionalProperties": true
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/model"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "modelID": { "type": "string" },
+        "limit": {
+          "type": "object",
+          "properties": {
+            "context": { "type": "integer", "minimum": 1 },
+            "output": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
