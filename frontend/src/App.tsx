@@ -41,7 +41,7 @@ const copy = {
     providerConfig: "Provider 配置",
     providerSettings: "模型与提供商",
     providerNeedWorkspace: "先打开一个代码仓库，再为这个工作区配置 Provider 和模型。",
-    providerConfigHint: "配置保存在工作区根目录 lumencortex.json。API Key 推荐使用 {env:VAR_NAME}，不要直接写入密钥。",
+    providerConfigHint: "未打开项目时保存到 ~/.config/lumencortex/lumencortex.json；打开项目后保存到项目根目录 lumencortex.json，项目配置覆盖全局。API Key 推荐使用 {env:VAR_NAME}。",
     saveConfig: "保存配置",
     modelSelect: "模型",
     noModels: "未配置模型，将使用 LCX_MODEL 环境变量",
@@ -117,7 +117,7 @@ const copy = {
     providerConfig: "Provider configuration",
     providerSettings: "Models & providers",
     providerNeedWorkspace: "Open a code repository first, then configure providers and models for that workspace.",
-    providerConfigHint: "Stored as lumencortex.json in the workspace root. Prefer {env:VAR_NAME} for API keys instead of storing secrets directly.",
+    providerConfigHint: "Without a project, settings are saved to ~/.config/lumencortex/lumencortex.json. With a project open, lumencortex.json in the project root overrides global settings. Prefer {env:VAR_NAME} for API keys.",
     saveConfig: "Save configuration",
     modelSelect: "Model",
     noModels: "No configured models; LCX_MODEL will be used",
@@ -287,13 +287,6 @@ export default function App() {
   }, [locale]);
 
   useEffect(() => {
-    if (!state.workspace) {
-      setCatalog({ providers: {} });
-      setModelRef("");
-      setProviderJSON("");
-      setProviderDirty(false);
-      return;
-    }
     bridge.providerCatalog().then((next) => {
       setCatalog(next);
       setModelRef((current) => current || next.model || "");
@@ -831,52 +824,40 @@ export default function App() {
               )}
 
               {inspectorTab === "providers" && (
-                state.workspace ? (
-                  <div className="provider-pane">
-                    <div className="provider-pane-head">
-                      <div>
-                        <strong>{t.providerConfig}</strong>
-                        <code>lumencortex.json</code>
-                      </div>
-                      <button
-                        className="save-provider-button"
-                        type="button"
-                        disabled={!providerDirty}
-                        onClick={saveProviderConfig}
-                      >
-                        {t.saveConfig}
-                      </button>
+                <div className="provider-pane">
+                  <div className="provider-pane-head">
+                    <div>
+                      <strong>{t.providerConfig}</strong>
+                      <code>{state.workspace ? "lumencortex.json" : "~/.config/lumencortex/lumencortex.json"}</code>
                     </div>
-                    <p>{t.providerConfigHint}</p>
-                    <textarea
-                      className="provider-editor"
-                      value={providerJSON}
-                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-                        setProviderJSON(event.target.value);
-                        setProviderDirty(true);
-                      }}
-                      spellCheck={false}
-                    />
-                    <div className="provider-model-list">
-                      {configuredModels.map((item) => (
-                        <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
-                          <span>{item.label}</span>
-                          <code>{item.ref}</code>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="provider-empty-state">
-                    <Settings2 size={20} strokeWidth={1.6} aria-hidden />
-                    <strong>{t.providerSettings}</strong>
-                    <p>{t.providerNeedWorkspace}</p>
-                    <button className="provider-open-workspace" type="button" onClick={pickWorkspace}>
-                      <Folder size={14} strokeWidth={1.7} aria-hidden />
-                      {t.chooseFolder}
+                    <button
+                      className="save-provider-button"
+                      type="button"
+                      disabled={!providerDirty}
+                      onClick={saveProviderConfig}
+                    >
+                      {t.saveConfig}
                     </button>
                   </div>
-                )
+                  <p>{t.providerConfigHint}</p>
+                  <textarea
+                    className="provider-editor"
+                    value={providerJSON}
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                      setProviderJSON(event.target.value);
+                      setProviderDirty(true);
+                    }}
+                    spellCheck={false}
+                  />
+                  <div className="provider-model-list">
+                    {configuredModels.map((item) => (
+                      <button key={item.ref} type="button" onClick={() => setModelRef(item.ref)} className={item.ref === modelRef ? "selected" : ""}>
+                        <span>{item.label}</span>
+                        <code>{item.ref}</code>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {inspectorTab === "terminal" && (
