@@ -20,6 +20,7 @@ type Props = {
   modelRef: string;
   models: ModelOption[];
   noModelsLabel: string;
+  policyLabel: string;
   policy: ComposerPolicy;
   policyLabels: Record<ComposerPolicy, string>;
   localLabel: string;
@@ -48,6 +49,7 @@ export function NewTaskComposer({
   modelRef,
   models,
   noModelsLabel,
+  policyLabel,
   policy,
   policyLabels,
   localLabel,
@@ -102,7 +104,7 @@ export function NewTaskComposer({
             </label>
 
             <label className="composer-select-control">
-              <span className="sr-only">Permission</span>
+              <span className="sr-only">{policyLabel}</span>
               <select
                 value={policy}
                 onChange={(event) => onPolicyChange(event.target.value as ComposerPolicy)}
