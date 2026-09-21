@@ -111,7 +111,11 @@ export const copy = {
     agentRunning: "Agent 正在运行",
     loadEarlier: "加载更早消息",
     backToLatest: "返回最新",
-    historyWindow: "正在查看历史消息窗口"
+    historyWindow: "正在查看历史消息窗口",
+    checks: "检查结果",
+    checkPassed: "通过",
+    checkFailed: "失败",
+    checkTruncated: "输出已截断"
   },
   en: {
     newTask: "New task",
@@ -223,7 +227,11 @@ export const copy = {
     agentRunning: "Agent is running",
     loadEarlier: "Load earlier",
     backToLatest: "Back to latest",
-    historyWindow: "Viewing an older message window"
+    historyWindow: "Viewing an older message window",
+    checks: "Checks",
+    checkPassed: "Passed",
+    checkFailed: "Failed",
+    checkTruncated: "Output truncated"
   }
 } as const;
 
