@@ -13,6 +13,7 @@ import type {
   ProviderCatalogScope,
   RuntimeEvent,
   Session,
+  SessionRuntime,
   SessionUIPatch,
   ShellResult,
   WorkspaceState,
@@ -28,6 +29,9 @@ type AppAPI = {
   UpdateSessionUI(sessionId: string, patch: SessionUIPatch): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
   CreateSessionWithContext(goal: string, paths: string[]): Promise<Session>;
+  CreateSessionWithRuntime(goal: string, paths: string[], runtimeKind: string, base: string): Promise<Session>;
+  GetSessionRuntime(sessionId: string): Promise<SessionRuntime>;
+  RemoveSessionWorktree(sessionId: string, force: boolean): Promise<void>;
   PickContextFiles(): Promise<string[]>;
   PickContextDirectory(): Promise<string[]>;
   MessagePage(sessionId: string, beforeSeq: number, limit: number): Promise<MessagePage>;
@@ -46,12 +50,19 @@ type AppAPI = {
   SearchText(query: string, path: string, limit: number): Promise<SearchResult>;
   FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
   GitStatus(): Promise<GitStatus>;
+  SessionGitStatus(sessionId: string): Promise<GitStatus>;
   GitDiff(path: string, staged: boolean): Promise<GitDiff>;
+  SessionGitDiff(sessionId: string, path: string, staged: boolean): Promise<GitDiff>;
   GitStage(path: string): Promise<GitActionResult>;
+  SessionGitStage(sessionId: string, path: string): Promise<GitActionResult>;
   GitUnstage(path: string): Promise<GitActionResult>;
+  SessionGitUnstage(sessionId: string, path: string): Promise<GitActionResult>;
   GitRevert(path: string): Promise<GitActionResult>;
+  SessionGitRevert(sessionId: string, path: string): Promise<GitActionResult>;
   GitCommit(message: string): Promise<GitActionResult>;
+  SessionGitCommit(sessionId: string, message: string): Promise<GitActionResult>;
   GitPush(): Promise<GitActionResult>;
+  SessionGitPush(sessionId: string): Promise<GitActionResult>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
 };
 
@@ -82,6 +93,9 @@ export const bridge = {
   updateSessionUI: (sessionId: string, patch: SessionUIPatch) => api().UpdateSessionUI(sessionId, patch),
   createSession: (goal: string) => api().CreateSession(goal),
   createSessionWithContext: (goal: string, paths: string[]) => api().CreateSessionWithContext(goal, paths),
+  createSessionWithRuntime: (goal: string, paths: string[], runtimeKind: string, base = "HEAD") => api().CreateSessionWithRuntime(goal, paths, runtimeKind, base),
+  sessionRuntime: (sessionId: string) => api().GetSessionRuntime(sessionId),
+  removeSessionWorktree: (sessionId: string, force = false) => api().RemoveSessionWorktree(sessionId, force),
   pickContextFiles: () => api().PickContextFiles(),
   pickContextDirectory: () => api().PickContextDirectory(),
   messagePage: (sessionId: string, beforeSeq = -1, limit = 100) => api().MessagePage(sessionId, beforeSeq, limit),
@@ -100,12 +114,19 @@ export const bridge = {
   searchText: (query: string, path = "", limit = 200) => api().SearchText(query, path, limit),
   findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
   gitStatus: () => api().GitStatus(),
+  sessionGitStatus: (sessionId: string) => api().SessionGitStatus(sessionId),
   gitDiff: (path = "", staged = false) => api().GitDiff(path, staged),
+  sessionGitDiff: (sessionId: string, path = "", staged = false) => api().SessionGitDiff(sessionId, path, staged),
   gitStage: (path: string) => api().GitStage(path),
+  sessionGitStage: (sessionId: string, path: string) => api().SessionGitStage(sessionId, path),
   gitUnstage: (path: string) => api().GitUnstage(path),
+  sessionGitUnstage: (sessionId: string, path: string) => api().SessionGitUnstage(sessionId, path),
   gitRevert: (path: string) => api().GitRevert(path),
+  sessionGitRevert: (sessionId: string, path: string) => api().SessionGitRevert(sessionId, path),
   gitCommit: (message: string) => api().GitCommit(message),
+  sessionGitCommit: (sessionId: string, message: string) => api().SessionGitCommit(sessionId, message),
   gitPush: () => api().GitPush(),
+  sessionGitPush: (sessionId: string) => api().SessionGitPush(sessionId),
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
 };
 
