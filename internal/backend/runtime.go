@@ -299,6 +299,23 @@ func (r *Runtime) SaveProviderCatalog(catalog ProviderCatalog) (ProviderCatalog,
 	return loadProviderCatalog(workspace)
 }
 
+func (r *Runtime) ProviderCatalogScope(scope string) (ProviderCatalog, error) {
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+	return loadProviderCatalogScope(workspace, scope)
+}
+
+func (r *Runtime) SaveProviderCatalogScope(scope string, catalog ProviderCatalog) (ProviderCatalog, error) {
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+	if err := saveProviderCatalogScope(workspace, scope, catalog); err != nil {
+		return ProviderCatalog{}, err
+	}
+	return loadProviderCatalogScope(workspace, scope)
+}
+
 func providerFromAgentConfig(workspace string, cfg AgentConfig) (*openai.Client, string, error) {
 	providerName := "openai-compatible"
 	providerCfg := cfg.Provider
