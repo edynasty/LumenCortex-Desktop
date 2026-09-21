@@ -40,7 +40,6 @@ const copy = {
     providers: "提供商",
     providerConfig: "Provider 配置",
     providerSettings: "模型与提供商",
-    providerNeedWorkspace: "先打开一个代码仓库，再为这个工作区配置 Provider 和模型。",
     providerConfigHint: "未打开项目时保存到 ~/.config/lumencortex/lumencortex.json；打开项目后保存到项目根目录 lumencortex.json，项目配置覆盖全局。API Key 推荐使用 {env:VAR_NAME}。",
     saveConfig: "保存配置",
     modelSelect: "模型",
@@ -116,7 +115,6 @@ const copy = {
     providers: "Providers",
     providerConfig: "Provider configuration",
     providerSettings: "Models & providers",
-    providerNeedWorkspace: "Open a code repository first, then configure providers and models for that workspace.",
     providerConfigHint: "Without a project, settings are saved to ~/.config/lumencortex/lumencortex.json. With a project open, lumencortex.json in the project root overrides global settings. Prefer {env:VAR_NAME} for API keys.",
     saveConfig: "Save configuration",
     modelSelect: "Model",
@@ -342,10 +340,6 @@ export default function App() {
     );
   }, [catalog]);
 
-  const selectedModelLabel = useMemo(
-    () => configuredModels.find((item) => item.ref === modelRef)?.label || modelRef,
-    [configuredModels, modelRef]
-  );
 
   function statusLabel(status?: string) {
     if (running) return t.active;
