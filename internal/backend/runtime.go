@@ -13,22 +13,17 @@ import (
 )
 
 var (
-	ErrNoWorkspace     = errors.New("no workspace is open")
-	ErrAgentRunning    = errors.New("agent is already running for this session")
-	ErrModelRequired   = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
-	ErrInvalidPolicy   = errors.New("invalid agent policy")
+	ErrNoWorkspace   = errors.New("no workspace is open")
+	ErrAgentRunning  = lcx.ErrRunAlreadyActive
+	ErrModelRequired = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
+	ErrInvalidPolicy = errors.New("invalid agent policy")
 )
 
-type activeRun struct {
-	cancel context.CancelFunc
-	done   chan struct{}
-}
-
 type Runtime struct {
-	mu        sync.RWMutex
-	engine    *lcx.Engine
-	workspace string
-	runs      map[string]*activeRun
+	mu         sync.RWMutex
+	engine     *lcx.Engine
+	supervisor *lcx.RunSupervisor
+	workspace  string
 }
 
 type Health = lcx.Health
@@ -36,6 +31,7 @@ type Session = lcx.SessionInfo
 type Message = lcx.Message
 type ShellResult = lcx.ShellResult
 type Event = lcx.Event
+type ActiveRun = lcx.ActiveRun
 
 type ProviderConfig struct {
 	Endpoint         string `json:"endpoint,omitempty"`
@@ -58,13 +54,14 @@ type AgentConfig struct {
 }
 
 type WorkspaceState struct {
-	Workspace string    `json:"workspace"`
-	Health    *Health   `json:"health,omitempty"`
-	Sessions  []Session `json:"sessions"`
+	Workspace  string      `json:"workspace"`
+	Health     *Health     `json:"health,omitempty"`
+	Sessions   []Session   `json:"sessions"`
+	ActiveRuns []ActiveRun `json:"activeRuns"`
 }
 
 func New() *Runtime {
-	return &Runtime{runs: map[string]*activeRun{}}
+	return &Runtime{}
 }
 
 func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceState, error) {
@@ -79,16 +76,23 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 	if err != nil {
 		return WorkspaceState{}, err
 	}
+	nextSupervisor, err := lcx.NewRunSupervisor(next)
+	if err != nil {
+		_ = next.Close()
+		return WorkspaceState{}, err
+	}
 
 	r.mu.Lock()
 	previous := r.engine
-	previousRuns := r.runs
+	previousSupervisor := r.supervisor
 	r.engine = next
+	r.supervisor = nextSupervisor
 	r.workspace = abs
-	r.runs = map[string]*activeRun{}
 	r.mu.Unlock()
 
-	stopRuns(previousRuns)
+	if previousSupervisor != nil {
+		previousSupervisor.Close()
+	}
 	if previous != nil {
 		_ = previous.Close()
 	}
@@ -98,43 +102,45 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 func (r *Runtime) Close() error {
 	r.mu.Lock()
 	engine := r.engine
-	runs := r.runs
+	supervisor := r.supervisor
 	r.engine = nil
+	r.supervisor = nil
 	r.workspace = ""
-	r.runs = map[string]*activeRun{}
 	r.mu.Unlock()
 
-	stopRuns(runs)
+	if supervisor != nil {
+		supervisor.Close()
+	}
 	if engine == nil {
 		return nil
 	}
 	return engine.Close()
 }
 
-func stopRuns(runs map[string]*activeRun) {
-	for _, run := range runs {
-		run.cancel()
-	}
-	for _, run := range runs {
-		<-run.done
-	}
-}
-
 func (r *Runtime) State(ctx context.Context) (WorkspaceState, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if r.engine == nil {
-		return WorkspaceState{Sessions: []Session{}}, nil
+	engine := r.engine
+	supervisor := r.supervisor
+	workspace := r.workspace
+	r.mu.RUnlock()
+
+	if engine == nil {
+		return WorkspaceState{Sessions: []Session{}, ActiveRuns: []ActiveRun{}}, nil
 	}
-	health := r.engine.Health()
-	sessions, err := r.engine.ListSessions(ctx, 100, 0)
+	health := engine.Health()
+	sessions, err := engine.ListSessions(ctx, 100, 0)
 	if err != nil {
 		return WorkspaceState{}, err
 	}
+	activeRuns := []ActiveRun{}
+	if supervisor != nil {
+		activeRuns = supervisor.Runs()
+	}
 	return WorkspaceState{
-		Workspace: r.workspace,
-		Health:    &health,
-		Sessions:  sessions,
+		Workspace:  workspace,
+		Health:     &health,
+		Sessions:   sessions,
+		ActiveRuns: activeRuns,
 	}, nil
 }
 
@@ -200,7 +206,11 @@ func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (Shel
 func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentConfig) (Session, error) {
 	r.mu.RLock()
 	workspace := r.workspace
+	supervisor := r.supervisor
 	r.mu.RUnlock()
+	if supervisor == nil {
+		return Session{}, ErrNoWorkspace
+	}
 
 	client, providerName, err := providerFromAgentConfig(workspace, cfg)
 	if err != nil {
@@ -210,66 +220,25 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 		return Session{}, ErrInvalidPolicy
 	}
 
-	r.mu.Lock()
-	engine := r.engine
-	if engine == nil {
-		r.mu.Unlock()
-		return Session{}, ErrNoWorkspace
-	}
-	if _, exists := r.runs[sessionID]; exists {
-		r.mu.Unlock()
-		return Session{}, ErrAgentRunning
-	}
-	_, info, err := engine.Session(ctx, sessionID)
-	if err != nil {
-		r.mu.Unlock()
-		return Session{}, err
-	}
-	runCtx, cancel := context.WithCancel(context.Background())
-	run := &activeRun{cancel: cancel, done: make(chan struct{})}
-	r.runs[sessionID] = run
-	r.mu.Unlock()
-
-	info.Status = "running"
-	if info.Provider == "" {
-		info.Provider = providerName
-	}
-	if info.Model == "" {
-		info.Model = client.Model()
-	}
-
-	go func() {
-		defer func() {
-			r.mu.Lock()
-			if current, ok := r.runs[sessionID]; ok && current == run {
-				delete(r.runs, sessionID)
-			}
-			r.mu.Unlock()
-			close(run.done)
-		}()
-		_, _ = engine.RunAgent(runCtx, sessionID, client, lcx.AgentOptions{
-			ProviderName:        providerName,
-			Policy:              normalizedPolicy(cfg.Policy),
-			MaxSteps:            cfg.MaxSteps,
-			RecentMessages:      cfg.RecentMessages,
-			MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
-			MaxTokens:           cfg.MaxTokens,
-			Temperature:         cfg.Temperature,
-		})
-	}()
-
-	return info, nil
+	return supervisor.Start(ctx, sessionID, client, lcx.AgentOptions{
+		ProviderName:        providerName,
+		Policy:              normalizedPolicy(cfg.Policy),
+		MaxSteps:            cfg.MaxSteps,
+		RecentMessages:      cfg.RecentMessages,
+		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
+		MaxTokens:           cfg.MaxTokens,
+		Temperature:         cfg.Temperature,
+	})
 }
 
 func (r *Runtime) CancelAgent(sessionID string) bool {
 	r.mu.RLock()
-	run := r.runs[sessionID]
+	supervisor := r.supervisor
 	r.mu.RUnlock()
-	if run == nil {
+	if supervisor == nil {
 		return false
 	}
-	run.cancel()
-	return true
+	return supervisor.Cancel(sessionID)
 }
 
 func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
