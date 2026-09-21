@@ -266,6 +266,25 @@ export default function App() {
     event.preventDefault();
     const task = goal.trim();
     if (!task || !state.workspace || busy) return;
+
+    if (route.kind === "thread" && current) {
+      if (running) return;
+      setBusy(true);
+      setError("");
+      try {
+        await bridge.continueAgent(current.id, task, agentConfig());
+        setGoal("");
+        const nextState = await bridge.state();
+        setState(nextState);
+        await refreshCurrent(current.id);
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     setBusy(true);
     setError("");
     try {
@@ -609,6 +628,7 @@ export default function App() {
             onGoalChange={setGoal}
             onModelChange={setModelRef}
             onApproveGate={approveGate}
+            onCancel={cancelAgent}
             onSubmit={submitTask}
             onKeyDown={onComposerKeyDown}
           />
