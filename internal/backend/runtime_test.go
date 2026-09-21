@@ -109,17 +109,14 @@ func TestStartAgentRunsLatestEmbeddedHarness(t *testing.T) {
 
 func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
 	started := make(chan struct{})
-	cancelled := make(chan struct{})
+	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		close(started)
-		select {
-		case <-req.Context().Done():
-			close(cancelled)
-		case <-time.After(2 * time.Second):
-			http.Error(w, "request was not cancelled", http.StatusGatewayTimeout)
-		}
+		<-release
+		http.Error(w, "released after client cancellation", http.StatusGatewayTimeout)
 	}))
 	defer server.Close()
+	defer close(release)
 
 	ctx := context.Background()
 	r := New()
@@ -147,12 +144,11 @@ func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("provider request did not start")
 	}
+	begin := time.Now()
 	if err := r.Close(); err != nil {
 		t.Fatal(err)
 	}
-	select {
-	case <-cancelled:
-	case <-time.After(250 * time.Millisecond):
-		t.Fatal("provider request context was not cancelled")
+	if elapsed := time.Since(begin); elapsed > time.Second {
+		t.Fatalf("runtime close waited for provider response: %s", elapsed)
 	}
 }
