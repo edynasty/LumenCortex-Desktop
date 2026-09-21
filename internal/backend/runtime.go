@@ -38,6 +38,7 @@ type FileResult = lcx.FileResult
 type GitStatus = lcx.GitStatus
 type GitDiff = lcx.GitDiff
 type GitActionResult = lcx.GitActionResult
+type MessagePage = lcx.MessagePage
 
 type ProviderConfig struct {
 	Endpoint         string `json:"endpoint,omitempty"`
@@ -185,6 +186,16 @@ func (r *Runtime) CreateSession(ctx context.Context, goal string) (Session, erro
 	}
 	_, info, err := r.engine.Session(ctx, handle.ID)
 	return info, err
+}
+
+func (r *Runtime) MessagePage(ctx context.Context, sessionID string, beforeSeq int64, limit int) (MessagePage, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return MessagePage{}, ErrNoWorkspace
+	}
+	return engine.MessagePage(ctx, sessionID, beforeSeq, limit)
 }
 
 func (r *Runtime) RecentMessages(ctx context.Context, sessionID string, limit int) ([]Message, error) {
