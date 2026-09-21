@@ -1,6 +1,8 @@
 import type {
   AgentConfig,
+  DiscoveredModel,
   Message,
+  ProviderConnectionResult,
   ProviderCatalog,
   ProviderCatalogScope,
   RuntimeEvent,
@@ -18,6 +20,8 @@ type AppAPI = {
   GetSession(sessionId: string): Promise<Session>;
   CreateSession(goal: string): Promise<Session>;
   RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
+  DiscoverProviderModels(providerId: string): Promise<DiscoveredModel[]>;
+  TestProviderConnection(providerId: string): Promise<ProviderConnectionResult>;
   GetProviderCatalog(): Promise<ProviderCatalog>;
   SaveProviderCatalog(config: ProviderCatalog): Promise<ProviderCatalog>;
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalog>;
@@ -55,6 +59,8 @@ export const bridge = {
   getSession: (sessionId: string) => api().GetSession(sessionId),
   createSession: (goal: string) => api().CreateSession(goal),
   recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
+  discoverProviderModels: (providerId: string) => api().DiscoverProviderModels(providerId),
+  testProviderConnection: (providerId: string) => api().TestProviderConnection(providerId),
   providerCatalog: () => api().GetProviderCatalog(),
   saveProviderCatalog: (config: ProviderCatalog) => api().SaveProviderCatalog(config),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
