@@ -108,6 +108,14 @@ func (a *App) SaveProviderCatalog(config backend.ProviderCatalog) (backend.Provi
 	return a.backend.SaveProviderCatalog(config)
 }
 
+func (a *App) GetProviderCatalogScope(scope string) (backend.ProviderCatalog, error) {
+	return a.backend.ProviderCatalogScope(scope)
+}
+
+func (a *App) SaveProviderCatalogScope(scope string, config backend.ProviderCatalog) (backend.ProviderCatalog, error) {
+	return a.backend.SaveProviderCatalogScope(scope, config)
+}
+
 func (a *App) StartAgent(sessionID string, config backend.AgentConfig) (backend.Session, error) {
 	return a.backend.StartAgent(context.Background(), sessionID, config)
 }
