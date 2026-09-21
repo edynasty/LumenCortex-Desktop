@@ -52,7 +52,7 @@ button:disabled { opacity: .42; cursor: default !important; }
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 38px 8px 9px;
+  padding: 8px 8px 9px;
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   z-index: 30;
@@ -71,6 +71,9 @@ button:disabled { opacity: .42; cursor: default !important; }
   display: grid;
   place-items: center;
   color: #343432;
+  font-size: 9px;
+  font-weight: 720;
+  letter-spacing: -.04em;
 }
 .brand-copy { min-width: 0; display: flex; flex-direction: column; line-height: 1; }
 .brand-copy strong { font-size: 12px; font-weight: 620; letter-spacing: -.015em; }
