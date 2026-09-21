@@ -1,31 +1,196 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import type { AgentConfig, Message, RuntimeEvent, Session, WorkspaceState } from "./types";
 
-const MAX_VISIBLE_EVENTS = 160;
-const MAX_VISIBLE_MESSAGES = 80;
+const MAX_VISIBLE_EVENTS = 180;
+const MAX_VISIBLE_MESSAGES = 100;
 
-function bytes(value = 0) {
-  if (value < 1024) return value + " B";
-  if (value < 1024 * 1024) return (value / 1024).toFixed(1) + " KB";
-  if (value < 1024 * 1024 * 1024) return (value / 1024 / 1024).toFixed(1) + " MB";
-  return (value / 1024 / 1024 / 1024).toFixed(2) + " GB";
+type Locale = "zh-CN" | "en";
+type InspectorTab = "activity" | "run" | "terminal";
+type Policy = "read-only" | "workspace" | "full";
+
+const copy = {
+  "zh-CN": {
+    newTask: "新任务",
+    openProject: "打开项目",
+    changeProject: "切换项目",
+    project: "项目",
+    sessions: "会话",
+    noSessions: "还没有会话",
+    today: "最近",
+    activity: "活动",
+    run: "运行",
+    terminal: "终端",
+    settings: "设置",
+    runtimeOnline: "运行时在线",
+    runtimeOffline: "运行时离线",
+    openRepoTitle: "打开一个代码仓库",
+    openRepoBody: "LumenCortex 会在本地工作区中运行 Go Agent、保存会话，并记录可审查的工具执行轨迹。",
+    chooseFolder: "选择文件夹",
+    buildTitle: "想让 LumenCortex 做什么？",
+    buildBody: "描述任务后会创建一个独立会话并立即启动 Agent。不同会话可以并行运行。",
+    composerPlaceholder: "描述一个编码任务，例如：修复登录超时并补充测试",
+    composerHint: "Enter 开始 · Shift+Enter 换行",
+    start: "开始",
+    resume: "继续",
+    stop: "停止",
+    running: "正在运行",
+    model: "模型",
+    baseUrl: "Base URL",
+    endpoint: "完整 Endpoint",
+    apiKey: "API Key",
+    policy: "权限",
+    maxSteps: "最大步骤",
+    envFallback: "留空时使用 LCX_* 环境变量。API Key 不写入工作区数据库。",
+    readOnly: "只读",
+    workspace: "工作区",
+    full: "完全访问",
+    runtime: "运行时",
+    workingMemory: "工作内存",
+    softBudget: "软限制",
+    hardBudget: "硬限制",
+    maxAgents: "最大 Agent",
+    noActivity: "Agent 的工具调用和运行事件会显示在这里。",
+    noMessages: "这个会话还没有消息。启动 Agent 后，执行过程会出现在这里。",
+    shellCommand: "命令",
+    runCommand: "运行命令",
+    shellHint: "用于调试当前会话。Agent 运行时会禁用手动命令。",
+    finalAnswer: "最终结果",
+    provider: "Provider",
+    local: "本地",
+    active: "运行中",
+    status: "状态",
+    language: "English",
+    inspector: "活动面板",
+    close: "关闭",
+    collapseSidebar: "收起侧栏",
+    expandSidebar: "打开侧栏",
+    startAnother: "开始另一个任务",
+    waiting: "等待确认",
+    created: "待启动",
+    completed: "已完成",
+    interrupted: "已中断",
+    unknown: "未知",
+    error: "发生错误",
+    messageRoleUser: "你",
+    messageRoleAssistant: "LumenCortex",
+    messageRoleTool: "工具",
+    messageRoleSystem: "系统"
+  },
+  en: {
+    newTask: "New task",
+    openProject: "Open project",
+    changeProject: "Change project",
+    project: "Project",
+    sessions: "Threads",
+    noSessions: "No threads yet",
+    today: "Recent",
+    activity: "Activity",
+    run: "Run",
+    terminal: "Terminal",
+    settings: "Settings",
+    runtimeOnline: "Runtime online",
+    runtimeOffline: "Runtime offline",
+    openRepoTitle: "Open a code repository",
+    openRepoBody: "LumenCortex runs the Go agent locally, keeps durable sessions, and records a reviewable tool execution trail.",
+    chooseFolder: "Choose folder",
+    buildTitle: "What should LumenCortex build?",
+    buildBody: "Describe a task to create a separate thread and start the agent immediately. Threads can run in parallel.",
+    composerPlaceholder: "Describe a coding task, e.g. fix login timeout and add tests",
+    composerHint: "Enter to start · Shift+Enter for a new line",
+    start: "Start",
+    resume: "Resume",
+    stop: "Stop",
+    running: "Running",
+    model: "Model",
+    baseUrl: "Base URL",
+    endpoint: "Exact endpoint",
+    apiKey: "API key",
+    policy: "Permissions",
+    maxSteps: "Max steps",
+    envFallback: "Empty fields fall back to LCX_* environment variables. API keys are not stored in the workspace database.",
+    readOnly: "Read only",
+    workspace: "Workspace",
+    full: "Full access",
+    runtime: "Runtime",
+    workingMemory: "Working memory",
+    softBudget: "Soft budget",
+    hardBudget: "Hard budget",
+    maxAgents: "Max agents",
+    noActivity: "Agent tool calls and runtime events will appear here.",
+    noMessages: "This thread has no messages yet. Start the agent to see its execution here.",
+    shellCommand: "Command",
+    runCommand: "Run command",
+    shellHint: "For debugging the current thread. Manual commands are disabled while the agent is running.",
+    finalAnswer: "Final result",
+    provider: "Provider",
+    local: "Local",
+    active: "Active",
+    status: "Status",
+    language: "中文",
+    inspector: "Activity panel",
+    close: "Close",
+    collapseSidebar: "Collapse sidebar",
+    expandSidebar: "Open sidebar",
+    startAnother: "Start another task",
+    waiting: "Waiting for approval",
+    created: "Ready",
+    completed: "Completed",
+    interrupted: "Interrupted",
+    unknown: "Unknown",
+    error: "Something went wrong",
+    messageRoleUser: "You",
+    messageRoleAssistant: "LumenCortex",
+    messageRoleTool: "Tool",
+    messageRoleSystem: "System"
+  }
+} as const;
+
+function Icon({ name, size = 16 }: { name: "menu" | "plus" | "folder" | "panel" | "play" | "stop" | "terminal" | "globe" | "chevron" | "spark" | "close"; size?: number }) {
+  const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+  switch (name) {
+    case "menu":
+      return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
+    case "plus":
+      return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
+    case "folder":
+      return <svg {...common}><path d="M3.5 7.5h6l2-2h9a1 1 0 0 1 1 1v11a1.5 1.5 0 0 1-1.5 1.5h-16A1.5 1.5 0 0 1 2.5 17.5V9A1.5 1.5 0 0 1 4 7.5Z" /></svg>;
+    case "panel":
+      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>;
+    case "play":
+      return <svg {...common}><path d="m9 7 8 5-8 5Z" /></svg>;
+    case "stop":
+      return <svg {...common}><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>;
+    case "terminal":
+      return <svg {...common}><path d="m5 7 4 5-4 5M11 17h8" /></svg>;
+    case "globe":
+      return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" /></svg>;
+    case "chevron":
+      return <svg {...common}><path d="m9 6 6 6-6 6" /></svg>;
+    case "spark":
+      return <svg {...common}><path d="m12 3 1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8L12 3ZM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" /></svg>;
+    case "close":
+      return <svg {...common}><path d="m6 6 12 12M18 6 6 18" /></svg>;
+  }
 }
 
 function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
 }
 
+function bytes(value = 0) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
 function normalizePayload(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
+  if (value && typeof value === "object" && !Array.isArray(value)) return value as Record<string, unknown>;
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed as Record<string, unknown>;
     } catch {
       return { content: value };
     }
@@ -35,9 +200,7 @@ function normalizePayload(value: unknown): Record<string, unknown> {
 
 function messageText(message: Message) {
   const payload = normalizePayload(message.json);
-  if (typeof payload.content === "string" && payload.content.trim()) {
-    return payload.content;
-  }
+  if (typeof payload.content === "string" && payload.content.trim()) return payload.content;
   if (Array.isArray(payload.tool_calls)) {
     const names = payload.tool_calls
       .map((item) => {
@@ -46,43 +209,48 @@ function messageText(message: Message) {
         return typeof call.name === "string" ? call.name : "";
       })
       .filter(Boolean);
-    if (names.length) return "Tool calls: " + names.join(", ");
+    if (names.length) return `Tool calls: ${names.join(", ")}`;
   }
   const raw = JSON.stringify(payload, null, 2);
   return raw === "{}" ? "(empty message)" : raw;
 }
 
-function sessionStatusClass(session: Session) {
-  switch (session.status) {
-    case "created":
-      return "status-dot created";
-    case "completed":
-      return "status-dot completed";
-    case "interrupted":
-      return "status-dot interrupted";
-    case "waiting_gate":
-      return "status-dot waiting";
-    default:
-      return "status-dot";
-  }
+function roleClass(role: string) {
+  if (role === "assistant") return "assistant";
+  if (role === "tool") return "tool";
+  if (role === "system") return "system";
+  return "user";
+}
+
+function formatClock(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 export default function App() {
+  const [locale, setLocale] = useState<Locale>(() => (localStorage.getItem("lcx-locale") === "en" ? "en" : "zh-CN"));
+  const t = copy[locale];
   const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [] });
   const [selected, setSelected] = useState("");
   const [goal, setGoal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [command, setCommand] = useState("git status --short");
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [activeRuns, setActiveRuns] = useState<Record<string, boolean>>({});
   const [baseUrl, setBaseUrl] = useState("");
   const [endpoint, setEndpoint] = useState("");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [policy, setPolicy] = useState<"read-only" | "workspace" | "full">("workspace");
+  const [policy, setPolicy] = useState<Policy>("workspace");
   const [maxSteps, setMaxSteps] = useState(24);
+  const [command, setCommand] = useState("git status --short");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(() => window.innerWidth > 1180);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     bridge.state().then((next) => {
@@ -92,8 +260,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!selected && state.sessions.length) setSelected(state.sessions[0].id);
-  }, [state.sessions, selected]);
+    localStorage.setItem("lcx-locale", locale);
+  }, [locale]);
 
   useEffect(() => {
     if (!selected) {
@@ -103,84 +271,53 @@ export default function App() {
     bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES).then(setMessages).catch(() => undefined);
   }, [selected]);
 
-  useEffect(() => {
-    return onRuntimeEvent((event) => {
-      setEvents((current) => [...current, event].slice(-MAX_VISIBLE_EVENTS));
+  useEffect(() => onRuntimeEvent((event) => {
+    setEvents((current) => [...current, event].slice(-MAX_VISIBLE_EVENTS));
 
-      if (event.type === "session.complete" || event.type === "session.interrupted") {
-        if (event.sessionId) {
-          setActiveRuns((current) => ({ ...current, [event.sessionId as string]: false }));
-        }
-        bridge.listSessions(100, 0)
-          .then((sessions) => setState((current) => ({ ...current, sessions })))
-          .catch(() => undefined);
+    if (event.type === "session.complete" || event.type === "session.interrupted") {
+      if (event.sessionId) {
+        setActiveRuns((current) => ({ ...current, [event.sessionId as string]: false }));
       }
+      bridge.listSessions(100, 0)
+        .then((sessions) => setState((current) => ({ ...current, sessions })))
+        .catch(() => undefined);
+    }
 
-      if (
-        event.sessionId &&
-        event.sessionId === selected &&
-        (event.type === "session.complete" ||
-          event.type === "session.interrupted" ||
-          event.type === "tool.end" ||
-          event.type === "workflow.transition")
-      ) {
-        bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES).then(setMessages).catch(() => undefined);
-      }
-    });
-  }, [selected]);
+    if (
+      event.sessionId &&
+      event.sessionId === selected &&
+      (event.type === "session.complete" || event.type === "session.interrupted" || event.type === "tool.end" || event.type === "workflow.transition")
+    ) {
+      bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES).then(setMessages).catch(() => undefined);
+    }
+  }), [selected]);
 
-  const current = useMemo(
-    () => state.sessions.find((session) => session.id === selected),
-    [state.sessions, selected]
-  );
+  const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
   const running = selected ? Boolean(activeRuns[selected]) : false;
+  const health = state.health;
+  const pressure = health && health.budget.softBytes > 0 ? Math.min(100, (health.usedBytes / health.budget.softBytes) * 100) : 0;
+  const selectedEvents = useMemo(
+    () => events.filter((event) => !selected || !event.sessionId || event.sessionId === selected),
+    [events, selected]
+  );
 
-  async function refreshCurrent() {
-    if (!selected) return;
-    const [session, recent] = await Promise.all([
-      bridge.getSession(selected),
-      bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES)
-    ]);
-    setMessages(recent);
-    setState((currentState) => ({
-      ...currentState,
-      sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
-    }));
-  }
-
-  async function pickWorkspace() {
-    setError("");
-    try {
-      const next = await bridge.pickWorkspace();
-      setState(next);
-      setSelected(next.sessions[0]?.id || "");
-      setMessages([]);
-      setEvents([]);
-      setActiveRuns({});
-    } catch (err) {
-      setError(String(err));
+  function statusLabel(status?: string) {
+    if (running) return t.active;
+    switch (status) {
+      case "created": return t.created;
+      case "completed": return t.completed;
+      case "interrupted": return t.interrupted;
+      case "waiting_gate": return t.waiting;
+      case "running": return t.running;
+      default: return status || t.unknown;
     }
   }
 
-  async function createSession(event: FormEvent) {
-    event.preventDefault();
-    if (!goal.trim()) return;
-    setBusy(true);
-    setError("");
-    try {
-      const session = await bridge.createSession(goal.trim());
-      setState((currentState) => ({
-        ...currentState,
-        sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
-      }));
-      setSelected(session.id);
-      setMessages([]);
-      setGoal("");
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
+  function roleLabel(role: string) {
+    if (role === "assistant") return t.messageRoleAssistant;
+    if (role === "tool") return t.messageRoleTool;
+    if (role === "system") return t.messageRoleSystem;
+    return t.messageRoleUser;
   }
 
   function agentConfig(): AgentConfig {
@@ -198,9 +335,36 @@ export default function App() {
     };
   }
 
-  async function startAgent() {
-    if (!selected) return;
-    const sessionId = selected;
+  async function refreshCurrent(sessionId = selected) {
+    if (!sessionId) return;
+    const [session, recent] = await Promise.all([
+      bridge.getSession(sessionId),
+      bridge.recentMessages(sessionId, MAX_VISIBLE_MESSAGES)
+    ]);
+    if (sessionId === selected) setMessages(recent);
+    setState((currentState) => ({
+      ...currentState,
+      sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
+    }));
+  }
+
+  async function pickWorkspace() {
+    setError("");
+    try {
+      const next = await bridge.pickWorkspace();
+      setState(next);
+      setSelected(next.sessions[0]?.id || "");
+      setMessages([]);
+      setEvents([]);
+      setActiveRuns({});
+      setSidebarOpen(false);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  async function startAgent(sessionId = selected) {
+    if (!sessionId) return;
     setBusy(true);
     setError("");
     setActiveRuns((currentRuns) => ({ ...currentRuns, [sessionId]: true }));
@@ -218,16 +382,47 @@ export default function App() {
     }
   }
 
+  async function submitTask(event: FormEvent) {
+    event.preventDefault();
+    const task = goal.trim();
+    if (!task || !state.workspace || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const session = await bridge.createSession(task);
+      setState((currentState) => ({
+        ...currentState,
+        sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
+      }));
+      setSelected(session.id);
+      setMessages([]);
+      setGoal("");
+      setActiveRuns((currentRuns) => ({ ...currentRuns, [session.id]: true }));
+      try {
+        const started = await bridge.startAgent(session.id, agentConfig());
+        setState((currentState) => ({
+          ...currentState,
+          sessions: currentState.sessions.map((item) => item.id === started.id ? started : item)
+        }));
+      } catch (err) {
+        setActiveRuns((currentRuns) => ({ ...currentRuns, [session.id]: false }));
+        setError(String(err));
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function cancelAgent() {
     if (!selected) return;
     setBusy(true);
     setError("");
     try {
       const cancelled = await bridge.cancelAgent(selected);
-      if (!cancelled) {
-        setActiveRuns((currentRuns) => ({ ...currentRuns, [selected]: false }));
-        await refreshCurrent();
-      }
+      if (!cancelled) setActiveRuns((currentRuns) => ({ ...currentRuns, [selected]: false }));
+      await refreshCurrent(selected);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -242,7 +437,7 @@ export default function App() {
     setError("");
     try {
       await bridge.runShell(selected, command.trim());
-      await refreshCurrent();
+      await refreshCurrent(selected);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -250,233 +445,316 @@ export default function App() {
     }
   }
 
-  const health = state.health;
-  const pressure = health && health.budget.softBytes > 0
-    ? Math.min(100, (health.usedBytes / health.budget.softBytes) * 100)
-    : 0;
+  function newTask() {
+    setSelected("");
+    setMessages([]);
+    setGoal("");
+    setSidebarOpen(false);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  }
+
+  function switchLocale() {
+    setLocale((currentLocale) => currentLocale === "zh-CN" ? "en" : "zh-CN");
+  }
+
+  function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
+  }
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">LC</div>
-          <div>
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-head">
+          <div className="brand-mark"><Icon name="spark" size={17} /></div>
+          <div className="brand-copy">
             <strong>LumenCortex</strong>
             <span>Desktop</span>
           </div>
+          <button className="icon-button mobile-only" onClick={() => setSidebarOpen(false)} aria-label={t.close}>
+            <Icon name="close" />
+          </button>
         </div>
 
-        <button className="workspace" onClick={pickWorkspace}>
-          <span className="workspace-icon">⌘</span>
-          <span>
-            <small>Workspace</small>
-            <strong>{state.workspace ? basename(state.workspace) : "Open project"}</strong>
-          </span>
+        <button className="new-task-button" onClick={newTask} disabled={!state.workspace}>
+          <Icon name="plus" size={15} />
+          <span>{t.newTask}</span>
         </button>
 
-        <div className="section-label">
-          <span>Sessions</span>
+        <button className="project-button" onClick={pickWorkspace}>
+          <span className="project-icon"><Icon name="folder" size={16} /></span>
+          <span className="project-copy">
+            <small>{t.project}</small>
+            <strong>{state.workspace ? basename(state.workspace) : t.openProject}</strong>
+          </span>
+          <Icon name="chevron" size={14} />
+        </button>
+
+        <div className="sidebar-section-title">
+          <span>{t.sessions}</span>
           <span>{state.sessions.length}</span>
         </div>
-        <div className="session-list">
-          {state.sessions.map((session) => (
-            <button
-              key={session.id}
-              className={session.id === selected ? "session active" : "session"}
-              onClick={() => setSelected(session.id)}
-            >
-              <span className={sessionStatusClass(session)} />
-              <span className="session-copy">
-                <strong>{session.goal}</strong>
-                <small>{session.status} · {session.id.slice(-8)}</small>
-              </span>
-            </button>
-          ))}
-          {!state.sessions.length && <p className="empty">No sessions yet.</p>}
+
+        <div className="thread-list">
+          {state.sessions.map((session) => {
+            const isActive = Boolean(activeRuns[session.id]);
+            return (
+              <button
+                key={session.id}
+                className={`thread-item ${session.id === selected ? "selected" : ""}`}
+                onClick={() => {
+                  setSelected(session.id);
+                  setSidebarOpen(false);
+                }}
+              >
+                <span className={`thread-dot ${isActive ? "live" : session.status}`} />
+                <span className="thread-copy">
+                  <strong>{session.goal}</strong>
+                  <small>{isActive ? t.running : statusLabel(session.status)} · {formatClock(session.updatedAt)}</small>
+                </span>
+              </button>
+            );
+          })}
+          {!state.sessions.length && <div className="sidebar-empty">{t.noSessions}</div>}
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="runtime-line">
+            <span className={`runtime-dot ${health ? "online" : ""}`} />
+            <span>{health ? t.runtimeOnline : t.runtimeOffline}</span>
+            {health?.version && <code>{health.version}</code>}
+          </div>
+          <button className="footer-button" onClick={switchLocale}>
+            <Icon name="globe" size={14} />
+            <span>{t.language}</span>
+          </button>
         </div>
       </aside>
 
-      <main className="main">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">GO AGENT HARNESS</span>
-            <h1>{current?.goal || "Agent workspace"}</h1>
-          </div>
-          <div className="runtime-badge">
-            <span className={health ? "pulse online" : "pulse"} />
-            {health ? "Go runtime " + health.version : "Runtime offline"}
-          </div>
-        </header>
+      {sidebarOpen && <button className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-label={t.close} />}
 
-        {!state.workspace ? (
-          <section className="welcome">
-            <div className="welcome-orb">LC</div>
-            <h2>Open a repository to start.</h2>
-            <p>
-              LumenCortex Desktop embeds the Go runtime directly. Sessions and messages are durable in
-              SQLite, tool output is bounded, and active runs can be cancelled without leaving orphaned
-              workers behind.
-            </p>
-            <button className="primary" onClick={pickWorkspace}>Open workspace</button>
-          </section>
-        ) : (
-          <>
-            <section className="composer-card">
-              <form onSubmit={createSession} className="composer">
-                <input
-                  value={goal}
-                  onChange={(event) => setGoal(event.target.value)}
-                  placeholder="Describe a coding task…"
-                />
-                <button className="primary" disabled={busy || !goal.trim()}>New session</button>
-              </form>
-            </section>
+      <section className={`workspace-shell ${inspectorOpen ? "with-inspector" : ""}`}>
+        <main className="workspace-main">
+          <header className="topbar">
+            <div className="topbar-left">
+              <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label={t.expandSidebar}>
+                <Icon name="menu" />
+              </button>
+              <div className="title-stack">
+                <strong>{current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
+                {state.workspace && (
+                  <span>
+                    {t.local}
+                    {current?.model ? ` · ${current.model}` : ""}
+                    {current ? ` · ${statusLabel(current.status)}` : ""}
+                  </span>
+                )}
+              </div>
+            </div>
 
-            <div className="content-grid">
-              <div className="left-stack">
-                <section className="panel conversation">
-                  <div className="panel-title">
-                    <div>
-                      <span className="eyebrow">DURABLE</span>
-                      <h2>Session transcript</h2>
+            <div className="topbar-actions">
+              {current && running && (
+                <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
+                  <Icon name="stop" size={14} />
+                  <span>{t.stop}</span>
+                </button>
+              )}
+              {current && !running && (current.status === "created" || current.status === "interrupted") && (
+                <button className="toolbar-button" onClick={() => startAgent()} disabled={busy}>
+                  <Icon name="play" size={14} />
+                  <span>{current.status === "interrupted" ? t.resume : t.start}</span>
+                </button>
+              )}
+              <button
+                className={`icon-button ${inspectorOpen ? "active" : ""}`}
+                onClick={() => setInspectorOpen((open) => !open)}
+                aria-label={t.inspector}
+              >
+                <Icon name="panel" />
+              </button>
+            </div>
+          </header>
+
+          {!state.workspace ? (
+            <div className="center-state onboarding">
+              <div className="hero-mark"><Icon name="spark" size={30} /></div>
+              <h1>{t.openRepoTitle}</h1>
+              <p>{t.openRepoBody}</p>
+              <button className="primary-action" onClick={pickWorkspace}>
+                <Icon name="folder" size={16} />
+                {t.chooseFolder}
+              </button>
+            </div>
+          ) : !current ? (
+            <div className="center-state new-thread-state">
+              <div className="hero-mark small"><Icon name="spark" size={24} /></div>
+              <h1>{t.buildTitle}</h1>
+              <p>{t.buildBody}</p>
+            </div>
+          ) : (
+            <div className="thread-view">
+              <div className="thread-content">
+                <section className="task-intro">
+                  <div className="task-icon"><Icon name="spark" size={16} /></div>
+                  <div>
+                    <span>{t.newTask}</span>
+                    <h1>{current.goal}</h1>
+                    <div className="task-meta">
+                      <span className={`status-pill ${running ? "running" : current.status}`}>{statusLabel(current.status)}</span>
+                      {current.provider && <span>{current.provider}</span>}
+                      {current.model && <span>{current.model}</span>}
                     </div>
-                    <span className="counter">{messages.length}/{MAX_VISIBLE_MESSAGES}</span>
                   </div>
-                  <div className="message-stream">
-                    {messages.map((message) => (
-                      <article className={"message role-" + message.role} key={message.seq}>
-                        <div className="message-meta">
-                          <strong>{message.role}</strong>
+                </section>
+
+                <section className="message-list">
+                  {messages.map((message) => (
+                    <article key={`${message.seq}-${message.role}`} className={`message-row ${roleClass(message.role)}`}>
+                      <div className="message-avatar">{message.role === "assistant" ? "LC" : message.role === "tool" ? "⌘" : "•"}</div>
+                      <div className="message-body">
+                        <div className="message-head">
+                          <strong>{roleLabel(message.role)}</strong>
                           <span>#{message.seq}</span>
                         </div>
                         <pre>{messageText(message)}</pre>
-                      </article>
-                    ))}
-                    {!messages.length && (
-                      <p className="empty">Create a session, then start or resume the agent.</p>
-                    )}
-                  </div>
-                </section>
+                      </div>
+                    </article>
+                  ))}
 
-                <section className="panel activity compact">
-                  <div className="panel-title">
-                    <div>
-                      <span className="eyebrow">LIVE</span>
-                      <h2>Runtime activity</h2>
+                  {!messages.length && (
+                    <div className="inline-empty">
+                      {running && <span className="thinking-pulse"><i /><i /><i /></span>}
+                      <p>{running ? t.running : t.noMessages}</p>
                     </div>
-                    <span className="counter">{events.length}/{MAX_VISIBLE_EVENTS}</span>
-                  </div>
-                  <div className="event-stream">
-                    {events.slice().reverse().map((event) => (
-                      <article className="event" key={String(event.seq) + "-" + event.type}>
-                        <span className="event-seq">#{event.seq}</span>
-                        <div>
-                          <strong>{event.type}</strong>
-                          <small>{event.sessionId ? event.sessionId.slice(-8) : "runtime"}</small>
-                        </div>
-                        <code>{event.data ? JSON.stringify(event.data) : ""}</code>
-                      </article>
-                    ))}
-                    {!events.length && <p className="empty">Tool calls and runtime events will appear here.</p>}
-                  </div>
+                  )}
                 </section>
+
+                {current.final && (
+                  <section className="final-result">
+                    <div className="final-label"><Icon name="spark" size={14} /> {t.finalAnswer}</div>
+                    <p>{current.final}</p>
+                  </section>
+                )}
               </div>
+            </div>
+          )}
 
-              <aside className="panel inspector">
-                <div className="panel-title">
-                  <div>
-                    <span className="eyebrow">AGENT</span>
-                    <h2>Run configuration</h2>
+          {state.workspace && (
+            <div className="composer-dock">
+              <form className="composer" onSubmit={submitTask}>
+                <textarea
+                  ref={composerRef}
+                  value={goal}
+                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setGoal(event.target.value)}
+                  onKeyDown={onComposerKeyDown}
+                  placeholder={current ? `${t.startAnother}…` : t.composerPlaceholder}
+                  rows={1}
+                />
+                <div className="composer-footer">
+                  <div className="composer-context">
+                    <span><Icon name="folder" size={13} /> {basename(state.workspace)}</span>
+                    <span>{policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}</span>
+                    {model && <span>{model}</span>}
                   </div>
-                  {current && <span className="session-state">{running ? "active" : current.status}</span>}
+                  <div className="composer-actions">
+                    <span className="composer-hint">{t.composerHint}</span>
+                    <button className="send-button" disabled={busy || !goal.trim()} aria-label={t.start}>
+                      <Icon name="play" size={15} />
+                    </button>
+                  </div>
                 </div>
+              </form>
+            </div>
+          )}
+        </main>
 
-                <div className="provider-form">
-                  <label>
-                    Model
-                    <input value={model} onChange={(event) => setModel(event.target.value)} placeholder="LCX_MODEL fallback" />
-                  </label>
-                  <label>
-                    Base URL
-                    <input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="LCX_BASE_URL or OpenAI default" />
-                  </label>
-                  <label>
-                    Exact endpoint
-                    <input value={endpoint} onChange={(event) => setEndpoint(event.target.value)} placeholder="Optional /chat/completions URL" />
-                  </label>
-                  <label>
-                    API key
-                    <input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="LCX_API_KEY fallback" autoComplete="off" />
-                  </label>
-                  <div className="form-row">
-                    <label>
-                      Policy
-                      <select value={policy} onChange={(event) => setPolicy(event.target.value as "read-only" | "workspace" | "full")}>
-                        <option value="read-only">read-only</option>
-                        <option value="workspace">workspace</option>
-                        <option value="full">full</option>
+        {inspectorOpen && (
+          <aside className="inspector">
+            <div className="inspector-head">
+              <div className="inspector-tabs">
+                <button className={inspectorTab === "activity" ? "active" : ""} onClick={() => setInspectorTab("activity")}>{t.activity}</button>
+                <button className={inspectorTab === "run" ? "active" : ""} onClick={() => setInspectorTab("run")}>{t.run}</button>
+                <button className={inspectorTab === "terminal" ? "active" : ""} onClick={() => setInspectorTab("terminal")}>{t.terminal}</button>
+              </div>
+              <button className="icon-button inspector-close" onClick={() => setInspectorOpen(false)} aria-label={t.close}>
+                <Icon name="close" size={14} />
+              </button>
+            </div>
+
+            <div className="inspector-body">
+              {inspectorTab === "activity" && (
+                <div className="activity-list">
+                  {selectedEvents.slice().reverse().map((event) => (
+                    <div className="activity-item" key={`${event.seq}-${event.at}`}>
+                      <div className="activity-rail"><span /></div>
+                      <div className="activity-copy">
+                        <div><strong>{event.type}</strong><time>{formatClock(event.at)}</time></div>
+                        {event.data && <code>{JSON.stringify(event.data)}</code>}
+                      </div>
+                    </div>
+                  ))}
+                  {!selectedEvents.length && <div className="inspector-empty">{t.noActivity}</div>}
+                </div>
+              )}
+
+              {inspectorTab === "run" && (
+                <div className="run-settings">
+                  <div className="settings-group">
+                    <div className="settings-title">{t.provider}</div>
+                    <label>{t.model}<input value={model} onChange={(event: ChangeEvent<HTMLInputElement>) => setModel(event.target.value)} placeholder="LCX_MODEL" /></label>
+                    <label>{t.baseUrl}<input value={baseUrl} onChange={(event: ChangeEvent<HTMLInputElement>) => setBaseUrl(event.target.value)} placeholder="LCX_BASE_URL" /></label>
+                    <label>{t.endpoint}<input value={endpoint} onChange={(event: ChangeEvent<HTMLInputElement>) => setEndpoint(event.target.value)} placeholder="/chat/completions" /></label>
+                    <label>{t.apiKey}<input type="password" value={apiKey} onChange={(event: ChangeEvent<HTMLInputElement>) => setApiKey(event.target.value)} placeholder="LCX_API_KEY" autoComplete="off" /></label>
+                    <p className="settings-note">{t.envFallback}</p>
+                  </div>
+
+                  <div className="settings-group">
+                    <div className="settings-title">{t.run}</div>
+                    <label>{t.policy}
+                      <select value={policy} onChange={(event: ChangeEvent<HTMLSelectElement>) => setPolicy(event.target.value as Policy)}>
+                        <option value="read-only">{t.readOnly}</option>
+                        <option value="workspace">{t.workspace}</option>
+                        <option value="full">{t.full}</option>
                       </select>
                     </label>
-                    <label>
-                      Max steps
-                      <input type="number" min={1} max={200} value={maxSteps} onChange={(event) => setMaxSteps(Math.max(1, Number(event.target.value) || 1))} />
-                    </label>
+                    <label>{t.maxSteps}<input type="number" min={1} max={200} value={maxSteps} onChange={(event: ChangeEvent<HTMLInputElement>) => setMaxSteps(Math.max(1, Number(event.target.value) || 1))} /></label>
                   </div>
 
-                  {!running ? (
-                    <button className="primary run-button" onClick={startAgent} disabled={busy || !selected}>
-                      {current?.status === "interrupted" ? "Resume agent" : "Start agent"}
-                    </button>
-                  ) : (
-                    <button className="danger run-button" onClick={cancelAgent} disabled={busy}>
-                      Cancel agent
-                    </button>
-                  )}
-                  <p className="hint compact-hint">
-                    API keys are not stored in the workspace database. Empty fields fall back to LCX_* environment variables.
-                  </p>
+                  <div className="settings-group runtime-group">
+                    <div className="settings-title">{t.runtime}</div>
+                    <dl>
+                      <div><dt>{t.workingMemory}</dt><dd>{bytes(health?.usedBytes)}</dd></div>
+                      <div><dt>{t.softBudget}</dt><dd>{bytes(health?.budget.softBytes)}</dd></div>
+                      <div><dt>{t.hardBudget}</dt><dd>{bytes(health?.budget.hardBytes)}</dd></div>
+                      <div><dt>{t.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
+                    </dl>
+                    <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
+                  </div>
                 </div>
+              )}
 
-                <div className="divider" />
-
-                <div className="panel-subtitle">Runtime health</div>
-                <dl className="metrics">
-                  <div><dt>Working memory</dt><dd>{bytes(health?.usedBytes)}</dd></div>
-                  <div><dt>Soft budget</dt><dd>{bytes(health?.budget.softBytes)}</dd></div>
-                  <div><dt>Hard budget</dt><dd>{bytes(health?.budget.hardBytes)}</dd></div>
-                  <div><dt>Max agents</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
-                </dl>
-                <div className="meter"><span style={{ width: pressure + "%" }} /></div>
-
-                {current?.final && (
-                  <>
-                    <div className="divider" />
-                    <div className="panel-subtitle">Last final response</div>
-                    <p className="final-preview">{current.final}</p>
-                  </>
-                )}
-
-                <div className="divider" />
-
-                <form onSubmit={runShell} className="shell-form">
-                  <label>Shell smoke test</label>
-                  <textarea
-                    value={command}
-                    onChange={(event) => setCommand(event.target.value)}
-                    rows={3}
-                    disabled={!selected || running}
-                  />
-                  <button className="secondary" disabled={busy || !selected || running || !command.trim()}>
-                    Run in session
-                  </button>
+              {inspectorTab === "terminal" && (
+                <form className="terminal-pane" onSubmit={runShell}>
+                  <div className="terminal-title"><Icon name="terminal" size={15} /> {t.shellCommand}</div>
+                  <textarea value={command} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setCommand(event.target.value)} rows={7} disabled={!selected || running} />
+                  <button className="secondary-action" disabled={busy || !selected || running || !command.trim()}>{t.runCommand}</button>
+                  <p>{t.shellHint}</p>
                 </form>
-              </aside>
+              )}
             </div>
-          </>
+          </aside>
         )}
+      </section>
 
-        {error && <div className="error-toast">{error}</div>}
-      </main>
+      {error && (
+        <div className="error-toast" role="alert">
+          <strong>{t.error}</strong>
+          <span>{error}</span>
+          <button onClick={() => setError("")} aria-label={t.close}><Icon name="close" size={14} /></button>
+        </div>
+      )}
     </div>
   );
 }
