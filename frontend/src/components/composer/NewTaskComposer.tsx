@@ -82,6 +82,7 @@ export function NewTaskComposer({
           onChange={(event) => onGoalChange(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
+          aria-label={title}
           rows={4}
           autoFocus
         />
