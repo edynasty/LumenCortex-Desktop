@@ -1,5 +1,6 @@
 import type { FormEvent, KeyboardEvent, RefObject } from "react";
 import { ArrowUp, Folder, HardDrive, Settings2 } from "lucide-react";
+import "./new-task-composer.css";
 
 export type ComposerPolicy = "read-only" | "workspace" | "full";
 
