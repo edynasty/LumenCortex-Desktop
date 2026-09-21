@@ -45,6 +45,14 @@ export default function App() {
   const t = copy[locale];
   const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [], activeRuns: [] });
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
+  const [recentProjects, setRecentProjects] = useState<string[]>(() => {
+    try {
+      const value = JSON.parse(localStorage.getItem("lcx-recent-projects") || "[]");
+      return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -72,6 +80,15 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("lcx-locale", locale);
   }, [locale]);
+
+  useEffect(() => {
+    if (!state.workspace) return;
+    setRecentProjects((current) => {
+      const next = [state.workspace, ...current.filter((path) => path !== state.workspace)].slice(0, 8);
+      localStorage.setItem("lcx-recent-projects", JSON.stringify(next));
+      return next;
+    });
+  }, [state.workspace]);
 
   useEffect(() => {
     bridge.providerCatalog().then((next) => {
@@ -244,6 +261,21 @@ export default function App() {
     }
   }
 
+  async function openWorkspace(path: string) {
+    setError("");
+    try {
+      const next = await bridge.openWorkspace(path);
+      setState(next);
+      setRoute({ kind: "new-task" });
+      setMessages([]);
+      setWorkflowSummary(null);
+      setEvents([]);
+      setSidebarOpen(false);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   async function startAgent(sessionId = selected) {
     if (!sessionId) return;
     setBusy(true);
@@ -404,6 +436,7 @@ export default function App() {
       workspace={state.workspace}
       workspaceName={state.workspace ? basename(state.workspace) : ""}
       groups={sessionGroups}
+      recentProjects={recentProjects}
       selectedSessionId={route.kind === "thread" ? selected : ""}
       providerActive={route.kind === "providers"}
       runtimeState={runtimeState}
@@ -415,6 +448,8 @@ export default function App() {
         openProject: t.openProject,
         sessions: t.sessions,
         noSessions: t.noSessions,
+        threadSearch: t.threadSearch,
+        recentProjects: t.recentProjects,
         providerSettings: t.providerSettings,
         language: t.language,
         runtimeReady: t.runtimeReady,
@@ -424,6 +459,7 @@ export default function App() {
       onClose={() => setSidebarOpen(false)}
       onNewTask={newTask}
       onPickWorkspace={pickWorkspace}
+      onOpenWorkspace={openWorkspace}
       onSelectSession={(sessionId) => {
         setRoute({ kind: "thread", sessionId });
         setSidebarOpen(false);
