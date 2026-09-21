@@ -33,6 +33,10 @@ type Message = lcx.Message
 type ShellResult = lcx.ShellResult
 type Event = lcx.Event
 type ActiveRun = lcx.ActiveRun
+type SearchResult = lcx.SearchResult
+type FileResult = lcx.FileResult
+type GitStatus = lcx.GitStatus
+type GitDiff = lcx.GitDiff
 
 type ProviderConfig struct {
 	Endpoint         string `json:"endpoint,omitempty"`
@@ -193,6 +197,46 @@ func (r *Runtime) RecentMessages(ctx context.Context, sessionID string, limit in
 		return nil, err
 	}
 	return handle.RecentMessages(ctx, limit)
+}
+
+func (r *Runtime) SearchText(ctx context.Context, query, path string, limit int) (SearchResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return SearchResult{}, ErrNoWorkspace
+	}
+	return engine.SearchText(ctx, query, path, limit)
+}
+
+func (r *Runtime) FindFiles(ctx context.Context, pattern, path string, limit int) (FileResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return FileResult{}, ErrNoWorkspace
+	}
+	return engine.FindFiles(ctx, pattern, path, limit)
+}
+
+func (r *Runtime) GitStatus(ctx context.Context) (GitStatus, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitStatus{}, ErrNoWorkspace
+	}
+	return engine.GitStatus(ctx)
+}
+
+func (r *Runtime) GitDiff(ctx context.Context, path string, staged bool) (GitDiff, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return GitDiff{}, ErrNoWorkspace
+	}
+	return engine.GitDiff(ctx, path, staged)
 }
 
 func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (ShellResult, error) {
