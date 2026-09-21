@@ -64,8 +64,32 @@ export type ProviderConfig = {
   disableRetries?: boolean;
 };
 
+export type ProviderModel = {
+  name?: string;
+  modelID?: string;
+  limit?: { context?: number; output?: number };
+};
+
+export type ProviderDefinition = {
+  name?: string;
+  package?: string;
+  settings?: {
+    baseURL?: string;
+    endpoint?: string;
+    apiKey?: string;
+  };
+  models?: Record<string, ProviderModel>;
+};
+
+export type ProviderCatalog = {
+  $schema?: string;
+  model?: string;
+  providers: Record<string, ProviderDefinition>;
+};
+
 export type AgentConfig = {
   provider: ProviderConfig;
+  modelRef?: string;
   policy?: "read-only" | "workspace" | "full";
   maxSteps?: number;
   recentMessages?: number;
