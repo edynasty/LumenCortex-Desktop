@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -273,6 +274,29 @@ func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	}
 	ch, stop := r.engine.Events(buffer)
 	return ch, stop, true
+}
+
+func (r *Runtime) DiscoverProviderModels(providerID string) ([]DiscoveredModel, error) {
+	r.mu.RLock()
+	workspace := r.workspace
+	r.mu.RUnlock()
+	catalog, err := loadProviderCatalog(workspace)
+	if err != nil {
+		return nil, err
+	}
+	return discoverProviderModels(catalog, providerID)
+}
+
+func (r *Runtime) TestProviderConnection(providerID string) (ProviderConnectionResult, error) {
+	models, err := r.DiscoverProviderModels(providerID)
+	if err != nil {
+		return ProviderConnectionResult{}, err
+	}
+	return ProviderConnectionResult{
+		OK: true,
+		Models: len(models),
+		Message: fmt.Sprintf("provider reachable; discovered %d models", len(models)),
+	}, nil
 }
 
 func (r *Runtime) ProviderCatalog() (ProviderCatalog, error) {
