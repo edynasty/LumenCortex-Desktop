@@ -19,7 +19,8 @@ import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import { sessionUI } from "./lib/session-ui";
-import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkflowSummary, WorkspaceState } from "./types";
+import { sessionRuntime } from "./lib/session-runtime";
+import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MESSAGE_PAGE_SIZE = 100;
@@ -75,6 +76,7 @@ export default function App() {
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
   const [policy, setPolicy] = useState<Policy>("workspace");
+  const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
   const [busy, setBusy] = useState(false);
@@ -164,6 +166,10 @@ export default function App() {
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
   const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
   const running = selected ? activeRunIds.has(selected) : false;
+  const currentRuntime = useMemo(
+    () => current ? sessionRuntime(current, state.workspace) : { kind: "local" as const, path: state.workspace },
+    [current, state.workspace]
+  );
   const health = state.health;
   const pressure = health && health.budget.softBytes > 0 ? Math.min(100, (health.usedBytes / health.budget.softBytes) * 100) : 0;
   const selectedEvents = useMemo(
@@ -200,6 +206,7 @@ export default function App() {
       const active = activeRunIds.has(session.id);
       const thread = {
         session,
+        runtime: sessionRuntime(session, state.workspace),
         title: ui.title,
         active,
         pinned: ui.pinned,
@@ -232,6 +239,7 @@ export default function App() {
   }, [
     activeRunIds,
     state.sessions,
+    state.workspace,
     t.archivedThreads,
     t.attentionThreads,
     t.interrupted,
@@ -329,6 +337,7 @@ export default function App() {
       setMessageAtLatest(true);
       setWorkflowSummary(null);
       setContextPaths([]);
+      setRuntimeKind("local");
       setEvents([]);
       setSidebarOpen(false);
     } catch (err) {
@@ -418,7 +427,7 @@ export default function App() {
     setBusy(true);
     setError("");
     try {
-      const session = await bridge.createSessionWithContext(task, contextPaths);
+      const session = await bridge.createSessionWithRuntime(task, contextPaths, runtimeKind, "HEAD");
       setState((currentState) => ({
         ...currentState,
         sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
@@ -429,6 +438,7 @@ export default function App() {
       setWorkflowSummary(null);
       setGoal("");
       setContextPaths([]);
+      setRuntimeKind("local");
       try {
         const started = await bridge.startAgent(session.id, agentConfig());
         const nextState = await bridge.state();
@@ -548,6 +558,8 @@ export default function App() {
     setMessages([]);
     setWorkflowSummary(null);
     setGoal("");
+    setContextPaths([]);
+    setRuntimeKind("local");
     setInspectorOpen(false);
     setSidebarOpen(false);
     window.setTimeout(() => composerRef.current?.focus(), 0);
@@ -605,7 +617,9 @@ export default function App() {
         restoreThread: t.restoreThread,
         save: t.save,
         cancel: t.cancel,
-        threadMenu: t.threadMenu
+        threadMenu: t.threadMenu,
+        localRuntime: t.localRuntime,
+        worktreeRuntime: t.worktreeRuntime
       }}
       onClose={() => setSidebarOpen(false)}
       onNewTask={newTask}
@@ -703,7 +717,7 @@ export default function App() {
                   : route.kind === "review"
                     ? (current?.goal || t.review)
                     : state.workspace
-                    ? `${t.local}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
+                    ? `${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
                     : t.runtimeReady}
               </span>
             </div>
@@ -767,7 +781,8 @@ export default function App() {
           />
         ) : route.kind === "review" && current ? (
           <ReviewWorkspace
-            workspace={state.workspace}
+            sessionId={current.id}
+            runtime={currentRuntime}
             messages={messages}
             agentBusy={busy}
             agentRunning={running}
@@ -799,7 +814,9 @@ export default function App() {
               checks: t.checks,
               checkPassed: t.checkPassed,
               checkFailed: t.checkFailed,
-              checkTruncated: t.checkTruncated
+              checkTruncated: t.checkTruncated,
+              localRuntime: t.localRuntime,
+              worktreeRuntime: t.worktreeRuntime
             }}
           />
         ) : !current ? (
@@ -830,7 +847,16 @@ export default function App() {
               workspace: t.workspace,
               full: t.full
             }}
-            localLabel={t.local}
+            environmentLabel={t.environment}
+            runtime={runtimeKind}
+            runtimeLabels={{
+              local: t.localRuntime,
+              worktree: t.worktreeRuntime
+            }}
+            runtimeDescriptions={{
+              local: t.localRuntimeDescription,
+              worktree: t.worktreeRuntimeDescription
+            }}
             hint={t.composerHint}
             startLabel={t.start}
             goal={goal}
@@ -842,6 +868,7 @@ export default function App() {
             onPickContextFolder={pickContextDirectory}
             onRemoveContextPath={(path) => setContextPaths((current) => current.filter((item) => item !== path))}
             onPolicyChange={setPolicy}
+            onRuntimeChange={setRuntimeKind}
             onPickWorkspace={pickWorkspace}
             onOpenWorkspace={openWorkspace}
             onOpenProviders={() => {
@@ -854,6 +881,7 @@ export default function App() {
         ) : (
           <ThreadWorkspace
             session={current}
+            runtime={currentRuntime}
             messages={messages}
             hasOlderMessages={messages.length > 0 && messages[0].seq > 0}
             historicalMessages={!messageAtLatest}
@@ -886,7 +914,9 @@ export default function App() {
               approve: t.approve,
               loadEarlier: t.loadEarlier,
               backToLatest: t.backToLatest,
-              historyWindow: t.historyWindow
+              historyWindow: t.historyWindow,
+              localRuntime: t.localRuntime,
+              worktreeRuntime: t.worktreeRuntime
             }}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
