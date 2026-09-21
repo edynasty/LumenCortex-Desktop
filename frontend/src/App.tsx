@@ -16,7 +16,7 @@ import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
-import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkspaceState } from "./types";
+import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, Session, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MAX_VISIBLE_MESSAGES = 100;
@@ -48,6 +48,7 @@ export default function App() {
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [workflowSummary, setWorkflowSummary] = useState<WorkflowSummary | null>(null);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
@@ -82,9 +83,16 @@ export default function App() {
   useEffect(() => {
     if (!selected) {
       setMessages([]);
+      setWorkflowSummary(null);
       return;
     }
-    bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES).then(setMessages).catch(() => undefined);
+    Promise.all([
+      bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES),
+      bridge.workflowSummary(selected),
+    ]).then(([recent, summary]) => {
+      setMessages(recent);
+      setWorkflowSummary(summary);
+    }).catch(() => undefined);
   }, [selected]);
 
   useEffect(() => onRuntimeEvent((event) => {
@@ -94,7 +102,9 @@ export default function App() {
       event.type === "run.started" ||
       event.type === "run.stopped" ||
       event.type === "session.complete" ||
-      event.type === "session.interrupted"
+      event.type === "session.interrupted" ||
+      event.type === "workflow.gate_waiting" ||
+      event.type === "workflow.approved"
     ) {
       bridge.state().then(setState).catch(() => undefined);
     }
@@ -102,9 +112,15 @@ export default function App() {
     if (
       event.sessionId &&
       event.sessionId === selected &&
-      (event.type === "session.complete" || event.type === "session.interrupted" || event.type === "tool.end" || event.type === "workflow.transition")
+      (event.type === "session.complete" || event.type === "session.interrupted" || event.type === "tool.end" || event.type === "workflow.transition" || event.type === "workflow.gate_waiting" || event.type === "workflow.approved")
     ) {
-      bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES).then(setMessages).catch(() => undefined);
+      Promise.all([
+        bridge.recentMessages(selected, MAX_VISIBLE_MESSAGES),
+        bridge.workflowSummary(selected),
+      ]).then(([recent, summary]) => {
+        setMessages(recent);
+        setWorkflowSummary(summary);
+      }).catch(() => undefined);
     }
   }), [selected]);
 
@@ -198,11 +214,15 @@ export default function App() {
 
   async function refreshCurrent(sessionId = selected) {
     if (!sessionId) return;
-    const [session, recent] = await Promise.all([
+    const [session, recent, summary] = await Promise.all([
       bridge.getSession(sessionId),
-      bridge.recentMessages(sessionId, MAX_VISIBLE_MESSAGES)
+      bridge.recentMessages(sessionId, MAX_VISIBLE_MESSAGES),
+      bridge.workflowSummary(sessionId),
     ]);
-    if (sessionId === selected) setMessages(recent);
+    if (sessionId === selected) {
+      setMessages(recent);
+      setWorkflowSummary(summary);
+    }
     setState((currentState) => ({
       ...currentState,
       sessions: currentState.sessions.map((item) => item.id === session.id ? session : item)
@@ -216,6 +236,7 @@ export default function App() {
       setState(next);
       setRoute({ kind: "new-task" });
       setMessages([]);
+      setWorkflowSummary(null);
       setEvents([]);
       setSidebarOpen(false);
     } catch (err) {
@@ -255,6 +276,7 @@ export default function App() {
       }));
       setRoute({ kind: "thread", sessionId: session.id });
       setMessages([]);
+      setWorkflowSummary(null);
       setGoal("");
       try {
         const started = await bridge.startAgent(session.id, agentConfig());
@@ -289,6 +311,29 @@ export default function App() {
     }
   }
 
+  async function approveGate(gateId: string) {
+    if (!selected || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const summary = await bridge.approveWorkflowGate(selected, gateId);
+      setWorkflowSummary(summary);
+      await refreshCurrent(selected);
+
+      const stillWaiting = (summary.pendingGates || []).some((gate) => gate.type === "human");
+      if (!stillWaiting) {
+        await bridge.startAgent(selected, agentConfig());
+      }
+      const nextState = await bridge.state();
+      setState(nextState);
+      await refreshCurrent(selected);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runShell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !command.trim()) return;
@@ -307,6 +352,7 @@ export default function App() {
   function newTask() {
     setRoute({ kind: "new-task" });
     setMessages([]);
+    setWorkflowSummary(null);
     setGoal("");
     setInspectorOpen(false);
     setSidebarOpen(false);
@@ -517,6 +563,7 @@ export default function App() {
             startLabel={t.start}
             goal={goal}
             busy={busy}
+            workflowSummary={workflowSummary}
             textareaRef={composerRef}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
@@ -555,10 +602,13 @@ export default function App() {
               roleUser: t.messageRoleUser,
               roleAssistant: t.messageRoleAssistant,
               roleTool: t.messageRoleTool,
-              roleSystem: t.messageRoleSystem
+              roleSystem: t.messageRoleSystem,
+              approvalTitle: t.approvalTitle,
+              approve: t.approve
             }}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
+            onApproveGate={approveGate}
             onSubmit={submitTask}
             onKeyDown={onComposerKeyDown}
           />
