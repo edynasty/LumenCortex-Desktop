@@ -387,6 +387,30 @@ export default function App() {
     }
   }
 
+  async function sendReviewInstruction(path: string, instruction: string) {
+    if (!current || running || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const prompt = [
+        `Review feedback for ${path}:`,
+        instruction,
+        "",
+        "Address this feedback in the current task, inspect the relevant code before editing, and verify the resulting change."
+      ].join("\n");
+      await bridge.continueAgent(current.id, prompt, agentConfig());
+      const nextState = await bridge.state();
+      setState(nextState);
+      setRoute({ kind: "thread", sessionId: current.id });
+      setInspectorOpen(false);
+      await refreshCurrent(current.id);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runShell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !command.trim()) return;
@@ -616,6 +640,9 @@ export default function App() {
         ) : route.kind === "review" && current ? (
           <ReviewWorkspace
             workspace={state.workspace}
+            agentBusy={busy}
+            agentRunning={running}
+            onSendInstruction={sendReviewInstruction}
             labels={{
               title: t.review,
               changedFiles: t.changedFiles,
@@ -634,7 +661,12 @@ export default function App() {
               commitPlaceholder: t.commitPlaceholder,
               push: t.push,
               truncated: t.diffTruncated,
-              loading: t.loading
+              loading: t.loading,
+              binaryDiff: t.binaryDiff,
+              reviewInstruction: t.reviewInstruction,
+              reviewInstructionPlaceholder: t.reviewInstructionPlaceholder,
+              sendToAgent: t.sendToAgent,
+              agentRunning: t.agentRunning
             }}
           />
         ) : !current ? (
