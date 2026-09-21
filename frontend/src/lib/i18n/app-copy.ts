@@ -103,7 +103,12 @@ export const copy = {
     commitPlaceholder: "提交信息",
     push: "推送",
     diffTruncated: "Diff 过大，已按运行时上限截断。",
-    loading: "正在读取…"
+    loading: "正在读取…",
+    binaryDiff: "二进制文件无法显示文本 Diff",
+    reviewInstruction: "审查意见",
+    reviewInstructionPlaceholder: "告诉 Agent 这个文件需要怎么改…",
+    sendToAgent: "发送给 Agent",
+    agentRunning: "Agent 正在运行"
   },
   en: {
     newTask: "New task",
@@ -207,7 +212,12 @@ export const copy = {
     commitPlaceholder: "Commit message",
     push: "Push",
     diffTruncated: "This diff exceeded the runtime limit and was truncated.",
-    loading: "Loading…"
+    loading: "Loading…",
+    binaryDiff: "Binary file diff cannot be rendered as text",
+    reviewInstruction: "Review instruction",
+    reviewInstructionPlaceholder: "Tell the agent what should change in this file…",
+    sendToAgent: "Send to agent",
+    agentRunning: "Agent is running"
   }
 } as const;
 
