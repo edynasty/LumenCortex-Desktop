@@ -62,6 +62,20 @@ Current reference screens:
   - Review / Diff,
   - states and acceptance criteria.
 
+- [Motion Design](motion-design.md)
+  - duration/easing tokens,
+  - navigation and panel transitions,
+  - agent activity motion,
+  - reduced-motion behavior,
+  - performance constraints.
+
+- [UI / UX / Frontend Audit](ui-design-audit.md)
+  - P0/P1/P2 findings,
+  - design/code mismatches,
+  - accessibility gaps,
+  - architecture risks,
+  - recommended execution order.
+
 - [Frontend Development Standard](frontend-development-standard.md)
   - implementation rules and UI quality gates.
 
