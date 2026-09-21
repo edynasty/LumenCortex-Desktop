@@ -40,6 +40,26 @@ export type ActiveRun = {
   cancelRequested?: boolean;
 };
 
+export type WorkflowGateSummary = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+};
+
+export type WorkflowSummary = {
+  id: string;
+  title: string;
+  currentAction: string;
+  currentTitle: string;
+  terminal: boolean;
+  status: string;
+  allowedTools?: string[];
+  canFinish: boolean;
+  pendingGates: WorkflowGateSummary[];
+  facts: Record<string, unknown>;
+};
+
 export type WorkspaceState = {
   workspace: string;
   health?: Health;
