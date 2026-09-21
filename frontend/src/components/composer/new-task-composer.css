@@ -248,3 +248,21 @@
     display: none;
   }
 }
+
+
+.composer-desktop-select.project-select {
+  min-width: 120px;
+  max-width: 190px;
+}
+
+.composer-desktop-select.environment-select {
+  min-width: 92px;
+  max-width: 150px;
+}
+
+@media (max-width: 560px) {
+  .composer-desktop-select.project-select,
+  .composer-desktop-select.environment-select {
+    max-width: 126px;
+  }
+}
