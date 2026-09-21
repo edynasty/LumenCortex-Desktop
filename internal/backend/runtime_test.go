@@ -242,3 +242,76 @@ func TestProviderCatalogResolvesConfiguredModelAndEnvKey(t *testing.T) {
 	}
 	t.Fatal("configured agent did not complete")
 }
+
+
+func TestWorkspaceStateReflectsCoreRunSupervisor(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		close(started)
+		<-release
+		http.Error(w, "released", http.StatusGatewayTimeout)
+	}))
+	defer server.Close()
+	defer close(release)
+
+	ctx := context.Background()
+	r := New()
+	defer r.Close()
+	if _, err := r.OpenWorkspace(ctx, t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	session, err := r.CreateSession(ctx, "supervisor state")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{
+		Provider: ProviderConfig{
+			Endpoint:         server.URL,
+			Model:            "desktop-test",
+			DisableStreaming: true,
+			DisableRetries:   true,
+		},
+		Policy: "read-only",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("provider request did not start")
+	}
+
+	state, err := r.State(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(state.ActiveRuns) != 1 || state.ActiveRuns[0].SessionID != session.ID {
+		t.Fatalf("active runs=%#v", state.ActiveRuns)
+	}
+
+	if !r.CancelAgent(session.ID) {
+		t.Fatal("cancel should report active run")
+	}
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		state, err = r.State(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(state.ActiveRuns) == 0 {
+			current, err := r.GetSession(ctx, session.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if current.Status != "interrupted" {
+				t.Fatalf("status=%q, want interrupted", current.Status)
+			}
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("active run remained after cancellation: %#v", state.ActiveRuns)
+}
