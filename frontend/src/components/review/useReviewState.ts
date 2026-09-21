@@ -4,7 +4,7 @@ import type { GitDiff, GitFileStatus, GitStatus } from "../../types";
 
 export type DiffScope = "worktree" | "staged";
 
-export function useReviewState(workspace: string) {
+export function useReviewState(sessionId: string) {
   const [status, setStatus] = useState<GitStatus>({ files: [] });
   const [selectedPath, setSelectedPath] = useState("");
   const [scope, setScope] = useState<DiffScope>("worktree");
@@ -15,14 +15,14 @@ export function useReviewState(workspace: string) {
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
-    if (!workspace) {
+    if (!sessionId) {
       setStatus({ files: [] });
       setSelectedPath("");
       return;
     }
     setLoading(true);
     try {
-      const next = await bridge.gitStatus();
+      const next = await bridge.sessionGitStatus(sessionId);
       setStatus(next);
       setSelectedPath((current) =>
         current && next.files.some((item) => item.path === current)
@@ -35,20 +35,20 @@ export function useReviewState(workspace: string) {
     } finally {
       setLoading(false);
     }
-  }, [workspace]);
+  }, [sessionId]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
   useEffect(() => {
-    if (!workspace || !selectedPath) {
+    if (!sessionId || !selectedPath) {
       setDiff({ content: "", bytes: 0, truncated: false, staged: scope === "staged" });
       return;
     }
     let cancelled = false;
     setLoading(true);
-    bridge.gitDiff(selectedPath, scope === "staged")
+    bridge.sessionGitDiff(sessionId, selectedPath, scope === "staged")
       .then((next) => {
         if (!cancelled) {
           setDiff(next);
@@ -64,7 +64,7 @@ export function useReviewState(workspace: string) {
     return () => {
       cancelled = true;
     };
-  }, [workspace, selectedPath, scope]);
+  }, [sessionId, selectedPath, scope]);
 
   const selectedFile = useMemo<GitFileStatus | undefined>(
     () => status.files.find((item) => item.path === selectedPath),
@@ -79,7 +79,7 @@ export function useReviewState(workspace: string) {
       setError("");
       await refresh();
       if (selectedPath) {
-        setDiff(await bridge.gitDiff(selectedPath, scope === "staged"));
+        setDiff(await bridge.sessionGitDiff(sessionId, selectedPath, scope === "staged"));
       }
     } catch (err) {
       setError(String(err));
@@ -101,10 +101,10 @@ export function useReviewState(workspace: string) {
     notice,
     error,
     refresh,
-    stage: () => selectedPath && action(() => bridge.gitStage(selectedPath)),
-    unstage: () => selectedPath && action(() => bridge.gitUnstage(selectedPath)),
-    revert: () => selectedPath && action(() => bridge.gitRevert(selectedPath)),
-    commit: (message: string) => action(() => bridge.gitCommit(message)),
-    push: () => action(() => bridge.gitPush()),
+    stage: () => selectedPath && action(() => bridge.sessionGitStage(sessionId, selectedPath)),
+    unstage: () => selectedPath && action(() => bridge.sessionGitUnstage(sessionId, selectedPath)),
+    revert: () => selectedPath && action(() => bridge.sessionGitRevert(sessionId, selectedPath)),
+    commit: (message: string) => action(() => bridge.sessionGitCommit(sessionId, message)),
+    push: () => action(() => bridge.sessionGitPush(sessionId)),
   };
 }
