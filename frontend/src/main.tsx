@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "./styles/tokens.css";
+import "./styles/global.css";
 import "./components/primitives/primitives.css";
 import "./styles.css";
 
