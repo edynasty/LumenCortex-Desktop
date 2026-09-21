@@ -19,6 +19,7 @@ var (
 	ErrProviderNotFound     = errors.New("provider not found")
 	ErrProviderModelMissing = errors.New("provider model not found")
 	ErrProviderUnsupported  = errors.New("provider package is not supported")
+	ErrLiteralProviderSecret = errors.New("literal provider API keys cannot be persisted; use {env:VAR_NAME}")
 )
 
 type ProviderCatalog struct {
@@ -205,7 +206,7 @@ func saveProviderCatalogFile(path string, catalog ProviderCatalog) error {
 	if catalog.Providers == nil {
 		catalog.Providers = map[string]ProviderDefinition{}
 	}
-	if err := validateProviderCatalog(catalog); err != nil {
+	if err := validateProviderCatalogForSave(catalog); err != nil {
 		return err
 	}
 
@@ -278,6 +279,26 @@ func saveProviderCatalogScope(workspace, scope string, catalog ProviderCatalog) 
 	default:
 		return fmt.Errorf("invalid provider config scope %q", scope)
 	}
+}
+
+func validateProviderCatalogForSave(catalog ProviderCatalog) error {
+	if err := validateProviderCatalog(catalog); err != nil {
+		return err
+	}
+	for providerID, provider := range catalog.Providers {
+		value := strings.TrimSpace(provider.Settings.APIKey)
+		if value == "" {
+			continue
+		}
+		if !strings.HasPrefix(value, "{env:") || !strings.HasSuffix(value, "}") {
+			return fmt.Errorf("%s: %w", providerID, ErrLiteralProviderSecret)
+		}
+		name := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(value, "{env:"), "}"))
+		if name == "" {
+			return fmt.Errorf("%s: %w", providerID, ErrLiteralProviderSecret)
+		}
+	}
+	return nil
 }
 
 func validateProviderCatalog(catalog ProviderCatalog) error {
