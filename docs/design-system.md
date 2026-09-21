@@ -236,3 +236,16 @@ Semantic only:
 - Semantic color not sole signal.
 - Keyboard navigation preserved.
 - Minimum readable contrast.
+
+
+## 15. Motion
+
+Motion is specified separately in [Motion Design](motion-design.md).
+
+Core rules:
+- 80–220 ms for normal desktop interactions,
+- opacity/transform preferred,
+- no decorative spring/bounce motion,
+- no fake progress animation,
+- respect `prefers-reduced-motion`,
+- use shared motion tokens from the frontend design-token layer.
