@@ -71,13 +71,26 @@ function cloneCatalog(catalog: ProviderCatalog): ProviderCatalog {
   return JSON.parse(JSON.stringify(catalog)) as ProviderCatalog;
 }
 
+function envReferenceName(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("{env:") && trimmed.endsWith("}")) {
+    return trimmed.slice(5, -1).trim();
+  }
+  return "";
+}
+
+function envReference(value: string): string | undefined {
+  const name = value.trim();
+  return name ? `{env:${name}}` : undefined;
+}
+
 function providerToDraft(id: string, provider: ProviderDefinition): ProviderDraft {
   return {
     id,
     name: provider.name || "",
     baseURL: provider.settings?.baseURL || "",
     endpoint: provider.settings?.endpoint || "",
-    apiKey: provider.settings?.apiKey || "",
+    apiKey: envReferenceName(provider.settings?.apiKey || ""),
   };
 }
 
@@ -233,7 +246,7 @@ export function ProviderSettingsPanel({
       settings: {
         baseURL: providerDraft.baseURL.trim() || undefined,
         endpoint: providerDraft.endpoint.trim() || undefined,
-        apiKey: providerDraft.apiKey.trim() || undefined,
+        apiKey: envReference(providerDraft.apiKey),
       },
       models: previous?.models || {},
     };
