@@ -738,6 +738,8 @@ export default function App() {
             placeholder={t.composerPlaceholder}
             workspace={state.workspace}
             workspaceName={state.workspace ? basename(state.workspace) : ""}
+            recentProjects={recentProjects}
+            recentProjectsLabel={t.recentProjects}
             chooseProjectLabel={t.openProject}
             modelLabel={t.modelSelect}
             modelRef={modelRef}
@@ -760,6 +762,7 @@ export default function App() {
             onModelChange={setModelRef}
             onPolicyChange={setPolicy}
             onPickWorkspace={pickWorkspace}
+            onOpenWorkspace={openWorkspace}
             onOpenProviders={() => {
               setRoute({ kind: "providers" });
               setInspectorOpen(false);
