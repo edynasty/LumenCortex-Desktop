@@ -87,6 +87,8 @@ export type ProviderCatalog = {
   providers: Record<string, ProviderDefinition>;
 };
 
+export type ProviderCatalogScope = "global" | "workspace";
+
 export type AgentConfig = {
   provider: ProviderConfig;
   modelRef?: string;
