@@ -173,6 +173,11 @@ export type GitDiff = {
   staged: boolean;
 };
 
+export type GitActionResult = {
+  output: string;
+  truncated: boolean;
+};
+
 export type ShellResult = {
   command: string;
   exitCode: number;
