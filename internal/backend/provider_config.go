@@ -62,11 +62,36 @@ func providerConfigPath(workspace string) string {
 	return filepath.Join(workspace, ProviderConfigFilename)
 }
 
-func loadProviderCatalog(workspace string) (ProviderCatalog, error) {
-	if strings.TrimSpace(workspace) == "" {
-		return ProviderCatalog{}, ErrNoWorkspace
+func globalProviderConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
 	}
-	path := providerConfigPath(workspace)
+	return filepath.Join(home, ".config", "lumencortex", ProviderConfigFilename), nil
+}
+
+func loadProviderCatalog(workspace string) (ProviderCatalog, error) {
+	globalPath, err := globalProviderConfigPath()
+	if err != nil {
+		return ProviderCatalog{}, err
+	}
+	global, err := loadProviderCatalogFile(globalPath)
+	if err != nil {
+		return ProviderCatalog{}, err
+	}
+
+	if strings.TrimSpace(workspace) == "" {
+		return global, nil
+	}
+
+	project, err := loadProviderCatalogFile(providerConfigPath(workspace))
+	if err != nil {
+		return ProviderCatalog{}, err
+	}
+	return mergeProviderCatalogs(global, project), nil
+}
+
+func loadProviderCatalogFile(path string) (ProviderCatalog, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return defaultProviderCatalog(), nil
@@ -77,7 +102,7 @@ func loadProviderCatalog(workspace string) (ProviderCatalog, error) {
 
 	var catalog ProviderCatalog
 	if err := json.Unmarshal(data, &catalog); err != nil {
-		return ProviderCatalog{}, fmt.Errorf("parse %s: %w", ProviderConfigFilename, err)
+		return ProviderCatalog{}, fmt.Errorf("parse %s: %w", path, err)
 	}
 	if catalog.Schema == "" {
 		catalog.Schema = ProviderConfigSchema
@@ -86,15 +111,94 @@ func loadProviderCatalog(workspace string) (ProviderCatalog, error) {
 		catalog.Providers = map[string]ProviderDefinition{}
 	}
 	if err := validateProviderCatalog(catalog); err != nil {
-		return ProviderCatalog{}, err
+		return ProviderCatalog{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return catalog, nil
 }
 
-func saveProviderCatalog(workspace string, catalog ProviderCatalog) error {
-	if strings.TrimSpace(workspace) == "" {
-		return ErrNoWorkspace
+func mergeProviderCatalogs(base, override ProviderCatalog) ProviderCatalog {
+	merged := cloneProviderCatalog(base)
+	if override.Schema != "" {
+		merged.Schema = override.Schema
 	}
+	if override.Model != "" {
+		merged.Model = override.Model
+	}
+	for providerID, provider := range override.Providers {
+		if existing, ok := merged.Providers[providerID]; ok {
+			merged.Providers[providerID] = mergeProviderDefinition(existing, provider)
+		} else {
+			merged.Providers[providerID] = cloneProviderDefinition(provider)
+		}
+	}
+	return merged
+}
+
+func mergeProviderDefinition(base, override ProviderDefinition) ProviderDefinition {
+	merged := cloneProviderDefinition(base)
+	if override.Name != "" {
+		merged.Name = override.Name
+	}
+	if override.Package != "" {
+		merged.Package = override.Package
+	}
+	if override.Settings.BaseURL != "" {
+		merged.Settings.BaseURL = override.Settings.BaseURL
+	}
+	if override.Settings.Endpoint != "" {
+		merged.Settings.Endpoint = override.Settings.Endpoint
+	}
+	if override.Settings.APIKey != "" {
+		merged.Settings.APIKey = override.Settings.APIKey
+	}
+	if merged.Models == nil {
+		merged.Models = map[string]ProviderModel{}
+	}
+	for modelID, model := range override.Models {
+		merged.Models[modelID] = model
+	}
+	return merged
+}
+
+func cloneProviderCatalog(catalog ProviderCatalog) ProviderCatalog {
+	cloned := ProviderCatalog{
+		Schema:    catalog.Schema,
+		Model:     catalog.Model,
+		Providers: map[string]ProviderDefinition{},
+	}
+	if cloned.Schema == "" {
+		cloned.Schema = ProviderConfigSchema
+	}
+	for providerID, provider := range catalog.Providers {
+		cloned.Providers[providerID] = cloneProviderDefinition(provider)
+	}
+	return cloned
+}
+
+func cloneProviderDefinition(provider ProviderDefinition) ProviderDefinition {
+	cloned := provider
+	cloned.Models = map[string]ProviderModel{}
+	for modelID, model := range provider.Models {
+		cloned.Models[modelID] = model
+	}
+	return cloned
+}
+
+func saveProviderCatalog(workspace string, catalog ProviderCatalog) error {
+	var path string
+	if strings.TrimSpace(workspace) == "" {
+		globalPath, err := globalProviderConfigPath()
+		if err != nil {
+			return err
+		}
+		path = globalPath
+	} else {
+		path = providerConfigPath(workspace)
+	}
+	return saveProviderCatalogFile(path, catalog)
+}
+
+func saveProviderCatalogFile(path string, catalog ProviderCatalog) error {
 	if catalog.Schema == "" {
 		catalog.Schema = ProviderConfigSchema
 	}
@@ -111,7 +215,11 @@ func saveProviderCatalog(workspace string, catalog ProviderCatalog) error {
 	}
 	data = append(data, '\n')
 
-	tmp, err := os.CreateTemp(workspace, ".lumencortex-config-*.json")
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, ".lumencortex-config-*.json")
 	if err != nil {
 		return err
 	}
@@ -133,7 +241,7 @@ func saveProviderCatalog(workspace string, catalog ProviderCatalog) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpName, providerConfigPath(workspace))
+	return os.Rename(tmpName, path)
 }
 
 func validateProviderCatalog(catalog ProviderCatalog) error {
