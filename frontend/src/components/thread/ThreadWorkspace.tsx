@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type {
   ChangeEvent,
   FormEvent,
@@ -14,6 +15,9 @@ import { MessageItem } from "./MessageItem";
 type Props = {
   session: Session;
   messages: Message[];
+  hasOlderMessages: boolean;
+  historicalMessages: boolean;
+  loadingOlderMessages: boolean;
   running: boolean;
   statusLabel: string;
   workspaceName: string;
@@ -40,10 +44,15 @@ type Props = {
     roleSystem: string;
     approvalTitle: string;
     approve: string;
+    loadEarlier: string;
+    backToLatest: string;
+    historyWindow: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onApproveGate: (gateId: string) => void;
+  onLoadOlderMessages: () => void;
+  onJumpToLatest: () => void;
   onCancel: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -52,6 +61,9 @@ type Props = {
 export function ThreadWorkspace({
   session,
   messages,
+  hasOlderMessages,
+  historicalMessages,
+  loadingOlderMessages,
   running,
   statusLabel,
   workspaceName,
@@ -66,13 +78,34 @@ export function ThreadWorkspace({
   onGoalChange,
   onModelChange,
   onApproveGate,
+  onLoadOlderMessages,
+  onJumpToLatest,
   onCancel,
   onSubmit,
   onKeyDown,
 }: Props) {
+  const threadViewRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottom = useRef(true);
+
+  useEffect(() => {
+    const element = threadViewRef.current;
+    if (!element || historicalMessages || !stickToBottom.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [historicalMessages, messages.length, running]);
+
   return (
     <>
-      <div className="thread-view">
+      <div
+        className="thread-view"
+        ref={threadViewRef}
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          stickToBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120;
+        }}
+      >
         <div className="thread-content">
           <section className="task-intro">
             <div className="task-icon" aria-hidden>LC</div>
@@ -88,6 +121,24 @@ export function ThreadWorkspace({
           </section>
 
           <section className="message-list">
+            {(hasOlderMessages || historicalMessages) && (
+              <div className="thread-history-controls">
+                {historicalMessages && <span>{labels.historyWindow}</span>}
+                <div>
+                  {hasOlderMessages && (
+                    <button type="button" disabled={loadingOlderMessages} onClick={onLoadOlderMessages}>
+                      {labels.loadEarlier}
+                    </button>
+                  )}
+                  {historicalMessages && (
+                    <button type="button" disabled={loadingOlderMessages} onClick={onJumpToLatest}>
+                      {labels.backToLatest}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {messages.map((message) => (
               <MessageItem
                 key={`${message.seq}-${message.role}`}
