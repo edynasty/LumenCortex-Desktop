@@ -85,7 +85,6 @@
 
 .composer-context-button,
 .composer-static-control,
-.composer-select-control select,
 .composer-provider-link {
   height: 30px;
   border: 1px solid transparent;
@@ -115,22 +114,21 @@
 }
 
 .composer-context-button:hover,
-.composer-provider-link:hover,
-.composer-select-control select:hover,
-.composer-select-control select:focus {
+.composer-provider-link:hover {
   border-color: var(--border);
   background: var(--surface-soft);
 }
 
-.composer-select-control {
-  display: inline-flex;
+.composer-desktop-select {
+  max-width: 210px;
 }
 
-.composer-select-control select {
-  max-width: 210px;
-  padding: 0 26px 0 8px;
-  outline: 0;
-  cursor: pointer;
+.composer-desktop-select.model-select {
+  min-width: 150px;
+}
+
+.composer-desktop-select.policy-select {
+  min-width: 86px;
 }
 
 .composer-static-control {
@@ -238,8 +236,12 @@
     max-width: 128px;
   }
 
-  .composer-select-control select {
+  .composer-desktop-select {
     max-width: 140px;
+  }
+
+  .composer-desktop-select.model-select {
+    min-width: 110px;
   }
 
   .composer-static-control {
