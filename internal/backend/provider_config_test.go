@@ -81,3 +81,70 @@ func TestProviderCatalogMergesGlobalAndWorkspace(t *testing.T) {
 		t.Fatalf("missing project model: %#v", provider.Models)
 	}
 }
+
+
+func TestProviderCatalogScopeReadsAndWritesRawSources(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	workspace := t.TempDir()
+
+	global := ProviderCatalog{
+		Model: "global/g",
+		Providers: map[string]ProviderDefinition{
+			"global": {
+				Package: "openai-compatible",
+				Models: map[string]ProviderModel{
+					"g": {ModelID: "global-model"},
+				},
+			},
+		},
+	}
+	if err := saveProviderCatalogScope(workspace, "global", global); err != nil {
+		t.Fatal(err)
+	}
+
+	project := ProviderCatalog{
+		Model: "project/p",
+		Providers: map[string]ProviderDefinition{
+			"project": {
+				Package: "openai-compatible",
+				Models: map[string]ProviderModel{
+					"p": {ModelID: "project-model"},
+				},
+			},
+		},
+	}
+	if err := saveProviderCatalogScope(workspace, "workspace", project); err != nil {
+		t.Fatal(err)
+	}
+
+	gotGlobal, err := loadProviderCatalogScope(workspace, "global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotGlobal.Model != "global/g" || gotGlobal.Providers["project"].Models != nil {
+		t.Fatalf("unexpected raw global config: %#v", gotGlobal)
+	}
+
+	gotProject, err := loadProviderCatalogScope(workspace, "workspace")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotProject.Model != "project/p" || gotProject.Providers["global"].Models != nil {
+		t.Fatalf("unexpected raw project config: %#v", gotProject)
+	}
+
+	effective, err := loadProviderCatalog(workspace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if effective.Model != "project/p" {
+		t.Fatalf("effective model=%q", effective.Model)
+	}
+	if _, ok := effective.Providers["global"].Models["g"]; !ok {
+		t.Fatalf("global provider missing from effective catalog: %#v", effective)
+	}
+	if _, ok := effective.Providers["project"].Models["p"]; !ok {
+		t.Fatalf("project provider missing from effective catalog: %#v", effective)
+	}
+}
