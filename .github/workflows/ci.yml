@@ -50,5 +50,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LumenCortex-macOS-universal
-          path: build/bin/LumenCortex.app
+          path: build/bin/*.app
           if-no-files-found: error
