@@ -137,6 +137,42 @@ export type AgentConfig = {
   temperature?: number;
 };
 
+export type SearchMatch = {
+  path: string;
+  line: number;
+  column?: number;
+  text: string;
+};
+
+export type SearchResult = {
+  matches: SearchMatch[];
+  truncated: boolean;
+  engine: string;
+};
+
+export type FileResult = {
+  paths: string[];
+  truncated: boolean;
+};
+
+export type GitFileStatus = {
+  path: string;
+  index: string;
+  worktree: string;
+};
+
+export type GitStatus = {
+  files: GitFileStatus[];
+};
+
+export type GitDiff = {
+  path?: string;
+  content: string;
+  bytes: number;
+  truncated: boolean;
+  staged: boolean;
+};
+
 export type ShellResult = {
   command: string;
   exitCode: number;
