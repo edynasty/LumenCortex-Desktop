@@ -6,12 +6,15 @@ import {
   Menu,
   PanelRight,
   Square,
+  Trash2,
   X
 } from "lucide-react";
 import { AppShell } from "./components/app-shell/AppShell";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
 import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
+import { Button } from "./components/primitives/Button";
+import { Dialog } from "./components/primitives/Dialog";
 import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
@@ -84,6 +87,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
+  const [cleanupWorktreeOpen, setCleanupWorktreeOpen] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -534,6 +538,22 @@ export default function App() {
     }
   }
 
+  async function cleanupCurrentWorktree(force: boolean) {
+    if (!current || currentRuntime.kind !== "worktree" || running || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await bridge.removeSessionWorktree(current.id, force);
+      const nextState = await bridge.state();
+      setState(nextState);
+      setCleanupWorktreeOpen(false);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function updateSessionUI(sessionId: string, patch: { title?: string; pinned?: boolean; archived?: boolean }) {
     setError("");
     try {
@@ -745,6 +765,12 @@ export default function App() {
                 <span>{t.thread}</span>
               </button>
             )}
+            {(route.kind === "thread" || route.kind === "review") && current && currentRuntime.kind === "worktree" && !running && (
+              <button className="toolbar-button" onClick={() => setCleanupWorktreeOpen(true)} disabled={busy}>
+                <Trash2 size={14} strokeWidth={1.7} aria-hidden />
+                <span>{t.cleanupWorktree}</span>
+              </button>
+            )}
             {route.kind === "thread" && current && running && (
               <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
                 <Icon name="stop" size={14} />
@@ -929,6 +955,24 @@ export default function App() {
           />
         )}
       </AppShell>
+
+      <Dialog
+        open={cleanupWorktreeOpen}
+        title={t.cleanupWorktreeTitle}
+        description={t.cleanupWorktreeBody}
+        onOpenChange={setCleanupWorktreeOpen}
+        footer={
+          <>
+            <Button onClick={() => setCleanupWorktreeOpen(false)}>{t.cancel}</Button>
+            <Button disabled={busy} onClick={() => void cleanupCurrentWorktree(false)}>
+              {t.cleanupWorktree}
+            </Button>
+            <Button variant="danger" disabled={busy} onClick={() => void cleanupCurrentWorktree(true)}>
+              {t.forceCleanupWorktree}
+            </Button>
+          </>
+        }
+      />
 
       {error && (
         <div className="error-toast" role="alert">
