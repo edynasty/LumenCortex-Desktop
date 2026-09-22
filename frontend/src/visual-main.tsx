@@ -339,7 +339,7 @@ const visualApp = {
   RefreshMCPTools: async () => undefined,
 };
 
-(window as typeof window & { go: unknown }).go = { main: { App: visualApp } };
+Object.defineProperty(window, "go", {\n  configurable: true,\n  value: { main: { App: visualApp } },\n});
 
 function Topbar({
   onOpenSidebar,
