@@ -196,7 +196,13 @@ export const copy = {
     lspPid: "PID",
     lspPending: "请求中",
     lspDiagnostics: "诊断",
-    lspLastError: "最近错误"
+    lspLastError: "最近错误",
+    subagents: "子 Agent",
+    noSubagents: "这个任务还没有启动子 Agent。",
+    subagentActive: "运行中",
+    subagentCompleted: "已完成",
+    subagentInterrupted: "已中断",
+    subagentCheckpoint: "最近检查点"
   },
   en: {
     newTask: "New task",
@@ -393,7 +399,13 @@ export const copy = {
     lspPid: "PID",
     lspPending: "Pending",
     lspDiagnostics: "Diagnostics",
-    lspLastError: "Last error"
+    lspLastError: "Last error",
+    subagents: "Subagents",
+    noSubagents: "No child agents have been started for this task.",
+    subagentActive: "Running",
+    subagentCompleted: "Completed",
+    subagentInterrupted: "Interrupted",
+    subagentCheckpoint: "Recent checkpoints"
   }
 } as const;
 
