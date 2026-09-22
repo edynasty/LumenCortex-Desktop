@@ -27,7 +27,7 @@ export function providerModelOptions(catalog: ProviderCatalog): ConfiguredModelO
   );
 }
 
-type SidebarLabels = {
+export type SessionStatusLabels = {
   active: string;
   created: string;
   completed: string;
@@ -35,6 +35,9 @@ type SidebarLabels = {
   waiting: string;
   running: string;
   unknown: string;
+};
+
+type SidebarLabels = SessionStatusLabels & {
   runningThreads: string;
   attentionThreads: string;
   pinnedThreads: string;
@@ -49,7 +52,7 @@ type SidebarGroupsInput = {
   labels: SidebarLabels;
 };
 
-function statusLabel(labels: SidebarLabels, status?: string, isRunning = false): string {
+export function sessionStatusLabel(labels: SessionStatusLabels, status?: string, isRunning = false): string {
   if (isRunning) return labels.active;
   switch (status) {
     case "created": return labels.created;
@@ -86,7 +89,7 @@ export function buildSidebarGroups({
       archived: ui.archived,
       statusLabel: session.status === "running" && !active
         ? labels.interrupted
-        : statusLabel(labels, session.status, active),
+        : sessionStatusLabel(labels, session.status, active),
     };
 
     if (ui.archived) {
