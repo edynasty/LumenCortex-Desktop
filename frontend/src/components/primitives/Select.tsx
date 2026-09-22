@@ -34,7 +34,7 @@ export function DesktopSelect({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [focusTarget, setFocusTarget] = useState<"first" | "last" | "selected" | null>(null);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const selected = useMemo(() => options.find((option) => option.value === value), [options, value]);
 
