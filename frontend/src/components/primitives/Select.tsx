@@ -57,7 +57,7 @@ export function DesktopSelect({
 
   function closeAndRestoreFocus() {
     setOpen(false);
-    requestAnimationFrame(() => triggerRef.current?.focus());
+    triggerRef.current?.focus();
   }
 
   function onTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
