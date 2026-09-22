@@ -22,12 +22,13 @@ import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useLSPController } from "./app/hooks/useLSPController";
 import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
+import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, ProviderCatalog, RuntimeKind, Session, WorkspaceState } from "./types";
+import type { AgentConfig, RuntimeKind, Session } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
@@ -51,27 +52,28 @@ function basename(path: string) {
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = copy[locale];
-  const [state, setState] = useState<WorkspaceState>({ workspace: "", sessions: [], activeRuns: [] });
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
-  const [recentProjects, setRecentProjects] = useState<string[]>(() => {
-    try {
-      const value = JSON.parse(localStorage.getItem("lcx-recent-projects") || "[]");
-      return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(0, 8) : [];
-    } catch {
-      return [];
-    }
-  });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [contextPaths, setContextPaths] = useState<string[]>([]);
-  const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
-  const [modelRef, setModelRef] = useState("");
   const [policy, setPolicy] = useState<Policy>("workspace");
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const {
+    state,
+    setState,
+    recentProjects,
+    catalog,
+    setCatalog,
+    modelRef,
+    setModelRef,
+    pickWorkspace: pickWorkspaceState,
+    openWorkspace: openWorkspaceState,
+  } = useWorkspaceController({ setError });
 
   const {
     messages,
@@ -130,31 +132,8 @@ export default function App() {
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
-    bridge.state().then((next) => {
-      setState(next);
-      setRoute({ kind: "new-task" });
-    }).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem("lcx-locale", locale);
   }, [locale]);
-
-  useEffect(() => {
-    if (!state.workspace) return;
-    setRecentProjects((current) => {
-      const next = [state.workspace, ...current.filter((path) => path !== state.workspace)].slice(0, 8);
-      localStorage.setItem("lcx-recent-projects", JSON.stringify(next));
-      return next;
-    });
-  }, [state.workspace]);
-
-  useEffect(() => {
-    bridge.providerCatalog().then((next) => {
-      setCatalog(next);
-      setModelRef((current) => current || next.model || "");
-    }).catch((err) => setError(String(err)));
-  }, [state.workspace]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
   const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
@@ -266,33 +245,25 @@ export default function App() {
     };
   }
 
+  function afterWorkspaceChanged() {
+    setRoute({ kind: "new-task" });
+    resetSessionRuntime();
+    setContextPaths([]);
+    setRuntimeKind("local");
+    clearEvents();
+    setInspectorOpen(false);
+    setSidebarOpen(false);
+  }
+
   async function pickWorkspace() {
-    setError("");
-    try {
-      const next = await bridge.pickWorkspace();
-      setState(next);
-      setRoute({ kind: "new-task" });
-      resetSessionRuntime();
-      setContextPaths([]);
-      setRuntimeKind("local");
-      clearEvents();
-      setSidebarOpen(false);
-    } catch (err) {
-      setError(String(err));
+    if (await pickWorkspaceState()) {
+      afterWorkspaceChanged();
     }
   }
 
   async function openWorkspace(path: string) {
-    setError("");
-    try {
-      const next = await bridge.openWorkspace(path);
-      setState(next);
-      setRoute({ kind: "new-task" });
-      resetSessionRuntime();
-      clearEvents();
-      setSidebarOpen(false);
-    } catch (err) {
-      setError(String(err));
+    if (await openWorkspaceState(path)) {
+      afterWorkspaceChanged();
     }
   }
 
