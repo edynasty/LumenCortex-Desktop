@@ -1,7 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 const widths = [1440, 1180, 820, 560] as const;
-const scenes = ["new-task", "thread"] as const;
+const scenes = ["new-task", "thread", "providers", "review", "extensions", "inspector"] as const;
+
+const sceneRoots: Record<(typeof scenes)[number], string> = {
+  "new-task": ".new-task-workspace",
+  thread: ".thread-workspace",
+  providers: ".provider-settings",
+  review: ".review-workspace",
+  extensions: ".extensions-workspace",
+  inspector: ".inspector",
+};
 
 for (const width of widths) {
   for (const scene of scenes) {
@@ -9,6 +18,7 @@ for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`/visual.html?scene=${scene}`);
       await page.waitForLoadState("networkidle");
+      await expect(page.locator(sceneRoots[scene])).toBeVisible();
 
       const overflow = await page.evaluate(() => ({
         document: document.documentElement.scrollWidth - window.innerWidth,
