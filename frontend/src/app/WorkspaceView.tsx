@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, RefObject } from "react";
+import type { FormEvent, KeyboardEvent, Ref } from "react";
 import type { InspectorTab } from "../components/inspector/Inspector";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
@@ -67,7 +67,7 @@ type Props = {
   checkpoints: SessionCheckpoint[];
   cleanupWorktreeOpen: boolean;
   error: string;
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  textareaRef: Ref<HTMLTextAreaElement>;
   onSetRoute: (route: WorkspaceRoute) => void;
   onSidebarOpenChange: (open: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
