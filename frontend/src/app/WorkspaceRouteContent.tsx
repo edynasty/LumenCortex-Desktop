@@ -1,4 +1,5 @@
-import type { FormEvent, KeyboardEvent, Ref } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import { ProviderSettingsPanel } from "../components/provider/ProviderSettingsPanel";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
@@ -120,8 +121,15 @@ export function WorkspaceRouteContent({
     group: item.group,
   }));
 
-  if (route.kind === "providers") {
-    return (
+  const providerActive = route.kind === "providers";
+  const [providerMounted, setProviderMounted] = useState(providerActive);
+
+  useEffect(() => {
+    if (providerActive) setProviderMounted(true);
+  }, [providerActive]);
+
+  const providerLayer = providerMounted || providerActive ? (
+    <div className="workspace-route-keepalive" hidden={!providerActive}>
       <ProviderSettingsPanel
         locale={locale}
         workspace={workspace}
@@ -131,11 +139,20 @@ export function WorkspaceRouteContent({
         onEffectiveCatalogChange={onCatalogChange}
         onError={onError}
       />
-    );
-  }
+    </div>
+  ) : null;
+
+  const withProviderLayer = (content: ReactNode) => (
+    <>
+      {providerLayer}
+      {content}
+    </>
+  );
+
+  if (providerActive) return providerLayer;
 
   if (route.kind === "extensions") {
-    return (
+    return withProviderLayer(
       <WorkspaceExtensionsRoute
         workspace={workspace}
         sessionId={current?.id || route.sessionId || ""}
@@ -147,7 +164,7 @@ export function WorkspaceRouteContent({
   }
 
   if (route.kind === "review" && current) {
-    return (
+    return withProviderLayer(
       <WorkspaceReviewRoute
         session={current}
         runtime={runtime}
@@ -161,7 +178,7 @@ export function WorkspaceRouteContent({
   }
 
   if (!current) {
-    return (
+    return withProviderLayer(
       <NewTaskComposer
         title={labels.buildTitle}
         subtitle={labels.newTaskSubtitle}
@@ -220,7 +237,7 @@ export function WorkspaceRouteContent({
     );
   }
 
-  return (
+  return withProviderLayer(
     <ThreadWorkspace
       session={current}
       runtime={runtime}
