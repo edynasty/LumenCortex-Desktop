@@ -122,7 +122,6 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
                   runtime={runtime}
                   localLabel={labels.localRuntime}
                   worktreeLabel={labels.worktreeRuntime}
-                  compact
                 />
               </div>
               <div className="review-toolbar-actions">
