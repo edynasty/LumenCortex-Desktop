@@ -65,6 +65,10 @@ for (const width of widths) {
     await expect(page.locator(".tool-permissions-panel")).toBeVisible();
     expect(await page.locator(".tool-permission-row").count()).toBeGreaterThan(10);
     await expect(page.locator(".tool-permission-row.disabled").filter({ hasText: "shell" })).toBeVisible();
+    if (width === 560) {
+      const saveWidth = await page.getByRole("button", { name: "Save" }).evaluate((element) => element.getBoundingClientRect().width);
+      expect(saveWidth).toBeLessThan(160);
+    }
     await capture(page, testInfo, "extensions-permissions", width);
   });
 
@@ -74,6 +78,13 @@ for (const width of widths) {
 
     await expect(page.locator(".run-settings")).toBeVisible();
     await expect(page.getByText("Working memory", { exact: true })).toBeVisible();
+    const subagentTitleSpacing = await page.locator(".subagent-group > .settings-title").evaluate((element) => {
+      const children = Array.from(element.children) as HTMLElement[];
+      const title = children[0]?.getBoundingClientRect();
+      const count = children[1]?.getBoundingClientRect();
+      return title && count ? count.left - title.right : 0;
+    });
+    expect(subagentTitleSpacing).toBeGreaterThan(4);
     await capture(page, testInfo, "inspector-run", width);
   });
 
