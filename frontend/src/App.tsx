@@ -844,7 +844,20 @@ export default function App() {
               localRuntime: t.localRuntime,
               worktreeRuntime: t.worktreeRuntime,
               conflictTitle: t.worktreeConflictTitle,
-              conflictHint: t.worktreeConflictHint
+              conflictHint: t.worktreeConflictHint,
+              handoffTitle: t.handoffTitle,
+              handoffTarget: t.handoffTarget,
+              handoffCommits: t.handoffCommits,
+              handoffReady: t.handoffReady,
+              handoffSourceDirty: t.handoffSourceDirty,
+              handoffTargetDirty: t.handoffTargetDirty,
+              handoffNoCommits: t.handoffNoCommits,
+              handoffOverlap: t.handoffOverlap,
+              handoffApply: t.handoffApply,
+              handoffRefresh: t.handoffRefresh,
+              handoffConfirmTitle: t.handoffConfirmTitle,
+              handoffConfirmBody: t.handoffConfirmBody,
+              handoffApplied: t.handoffApplied
             }}
           />
         ) : !current ? (
