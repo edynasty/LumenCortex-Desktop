@@ -22,6 +22,13 @@ import {
   type ProviderDraft,
 } from "./provider-settings-model";
 
+const scopeStorageKey = (workspace: string) => `lcx-provider-scope:${workspace || "__global__"}`;
+
+function initialScope(workspace: string): ProviderCatalogScope {
+  if (!workspace) return "global";
+  return localStorage.getItem(scopeStorageKey(workspace)) === "workspace" ? "workspace" : "global";
+}
+
 type Options = {
   locale: ProviderLocale;
   workspace: string;
@@ -40,7 +47,7 @@ export function useProviderSettingsController({
   onError,
 }: Options) {
   const t = providerCopy[locale];
-  const [scope, setScope] = useState<ProviderCatalogScope>("global");
+  const [scope, setScopeState] = useState<ProviderCatalogScope>(() => initialScope(workspace));
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,10 +62,14 @@ export function useProviderSettingsController({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   useEffect(() => {
-    if (!workspace && scope === "workspace") {
-      setScope("global");
-    }
-  }, [workspace, scope]);
+    setScopeState(initialScope(workspace));
+  }, [workspace]);
+
+  function setScope(next: ProviderCatalogScope) {
+    const safeScope = !workspace && next === "workspace" ? "global" : next;
+    setScopeState(safeScope);
+    if (workspace) localStorage.setItem(scopeStorageKey(workspace), safeScope);
+  }
 
   useEffect(() => {
     let cancelled = false;
