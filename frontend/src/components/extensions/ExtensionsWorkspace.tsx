@@ -1,4 +1,4 @@
-import { Plus, RefreshCw, Server, Square, Trash2 } from "lucide-react";
+import { BookOpen, Plus, RefreshCw, Server, Square, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
 import { joinCommandArgs, splitCommandArgs } from "../../lib/command-line";
@@ -8,6 +8,7 @@ import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
 import { DesktopSelect } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
+import { SkillsPanel } from "./SkillsPanel";
 import "./extensions.css";
 
 type Labels = {
@@ -54,6 +55,18 @@ type Labels = {
   inherited: string;
   globalSource: string;
   projectSource: string;
+  mcpTab: string;
+  skillsTab: string;
+  skills: string;
+  skillAdd: string;
+  skillEmpty: string;
+  skillGlobalHint: string;
+  skillProjectHint: string;
+  skillId: string;
+  skillContent: string;
+  skillDeleteTitle: string;
+  skillDeleteBody: string;
+  skillError: string;
 };
 
 type Props = {
@@ -85,6 +98,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
   const [argsText, setArgsText] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [tab, setTab] = useState<"mcp" | "skills">("mcp");
 
   const refresh = useCallback(async () => {
     if (!workspace) {
@@ -227,6 +241,28 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
         <div>
           <h1>{labels.title}</h1>
           <p>{labels.subtitle}</p>
+          <div className="extensions-tabs" role="tablist" aria-label={labels.title}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "mcp"}
+              className={tab === "mcp" ? "active" : ""}
+              onClick={() => setTab("mcp")}
+            >
+              <Server size={12} strokeWidth={1.7} aria-hidden />
+              {labels.mcpTab}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "skills"}
+              className={tab === "skills" ? "active" : ""}
+              onClick={() => setTab("skills")}
+            >
+              <BookOpen size={12} strokeWidth={1.7} aria-hidden />
+              {labels.skillsTab}
+            </button>
+          </div>
         </div>
         <div className="extensions-runtime">
           <span>{labels.currentRuntime}</span>
@@ -238,6 +274,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
         </div>
       </header>
 
+      {tab === "mcp" ? (
       <div className="extensions-layout">
         <aside className="mcp-server-list">
           <div className="mcp-list-head">
@@ -456,6 +493,34 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
           )}
         </div>
       </div>
+      ) : (
+        <SkillsPanel
+          workspace={workspace}
+          onError={onError}
+          labels={{
+            title: labels.skills,
+            add: labels.skillAdd,
+            empty: labels.skillEmpty,
+            globalScope: labels.globalScope,
+            projectScope: labels.projectScope,
+            globalHint: labels.skillGlobalHint,
+            projectHint: labels.skillProjectHint,
+            inherited: labels.inherited,
+            globalSource: labels.globalSource,
+            projectSource: labels.projectSource,
+            enabled: labels.enabled,
+            disabled: labels.disabled,
+            id: labels.skillId,
+            content: labels.skillContent,
+            save: labels.save,
+            delete: labels.delete,
+            deleteTitle: labels.skillDeleteTitle,
+            deleteBody: labels.skillDeleteBody,
+            cancel: labels.cancel,
+            error: labels.skillError,
+          }}
+        />
+      )}
 
       <Dialog
         open={deleteOpen}
