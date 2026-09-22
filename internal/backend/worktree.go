@@ -68,8 +68,17 @@ func (r *Runtime) RemoveSessionWorktree(ctx context.Context, sessionID string, f
 	if engine == nil {
 		return ErrNoWorkspace
 	}
-	if supervisor != nil && supervisor.Active(sessionID) {
-		return ErrWorktreeActive
+	if supervisor != nil {
+		if supervisor.Active(sessionID) {
+			return ErrWorktreeActive
+		}
+		activeChildren, err := supervisor.HasActiveSubagents(ctx, sessionID)
+		if err != nil {
+			return err
+		}
+		if activeChildren {
+			return ErrWorktreeActive
+		}
 	}
 	return engine.RemoveSessionWorktree(ctx, sessionID, force)
 }
@@ -174,8 +183,17 @@ func (r *Runtime) ApplySessionWorktree(ctx context.Context, sessionID string) (W
 	if engine == nil {
 		return WorktreeApplyResult{}, ErrNoWorkspace
 	}
-	if supervisor != nil && supervisor.Active(sessionID) {
-		return WorktreeApplyResult{}, ErrWorktreeActive
+	if supervisor != nil {
+		if supervisor.Active(sessionID) {
+			return WorktreeApplyResult{}, ErrWorktreeActive
+		}
+		activeChildren, err := supervisor.HasActiveSubagents(ctx, sessionID)
+		if err != nil {
+			return WorktreeApplyResult{}, err
+		}
+		if activeChildren {
+			return WorktreeApplyResult{}, ErrWorktreeActive
+		}
 	}
 	return engine.ApplySessionWorktree(ctx, sessionID)
 }
