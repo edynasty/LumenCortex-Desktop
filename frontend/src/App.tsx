@@ -952,7 +952,9 @@ export default function App() {
               localRuntime: t.localRuntime,
               worktreeRuntime: t.worktreeRuntime,
               lastError: t.lspLastError,
-              selectServer: t.mcpSelectServer
+              selectServer: t.mcpSelectServer,
+              enabled: t.enabled,
+              disabled: t.disabled
             }}
           />
         ) : route.kind === "review" && current ? (
