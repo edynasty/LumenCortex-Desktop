@@ -82,6 +82,11 @@ for (const width of widths) {
         fullPage: true,
       });
 
+      if (scene === "review" && width === 560) {
+        await expect(page.locator(".review-files")).toBeVisible();
+        expect(await page.locator(".review-file-list button").count()).toBeGreaterThan(1);
+      }
+
       if (scene === "inspector" && width === 560) {
         await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
         const inspectorWidth = await page.locator(".inspector").evaluate((element) => element.getBoundingClientRect().width);
