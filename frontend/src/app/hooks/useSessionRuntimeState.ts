@@ -67,6 +67,19 @@ export function useSessionRuntimeState({
     };
   }, [selectedSessionId]);
 
+  const reset = useCallback(() => {
+    setMessages([]);
+    setAtLatest(true);
+    setLoadingOlder(false);
+    setWorkflowSummary(null);
+    setSubagents([]);
+    setCheckpoints([]);
+  }, []);
+
+  const replaceWorkflowSummary = useCallback((summary: WorkflowSummary | null) => {
+    setWorkflowSummary(summary);
+  }, []);
+
   const refreshCurrent = useCallback(async (sessionId = selectedSessionId) => {
     if (!sessionId) return;
     const [session, page, summary, nextSubagents, nextCheckpoints] = await Promise.all([
@@ -176,5 +189,7 @@ export function useSessionRuntimeState({
     loadOlder,
     jumpToLatest,
     handleRuntimeEvent,
+    reset,
+    replaceWorkflowSummary,
   };
 }
