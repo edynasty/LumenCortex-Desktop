@@ -276,7 +276,7 @@
 
 .provider-card-body {
   border-top: 1px solid var(--border);
-  background: #fbfbfa;
+  background: var(--surface-input);
   animation: providerReveal var(--motion-base) var(--ease-out);
 }
 
@@ -304,7 +304,7 @@
   place-items: center;
   border-radius: 7px;
   background: var(--surface);
-  color: #5c6470;
+  color: var(--muted);
 }
 
 .provider-model-copy {
@@ -347,13 +347,13 @@
 }
 
 .provider-default-badge {
-  background: #fff4d8;
-  color: #8b5f13;
+  background: var(--warning-badge-bg);
+  color: var(--warning-badge-text);
 }
 
 .provider-effective-badge {
-  background: #eef3fb;
-  color: #58719a;
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
 .provider-no-models {
@@ -386,7 +386,7 @@
 .provider-model-form {
   padding: 13px;
   border-bottom: 1px solid var(--border);
-  background: #f8f8f6;
+  background: var(--surface-soft);
 }
 
 .provider-form {
@@ -452,7 +452,7 @@
 
 .provider-form input:focus,
 .provider-model-form input:focus {
-  border-color: #b8b8b2;
+  border-color: var(--border-strong);
 }
 
 .provider-form input:disabled {
@@ -530,8 +530,8 @@
   border: 1px solid var(--border-strong);
   border-radius: 9px;
   outline: 0;
-  background: #fbfbfa;
-  color: #373733;
+  background: var(--surface-input);
+  color: var(--code-text);
   font: 9.5px/1.55 var(--mono);
   tab-size: 2;
 }
@@ -620,13 +620,13 @@
 }
 
 .provider-dialog-button.danger {
-  border-color: #e4c6c9;
-  background: #fff7f7;
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
   color: var(--red);
 }
 
 .provider-dialog-button.danger:hover {
-  background: #fff0f1;
+  background: var(--danger-hover);
 }
 
 
@@ -663,7 +663,7 @@
 .provider-action-notice {
   padding: 7px 12px;
   border-top: 1px solid var(--border);
-  background: #f6faf7;
+  background: var(--success-surface);
   color: var(--green);
   font-size: 9px;
 }
