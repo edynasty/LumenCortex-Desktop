@@ -119,6 +119,27 @@ export type WorktreeApplyResult = {
   targetHead: string;
 };
 
+export type SubagentNode = {
+  sessionId: string;
+  parentSessionId?: string;
+  goal: string;
+  status: string;
+  final?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  runtime: SessionRuntime;
+  children?: SubagentNode[];
+};
+
+export type SessionCheckpoint = {
+  sessionId: string;
+  seq: number;
+  at: string;
+  reason: string;
+  json: unknown;
+};
+
 export type SessionUIPatch = {
   title?: string;
   pinned?: boolean;
