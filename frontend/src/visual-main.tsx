@@ -5,9 +5,9 @@ import { installVisualAppStub } from "./visual/fixture-data";
 import "./styles/tokens.css";
 import "./styles/global.css";
 import "./components/primitives/primitives.css";
-import "./components/sidebar/sidebar.css";
-import "./components/inspector/inspector.css";
 import "./styles.css";
+import "./components/inspector/inspector.css";
+import "./components/sidebar/sidebar.css";
 
 installVisualAppStub();
 
