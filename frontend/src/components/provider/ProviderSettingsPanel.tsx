@@ -131,6 +131,7 @@ export function ProviderSettingsPanel({
               <div className="provider-advanced-body">
                 <p>{t.advancedHint}</p>
                 <textarea
+                  aria-label={t.advanced}
                   value={advancedJSON}
                   onChange={(event) => {
                     setAdvancedJSON(event.target.value);
