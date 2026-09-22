@@ -287,7 +287,6 @@ export function Inspector({
               onStart={onStartLSP}
               onStop={onStopLSP}
             />
-            </div>
           </div>
         )}
 
