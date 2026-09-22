@@ -560,6 +560,26 @@ export default function App() {
     }
   }
 
+  async function retryCurrent() {
+    if (!current || running || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await bridge.continueAgent(
+        current.id,
+        "Retry the previous incomplete attempt. Re-read the durable thread context, identify why the previous run stopped or failed, continue from the current workspace state, and verify the result.",
+        agentConfig()
+      );
+      const nextState = await bridge.state();
+      setState(nextState);
+      await refreshCurrent(current.id);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function sendReviewInstruction(path: string, instruction: string) {
     if (!current || running || busy) return;
     setBusy(true);
@@ -1173,7 +1193,10 @@ export default function App() {
               plan: t.plan,
               planRunning: t.planRunning,
               planWaiting: t.planWaiting,
-              planSubagents: t.planSubagents
+              planSubagents: t.planSubagents,
+              copy: t.copy,
+              copied: t.copied,
+              retry: t.retry
             }}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
@@ -1181,6 +1204,7 @@ export default function App() {
             onLoadOlderMessages={loadOlderMessages}
             onJumpToLatest={jumpToLatestMessages}
             onCancel={cancelAgent}
+            onRetry={() => void retryCurrent()}
             onSubmit={submitTask}
             onKeyDown={onComposerKeyDown}
           />
