@@ -813,16 +813,16 @@ Runtime dependency:
 - bounded agent scheduler
 - Git worktree support
 
-- [ ] **UI-06.1 Move active-run supervision into Core**
-- [ ] **UI-06.2 Add bounded multi-session concurrency**
-- [ ] **UI-06.3 Add Local / Worktree runtime identity**
-- [ ] **UI-06.4 Create worktree flow**
-- [ ] **UI-06.5 Show branch/base/worktree path**
-- [ ] **UI-06.6 Show parallel run status in sidebar**
-- [ ] **UI-06.7 Detect worktree conflicts**
+- [x] **UI-06.1 Move active-run supervision into Core**
+- [x] **UI-06.2 Add bounded multi-session concurrency**
+- [x] **UI-06.3 Add Local / Worktree runtime identity**
+- [x] **UI-06.4 Create worktree flow**
+- [x] **UI-06.5 Show branch/base/worktree path**
+- [x] **UI-06.6 Show parallel run status in sidebar**
+- [x] **UI-06.7 Detect worktree conflicts**
 - [ ] **UI-06.8 Add apply/handoff workflow**
-- [ ] **UI-06.9 Add cleanup flow**
-- [ ] **UI-06.10 Recover stale running sessions after Desktop restart**
+- [x] **UI-06.9 Add cleanup flow**
+- [x] **UI-06.10 Recover stale running sessions after Desktop restart**
 
 Acceptance:
 - Multiple coding tasks can run safely in parallel.
@@ -910,7 +910,7 @@ Priority: **P1**
 
 Priority: **P1**
 
-- [ ] **CORE-04.1 Integrate `resource.Manager.MaxAgents` into Agent scheduling**
+- [x] **CORE-04.1 Integrate `resource.Manager.MaxAgents` into Agent scheduling**
 - [ ] **CORE-04.2 Add bounded subagent scheduler**
 - [ ] **CORE-04.3 Persist parent/child session relationships**
 - [ ] **CORE-04.4 Aggregate child events**
