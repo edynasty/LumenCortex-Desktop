@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ChangeEvent,
   FormEvent,
   KeyboardEvent,
   Ref,
 } from "react";
-import { ArrowUp, CircleCheck, Folder, Square } from "lucide-react";
+import { ArrowUp, Check, CircleCheck, Copy, Folder, RotateCcw, Square } from "lucide-react";
+import { copyText } from "../../lib/clipboard";
 import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
@@ -57,6 +58,9 @@ type Props = {
     planRunning: string;
     planWaiting: string;
     planSubagents: string;
+    copy: string;
+    copied: string;
+    retry: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -64,6 +68,7 @@ type Props = {
   onLoadOlderMessages: () => void;
   onJumpToLatest: () => void;
   onCancel: () => void;
+  onRetry: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
@@ -93,11 +98,13 @@ export function ThreadWorkspace({
   onLoadOlderMessages,
   onJumpToLatest,
   onCancel,
+  onRetry,
   onSubmit,
   onKeyDown,
 }: Props) {
   const threadViewRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
+  const [finalCopied, setFinalCopied] = useState(false);
 
   useEffect(() => {
     const element = threadViewRef.current;
@@ -179,6 +186,8 @@ export function ThreadWorkspace({
                   roleAssistant: labels.roleAssistant,
                   roleTool: labels.roleTool,
                   roleSystem: labels.roleSystem,
+                  copy: labels.copy,
+                  copied: labels.copied,
                 }}
               />
             ))}
@@ -204,11 +213,35 @@ export function ThreadWorkspace({
           {session.final && (
             <section className="final-result">
               <div className="final-label">
-                <CircleCheck size={14} strokeWidth={1.7} aria-hidden />
-                {labels.finalAnswer}
+                <span>
+                  <CircleCheck size={14} strokeWidth={1.7} aria-hidden />
+                  {labels.finalAnswer}
+                </span>
+                <button
+                  type="button"
+                  className="thread-inline-action"
+                  onClick={async () => {
+                    if (await copyText(session.final || "")) {
+                      setFinalCopied(true);
+                      window.setTimeout(() => setFinalCopied(false), 1200);
+                    }
+                  }}
+                >
+                  {finalCopied ? <Check size={11} strokeWidth={1.8} aria-hidden /> : <Copy size={11} strokeWidth={1.7} aria-hidden />}
+                  {finalCopied ? labels.copied : labels.copy}
+                </button>
               </div>
               <Markdown text={session.final} />
             </section>
+          )}
+
+          {!running && (session.status === "interrupted" || Boolean(session.error)) && (
+            <div className="thread-retry-row">
+              <button type="button" disabled={busy} onClick={onRetry}>
+                <RotateCcw size={12} strokeWidth={1.7} aria-hidden />
+                {labels.retry}
+              </button>
+            </div>
           )}
         </div>
       </div>
