@@ -7,6 +7,7 @@ import type {
   ProviderModel,
 } from "../../types";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
+import { useProviderRuntimeActions } from "./useProviderRuntimeActions";
 import type { ProviderPreset } from "./provider-presets";
 import {
   cloneCatalog,
@@ -14,7 +15,6 @@ import {
   emptyProvider,
   envReference,
   modelFromDraft,
-  modelKeyFromUpstream,
   modelToDraft,
   providerToDraft,
   type DeleteTarget,
@@ -53,8 +53,6 @@ export function useProviderSettingsController({
   const [advancedJSON, setAdvancedJSON] = useState("");
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [providerAction, setProviderAction] = useState<string | null>(null);
-  const [providerNotice, setProviderNotice] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!workspace && scope === "workspace") {
@@ -256,42 +254,18 @@ export function useProviderSettingsController({
     onSelectedModelRef(ref);
   }
 
-  async function testConnection(providerId: string) {
-    setProviderAction("test:" + providerId);
-    try {
-      const result = await bridge.testProviderConnection(providerId);
-      setProviderNotice((current) => ({ ...current, [providerId]: result.message }));
-    } catch (err) {
-      onError(String(err));
-    } finally {
-      setProviderAction(null);
-    }
-  }
-
-  async function discoverModels(providerId: string) {
-    setProviderAction("discover:" + providerId);
-    try {
-      const discovered = await bridge.discoverProviderModels(providerId);
-      const next = cloneCatalog(catalog);
-      const provider = next.providers[providerId];
-      if (!provider) return;
-      provider.models ||= {};
-      for (const item of discovered) {
-        const key = modelKeyFromUpstream(item.id, provider.models);
-        provider.models[key] ||= { name: item.id, modelID: item.id };
-      }
-      if (!(await saveCatalog(next))) return;
-      setExpandedProvider(providerId);
-      setProviderNotice((current) => ({
-        ...current,
-        [providerId]: t.discoveredModels.replace("{count}", String(discovered.length)),
-      }));
-    } catch (err) {
-      onError(String(err));
-    } finally {
-      setProviderAction(null);
-    }
-  }
+  const {
+    providerAction,
+    providerNotice,
+    testConnection,
+    discoverModels,
+  } = useProviderRuntimeActions({
+    catalog,
+    discoveredModelsLabel: t.discoveredModels,
+    onError,
+    onSaveCatalog: saveCatalog,
+    onExpandedProvider: setExpandedProvider,
+  });
 
   async function saveAdvancedJSON() {
     try {
