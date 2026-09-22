@@ -758,13 +758,13 @@ Priority: **P0**
 - [x] **UI-04.3 Render Markdown**
 - [x] **UI-04.4 Render syntax-highlighted code blocks**
 - [x] **UI-04.5 Collapse raw tool events by default**
-- [ ] **UI-04.6 Show meaningful milestones instead of event spam**
+- [x] **UI-04.6 Show meaningful milestones instead of event spam**
 - [x] **UI-04.7 Add expandable tool-call cards**
 - [x] **UI-04.8 Add file/command metadata to tool rows**
 - [x] **UI-04.9 Add inline workflow approval UI**
-- [ ] **UI-04.10 Add Agent running plan/progress surface**
+- [x] **UI-04.10 Add Agent running plan/progress surface**
 - [x] **UI-04.11 Add stop/resume controls**
-- [ ] **UI-04.12 Add copy/retry/follow-up actions**
+- [x] **UI-04.12 Add copy/retry/follow-up actions**
 - [x] **UI-04.13 Add bounded/paginated transcript loading**
 - [x] **UI-04.14 Add scroll-to-latest behavior without breaking manual review**
 
