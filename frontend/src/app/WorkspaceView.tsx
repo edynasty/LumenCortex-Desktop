@@ -1,5 +1,5 @@
 import type { FormEvent, KeyboardEvent, Ref } from "react";
-import type { InspectorTab } from "../components/inspector/Inspector";
+import type { InspectorTab } from "../components/inspector/inspector-types";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type {
