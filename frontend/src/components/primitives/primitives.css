@@ -7,7 +7,6 @@
   position: absolute;
   z-index: 80;
   left: 0;
-  bottom: calc(100% + 6px);
   min-width: 220px;
   max-width: min(360px, 82vw);
   overflow: hidden;
@@ -16,6 +15,14 @@
   background: var(--surface);
   box-shadow: var(--shadow-lg);
   animation: primitivePopoverEnter var(--motion-fast) var(--ease-out);
+}
+
+.desktop-popover-content.place-top {
+  bottom: calc(100% + 6px);
+}
+
+.desktop-popover-content.place-bottom {
+  top: calc(100% + 6px);
 }
 
 .desktop-select-trigger {
