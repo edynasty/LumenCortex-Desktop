@@ -341,3 +341,12 @@ func (a *App) GetMCPTools(sessionID string) ([]backend.MCPAgentTool, error) {
 func (a *App) RefreshMCPTools(sessionID, serverID string) error {
 	return a.backend.MCPRefreshTools(context.Background(), sessionID, serverID)
 }
+
+
+func (a *App) GetSubagentTree(parentSessionID string) ([]backend.SubagentNode, error) {
+	return a.backend.SubagentTree(context.Background(), parentSessionID)
+}
+
+func (a *App) GetSessionCheckpoints(sessionID string, limit int) ([]backend.SessionCheckpoint, error) {
+	return a.backend.SessionCheckpoints(context.Background(), sessionID, limit)
+}
