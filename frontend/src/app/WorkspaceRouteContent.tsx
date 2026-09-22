@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, RefObject } from "react";
+import type { FormEvent, KeyboardEvent, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import { ProviderSettingsPanel } from "../components/provider/ProviderSettingsPanel";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
@@ -42,7 +42,7 @@ type Props = {
   running: boolean;
   workflowSummary: WorkflowSummary | null;
   subagents: SubagentNode[];
-  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  textareaRef: Ref<HTMLTextAreaElement>;
   onCatalogChange: (catalog: ProviderCatalog) => void;
   onModelChange: (value: string) => void;
   onError: (message: string) => void;
