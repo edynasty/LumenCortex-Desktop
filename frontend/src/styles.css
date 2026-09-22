@@ -19,6 +19,13 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .workspace-shell.with-inspector { grid-template-columns: minmax(0, 1fr) 336px; }
+.workspace-route-keepalive {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .workspace-main {
   position: relative;
   min-width: 0;
