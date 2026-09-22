@@ -35,13 +35,13 @@ for (const width of widths) {
     await card.locator('.provider-card-actions button[aria-label="Edit"]').click();
 
     await expect(card.locator(".provider-form")).toBeVisible();
-    await expect(card.getByDisplayValue("https://api.openai.com/v1")).toBeVisible();
+    await expect(page.getByDisplayValue("https://api.openai.com/v1")).toBeVisible();
     await capture(page, testInfo, "providers-edit", width);
   });
 
   test(`review split mode is bounded at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "review", width);
-    await page.getByRole("button", { name: "Split" }).click();
+    await page.getByRole("radio", { name: "Split" }).click();
 
     await expect(page.locator(".review-split")).toBeVisible();
     await expect(page.locator(".split-row").first()).toBeVisible();
