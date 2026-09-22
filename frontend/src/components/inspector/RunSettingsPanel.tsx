@@ -3,7 +3,7 @@ import type { Health, LSPDiagnostic, LSPStatus, SessionCheckpoint, SubagentNode 
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import { LSPSettingsPanel, type LSPSettingsLabels } from "./LSPSettingsPanel";
 import { SubagentTreePanel } from "./SubagentTreePanel";
-import type { InspectorPolicy } from "./Inspector";
+import type { InspectorPolicy } from "./inspector-types";
 
 type RunSettingsLabels = LSPSettingsLabels & {
   provider: string;
