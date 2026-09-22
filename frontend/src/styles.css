@@ -1670,3 +1670,54 @@
   opacity: .5;
   cursor: default;
 }
+
+
+.lsp-diagnostic-list {
+  max-height: 210px;
+  display: grid;
+  gap: 4px;
+  overflow: auto;
+  padding: 2px 0;
+}
+
+.lsp-diagnostic-item {
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-soft);
+}
+
+.lsp-diagnostic-item > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lsp-diagnostic-item strong {
+  color: var(--text-soft);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.lsp-diagnostic-item code {
+  color: var(--faint);
+  font: 7.5px var(--mono);
+}
+
+.lsp-diagnostic-item p,
+.lsp-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.lsp-empty {
+  margin: 0;
+  padding: 7px;
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+}
