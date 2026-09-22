@@ -23,7 +23,7 @@
   height: 22px;
   display: grid;
   place-items: center;
-  color: #343432;
+  color: var(--text);
   font-size: 9px;
   font-weight: 720;
   letter-spacing: -.04em;
@@ -199,11 +199,11 @@
   height: 5px;
   margin-top: 5px;
   border-radius: 50%;
-  background: #b2b2ad;
+  background: var(--faint);
   transition: background-color var(--motion-fast) var(--ease-standard);
 }
 .thread-dot.live, .thread-dot.running { background: var(--green); }
-.thread-dot.completed { background: #7f8ea8; }
+.thread-dot.completed { background: var(--tool-text); }
 .thread-dot.interrupted { background: var(--red); }
 .thread-dot.waiting_gate { background: var(--amber); }
 .thread-copy { min-width: 0; }
@@ -239,8 +239,8 @@
   font-size: 9.5px;
 }
 .runtime-line code { color: var(--faint); font: 9px var(--mono); }
-.runtime-dot { width: 5px; height: 5px; border-radius: 50%; background: #b8b8b2; }
-.runtime-dot.ready { background: #9a9a94; }
+.runtime-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); }
+.runtime-dot.ready { background: var(--faint); }
 .runtime-dot.online { background: var(--green); }
 .runtime-dot.offline { background: var(--red); }
 .footer-button {
@@ -382,7 +382,7 @@
 }
 
 .thread-rename-input:focus {
-  border-color: #bbbcb7;
+  border-color: var(--border-strong);
 }
 
 @media (max-width: 820px) {
