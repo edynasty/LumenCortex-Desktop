@@ -11,6 +11,7 @@ export function useReviewState(sessionId: string) {
   const [scope, setScope] = useState<DiffScope>("worktree");
   const [diff, setDiff] = useState<GitDiff>({ content: "", bytes: 0, truncated: false, staged: false });
   const [loading, setLoading] = useState(false);
+  const [revision, setRevision] = useState(0);
   const [actionBusy, setActionBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -36,6 +37,7 @@ export function useReviewState(sessionId: string) {
           : next.files[0]?.path || ""
       );
       setError("");
+      setRevision((value) => value + 1);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -107,6 +109,7 @@ export function useReviewState(sessionId: string) {
     actionBusy,
     notice,
     error,
+    revision,
     refresh,
     stage: () => selectedPath && action(() => bridge.sessionGitStage(sessionId, selectedPath)),
     unstage: () => selectedPath && action(() => bridge.sessionGitUnstage(sessionId, selectedPath)),
