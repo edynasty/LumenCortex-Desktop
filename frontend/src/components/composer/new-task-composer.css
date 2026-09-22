@@ -179,6 +179,22 @@
   border: 0;
 }
 
+@media (max-width: 1180px) {
+  .new-task-controls {
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+
+  .new-task-context {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .new-task-actions {
+    margin-left: auto;
+  }
+}
+
 @media (max-width: 820px) {
   .new-task-workspace {
     padding: 0 18px 72px;
