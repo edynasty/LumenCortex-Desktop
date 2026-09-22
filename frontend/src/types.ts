@@ -1,3 +1,37 @@
+export type MCPProtocolMode = "legacy" | "modern";
+
+export type MCPConfig = {
+  id: string;
+  name?: string;
+  command: string;
+  args?: string[];
+  workspace?: string;
+  protocolMode?: MCPProtocolMode;
+};
+
+export type MCPStatus = {
+  id: string;
+  name?: string;
+  command?: string;
+  workspace?: string;
+  protocolMode: MCPProtocolMode;
+  protocolVersion?: string;
+  running: boolean;
+  pid?: number;
+  pendingRequests: number;
+  tools: number;
+  lastError?: string;
+};
+
+export type MCPAgentTool = {
+  name: string;
+  description?: string;
+  inputSchema: Record<string, unknown>;
+  serverId: string;
+  toolName: string;
+  readOnly: boolean;
+};
+
 export type LSPConfig = {
   name?: string;
   command: string;
