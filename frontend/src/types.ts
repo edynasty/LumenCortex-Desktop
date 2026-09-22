@@ -1,3 +1,7 @@
+export type ToolPermissions = {
+  disabled: string[];
+};
+
 export type SkillScope = "global" | "project" | "effective";
 
 export type Skill = {
@@ -299,6 +303,7 @@ export type AgentConfig = {
   maxSteps?: number;
   recentMessages?: number;
   maxToolCallsPerStep?: number;
+  toolDenylist?: string[];
   maxTokens?: number;
   temperature?: number;
 };
