@@ -2,7 +2,7 @@ import { Plus, RefreshCw, Server, Square, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
 import { joinCommandArgs, splitCommandArgs } from "../../lib/command-line";
-import type { MCPAgentTool, MCPConfig, MCPProtocolMode, MCPStatus, SessionRuntime } from "../../types";
+import type { MCPAgentTool, MCPConfig, MCPConfigScope, MCPProtocolMode, MCPStatus, SessionRuntime } from "../../types";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
@@ -47,6 +47,13 @@ type Labels = {
   selectServer: string;
   enabled: string;
   disabled: string;
+  globalScope: string;
+  projectScope: string;
+  globalScopeHint: string;
+  projectScopeHint: string;
+  inherited: string;
+  globalSource: string;
+  projectSource: string;
 };
 
 type Props = {
@@ -68,6 +75,9 @@ const emptyConfig = (): MCPConfig => ({
 
 export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onError }: Props) {
   const [configs, setConfigs] = useState<MCPConfig[]>([]);
+  const [globalConfigs, setGlobalConfigs] = useState<MCPConfig[]>([]);
+  const [projectConfigs, setProjectConfigs] = useState<MCPConfig[]>([]);
+  const [scope, setScope] = useState<Exclude<MCPConfigScope, "effective">>("project");
   const [statuses, setStatuses] = useState<MCPStatus[]>([]);
   const [tools, setTools] = useState<MCPAgentTool[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -79,17 +89,23 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
   const refresh = useCallback(async () => {
     if (!workspace) {
       setConfigs([]);
+      setGlobalConfigs([]);
+      setProjectConfigs([]);
       setStatuses([]);
       setTools([]);
       return;
     }
     try {
-      const [nextConfigs, nextStatuses, nextTools] = await Promise.all([
-        bridge.mcpConfigs(),
+      const [nextConfigs, nextGlobal, nextProject, nextStatuses, nextTools] = await Promise.all([
+        bridge.mcpConfigsScope("effective"),
+        bridge.mcpConfigsScope("global"),
+        bridge.mcpConfigsScope("project"),
         bridge.mcpStatuses(sessionId),
         bridge.mcpTools(sessionId),
       ]);
       setConfigs(nextConfigs);
+      setGlobalConfigs(nextGlobal);
+      setProjectConfigs(nextProject);
       setStatuses(nextStatuses);
       setTools(nextTools);
       setSelectedId((current) => {
@@ -105,8 +121,13 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
     void refresh();
   }, [refresh]);
 
+  const scopeConfigs = scope === "global" ? globalConfigs : projectConfigs;
+  const selectedEffectiveConfig = configs.find((item) => item.id === selectedId);
+  const selectedScopedConfig = scopeConfigs.find((item) => item.id === selectedId);
+  const inherited = Boolean(selectedId && selectedEffectiveConfig && !selectedScopedConfig);
+
   useEffect(() => {
-    const config = configs.find((item) => item.id === selectedId);
+    const config = selectedScopedConfig || selectedEffectiveConfig;
     if (!config) {
       setDraft(emptyConfig());
       setArgsText("");
@@ -114,7 +135,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
     }
     setDraft({ ...config, args: [...(config.args || [])] });
     setArgsText(joinCommandArgs(config.args));
-  }, [configs, selectedId]);
+  }, [selectedEffectiveConfig, selectedScopedConfig, scope]);
 
   const statusById = useMemo(
     () => new Map(statuses.map((status) => [status.id, status])),
@@ -138,7 +159,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
     if (!id || !command || busy) return;
     setBusy(true);
     try {
-      await bridge.saveMCPConfig({
+      await bridge.saveMCPConfigScope(scope, {
         ...draft,
         id,
         name: draft.name?.trim() || undefined,
@@ -159,7 +180,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
     if (!selectedId || busy) return;
     setBusy(true);
     try {
-      await bridge.deleteMCPConfig(selectedId);
+      await bridge.deleteMCPConfigScope(scope, selectedId);
       setDeleteOpen(false);
       setSelectedId("");
       await refresh();
@@ -237,7 +258,11 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
                   <span className={`mcp-server-dot ${status?.running ? "running" : ""} ${config.disabled ? "disabled" : ""}`} />
                   <span>
                     <strong>{config.name || config.id}</strong>
-                    <small>{config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}</small>
+                    <small>
+                      {config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}
+                      {" · "}
+                      {projectConfigs.some((item) => item.id === config.id) ? labels.projectSource : labels.globalSource}
+                    </small>
                   </span>
                   <code>{status?.tools ?? 0}</code>
                 </button>
@@ -254,14 +279,33 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
         </aside>
 
         <div className="mcp-detail">
+          <div className="mcp-scope-bar">
+            <button
+              type="button"
+              className={scope === "global" ? "active" : ""}
+              onClick={() => setScope("global")}
+            >
+              <span>{labels.globalScope}</span>
+              <small>{labels.globalScopeHint}</small>
+            </button>
+            <button
+              type="button"
+              className={scope === "project" ? "active" : ""}
+              onClick={() => setScope("project")}
+            >
+              <span>{labels.projectScope}</span>
+              <small>{labels.projectScopeHint}</small>
+            </button>
+          </div>
+
           <section className="mcp-config-section">
             <div className="mcp-section-head">
               <div>
                 <strong>{selectedId || labels.addServer}</strong>
-                <span>{labels.noAutoStart}</span>
+                <span>{inherited ? labels.inherited : labels.noAutoStart}</span>
               </div>
               <div>
-                {selectedId && (
+                {selectedId && selectedScopedConfig && (
                   <Button
                     variant="danger"
                     icon={<Trash2 size={12} />}
