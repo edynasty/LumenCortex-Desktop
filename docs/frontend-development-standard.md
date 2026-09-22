@@ -191,7 +191,9 @@ Consolas
 ```
 
 Rules:
-- Body/UI text: 10–13 px depending on density.
+- Body/UI text: 11–13 px depending on density.
+- Metadata/helper text: 9.5–11 px.
+- Text below 9 px is reserved for exceptional compact annotations/badges, never ordinary labels, form help, paths, or runtime metadata.
 - Task titles: 15–22 px.
 - Do not use all-caps labels for normal Chinese UI.
 - Avoid letter spacing for Chinese.
