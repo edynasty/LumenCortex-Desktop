@@ -19,6 +19,20 @@ for (const width of widths) {
       expect(overflow.body).toBeLessThanOrEqual(1);
       expect(overflow.shell).toBeLessThanOrEqual(1);
 
+      const sidebarStyle = await page.locator(".sidebar").evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          display: style.display,
+          flexDirection: style.flexDirection,
+          borderRightStyle: style.borderRightStyle,
+        };
+      });
+      expect(sidebarStyle).toEqual({
+        display: "flex",
+        flexDirection: "column",
+        borderRightStyle: "solid",
+      });
+
       const unlabeledIconButtons = await page.locator("button:visible").evaluateAll((buttons) =>
         buttons
           .filter((button) => (button.textContent || "").trim() === "")
