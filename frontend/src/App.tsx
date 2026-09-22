@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "./components/app-shell/AppShell";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
+import { ExtensionsWorkspace } from "./components/extensions/ExtensionsWorkspace";
 import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
 import { Button } from "./components/primitives/Button";
@@ -678,8 +679,9 @@ export default function App() {
       workspaceName={state.workspace ? basename(state.workspace) : ""}
       groups={sessionGroups}
       recentProjects={recentProjects}
-      selectedSessionId={route.kind === "thread" || route.kind === "review" ? selected : ""}
+      selectedSessionId={route.kind === "thread" || route.kind === "review" || route.kind === "extensions" ? selected : ""}
       providerActive={route.kind === "providers"}
+      extensionsActive={route.kind === "extensions"}
       runtimeState={runtimeState}
       runtimeVersion={health?.version}
       labels={{
@@ -692,6 +694,7 @@ export default function App() {
         threadSearch: t.threadSearch,
         recentProjects: t.recentProjects,
         providerSettings: t.providerSettings,
+        extensions: t.extensions,
         language: t.language,
         runtimeReady: t.runtimeReady,
         runtimeOnline: t.runtimeOnline,
@@ -720,6 +723,11 @@ export default function App() {
       onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
       onOpenProviders={() => {
         setRoute({ kind: "providers" });
+        setInspectorOpen(false);
+        setSidebarOpen(false);
+      }}
+      onOpenExtensions={() => {
+        setRoute({ kind: "extensions", sessionId: selected || undefined });
         setInspectorOpen(false);
         setSidebarOpen(false);
       }}
@@ -818,13 +826,15 @@ export default function App() {
               <Icon name="menu" />
             </button>
             <div className="title-stack">
-              <strong>{route.kind === "providers" ? t.providerSettings : route.kind === "review" ? t.review : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
+              <strong>{route.kind === "providers" ? t.providerSettings : route.kind === "extensions" ? t.extensions : route.kind === "review" ? t.review : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
               <span>
                 {route.kind === "providers"
                   ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
-                  : route.kind === "review"
-                    ? (current?.goal || t.review)
-                    : state.workspace
+                  : route.kind === "extensions"
+                    ? (state.workspace ? `${t.project} · ${basename(state.workspace)} · ${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}` : t.extensions)
+                    : route.kind === "review"
+                      ? (current?.goal || t.review)
+                      : state.workspace
                     ? `${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
                     : t.runtimeReady}
               </span>
@@ -834,6 +844,15 @@ export default function App() {
           <div className="topbar-actions">
             {route.kind === "providers" && (
               <button className="toolbar-button" onClick={() => setRoute({ kind: "new-task" })}>
+                <Code2 size={14} strokeWidth={1.7} aria-hidden />
+                <span>{t.backToWorkspace}</span>
+              </button>
+            )}
+            {route.kind === "extensions" && (
+              <button
+                className="toolbar-button"
+                onClick={() => setRoute(current ? { kind: "thread", sessionId: current.id } : { kind: "new-task" })}
+              >
                 <Code2 size={14} strokeWidth={1.7} aria-hidden />
                 <span>{t.backToWorkspace}</span>
               </button>
@@ -892,6 +911,49 @@ export default function App() {
             onSelectedModelRef={setModelRef}
             onEffectiveCatalogChange={setCatalog}
             onError={setError}
+          />
+        ) : route.kind === "extensions" ? (
+          <ExtensionsWorkspace
+            workspace={state.workspace}
+            sessionId={selected}
+            runtime={currentRuntime}
+            onError={setError}
+            labels={{
+              title: t.extensions,
+              subtitle: t.extensionsSubtitle,
+              mcpServers: t.mcpServers,
+              addServer: t.mcpAddServer,
+              noServers: t.mcpNoServers,
+              serverId: t.mcpServerId,
+              serverName: t.mcpServerName,
+              command: t.mcpCommand,
+              args: t.mcpArgs,
+              protocol: t.mcpProtocol,
+              legacy: t.mcpLegacy,
+              modern: t.mcpModern,
+              save: t.save,
+              delete: t.delete,
+              deleteTitle: t.mcpDeleteTitle,
+              deleteBody: t.mcpDeleteBody,
+              cancel: t.cancel,
+              start: t.mcpStart,
+              stop: t.mcpStop,
+              refresh: t.handoffRefresh,
+              running: t.lspRunning,
+              stopped: t.lspStopped,
+              pid: t.lspPid,
+              pending: t.lspPending,
+              tools: t.mcpTools,
+              noTools: t.mcpNoTools,
+              readOnly: t.readOnly,
+              sideEffect: t.mcpSideEffect,
+              noAutoStart: t.mcpNoAutoStart,
+              currentRuntime: t.currentRuntime,
+              localRuntime: t.localRuntime,
+              worktreeRuntime: t.worktreeRuntime,
+              lastError: t.lspLastError,
+              selectServer: t.mcpSelectServer
+            }}
           />
         ) : route.kind === "review" && current ? (
           <ReviewWorkspace
