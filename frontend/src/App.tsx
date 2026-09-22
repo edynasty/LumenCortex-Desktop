@@ -19,6 +19,7 @@ import { Dialog } from "./components/primitives/Dialog";
 import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
+import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useLSPController } from "./app/hooks/useLSPController";
 import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
@@ -245,6 +246,38 @@ export default function App() {
     };
   }
 
+
+  const {
+    startAgent,
+    submitTask,
+    cancelAgent,
+    approveGate,
+    retryCurrent,
+    sendReviewInstruction,
+  } = useAgentActions({
+    selectedSessionId: selected,
+    currentSession: current,
+    route,
+    running,
+    busy,
+    workspace: state.workspace,
+    goal,
+    contextPaths,
+    runtimeKind,
+    getAgentConfig: agentConfig,
+    setWorkspaceState: setState,
+    setRoute,
+    setGoal,
+    setContextPaths,
+    setRuntimeKind,
+    setBusy,
+    setError,
+    setInspectorOpen,
+    refreshCurrent,
+    resetSessionRuntime,
+    replaceWorkflowSummary,
+  });
+
   function afterWorkspaceChanged() {
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
@@ -286,160 +319,6 @@ export default function App() {
       mergeContextPaths(await bridge.pickContextDirectory());
     } catch (err) {
       setError(String(err));
-    }
-  }
-
-  async function startAgent(sessionId = selected) {
-    if (!sessionId) return;
-    setBusy(true);
-    setError("");
-    try {
-      const session = await bridge.startAgent(sessionId, agentConfig());
-      const nextState = await bridge.state();
-      setState({
-        ...nextState,
-        sessions: nextState.sessions.map((item) => item.id === session.id ? session : item)
-      });
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const task = goal.trim();
-    if (!task || !state.workspace || busy) return;
-
-    if (route.kind === "thread" && current) {
-      if (running) return;
-      setBusy(true);
-      setError("");
-      try {
-        await bridge.continueAgent(current.id, task, agentConfig());
-        setGoal("");
-        const nextState = await bridge.state();
-        setState(nextState);
-        await refreshCurrent(current.id);
-      } catch (err) {
-        setError(String(err));
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
-
-    setBusy(true);
-    setError("");
-    try {
-      const session = await bridge.createSessionWithRuntime(task, contextPaths, runtimeKind, "HEAD");
-      setState((currentState) => ({
-        ...currentState,
-        sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
-      }));
-      setRoute({ kind: "thread", sessionId: session.id });
-      resetSessionRuntime();
-      setGoal("");
-      setContextPaths([]);
-      setRuntimeKind("local");
-      try {
-        const started = await bridge.startAgent(session.id, agentConfig());
-        const nextState = await bridge.state();
-        setState({
-          ...nextState,
-          sessions: nextState.sessions.map((item) => item.id === started.id ? started : item)
-        });
-      } catch (err) {
-        setError(String(err));
-      }
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cancelAgent() {
-    if (!selected) return;
-    setBusy(true);
-    setError("");
-    try {
-      await bridge.cancelAgent(selected);
-      const nextState = await bridge.state();
-      setState(nextState);
-      await refreshCurrent(selected);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function approveGate(gateId: string) {
-    if (!selected || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const summary = await bridge.approveWorkflowGate(selected, gateId);
-      replaceWorkflowSummary(summary);
-      await refreshCurrent(selected);
-
-      const stillWaiting = (summary.pendingGates || []).some((gate) => gate.type === "human");
-      if (!stillWaiting) {
-        await bridge.startAgent(selected, agentConfig());
-      }
-      const nextState = await bridge.state();
-      setState(nextState);
-      await refreshCurrent(selected);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function retryCurrent() {
-    if (!current || running || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await bridge.continueAgent(
-        current.id,
-        "Retry the previous incomplete attempt. Re-read the durable thread context, identify why the previous run stopped or failed, continue from the current workspace state, and verify the result.",
-        agentConfig()
-      );
-      const nextState = await bridge.state();
-      setState(nextState);
-      await refreshCurrent(current.id);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendReviewInstruction(path: string, instruction: string) {
-    if (!current || running || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const prompt = [
-        `Review feedback for ${path}:`,
-        instruction,
-        "",
-        "Address this feedback in the current task, inspect the relevant code before editing, and verify the resulting change."
-      ].join("\n");
-      await bridge.continueAgent(current.id, prompt, agentConfig());
-      const nextState = await bridge.state();
-      setState(nextState);
-      setRoute({ kind: "thread", sessionId: current.id });
-      setInspectorOpen(false);
-      await refreshCurrent(current.id);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
     }
   }
 
