@@ -17,7 +17,6 @@ import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
-
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = copy[locale];
@@ -42,7 +41,6 @@ export default function App() {
     pickWorkspace: pickWorkspaceState,
     openWorkspace: openWorkspaceState,
   } = useWorkspaceController({ setError });
-
 
   const {
     paths: contextPaths,
@@ -96,7 +94,6 @@ export default function App() {
     setBusy,
     setError,
   });
-
 
   const { events, clearEvents } = useRuntimeEvents({
     selectedSessionId: selected,
@@ -162,7 +159,6 @@ export default function App() {
     };
   }
 
-
   const {
     startAgent,
     submitTask,
@@ -193,7 +189,6 @@ export default function App() {
     resetSessionRuntime,
     replaceWorkflowSummary,
   });
-
 
   const {
     runShell,
@@ -226,15 +221,11 @@ export default function App() {
   }
 
   async function pickWorkspace() {
-    if (await pickWorkspaceState()) {
-      afterWorkspaceChanged();
-    }
+    if (await pickWorkspaceState()) afterWorkspaceChanged();
   }
 
   async function openWorkspace(path: string) {
-    if (await openWorkspaceState(path)) {
-      afterWorkspaceChanged();
-    }
+    if (await openWorkspaceState(path)) afterWorkspaceChanged();
   }
 
   function newTask() {
@@ -248,9 +239,7 @@ export default function App() {
     window.setTimeout(() => composerRef.current?.focus(), 0);
   }
 
-  function switchLocale() {
-    setLocale((currentLocale) => currentLocale === "zh-CN" ? "en" : "zh-CN");
-  }
+  function switchLocale() { setLocale((currentLocale) => currentLocale === "zh-CN" ? "en" : "zh-CN"); }
 
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -258,8 +247,6 @@ export default function App() {
       event.currentTarget.form?.requestSubmit();
     }
   }
-
-  const runtimeState = health ? "online" : state.workspace ? "offline" : "ready";
 
   return (
     <WorkspaceView
@@ -272,7 +259,7 @@ export default function App() {
       groups={sessionGroups}
       recentProjects={recentProjects}
       selectedSessionId={selected}
-      runtimeState={runtimeState}
+      runtimeState={health ? "online" : state.workspace ? "offline" : "ready"}
       health={health}
       pressure={pressure}
       sidebarOpen={sidebarOpen}
