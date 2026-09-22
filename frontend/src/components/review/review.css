@@ -254,10 +254,32 @@
 @media (max-width: 560px) {
   .review-workspace {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .review-files {
-    display: none;
+    display: block;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .review-files-head {
+    height: 32px;
+    padding: 0 8px;
+  }
+
+  .review-file-list {
+    height: auto;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px;
+  }
+
+  .review-file-list button {
+    width: auto;
+    min-width: 190px;
+    flex: 0 0 auto;
   }
 
   .review-footer {
