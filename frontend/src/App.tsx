@@ -954,7 +954,14 @@ export default function App() {
               lastError: t.lspLastError,
               selectServer: t.mcpSelectServer,
               enabled: t.enabled,
-              disabled: t.disabled
+              disabled: t.disabled,
+              globalScope: t.mcpGlobalScope,
+              projectScope: t.mcpProjectScope,
+              globalScopeHint: t.mcpGlobalScopeHint,
+              projectScopeHint: t.mcpProjectScopeHint,
+              inherited: t.mcpInherited,
+              globalSource: t.mcpGlobalSource,
+              projectSource: t.mcpProjectSource
             }}
           />
         ) : route.kind === "review" && current ? (
