@@ -134,9 +134,10 @@ function ThreadScene({ goal, onGoalChange }: { goal: string; onGoalChange: (valu
 }
 
 function InspectorFixture() {
+  const [tab, setTab] = useState<"activity" | "run" | "terminal">("activity");
   return (
     <WorkspaceInspector
-      tab="activity"
+      tab={tab}
       events={visualEvents}
       modelRef="openai/gpt-5.6"
       models={[{ value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI" }]}
@@ -158,7 +159,7 @@ function InspectorFixture() {
       running
       busy={false}
       labels={labels}
-      onTabChange={noop}
+      onTabChange={setTab}
       onClose={noop}
       onModelChange={noop}
       onOpenProviders={noop}
