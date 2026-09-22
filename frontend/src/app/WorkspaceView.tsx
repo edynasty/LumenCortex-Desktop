@@ -1,11 +1,8 @@
 import type { FormEvent, KeyboardEvent, RefObject } from "react";
-import { X } from "lucide-react";
 import { AppShell } from "../components/app-shell/AppShell";
 import { WorkspaceTopbar } from "../components/app-shell/WorkspaceTopbar";
 import type { InspectorTab } from "../components/inspector/Inspector";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
-import { Button } from "../components/primitives/Button";
-import { Dialog } from "../components/primitives/Dialog";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { WorkspaceSidebar } from "../components/sidebar/WorkspaceSidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
@@ -24,6 +21,7 @@ import type {
   WorkflowSummary,
 } from "../types";
 import type { ConfiguredModelOption } from "./presentation-model";
+import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
 import type { WorkspaceRoute } from "./workspace-route";
 
@@ -350,33 +348,15 @@ export function WorkspaceView(props: Props) {
         />
       </AppShell>
 
-      <Dialog
-        open={cleanupWorktreeOpen}
-        title={labels.cleanupWorktreeTitle}
-        description={labels.cleanupWorktreeBody}
-        onOpenChange={props.onCleanupWorktreeOpenChange}
-        footer={
-          <>
-            <Button onClick={() => props.onCleanupWorktreeOpenChange(false)}>{labels.cancel}</Button>
-            <Button disabled={busy} onClick={() => props.onCleanupWorktree(false)}>
-              {labels.cleanupWorktree}
-            </Button>
-            <Button variant="danger" disabled={busy} onClick={() => props.onCleanupWorktree(true)}>
-              {labels.forceCleanupWorktree}
-            </Button>
-          </>
-        }
+      <WorkspaceOverlays
+        cleanupOpen={cleanupWorktreeOpen}
+        busy={busy}
+        error={error}
+        labels={labels}
+        onCleanupOpenChange={props.onCleanupWorktreeOpenChange}
+        onCleanup={props.onCleanupWorktree}
+        onClearError={props.onClearError}
       />
-
-      {error && (
-        <div className="error-toast" role="alert">
-          <strong>{labels.error}</strong>
-          <span>{error}</span>
-          <button onClick={props.onClearError} aria-label={labels.close}>
-            <X size={14} strokeWidth={1.7} aria-hidden />
-          </button>
-        </div>
-      )}
     </>
   );
 }
