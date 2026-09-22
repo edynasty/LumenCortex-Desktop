@@ -41,6 +41,7 @@ type Props = {
     commitPlaceholder: string;
     push: string;
     truncated: string;
+    loadMoreDiff: string;
     loading: string;
     binaryDiff: string;
     reviewInstruction: string;
@@ -232,12 +233,14 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
               loading={review.loading}
               binary={binaryDiff}
               selectedPath={review.selectedPath}
+              contentKey={`${review.selectedPath}:${review.scope}:${review.diff.bytes}:${review.revision}`}
               mode={mode}
               lines={lines}
               rows={rows}
               language={language}
               loadingLabel={labels.loading}
               binaryLabel={labels.binaryDiff}
+              loadMoreLabel={labels.loadMoreDiff}
             />
 
             <section className="review-feedback">
