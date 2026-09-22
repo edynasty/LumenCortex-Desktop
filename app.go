@@ -375,3 +375,12 @@ func (a *App) DeleteSkill(scope, id string) error {
 func (a *App) SetSkillEnabled(scope, id string, enabled bool) error {
 	return a.backend.SetSkillEnabled(scope, id, enabled)
 }
+
+
+func (a *App) GetToolPermissions() (backend.ToolPermissions, error) {
+	return a.backend.ToolPermissions()
+}
+
+func (a *App) SaveToolPermissions(value backend.ToolPermissions) (backend.ToolPermissions, error) {
+	return a.backend.SaveToolPermissions(value)
+}
