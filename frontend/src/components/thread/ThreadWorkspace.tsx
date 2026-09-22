@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import type {
-  ChangeEvent,
   FormEvent,
   KeyboardEvent,
   Ref,
 } from "react";
-import { ArrowUp, Check, CircleCheck, Copy, Folder, RotateCcw, Square } from "lucide-react";
+import { Check, CircleCheck, Copy, RotateCcw } from "lucide-react";
 import { copyText } from "../../lib/clipboard";
 import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
-import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import type { SelectOption } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { ApprovalCard } from "./ApprovalCard";
 import { Markdown } from "./Markdown";
 import { MessageItem } from "./MessageItem";
 import { ThreadProgress } from "./ThreadProgress";
+import { ThreadComposer } from "./ThreadComposer";
 
 type Props = {
   session: Session;
@@ -246,57 +246,31 @@ export function ThreadWorkspace({
         </div>
       </div>
 
-      <div className="composer-dock">
-        <form className="composer" onSubmit={onSubmit}>
-          <textarea
-            ref={textareaRef}
-            value={goal}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onGoalChange(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={`${labels.startAnother}…`}
-            aria-label={labels.startAnother}
-            rows={1}
-          />
-          <div className="composer-footer">
-            <div className="composer-context">
-              <span><Folder size={13} strokeWidth={1.7} aria-hidden /> {workspaceName}</span>
-              <DesktopSelect
-                ariaLabel="Model"
-                value={modelRef}
-                placeholder={labels.noModels}
-                options={models}
-                onChange={onModelChange}
-                className="composer-model-trigger"
-              />
-              <span>{policyLabel}</span>
-              <RuntimeIdentity
-                runtime={runtime}
-                localLabel={labels.localRuntime}
-                worktreeLabel={labels.worktreeRuntime}
-                compact
-              />
-            </div>
-            <div className="composer-actions">
-              <span className="composer-hint">{labels.composerHint}</span>
-              {running ? (
-                <button
-                  className="send-button stop"
-                  type="button"
-                  disabled={busy}
-                  aria-label={labels.running}
-                  onClick={onCancel}
-                >
-                  <Square size={13} strokeWidth={1.9} aria-hidden />
-                </button>
-              ) : (
-                <button className="send-button" disabled={busy || !goal.trim()} aria-label={labels.start}>
-                  <ArrowUp size={15} strokeWidth={1.9} aria-hidden />
-                </button>
-              )}
-            </div>
-          </div>
-        </form>
-      </div>
+      <ThreadComposer
+        runtime={runtime}
+        workspaceName={workspaceName}
+        modelRef={modelRef}
+        models={models}
+        policyLabel={policyLabel}
+        goal={goal}
+        running={running}
+        busy={busy}
+        textareaRef={textareaRef}
+        labels={{
+          startAnother: labels.startAnother,
+          composerHint: labels.composerHint,
+          noModels: labels.noModels,
+          start: labels.start,
+          running: labels.running,
+          localRuntime: labels.localRuntime,
+          worktreeRuntime: labels.worktreeRuntime,
+        }}
+        onGoalChange={onGoalChange}
+        onModelChange={onModelChange}
+        onCancel={onCancel}
+        onSubmit={onSubmit}
+        onKeyDown={onKeyDown}
+      />
     </>
   );
 }
