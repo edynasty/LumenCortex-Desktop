@@ -855,4 +855,8 @@
     align-items: stretch;
     flex-direction: column;
   }
+
+  .tool-permissions-head .desktop-button {
+    align-self: flex-start;
+  }
 }
