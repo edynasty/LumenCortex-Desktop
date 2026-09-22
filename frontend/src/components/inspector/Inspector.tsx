@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { SquareTerminal, X } from "lucide-react";
-import type { Health, RuntimeEvent } from "../../types";
+import { ServerCog, SquareTerminal, X } from "lucide-react";
+import type { Health, LSPStatus, RuntimeEvent } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 
 export type InspectorTab = "activity" | "run" | "terminal";
@@ -16,6 +16,11 @@ type Props = {
   health?: Health;
   pressure: number;
   command: string;
+  lspCommand: string;
+  lspArgs: string;
+  lspLanguage: string;
+  lspStatus: LSPStatus;
+  workspaceOpen: boolean;
   selectedSessionId: string;
   running: boolean;
   busy: boolean;
@@ -43,6 +48,18 @@ type Props = {
     shellCommand: string;
     runCommand: string;
     shellHint: string;
+    lsp: string;
+    lspCommand: string;
+    lspArgs: string;
+    lspLanguage: string;
+    lspStart: string;
+    lspStop: string;
+    lspRunning: string;
+    lspStopped: string;
+    lspPid: string;
+    lspPending: string;
+    lspDiagnostics: string;
+    lspLastError: string;
   };
   onTabChange: (tab: InspectorTab) => void;
   onClose: () => void;
@@ -51,6 +68,11 @@ type Props = {
   onPolicyChange: (value: InspectorPolicy) => void;
   onMaxStepsChange: (value: number) => void;
   onCommandChange: (value: string) => void;
+  onLSPCommandChange: (value: string) => void;
+  onLSPArgsChange: (value: string) => void;
+  onLSPLanguageChange: (value: string) => void;
+  onStartLSP: () => void;
+  onStopLSP: () => void;
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -81,6 +103,11 @@ export function Inspector({
   health,
   pressure,
   command,
+  lspCommand,
+  lspArgs,
+  lspLanguage,
+  lspStatus,
+  workspaceOpen,
   selectedSessionId,
   running,
   busy,
@@ -92,6 +119,11 @@ export function Inspector({
   onPolicyChange,
   onMaxStepsChange,
   onCommandChange,
+  onLSPCommandChange,
+  onLSPArgsChange,
+  onLSPLanguageChange,
+  onStartLSP,
+  onStopLSP,
   onRunShell,
 }: Props) {
   return (
@@ -181,6 +213,61 @@ export function Inspector({
                 <div><dt>{labels.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
               </dl>
               <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
+            </div>
+
+            <div className="settings-group lsp-group">
+              <div className="settings-title lsp-title">
+                <span><ServerCog size={13} strokeWidth={1.7} aria-hidden /> {labels.lsp}</span>
+                <span className={`lsp-status ${lspStatus.running ? "running" : "stopped"}`}>
+                  {lspStatus.running ? labels.lspRunning : labels.lspStopped}
+                </span>
+              </div>
+
+              <label className="settings-field">
+                <span>{labels.lspCommand}</span>
+                <input
+                  value={lspCommand}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPCommandChange(event.target.value)}
+                  disabled={lspStatus.running}
+                />
+              </label>
+
+              <label className="settings-field">
+                <span>{labels.lspArgs}</span>
+                <input
+                  value={lspArgs}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPArgsChange(event.target.value)}
+                  disabled={lspStatus.running}
+                />
+              </label>
+
+              <label className="settings-field">
+                <span>{labels.lspLanguage}</span>
+                <input
+                  value={lspLanguage}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPLanguageChange(event.target.value)}
+                  disabled={lspStatus.running}
+                />
+              </label>
+
+              <dl className="lsp-stats">
+                <div><dt>{labels.lspPid}</dt><dd>{lspStatus.pid || "—"}</dd></div>
+                <div><dt>{labels.lspPending}</dt><dd>{lspStatus.pendingRequests ?? 0}</dd></div>
+                <div><dt>{labels.lspDiagnostics}</dt><dd>{lspStatus.diagnostics ?? 0}</dd></div>
+              </dl>
+
+              {lspStatus.lastError && (
+                <p className="lsp-error"><strong>{labels.lspLastError}</strong> {lspStatus.lastError}</p>
+              )}
+
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={busy || !workspaceOpen || (!lspStatus.running && !lspCommand.trim())}
+                onClick={lspStatus.running ? onStopLSP : onStartLSP}
+              >
+                {lspStatus.running ? labels.lspStop : labels.lspStart}
+              </button>
             </div>
           </div>
         )}
