@@ -7,6 +7,9 @@ import type {
   GitStatus,
   LSPConfig,
   LSPStatus,
+  MCPAgentTool,
+  MCPConfig,
+  MCPStatus,
   Message,
   MessagePage,
   ProviderConnectionResult,
@@ -75,6 +78,14 @@ type AppAPI = {
   StartLSP(sessionId: string, config: LSPConfig): Promise<LSPStatus>;
   StopLSP(sessionId: string): Promise<void>;
   GetLSPStatus(sessionId: string): Promise<LSPStatus>;
+  GetMCPConfigs(): Promise<MCPConfig[]>;
+  SaveMCPConfig(config: MCPConfig): Promise<void>;
+  DeleteMCPConfig(id: string): Promise<void>;
+  StartMCP(sessionId: string, serverId: string): Promise<MCPStatus>;
+  StopMCP(sessionId: string, serverId: string): Promise<void>;
+  GetMCPStatuses(sessionId: string): Promise<MCPStatus[]>;
+  GetMCPTools(sessionId: string): Promise<MCPAgentTool[]>;
+  RefreshMCPTools(sessionId: string, serverId: string): Promise<void>;
 };
 
 declare global {
@@ -144,7 +155,15 @@ export const bridge = {
   runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command),
   startLSP: (sessionId: string, config: LSPConfig) => api().StartLSP(sessionId, config),
   stopLSP: (sessionId: string) => api().StopLSP(sessionId),
-  lspStatus: (sessionId: string) => api().GetLSPStatus(sessionId)
+  lspStatus: (sessionId: string) => api().GetLSPStatus(sessionId),
+  mcpConfigs: () => api().GetMCPConfigs(),
+  saveMCPConfig: (config: MCPConfig) => api().SaveMCPConfig(config),
+  deleteMCPConfig: (id: string) => api().DeleteMCPConfig(id),
+  startMCP: (sessionId: string, serverId: string) => api().StartMCP(sessionId, serverId),
+  stopMCP: (sessionId: string, serverId: string) => api().StopMCP(sessionId, serverId),
+  mcpStatuses: (sessionId: string) => api().GetMCPStatuses(sessionId),
+  mcpTools: (sessionId: string) => api().GetMCPTools(sessionId),
+  refreshMCPTools: (sessionId: string, serverId: string) => api().RefreshMCPTools(sessionId, serverId)
 };
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {
