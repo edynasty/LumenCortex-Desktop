@@ -32,22 +32,17 @@ The largest risks are not colors or icon styling. They are:
 
 ## 2. P0 findings
 
-### P0-01 — Active run state has two truth sources
+### P0-01 — Active run state source of truth
 
-Current behavior:
-- sidebar grouping considers both `session.status === "running"` and `activeRuns[id]`,
-- selected-thread run controls mainly depend on the in-memory `activeRuns` map.
+Status: **Fixed**.
 
-Risk:
-- after UI reload, runtime restart, stale session recovery, or future Core supervisor work, the sidebar can show a thread as running while Stop is unavailable.
+Runtime execution truth comes from Core `RunSupervisor`:
+- Desktop `Runtime.State()` exposes `supervisor.Runs()` as `activeRuns`,
+- selected-thread Run/Stop state is derived from `state.activeRuns`,
+- Sidebar “Running” grouping uses the same active-run ID set,
+- persisted `session.status === "running"` without an active supervisor run is treated as interrupted/attention state rather than a live run.
 
-Required direction:
-- Core/runtime owns active-run truth,
-- Desktop subscribes to/query this state,
-- persisted session status and active execution state must have explicit semantics.
-
-Roadmap dependency:
-- CORE-04 run supervisor.
+This removes the previous split between persisted session status and an independent frontend running map.
 
 ### P0-02 — Provider secret persistence
 
@@ -94,22 +89,12 @@ Remaining:
 
 ## 3. P1 product / UX findings
 
-### P1-01 — New Task initial-session behavior is not explicitly designed
+### P1-01 — New Task initial-session behavior
 
-On initial app load, the UI selects the first returned session when sessions exist.
+Status: **Fixed**.
 
-On project switch, it intentionally enters New Task.
-
-This is inconsistent.
-
-A deliberate restore policy is required:
-- restore last selected thread/view per project, or
-- always enter New Task,
-- never rely on “first session in returned list” as an accidental policy.
-
-Recommended:
-- persist the last view/thread per project,
-- fall back to New Task if unavailable.
+The app now has an explicit policy: startup and project switches enter `new-task`.
+It no longer selects the first returned session as an accidental restore policy. Existing threads remain available from Sidebar groups.
 
 ### P1-02 — Provider settings duplicated the page title
 
@@ -178,50 +163,36 @@ Implemented:
 
 Component CSS does not define scattered `[data-theme="dark"]` overrides; theme differences remain centralized in semantic tokens.
 
-### P1-07 — Native browser confirmation dialogs break desktop visual consistency
+### P1-07 — Native browser confirmation dialogs
 
-Provider delete uses `window.confirm`.
+Status: **Fixed**.
 
-Problems:
-- platform/browser-style dialog,
-- not aligned with LumenCortex visual system,
-- cannot show richer consequences.
+Destructive Provider/Review/Worktree flows use the shared Dialog primitive with:
+- product-controlled copy and styling,
+- Escape handling,
+- focus trap,
+- focus restoration.
 
-Required:
-- shared Dialog component,
-- destructive action copy,
-- keyboard/focus handling.
+### P1-08 — Provider editor draft persistence
 
-### P1-08 — Provider editor loses local draft state when navigating away
+Status: **Fixed**.
 
-Provider page is conditionally mounted from `workspaceView`.
+Provider Settings is lazily mounted on first visit and then kept alive in memory when navigating to another workspace route.
+Unsaved Provider, Model, and Advanced JSON draft state therefore survives route changes without being written to localStorage or disk.
+Changing workspace still triggers the existing Provider controller reload/reset contract.
 
-Navigating back to the task workspace unmounts the Provider component.
-Unsaved edits disappear.
+### P1-09 — Main workspace navigation model
 
-Required:
-- either prompt for unsaved changes,
-- or persist draft state above the route boundary.
+Status: **Fixed**.
 
-### P1-09 — Main workspace navigation model will not scale
-
-Current:
-`WorkspaceView = "workspace" | "providers"`.
-
-Future product needs:
+Navigation uses the discriminated `WorkspaceRoute` model:
 - new-task,
-- thread,
-- provider-settings,
-- review,
-- extensions,
-- possibly project actions/search.
+- thread + session ID,
+- providers,
+- review + session ID,
+- extensions + optional session ID.
 
-Required before UI-05:
-- route-like discriminated workspace state,
-- explicit selected entity IDs,
-- back/restore semantics.
-
-A full web router is optional; clear state modeling is not.
+Route/entity state and back semantics are explicit without adding a web-router dependency.
 
 ## 4. P1 frontend architecture findings
 
@@ -271,22 +242,18 @@ Required:
 - Figma values generated/reconciled from the same semantic naming system,
 - components never introduce arbitrary near-duplicate neutrals without a documented reason.
 
-### P1-12 — No frontend component test setup
+### P1-12 — Frontend component test setup
 
-Current frontend scripts:
-- dev,
-- build,
-- preview.
+Status: **Fixed**.
 
-No unit/component tests.
-
-Required:
+Frontend now uses:
 - Vitest,
 - Testing Library,
-- Provider/Composer state tests,
-- accessibility smoke tests.
+- user-event,
+- jsdom,
+- Playwright visual/interaction QA.
 
-Avoid adding a heavy end-to-end stack until the component architecture stabilizes.
+Provider, primitives, routing/presentation behavior, accessibility/focus behavior, theme behavior, typography, and responsive states have regression coverage.
 
 ### P1-13 — Thread renderer is still raw
 
@@ -305,12 +272,11 @@ Tracked by UI-04.
 
 ## 5. P1 accessibility findings
 
-### P1-14 — Expand/collapse semantics were incomplete
+### P1-14 — Expand/collapse semantics
 
-Provider rows and advanced JSON did not expose expanded state.
+Status: **Fixed**.
 
-Status:
-- **Partially fixed** using `aria-expanded`.
+Provider rows and Advanced JSON controls expose `aria-expanded`, with keyboard-focus behavior covered by the shared primitive and interaction test suite.
 
 ### P1-15 — Default-model icon action lacked accessible name
 
@@ -328,12 +294,11 @@ Implemented:
 - closing restores focus to the original trigger,
 - StrictMode-safe focus restoration prevents stale cleanup work from stealing focus.
 
-### P1-17 — Composer textarea should have an explicit accessible name
+### P1-17 — Composer textarea accessible name
 
-Placeholder text is not a sufficient labeling strategy.
+Status: **Fixed**.
 
-Required:
-- explicit `aria-label` or visible label relationship.
+New Task composer exposes an explicit `aria-label`; placeholder text is no longer the only accessible naming mechanism.
 
 ## 6. Design deliverable gaps
 
@@ -389,12 +354,12 @@ Still missing:
 - recent projects,
 - attention/unread behavior.
 
-### P2-02 — Provider scope should remember the last selected scope
+### P2-02 — Provider scope remembers the last selected layer
 
-Re-entering Provider settings currently starts from the component's default scope.
+Status: **Fixed**.
 
-Recommended:
-- remember Global/Project scope per workspace/session.
+The Provider controller remembers Global/Project scope per workspace in localStorage.
+Only the scope enum is persisted; Provider drafts, Advanced JSON, and secret material remain in memory/config-specific paths.
 
 ### P2-03 — Error UI needs action-oriented recovery
 
