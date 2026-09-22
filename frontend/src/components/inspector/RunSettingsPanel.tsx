@@ -114,6 +114,7 @@ export function RunSettingsPanel({
             placeholder={labels.noModels}
             options={models}
             onChange={onModelChange}
+            popoverPlacement="bottom"
             className="settings-desktop-select"
           />
         </label>
@@ -137,6 +138,7 @@ export function RunSettingsPanel({
               { value: "full", label: labels.full },
             ]}
             onChange={(value) => onPolicyChange(value as InspectorPolicy)}
+            popoverPlacement="bottom"
             className="settings-desktop-select"
           />
         </label>
