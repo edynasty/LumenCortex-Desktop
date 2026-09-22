@@ -302,12 +302,24 @@ func (a *App) GetMCPConfigs() ([]backend.MCPConfig, error) {
 	return a.backend.MCPConfigs()
 }
 
+func (a *App) GetMCPConfigsScope(scope string) ([]backend.MCPConfig, error) {
+	return a.backend.MCPConfigsScope(scope)
+}
+
 func (a *App) SaveMCPConfig(config backend.MCPConfig) error {
 	return a.backend.MCPUpsertConfig(config)
 }
 
+func (a *App) SaveMCPConfigScope(scope string, config backend.MCPConfig) error {
+	return a.backend.MCPUpsertConfigScope(scope, config)
+}
+
 func (a *App) DeleteMCPConfig(id string) error {
 	return a.backend.MCPDeleteConfig(id)
+}
+
+func (a *App) DeleteMCPConfigScope(scope, id string) error {
+	return a.backend.MCPDeleteConfigScope(scope, id)
 }
 
 func (a *App) StartMCP(sessionID, serverID string) (backend.MCPStatus, error) {
