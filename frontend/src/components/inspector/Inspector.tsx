@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { ServerCog, SquareTerminal, X } from "lucide-react";
 import type { Health, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { MilestoneList } from "./MilestoneList";
 import { SubagentTreePanel } from "./SubagentTreePanel";
 
 export type InspectorTab = "activity" | "run" | "terminal";
@@ -69,6 +70,18 @@ type Props = {
     subagentCompleted: string;
     subagentInterrupted: string;
     subagentCheckpoint: string;
+    milestoneAgentStarted: string;
+    milestoneAgentStopped: string;
+    milestoneToolCompleted: string;
+    milestoneApprovalRequired: string;
+    milestoneApprovalGranted: string;
+    milestoneSubagentStarted: string;
+    milestoneSubagentStopped: string;
+    milestoneWorktreeCreated: string;
+    milestoneWorktreeApplied: string;
+    milestoneTaskCompleted: string;
+    milestoneTaskInterrupted: string;
+    milestoneWorkflowAdvanced: string;
   };
   onTabChange: (tab: InspectorTab) => void;
   onClose: () => void;
@@ -91,16 +104,6 @@ function bytes(value = 0) {
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
   return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
-function formatClock(value: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
 }
 
 export function Inspector({
@@ -154,18 +157,24 @@ export function Inspector({
 
       <div className="inspector-body">
         {tab === "activity" && (
-          <div className="activity-list">
-            {events.slice().reverse().map((event) => (
-              <div className="activity-item" key={`${event.seq}-${event.at}`}>
-                <div className="activity-rail"><span /></div>
-                <div className="activity-copy">
-                  <div><strong>{event.type}</strong><time>{formatClock(event.at)}</time></div>
-                  {event.data && <code>{JSON.stringify(event.data)}</code>}
-                </div>
-              </div>
-            ))}
-            {!events.length && <div className="inspector-empty">{labels.noActivity}</div>}
-          </div>
+          <MilestoneList
+            events={events}
+            labels={{
+              empty: labels.noActivity,
+              agentStarted: labels.milestoneAgentStarted,
+              agentStopped: labels.milestoneAgentStopped,
+              toolCompleted: labels.milestoneToolCompleted,
+              approvalRequired: labels.milestoneApprovalRequired,
+              approvalGranted: labels.milestoneApprovalGranted,
+              subagentStarted: labels.milestoneSubagentStarted,
+              subagentStopped: labels.milestoneSubagentStopped,
+              worktreeCreated: labels.milestoneWorktreeCreated,
+              worktreeApplied: labels.milestoneWorktreeApplied,
+              taskCompleted: labels.milestoneTaskCompleted,
+              taskInterrupted: labels.milestoneTaskInterrupted,
+              workflowAdvanced: labels.milestoneWorkflowAdvanced,
+            }}
+          />
         )}
 
         {tab === "run" && (
