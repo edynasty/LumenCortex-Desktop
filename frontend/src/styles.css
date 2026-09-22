@@ -1331,3 +1331,116 @@
   line-height: 1.45;
   white-space: pre-wrap;
 }
+
+
+.subagent-group {
+  gap: 7px;
+}
+
+.subagent-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.subagent-tree {
+  display: grid;
+  gap: 2px;
+}
+
+.subagent-tree-node {
+  min-width: 0;
+}
+
+.subagent-tree-node > button {
+  width: calc(100% - (var(--subagent-depth, 0) * 12px));
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin-left: calc(var(--subagent-depth, 0) * 12px);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.subagent-tree-node > button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.subagent-state {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.subagent-state.active {
+  color: var(--blue);
+}
+
+.subagent-state.completed {
+  color: var(--green);
+}
+
+.subagent-state.interrupted {
+  color: var(--amber);
+}
+
+.subagent-tree-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.subagent-tree-copy strong {
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-tree-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font: 7.8px/1.35 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-checkpoints {
+  display: grid;
+  gap: 3px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+}
+
+.subagent-checkpoint-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.subagent-checkpoint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+  padding: 0 4px;
+  color: var(--text-soft);
+  font-size: 8px;
+}
+
+.subagent-checkpoint time {
+  color: var(--faint);
+  font: 7.5px var(--mono);
+}
