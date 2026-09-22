@@ -65,12 +65,14 @@ describe("useSessionRuntimeState", () => {
 
     act(() => {
       result.current.handleRuntimeEvent({
+        seq: 1,
         type: "tool.end",
         sessionId: "session-1",
         at: "2026-09-22T03:00:00Z",
         data: {},
       });
       result.current.handleRuntimeEvent({
+        seq: 2,
         type: "subagent.spawned",
         sessionId: "session-1",
         at: "2026-09-22T03:00:01Z",
