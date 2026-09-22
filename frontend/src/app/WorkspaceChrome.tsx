@@ -1,7 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { AppShell } from "../components/app-shell/AppShell";
 import { WorkspaceTopbar } from "../components/app-shell/WorkspaceTopbar";
-import type { InspectorTab } from "../components/inspector/Inspector";
+import type { InspectorTab } from "../components/inspector/inspector-types";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { WorkspaceSidebar } from "../components/sidebar/WorkspaceSidebar";
