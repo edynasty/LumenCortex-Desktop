@@ -835,12 +835,12 @@ Acceptance:
 Priority: **P1**
 
 - [x] **UI-07.1 Add Extensions/settings navigation**
-- [ ] **UI-07.2 Skills management UI**
+- [x] **UI-07.2 Skills management UI**
 - [x] **UI-07.3 MCP server management UI**
 - [x] **UI-07.4 MCP tools list/status**
 - [ ] **UI-07.5 Plugin/tool permission management**
 - [x] **UI-07.6 LSP server status**
-- [ ] **UI-07.7 Language capability diagnostics**
+- [x] **UI-07.7 Language capability diagnostics**
 - [x] **UI-07.8 Per-project extension overrides**
 - [x] **UI-07.9 Enable/disable extension controls**
 - [x] **UI-07.10 Surface extension failures without blocking unrelated work**
