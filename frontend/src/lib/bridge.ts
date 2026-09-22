@@ -6,6 +6,7 @@ import type {
   GitDiff,
   GitStatus,
   LSPConfig,
+  LSPDiagnostic,
   LSPStatus,
   MCPAgentTool,
   MCPConfig,
@@ -83,6 +84,7 @@ type AppAPI = {
   StartLSP(sessionId: string, config: LSPConfig): Promise<LSPStatus>;
   StopLSP(sessionId: string): Promise<void>;
   GetLSPStatus(sessionId: string): Promise<LSPStatus>;
+  GetLSPDiagnostics(sessionId: string, path: string): Promise<LSPDiagnostic[]>;
   GetMCPConfigs(): Promise<MCPConfig[]>;
   GetMCPConfigsScope(scope: MCPConfigScope): Promise<MCPConfig[]>;
   SaveMCPConfig(config: MCPConfig): Promise<void>;
@@ -171,6 +173,7 @@ export const bridge = {
   startLSP: (sessionId: string, config: LSPConfig) => api().StartLSP(sessionId, config),
   stopLSP: (sessionId: string) => api().StopLSP(sessionId),
   lspStatus: (sessionId: string) => api().GetLSPStatus(sessionId),
+  lspDiagnostics: (sessionId: string, path: string) => api().GetLSPDiagnostics(sessionId, path),
   mcpConfigs: () => api().GetMCPConfigs(),
   mcpConfigsScope: (scope: MCPConfigScope) => api().GetMCPConfigsScope(scope),
   saveMCPConfig: (config: MCPConfig) => api().SaveMCPConfig(config),
