@@ -6,6 +6,7 @@ import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { WorkspaceSidebar } from "../components/sidebar/WorkspaceSidebar";
 import type { AppCopy } from "../lib/i18n/app-copy";
+import type { ThemePreference } from "../lib/theme";
 import type {
   Health,
   LSPDiagnostic,
@@ -28,6 +29,7 @@ type Props = {
   current?: Session;
   runtime: SessionRuntime;
   labels: AppCopy;
+  themePreference: ThemePreference;
   workspace: string;
   groups: SidebarGroup[];
   recentProjects: string[];
@@ -65,6 +67,7 @@ type Props = {
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
   onSwitchLocale: () => void;
+  onThemePreferenceChange: (theme: ThemePreference) => void;
   onModelChange: (value: string) => void;
   onPolicyChange: (value: Policy) => void;
   onMaxStepsChange: (value: number) => void;
@@ -89,6 +92,7 @@ export function WorkspaceChrome(props: Props) {
     current,
     runtime,
     labels,
+    themePreference,
     workspace,
     groups,
     recentProjects,
@@ -146,6 +150,7 @@ export function WorkspaceChrome(props: Props) {
       runtimeState={runtimeState}
       runtimeVersion={health?.version}
       labels={labels}
+      themePreference={themePreference}
       onClose={() => props.onSidebarOpenChange(false)}
       onNewTask={props.onNewTask}
       onPickWorkspace={props.onPickWorkspace}
@@ -164,6 +169,7 @@ export function WorkspaceChrome(props: Props) {
         props.onSidebarOpenChange(false);
       }}
       onSwitchLocale={props.onSwitchLocale}
+      onThemePreferenceChange={props.onThemePreferenceChange}
     />
   );
 
