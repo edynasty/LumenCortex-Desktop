@@ -2,6 +2,7 @@ import type { FormEvent, KeyboardEvent, Ref } from "react";
 import type { InspectorTab } from "../components/inspector/inspector-types";
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
+import type { ThemePreference } from "../lib/theme";
 import type {
   Health,
   LSPDiagnostic,
@@ -31,6 +32,7 @@ type Props = {
   runtime: SessionRuntime;
   locale: Locale;
   labels: AppCopy;
+  themePreference: ThemePreference;
   workspace: string;
   groups: SidebarGroup[];
   recentProjects: string[];
@@ -80,6 +82,7 @@ type Props = {
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
   onSwitchLocale: () => void;
+  onThemePreferenceChange: (theme: ThemePreference) => void;
   onCatalogChange: (catalog: ProviderCatalog) => void;
   onModelChange: (value: string) => void;
   onError: (message: string) => void;
@@ -120,6 +123,7 @@ export function WorkspaceView(props: Props) {
     runtime,
     locale,
     labels,
+    themePreference,
     workspace,
     groups,
     recentProjects,
@@ -172,6 +176,7 @@ export function WorkspaceView(props: Props) {
         current={current}
         runtime={runtime}
         labels={labels}
+        themePreference={themePreference}
         workspace={workspace}
         groups={groups}
         recentProjects={recentProjects}
@@ -209,6 +214,7 @@ export function WorkspaceView(props: Props) {
         onPinSession={props.onPinSession}
         onArchiveSession={props.onArchiveSession}
         onSwitchLocale={props.onSwitchLocale}
+        onThemePreferenceChange={props.onThemePreferenceChange}
         onModelChange={props.onModelChange}
         onPolicyChange={props.onPolicyChange}
         onMaxStepsChange={props.onMaxStepsChange}
