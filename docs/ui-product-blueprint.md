@@ -902,7 +902,7 @@ Priority: **P1**
 - [x] **CORE-03.6 merge MCP tools into Agent registry**
 - [x] **CORE-03.7 persistence/configuration model**
 - [x] **CORE-03.8 Desktop MCP management UI**
-- [ ] **CORE-03.9 HTTP transport if needed**
+- [x] **CORE-03.9 HTTP transport assessment** — not required for the current local stdio-only MCP product scope; revisit when remote MCP server UX is introduced.
 
 ---
 
@@ -958,7 +958,7 @@ For every significant UI slice:
 - [x] **QA-01.9 English copy**
 - [x] **QA-01.10 Frontend production build**
 - [x] **QA-01.11 Backend tests/vet when bridge/backend changes**
-- [ ] **QA-01.12 macOS universal Wails build when integration changes**
+- [x] **QA-01.12 macOS universal Wails build when integration changes**
 - [x] **QA-01.13 Verify no secret persistence**
 - [x] **QA-01.14 Verify no new unbounded frontend collection**
 
