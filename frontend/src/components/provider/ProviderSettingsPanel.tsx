@@ -154,6 +154,7 @@ export function ProviderSettingsPanel({
         open={deleteTarget !== null}
         title={t.remove}
         description={deleteTarget?.kind === "provider" ? t.deleteProviderConfirm : t.deleteModelConfirm}
+        closeLabel={t.close}
         onOpenChange={(open) => {
           if (!open && !saving) setDeleteTarget(null);
         }}
