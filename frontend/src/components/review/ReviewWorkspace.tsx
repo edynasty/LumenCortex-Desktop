@@ -298,6 +298,7 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
         open={revertOpen}
         title={labels.revertTitle}
         description={labels.revertBody}
+        closeLabel={labels.cancel}
         onOpenChange={setRevertOpen}
         footer={
           <>
