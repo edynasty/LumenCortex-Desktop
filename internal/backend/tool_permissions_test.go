@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,7 +12,7 @@ func TestToolPermissionsPersistNormalizedDenylist(t *testing.T) {
 	root := t.TempDir()
 	r := New()
 	defer r.Close()
-	if _, err := r.OpenWorkspace(t.Context(), root); err != nil {
+	if _, err := r.OpenWorkspace(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,7 +54,7 @@ func TestToolPermissionsRejectInvalidAndOversizedLists(t *testing.T) {
 	root := t.TempDir()
 	r := New()
 	defer r.Close()
-	if _, err := r.OpenWorkspace(t.Context(), root); err != nil {
+	if _, err := r.OpenWorkspace(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 
