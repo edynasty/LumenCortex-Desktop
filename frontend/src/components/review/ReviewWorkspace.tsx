@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import type { Message, SessionRuntime } from "../../types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Message, SessionRuntime, WorktreeHandoffPlan } from "../../types";
+import { bridge } from "../../lib/bridge";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
 import { SyntaxLine } from "../code/SyntaxLine";
@@ -12,6 +13,7 @@ import { CheckSummary } from "./CheckSummary";
 import { extractCheckResults } from "./checks";
 import { diffStats, parseUnifiedDiff, splitDiffRows } from "./diff";
 import { useReviewState, type DiffScope } from "./useReviewState";
+import { WorktreeHandoffCard } from "./WorktreeHandoffCard";
 import "./review.css";
 
 type Props = {
@@ -53,6 +55,19 @@ type Props = {
     worktreeRuntime: string;
     conflictTitle: string;
     conflictHint: string;
+    handoffTitle: string;
+    handoffTarget: string;
+    handoffCommits: string;
+    handoffReady: string;
+    handoffSourceDirty: string;
+    handoffTargetDirty: string;
+    handoffNoCommits: string;
+    handoffOverlap: string;
+    handoffApply: string;
+    handoffRefresh: string;
+    handoffConfirmTitle: string;
+    handoffConfirmBody: string;
+    handoffApplied: string;
   };
 };
 
@@ -68,6 +83,11 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
   const [revertOpen, setRevertOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
   const [instruction, setInstruction] = useState("");
+  const [handoffPlan, setHandoffPlan] = useState<WorktreeHandoffPlan | null>(null);
+  const [handoffLoading, setHandoffLoading] = useState(false);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffNotice, setHandoffNotice] = useState("");
+  const [handoffError, setHandoffError] = useState("");
   const lines = useMemo(() => parseUnifiedDiff(review.diff.content), [review.diff.content]);
   const rows = useMemo(() => splitDiffRows(lines), [lines]);
   const stats = useMemo(() => diffStats(lines), [lines]);
@@ -86,6 +106,43 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
   );
   const canStage = Boolean(review.selectedFile && (review.selectedFile.worktree !== " " || review.selectedFile.index === "?"));
   const canUnstage = Boolean(review.selectedFile && review.selectedFile.index !== " " && review.selectedFile.index !== "?");
+
+  const refreshHandoff = useCallback(async () => {
+    if (runtime.kind !== "worktree") {
+      setHandoffPlan(null);
+      setHandoffError("");
+      return;
+    }
+    setHandoffLoading(true);
+    try {
+      setHandoffPlan(await bridge.worktreeHandoffPlan(sessionId));
+      setHandoffError("");
+    } catch (err) {
+      setHandoffError(String(err));
+    } finally {
+      setHandoffLoading(false);
+    }
+  }, [runtime.kind, sessionId]);
+
+  useEffect(() => {
+    void refreshHandoff();
+  }, [refreshHandoff, review.revision]);
+
+  async function applyHandoff() {
+    if (runtime.kind !== "worktree" || handoffBusy || agentRunning) return;
+    setHandoffBusy(true);
+    setHandoffError("");
+    try {
+      const result = await bridge.applySessionWorktree(sessionId);
+      setHandoffNotice(result.action.output || result.targetHead || labels.handoffApplied);
+      await review.refresh();
+      await refreshHandoff();
+    } catch (err) {
+      setHandoffError(String(err));
+    } finally {
+      setHandoffBusy(false);
+    }
+  }
 
   return (
     <section className="review-workspace">
@@ -110,6 +167,34 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
       </aside>
 
       <div className="review-main">
+        {runtime.kind === "worktree" && (
+          <WorktreeHandoffCard
+            plan={handoffPlan}
+            loading={handoffLoading}
+            busy={handoffBusy || agentBusy || agentRunning}
+            notice={handoffNotice}
+            labels={{
+              title: labels.handoffTitle,
+              target: labels.handoffTarget,
+              commits: labels.handoffCommits,
+              ready: labels.handoffReady,
+              sourceDirty: labels.handoffSourceDirty,
+              targetDirty: labels.handoffTargetDirty,
+              noCommits: labels.handoffNoCommits,
+              overlap: labels.handoffOverlap,
+              apply: labels.handoffApply,
+              refresh: labels.handoffRefresh,
+              confirmTitle: labels.handoffConfirmTitle,
+              confirmBody: labels.handoffConfirmBody,
+              cancel: labels.cancel,
+              applied: labels.handoffApplied,
+            }}
+            onRefresh={() => void refreshHandoff()}
+            onApply={applyHandoff}
+          />
+        )}
+        {handoffError && <div className="review-error">{handoffError}</div>}
+
         {!review.status.files.length && !review.loading ? (
           <EmptyState icon={<GitBranch size={22} />} title={labels.noChanges} />
         ) : (
