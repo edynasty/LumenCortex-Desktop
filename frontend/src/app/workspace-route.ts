@@ -3,10 +3,10 @@ export type WorkspaceRoute =
   | { kind: "thread"; sessionId: string }
   | { kind: "providers" }
   | { kind: "review"; sessionId: string }
-  | { kind: "extensions" };
+  | { kind: "extensions"; sessionId?: string };
 
 export function routeSessionId(route: WorkspaceRoute): string {
-  return route.kind === "thread" || route.kind === "review" ? route.sessionId : "";
+  return route.kind === "thread" || route.kind === "review" || route.kind === "extensions" ? (route.sessionId || "") : "";
 }
 
 export function isWorkspaceRoute(route: WorkspaceRoute): boolean {
