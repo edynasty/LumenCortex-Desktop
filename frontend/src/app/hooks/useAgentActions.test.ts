@@ -27,7 +27,7 @@ function renderActions(overrides: Partial<Parameters<typeof useAgentActions>[0]>
   const setWorkspaceState = vi.fn();
   const setRoute = vi.fn();
   const setGoal = vi.fn();
-  const setContextPaths = vi.fn();
+  const clearContextPaths = vi.fn();
   const setRuntimeKind = vi.fn();
   const setBusy = vi.fn();
   const setError = vi.fn();
@@ -55,7 +55,7 @@ function renderActions(overrides: Partial<Parameters<typeof useAgentActions>[0]>
     setWorkspaceState,
     setRoute,
     setGoal,
-    setContextPaths,
+    clearContextPaths,
     setRuntimeKind,
     setBusy,
     setError,
@@ -73,7 +73,7 @@ function renderActions(overrides: Partial<Parameters<typeof useAgentActions>[0]>
       setWorkspaceState,
       setRoute,
       setGoal,
-      setContextPaths,
+      clearContextPaths,
       setRuntimeKind,
       setBusy,
       setError,
@@ -147,7 +147,7 @@ describe("useAgentActions", () => {
     );
     expect(spies.setRoute).toHaveBeenCalledWith({ kind: "thread", sessionId: "session-new" });
     expect(spies.resetSessionRuntime).toHaveBeenCalled();
-    expect(spies.setContextPaths).toHaveBeenCalledWith([]);
+    expect(spies.clearContextPaths).toHaveBeenCalled();
     expect(spies.setRuntimeKind).toHaveBeenCalledWith("local");
     expect(mocks.startAgent).toHaveBeenCalledWith("session-new", expect.any(Object));
   });
