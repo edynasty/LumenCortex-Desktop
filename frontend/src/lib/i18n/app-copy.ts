@@ -214,7 +214,11 @@ export const copy = {
     milestoneWorktreeApplied: "Worktree 已应用",
     milestoneTaskCompleted: "任务完成",
     milestoneTaskInterrupted: "任务中断",
-    milestoneWorkflowAdvanced: "执行计划已推进"
+    milestoneWorkflowAdvanced: "执行计划已推进",
+    plan: "执行计划",
+    planRunning: "执行中",
+    planWaiting: "等待确认",
+    planSubagents: "子 Agent"
   },
   en: {
     newTask: "New task",
@@ -429,7 +433,11 @@ export const copy = {
     milestoneWorktreeApplied: "Worktree applied",
     milestoneTaskCompleted: "Task completed",
     milestoneTaskInterrupted: "Task interrupted",
-    milestoneWorkflowAdvanced: "Plan advanced"
+    milestoneWorkflowAdvanced: "Plan advanced",
+    plan: "Plan",
+    planRunning: "Running",
+    planWaiting: "Awaiting approval",
+    planSubagents: "subagents"
   }
 } as const;
 
