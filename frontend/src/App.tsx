@@ -1,13 +1,6 @@
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { X } from "lucide-react";
-import { AppShell } from "./components/app-shell/AppShell";
-import { WorkspaceTopbar } from "./components/app-shell/WorkspaceTopbar";
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/Inspector";
-import { WorkspaceInspector } from "./components/inspector/WorkspaceInspector";
-import { Button } from "./components/primitives/Button";
-import { Dialog } from "./components/primitives/Dialog";
-import { WorkspaceSidebar } from "./components/sidebar/WorkspaceSidebar";
-import { WorkspaceRouteContent } from "./app/WorkspaceRouteContent";
+import { WorkspaceView } from "./app/WorkspaceView";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -15,7 +8,7 @@ import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
-import { buildSidebarGroups, providerModelOptions, sessionStatusLabel } from "./app/presentation-model";
+import { buildSidebarGroups, providerModelOptions } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
@@ -266,62 +259,33 @@ export default function App() {
     }
   }
 
-  const modelSelectOptions = configuredModels.map((item) => ({
-    value: item.ref,
-    label: item.label,
-    description: item.description,
-    group: item.group
-  }));
-
   const runtimeState = health ? "online" : state.workspace ? "offline" : "ready";
 
-  const sidebar = (
-    <WorkspaceSidebar
-      open={sidebarOpen}
+  return (
+    <WorkspaceView
+      route={route}
+      current={current}
+      runtime={currentRuntime}
+      locale={locale}
+      labels={t}
       workspace={state.workspace}
       groups={sessionGroups}
       recentProjects={recentProjects}
-      selectedSessionId={route.kind === "thread" || route.kind === "review" || route.kind === "extensions" ? selected : ""}
-      providerActive={route.kind === "providers"}
-      extensionsActive={route.kind === "extensions"}
+      selectedSessionId={selected}
       runtimeState={runtimeState}
-      runtimeVersion={health?.version}
-      labels={t}
-      onClose={() => setSidebarOpen(false)}
-      onNewTask={newTask}
-      onPickWorkspace={pickWorkspace}
-      onOpenWorkspace={openWorkspace}
-      onSelectSession={(sessionId) => {
-        setRoute({ kind: "thread", sessionId });
-        setSidebarOpen(false);
-      }}
-      onRenameSession={(sessionId, title) => void updateSessionUI(sessionId, { title })}
-      onPinSession={(sessionId, pinned) => void updateSessionUI(sessionId, { pinned })}
-      onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
-      onOpenProviders={() => {
-        setRoute({ kind: "providers" });
-        setInspectorOpen(false);
-        setSidebarOpen(false);
-      }}
-      onOpenExtensions={() => {
-        setRoute({ kind: "extensions", sessionId: selected || undefined });
-        setInspectorOpen(false);
-        setSidebarOpen(false);
-      }}
-      onSwitchLocale={switchLocale}
-    />
-  );
-
-  const inspector = route.kind === "thread" || route.kind === "new-task" ? (
-    <WorkspaceInspector
-      tab={inspectorTab}
-      events={selectedEvents}
-      modelRef={modelRef}
-      models={modelSelectOptions}
-      policy={policy}
-      maxSteps={maxSteps}
       health={health}
       pressure={pressure}
+      sidebarOpen={sidebarOpen}
+      inspectorOpen={inspectorOpen}
+      inspectorTab={inspectorTab}
+      events={selectedEvents}
+      catalog={catalog}
+      modelRef={modelRef}
+      configuredModels={configuredModels}
+      contextPaths={contextPaths}
+      policy={policy}
+      runtimeKind={runtimeKind}
+      maxSteps={maxSteps}
       command={command}
       lspCommand={lspCommand}
       lspArgs={lspArgs}
@@ -329,28 +293,43 @@ export default function App() {
       lspStatus={lspStatus}
       lspDiagnosticPath={lspDiagnosticPath}
       lspDiagnostics={lspDiagnostics}
-      subagents={subagents}
-      checkpoints={checkpoints}
-      workspaceOpen={Boolean(state.workspace)}
-      selectedSessionId={selected}
+      messages={messages}
+      messageAtLatest={messageAtLatest}
+      messageLoadingOlder={messageLoadingOlder}
       running={running}
       busy={busy}
-      labels={t}
-      onTabChange={setInspectorTab}
-      onClose={() => setInspectorOpen(false)}
+      goal={goal}
+      workflowSummary={workflowSummary}
+      subagents={subagents}
+      checkpoints={checkpoints}
+      cleanupWorktreeOpen={cleanupWorktreeOpen}
+      error={error}
+      textareaRef={composerRef}
+      onSetRoute={setRoute}
+      onSidebarOpenChange={setSidebarOpen}
+      onInspectorOpenChange={setInspectorOpen}
+      onInspectorTabChange={setInspectorTab}
+      onCleanupWorktreeOpenChange={setCleanupWorktreeOpen}
+      onNewTask={newTask}
+      onPickWorkspace={pickWorkspace}
+      onOpenWorkspace={openWorkspace}
+      onRenameSession={(sessionId, title) => void updateSessionUI(sessionId, { title })}
+      onPinSession={(sessionId, pinned) => void updateSessionUI(sessionId, { pinned })}
+      onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
+      onSwitchLocale={switchLocale}
+      onCatalogChange={setCatalog}
       onModelChange={setModelRef}
-      onOpenProviders={() => {
-        setRoute({ kind: "providers" });
-        setInspectorOpen(false);
-      }}
+      onError={setError}
+      onClearError={() => setError("")}
       onPolicyChange={setPolicy}
+      onRuntimeChange={setRuntimeKind}
       onMaxStepsChange={setMaxSteps}
       onCommandChange={setCommand}
       onLSPCommandChange={setLSPCommand}
-      onLSPDiagnosticPathChange={setLSPDiagnosticPath}
-      onRefreshLSPDiagnostics={() => void refreshLSPDiagnostics()}
       onLSPArgsChange={setLSPArgs}
       onLSPLanguageChange={setLSPLanguage}
+      onLSPDiagnosticPathChange={setLSPDiagnosticPath}
+      onRefreshLSPDiagnostics={() => void refreshLSPDiagnostics()}
       onStartLSP={() => void startLSP()}
       onStopLSP={() => void stopLSP()}
       onOpenSubagent={(sessionId) => {
@@ -359,122 +338,21 @@ export default function App() {
         setInspectorTab("run");
       }}
       onRunShell={runShell}
+      onGoalChange={setGoal}
+      onPickContextFiles={pickContextFiles}
+      onPickContextFolder={pickContextDirectory}
+      onRemoveContextPath={removeContextPath}
+      onApproveGate={approveGate}
+      onLoadOlderMessages={loadOlderMessages}
+      onJumpToLatest={jumpToLatestMessages}
+      onCancelAgent={() => void cancelAgent()}
+      onRetry={() => void retryCurrent()}
+      onStartAgent={() => void startAgent()}
+      onSubmit={submitTask}
+      onKeyDown={onComposerKeyDown}
+      onSendReviewInstruction={sendReviewInstruction}
+      onCleanupWorktree={(force) => void cleanupCurrentWorktree(force)}
     />
-  ) : undefined;
-
-  return (
-    <>
-      <AppShell
-        sidebar={sidebar}
-        sidebarOpen={sidebarOpen}
-        inspectorOpen={inspectorOpen && (route.kind === "thread" || route.kind === "new-task")}
-        inspector={inspector}
-        closeLabel={t.close}
-        onCloseSidebar={() => setSidebarOpen(false)}
-      >
-        <WorkspaceTopbar
-          route={route}
-          current={current}
-          workspace={state.workspace}
-          runtime={currentRuntime}
-          running={running}
-          busy={busy}
-          inspectorOpen={inspectorOpen}
-          labels={t}
-          onOpenSidebar={() => setSidebarOpen(true)}
-          onBackToWorkspace={() => {
-            setRoute(route.kind === "extensions" && current
-              ? { kind: "thread", sessionId: current.id }
-              : { kind: "new-task" });
-          }}
-          onOpenReview={() => {
-            if (!current) return;
-            setRoute({ kind: "review", sessionId: current.id });
-            setInspectorOpen(false);
-          }}
-          onOpenThread={() => {
-            if (current) setRoute({ kind: "thread", sessionId: current.id });
-          }}
-          onCleanupWorktree={() => setCleanupWorktreeOpen(true)}
-          onCancelAgent={() => void cancelAgent()}
-          onStartAgent={() => void startAgent()}
-          onToggleInspector={() => setInspectorOpen((open) => !open)}
-        />
-
-        <WorkspaceRouteContent
-          route={route}
-          current={current}
-          runtime={currentRuntime}
-          locale={locale}
-          labels={t}
-          workspace={state.workspace}
-          recentProjects={recentProjects}
-          catalog={catalog}
-          modelRef={modelRef}
-          configuredModels={configuredModels}
-          contextPaths={contextPaths}
-          policy={policy}
-          runtimeKind={runtimeKind}
-          goal={goal}
-          busy={busy}
-          messages={messages}
-          messageAtLatest={messageAtLatest}
-          messageLoadingOlder={messageLoadingOlder}
-          running={running}
-          workflowSummary={workflowSummary}
-          subagents={subagents}
-          textareaRef={composerRef}
-          onCatalogChange={setCatalog}
-          onModelChange={setModelRef}
-          onError={setError}
-          onGoalChange={setGoal}
-          onPickContextFiles={pickContextFiles}
-          onPickContextFolder={pickContextDirectory}
-          onRemoveContextPath={removeContextPath}
-          onPolicyChange={setPolicy}
-          onRuntimeChange={setRuntimeKind}
-          onPickWorkspace={pickWorkspace}
-          onOpenWorkspace={openWorkspace}
-          onOpenProviders={() => {
-            setRoute({ kind: "providers" });
-            setInspectorOpen(false);
-          }}
-          onApproveGate={approveGate}
-          onLoadOlderMessages={loadOlderMessages}
-          onJumpToLatest={jumpToLatestMessages}
-          onCancel={cancelAgent}
-          onRetry={() => void retryCurrent()}
-          onSubmit={submitTask}
-          onKeyDown={onComposerKeyDown}
-          onSendReviewInstruction={sendReviewInstruction}
-        />
-      </AppShell>
-
-      <Dialog
-        open={cleanupWorktreeOpen}
-        title={t.cleanupWorktreeTitle}
-        description={t.cleanupWorktreeBody}
-        onOpenChange={setCleanupWorktreeOpen}
-        footer={
-          <>
-            <Button onClick={() => setCleanupWorktreeOpen(false)}>{t.cancel}</Button>
-            <Button disabled={busy} onClick={() => void cleanupCurrentWorktree(false)}>
-              {t.cleanupWorktree}
-            </Button>
-            <Button variant="danger" disabled={busy} onClick={() => void cleanupCurrentWorktree(true)}>
-              {t.forceCleanupWorktree}
-            </Button>
-          </>
-        }
-      />
-
-      {error && (
-        <div className="error-toast" role="alert">
-          <strong>{t.error}</strong>
-          <span>{error}</span>
-          <button onClick={() => setError("")} aria-label={t.close}><X size={14} strokeWidth={1.7} aria-hidden /></button>
-        </div>
-      )}
-    </>
   );
+
 }
