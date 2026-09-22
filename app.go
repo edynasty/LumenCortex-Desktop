@@ -296,3 +296,36 @@ func (a *App) StopLSP(sessionID string) error {
 func (a *App) GetLSPStatus(sessionID string) (backend.LSPStatus, error) {
 	return a.backend.LSPStatus(context.Background(), sessionID)
 }
+
+
+func (a *App) GetMCPConfigs() ([]backend.MCPConfig, error) {
+	return a.backend.MCPConfigs()
+}
+
+func (a *App) SaveMCPConfig(config backend.MCPConfig) error {
+	return a.backend.MCPUpsertConfig(config)
+}
+
+func (a *App) DeleteMCPConfig(id string) error {
+	return a.backend.MCPDeleteConfig(id)
+}
+
+func (a *App) StartMCP(sessionID, serverID string) (backend.MCPStatus, error) {
+	return a.backend.MCPStart(context.Background(), sessionID, serverID)
+}
+
+func (a *App) StopMCP(sessionID, serverID string) error {
+	return a.backend.MCPStop(context.Background(), sessionID, serverID)
+}
+
+func (a *App) GetMCPStatuses(sessionID string) ([]backend.MCPStatus, error) {
+	return a.backend.MCPStatuses(context.Background(), sessionID)
+}
+
+func (a *App) GetMCPTools(sessionID string) ([]backend.MCPAgentTool, error) {
+	return a.backend.MCPTools(context.Background(), sessionID)
+}
+
+func (a *App) RefreshMCPTools(sessionID, serverID string) error {
+	return a.backend.MCPRefreshTools(context.Background(), sessionID, serverID)
+}
