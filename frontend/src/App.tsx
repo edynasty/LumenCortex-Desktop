@@ -281,7 +281,7 @@ export default function App() {
     setWorkspaceState: setState,
     setRoute,
     setGoal,
-    setContextPaths,
+    clearContextPaths,
     setRuntimeKind,
     setBusy,
     setError,
@@ -315,7 +315,7 @@ export default function App() {
   function afterWorkspaceChanged() {
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
-    setContextPaths([]);
+    clearContextPaths();
     setRuntimeKind("local");
     clearEvents();
     setInspectorOpen(false);
@@ -334,33 +334,11 @@ export default function App() {
     }
   }
 
-  function mergeContextPaths(paths: string[]) {
-    setContextPaths((current) => Array.from(new Set([...current, ...paths])).slice(0, 32));
-  }
-
-  async function pickContextFiles() {
-    if (!state.workspace) return;
-    try {
-      mergeContextPaths(await bridge.pickContextFiles());
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
-  async function pickContextDirectory() {
-    if (!state.workspace) return;
-    try {
-      mergeContextPaths(await bridge.pickContextDirectory());
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
   function newTask() {
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
     setGoal("");
-    setContextPaths([]);
+    clearContextPaths();
     setRuntimeKind("local");
     setInspectorOpen(false);
     setSidebarOpen(false);
@@ -838,7 +816,7 @@ export default function App() {
             onModelChange={setModelRef}
             onPickContextFiles={pickContextFiles}
             onPickContextFolder={pickContextDirectory}
-            onRemoveContextPath={(path) => setContextPaths((current) => current.filter((item) => item !== path))}
+            onRemoveContextPath={removeContextPath}
             onPolicyChange={setPolicy}
             onRuntimeChange={setRuntimeKind}
             onPickWorkspace={pickWorkspace}
