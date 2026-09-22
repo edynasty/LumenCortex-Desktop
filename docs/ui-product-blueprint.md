@@ -731,12 +731,12 @@ Priority: **P0**
   - completed
 - [x] **UI-03.5 Add active/running indicators**
 - [x] **UI-03.6 Add thread search**
-- [ ] **UI-03.7 Add thread rename**
-- [ ] **UI-03.8 Add thread delete/archive when backend semantics are defined**
-- [ ] **UI-03.9 Add pinned threads**
-- [ ] **UI-03.10 Add compact project/thread context menu**
-- [ ] **UI-03.11 Add unread/attention state for approval/error**
-- [ ] **UI-03.12 Keep sidebar list bounded/virtualized for large histories**
+- [x] **UI-03.7 Add thread rename**
+- [x] **UI-03.8 Add thread delete/archive when backend semantics are defined**
+- [x] **UI-03.9 Add pinned threads**
+- [x] **UI-03.10 Add compact project/thread context menu**
+- [x] **UI-03.11 Add unread/attention state for approval/error**
+- [x] **UI-03.12 Keep sidebar list bounded/virtualized for large histories**
 
 Acceptance:
 - Parallel work is understandable at a glance.
