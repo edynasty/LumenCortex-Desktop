@@ -916,7 +916,7 @@ Priority: **P1**
 - [x] **CORE-04.4 Aggregate child events**
 - [x] **CORE-04.5 Move Desktop active-run map into Core supervisor**
 - [x] **CORE-04.6 Recover stale `running` sessions as interrupted**
-- [ ] **CORE-04.7 Add resumable checkpoints where useful**
+- [x] **CORE-04.7 Add resumable checkpoints where useful**
 - [x] **CORE-04.8 Add Desktop subagent tree/status UI**
 
 ---
