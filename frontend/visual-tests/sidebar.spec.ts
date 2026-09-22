@@ -10,6 +10,7 @@ for (const width of [820, 560] as const) {
     const sidebar = page.locator(".sidebar");
     await trigger.click();
     await expect(sidebar).toHaveClass(/open/);
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
 
     // Force focus back to the obscured background trigger to prove the modal
     // keyboard trap actively pulls the next Tab into the open sidebar.
