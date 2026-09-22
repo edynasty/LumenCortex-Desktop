@@ -1,9 +1,34 @@
 import type { ChangeEvent } from "react";
 import type { Health, LSPDiagnostic, LSPStatus, SessionCheckpoint, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
-import { LSPSettingsPanel } from "./LSPSettingsPanel";
+import { LSPSettingsPanel, type LSPSettingsLabels } from "./LSPSettingsPanel";
 import { SubagentTreePanel } from "./SubagentTreePanel";
 import type { InspectorPolicy } from "./Inspector";
+
+type RunSettingsLabels = LSPSettingsLabels & {
+  provider: string;
+  modelSelect: string;
+  noModels: string;
+  providerConfig: string;
+  envFallback: string;
+  run: string;
+  policy: string;
+  readOnly: string;
+  workspace: string;
+  full: string;
+  maxSteps: string;
+  runtime: string;
+  workingMemory: string;
+  softBudget: string;
+  hardBudget: string;
+  maxAgents: string;
+  subagents: string;
+  noSubagents: string;
+  subagentActive: string;
+  subagentCompleted: string;
+  subagentInterrupted: string;
+  subagentCheckpoint: string;
+};
 
 type Props = {
   modelRef: string;
@@ -23,7 +48,7 @@ type Props = {
   workspaceOpen: boolean;
   selectedSessionId: string;
   busy: boolean;
-  labels: Record<string, string>;
+  labels: RunSettingsLabels;
   onModelChange: (value: string) => void;
   onOpenProviders: () => void;
   onPolicyChange: (value: InspectorPolicy) => void;
