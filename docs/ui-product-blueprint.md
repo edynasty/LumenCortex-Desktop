@@ -956,7 +956,7 @@ For every significant UI slice:
 - [x] **QA-01.7 Accessible labels for icon-only controls**
 - [x] **QA-01.8 Chinese copy**
 - [x] **QA-01.9 English copy**
-- [ ] **QA-01.10 Frontend production build**
+- [x] **QA-01.10 Frontend production build**
 - [x] **QA-01.11 Backend tests/vet when bridge/backend changes**
 - [ ] **QA-01.12 macOS universal Wails build when integration changes**
 - [x] **QA-01.13 Verify no secret persistence**
