@@ -12,6 +12,7 @@ import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { ApprovalCard } from "./ApprovalCard";
 import { Markdown } from "./Markdown";
 import { MessageItem } from "./MessageItem";
+import { ThreadProgress } from "./ThreadProgress";
 
 type Props = {
   session: Session;
@@ -29,6 +30,7 @@ type Props = {
   goal: string;
   busy: boolean;
   workflowSummary?: WorkflowSummary | null;
+  activeSubagents: number;
   textareaRef: Ref<HTMLTextAreaElement>;
   labels: {
     newTask: string;
@@ -51,6 +53,10 @@ type Props = {
     historyWindow: string;
     localRuntime: string;
     worktreeRuntime: string;
+    plan: string;
+    planRunning: string;
+    planWaiting: string;
+    planSubagents: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -78,6 +84,7 @@ export function ThreadWorkspace({
   goal,
   busy,
   workflowSummary,
+  activeSubagents,
   textareaRef,
   labels,
   onGoalChange,
@@ -130,6 +137,19 @@ export function ThreadWorkspace({
               </div>
             </div>
           </section>
+
+          <ThreadProgress
+            running={running}
+            status={session.status}
+            workflow={workflowSummary}
+            activeSubagents={activeSubagents}
+            labels={{
+              plan: labels.plan,
+              running: labels.planRunning,
+              waiting: labels.planWaiting,
+              subagents: labels.planSubagents,
+            }}
+          />
 
           <section className="message-list">
             {(hasOlderMessages || historicalMessages) && (
