@@ -26,6 +26,7 @@ import type {
   SessionUIPatch,
   ShellResult,
   SubagentNode,
+  ToolPermissions,
   SessionCheckpoint,
   WorkspaceState,
   WorkflowSummary,
@@ -103,6 +104,8 @@ type AppAPI = {
   SaveSkill(scope: SkillScope, id: string, content: string): Promise<void>;
   DeleteSkill(scope: SkillScope, id: string): Promise<void>;
   SetSkillEnabled(scope: SkillScope, id: string, enabled: boolean): Promise<void>;
+  GetToolPermissions(): Promise<ToolPermissions>;
+  SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
 };
 
 declare global {
@@ -190,6 +193,8 @@ export const bridge = {
   saveSkill: (scope: SkillScope, id: string, content: string) => api().SaveSkill(scope, id, content),
   deleteSkill: (scope: SkillScope, id: string) => api().DeleteSkill(scope, id),
   setSkillEnabled: (scope: SkillScope, id: string, enabled: boolean) => api().SetSkillEnabled(scope, id, enabled),
+  toolPermissions: () => api().GetToolPermissions(),
+  saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit)
 };
