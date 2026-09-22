@@ -82,7 +82,7 @@
 .recent-projects > span {
   padding: 3px 7px;
   color: var(--faint);
-  font-size: 8.5px;
+  font-size: 9.5px;
 }
 
 .recent-projects button {
@@ -145,7 +145,7 @@
   color: var(--faint);
 }
 .project-copy small, .project-copy strong { display: block; }
-.project-copy small { margin-bottom: 3px; color: var(--muted); font-size: 9px; }
+.project-copy small { margin-bottom: 3px; color: var(--muted); font-size: 9.5px; }
 .project-copy strong {
   overflow: hidden;
   font-size: 11.5px;
@@ -160,7 +160,7 @@
   justify-content: space-between;
   padding: 14px 9px 5px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 560;
 }
 .sidebar-section-summary {
@@ -175,7 +175,7 @@
   justify-content: space-between;
   padding: 5px 9px 4px;
   color: var(--faint);
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 560;
 }
 .thread-list { min-height: 0; flex: 1; overflow-y: auto; padding-right: 1px; }
@@ -238,7 +238,7 @@
   color: var(--muted);
   font-size: 9.5px;
 }
-.runtime-line code { color: var(--faint); font: 8.5px var(--mono); }
+.runtime-line code { color: var(--faint); font: 9px var(--mono); }
 .runtime-dot { width: 5px; height: 5px; border-radius: 50%; background: #b8b8b2; }
 .runtime-dot.ready { background: #9a9a94; }
 .runtime-dot.online { background: var(--green); }
