@@ -182,6 +182,11 @@ export const bridge = {
   mcpStatuses: (sessionId: string) => api().GetMCPStatuses(sessionId),
   mcpTools: (sessionId: string) => api().GetMCPTools(sessionId),
   refreshMCPTools: (sessionId: string, serverId: string) => api().RefreshMCPTools(sessionId, serverId),
+  skills: (scope: SkillScope) => api().GetSkills(scope),
+  skillContent: (scope: SkillScope, id: string) => api().GetSkillContent(scope, id),
+  saveSkill: (scope: SkillScope, id: string, content: string) => api().SaveSkill(scope, id, content),
+  deleteSkill: (scope: SkillScope, id: string) => api().DeleteSkill(scope, id),
+  setSkillEnabled: (scope: SkillScope, id: string, enabled: boolean) => api().SetSkillEnabled(scope, id, enabled),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit)
 };
