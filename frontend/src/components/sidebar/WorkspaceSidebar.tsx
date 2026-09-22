@@ -1,4 +1,5 @@
 import type { AppCopy } from "../../lib/i18n/app-copy";
+import type { ThemePreference } from "../../lib/theme";
 import { Sidebar, type SidebarGroup } from "./Sidebar";
 
 type RuntimeState = "ready" | "online" | "offline";
@@ -14,6 +15,7 @@ type Props = {
   runtimeState: RuntimeState;
   runtimeVersion?: string;
   labels: AppCopy;
+  themePreference: ThemePreference;
   onClose: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
@@ -25,6 +27,7 @@ type Props = {
   onOpenProviders: () => void;
   onOpenExtensions: () => void;
   onSwitchLocale: () => void;
+  onThemePreferenceChange: (theme: ThemePreference) => void;
 };
 
 function basename(path: string) {
@@ -42,6 +45,7 @@ export function WorkspaceSidebar({
   runtimeState,
   runtimeVersion,
   labels,
+  themePreference,
   onClose,
   onNewTask,
   onPickWorkspace,
@@ -53,6 +57,7 @@ export function WorkspaceSidebar({
   onOpenProviders,
   onOpenExtensions,
   onSwitchLocale,
+  onThemePreferenceChange,
 }: Props) {
   return (
     <Sidebar
@@ -78,6 +83,10 @@ export function WorkspaceSidebar({
         providerSettings: labels.providerSettings,
         extensions: labels.extensions,
         language: labels.language,
+        theme: labels.theme,
+        themeSystem: labels.themeSystem,
+        themeLight: labels.themeLight,
+        themeDark: labels.themeDark,
         runtimeReady: labels.runtimeReady,
         runtimeOnline: labels.runtimeOnline,
         runtimeOffline: labels.runtimeOffline,
@@ -102,7 +111,9 @@ export function WorkspaceSidebar({
       onArchiveSession={onArchiveSession}
       onOpenProviders={onOpenProviders}
       onOpenExtensions={onOpenExtensions}
+      themePreference={themePreference}
       onSwitchLocale={onSwitchLocale}
+      onThemePreferenceChange={onThemePreferenceChange}
     />
   );
 }
