@@ -427,3 +427,57 @@
   font-size: 8.5px;
   font-weight: 500;
 }
+
+
+.mcp-scope-bar {
+  max-width: 900px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 0 auto 12px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+
+.mcp-scope-bar button {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mcp-scope-bar button:hover {
+  color: var(--text-soft);
+}
+
+.mcp-scope-bar button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.mcp-scope-bar span {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.mcp-scope-bar small {
+  overflow: hidden;
+  font-size: 7.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .mcp-scope-bar {
+    grid-template-columns: 1fr;
+  }
+}
