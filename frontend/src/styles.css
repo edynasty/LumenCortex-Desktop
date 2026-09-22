@@ -1505,3 +1505,90 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+
+.thread-progress {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+
+.thread-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.thread-progress-head > span,
+.thread-progress-state,
+.thread-progress-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.thread-progress-head strong {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.thread-progress-state {
+  color: var(--blue);
+  font-size: 8px;
+}
+
+.thread-progress.waiting .thread-progress-state {
+  color: var(--amber);
+}
+
+.thread-progress-action {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-progress-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.thread-progress-bar {
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-active);
+}
+
+.thread-progress-bar span {
+  width: 38%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--blue);
+  animation: thread-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes thread-progress-slide {
+  from { transform: translateX(-110%); }
+  55% { transform: translateX(140%); }
+  to { transform: translateX(270%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thread-progress-bar span {
+    width: 100%;
+    animation: none;
+    opacity: .65;
+  }
+}
