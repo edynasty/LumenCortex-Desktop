@@ -17,7 +17,7 @@ type Options = {
   setWorkspaceState: Dispatch<SetStateAction<WorkspaceState>>;
   setRoute: Dispatch<SetStateAction<WorkspaceRoute>>;
   setGoal: Dispatch<SetStateAction<string>>;
-  setContextPaths: Dispatch<SetStateAction<string[]>>;
+  clearContextPaths: () => void;
   setRuntimeKind: Dispatch<SetStateAction<RuntimeKind>>;
   setBusy: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
@@ -41,7 +41,7 @@ export function useAgentActions({
   setWorkspaceState,
   setRoute,
   setGoal,
-  setContextPaths,
+  clearContextPaths,
   setRuntimeKind,
   setBusy,
   setError,
@@ -101,7 +101,7 @@ export function useAgentActions({
       setRoute({ kind: "thread", sessionId: session.id });
       resetSessionRuntime();
       setGoal("");
-      setContextPaths([]);
+      clearContextPaths();
       setRuntimeKind("local");
 
       try {
