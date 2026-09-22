@@ -1,3 +1,17 @@
+export type SkillScope = "global" | "project" | "effective";
+
+export type Skill = {
+  id: string;
+  name: string;
+  description?: string;
+  scope: "global" | "project";
+  path: string;
+  enabled: boolean;
+  overridden?: boolean;
+  bytes?: number;
+  error?: string;
+};
+
 export type MCPProtocolMode = "legacy" | "modern";
 export type MCPConfigScope = "global" | "project" | "effective";
 
