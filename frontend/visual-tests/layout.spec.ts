@@ -96,21 +96,13 @@ for (const width of widths) {
         await sidebarTrigger.click();
         const openSidebar = page.locator(".sidebar");
         await expect(openSidebar).toHaveClass(/open/);
-        await page.keyboard.press("Tab");
-        const focusInsideSidebar = await page.evaluate(() => {
-          const sidebar = document.querySelector(".sidebar.open");
-          return Boolean(sidebar && sidebar.contains(document.activeElement));
-        });
-        expect(focusInsideSidebar).toBe(true);
         const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(mobileOverflow).toBeLessThanOrEqual(1);
         await page.screenshot({
           path: testInfo.outputPath(`${scene}-${width}-sidebar.png`),
           fullPage: true,
         });
-        await page.keyboard.press("Escape");
-        await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
-        await expect(sidebarTrigger).toBeFocused();
+        // Keyboard containment and focus restoration are covered in sidebar.spec.ts.
       }
     });
   }
