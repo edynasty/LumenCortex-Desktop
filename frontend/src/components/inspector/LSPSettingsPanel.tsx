@@ -2,7 +2,7 @@ import type { ChangeEvent } from "react";
 import { ServerCog } from "lucide-react";
 import type { LSPDiagnostic, LSPStatus } from "../../types";
 
-type Labels = {
+export type LSPSettingsLabels = {
   lsp: string;
   lspCommand: string;
   lspArgs: string;
@@ -33,7 +33,7 @@ type Props = {
   diagnostics: LSPDiagnostic[];
   busy: boolean;
   workspaceOpen: boolean;
-  labels: Labels;
+  labels: LSPSettingsLabels;
   onCommandChange: (value: string) => void;
   onArgsChange: (value: string) => void;
   onLanguageChange: (value: string) => void;
