@@ -9,6 +9,7 @@ type Props = {
   triggerClassName?: string;
   contentClassName?: string;
   disabled?: boolean;
+  placement?: "top" | "bottom";
   triggerRef?: RefObject<HTMLButtonElement | null>;
   onTriggerKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 };
@@ -22,6 +23,7 @@ export function Popover({
   triggerClassName = "",
   contentClassName = "",
   disabled = false,
+  placement = "top",
   triggerRef,
   onTriggerKeyDown,
 }: Props) {
@@ -69,7 +71,7 @@ export function Popover({
         {trigger}
       </button>
       {open && (
-        <div className={`desktop-popover-content ${contentClassName}`} role="presentation">
+        <div className={`desktop-popover-content place-${placement} ${contentClassName}`} role="presentation">
           {children}
         </div>
       )}
