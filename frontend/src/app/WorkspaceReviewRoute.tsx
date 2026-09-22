@@ -47,6 +47,7 @@ export function WorkspaceReviewRoute({
         commitPlaceholder: labels.commitPlaceholder,
         push: labels.push,
         truncated: labels.diffTruncated,
+        loadMoreDiff: labels.loadMoreDiff,
         loading: labels.loading,
         binaryDiff: labels.binaryDiff,
         reviewInstruction: labels.reviewInstruction,
