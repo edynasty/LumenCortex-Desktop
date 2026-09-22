@@ -839,7 +839,7 @@ Priority: **P1**
 - [ ] **UI-07.3 MCP server management UI**
 - [ ] **UI-07.4 MCP tools list/status**
 - [ ] **UI-07.5 Plugin/tool permission management**
-- [ ] **UI-07.6 LSP server status**
+- [x] **UI-07.6 LSP server status**
 - [ ] **UI-07.7 Language capability diagnostics**
 - [ ] **UI-07.8 Per-project extension overrides**
 - [ ] **UI-07.9 Enable/disable extension controls**
@@ -875,18 +875,18 @@ Dependency:
 
 Priority: **P1**
 
-- [ ] **CORE-02.1 Managed language-server process**
-- [ ] **CORE-02.2 JSON-RPC stdio client**
-- [ ] **CORE-02.3 Cancellation**
-- [ ] **CORE-02.4 bounded request map**
-- [ ] **CORE-02.5 hover**
-- [ ] **CORE-02.6 definition**
-- [ ] **CORE-02.7 references**
-- [ ] **CORE-02.8 document/workspace symbols**
-- [ ] **CORE-02.9 diagnostics**
-- [ ] **CORE-02.10 rename**
-- [ ] **CORE-02.11 expose LSP tools to Agent**
-- [ ] **CORE-02.12 Desktop LSP status UI**
+- [x] **CORE-02.1 Managed language-server process**
+- [x] **CORE-02.2 JSON-RPC stdio client**
+- [x] **CORE-02.3 Cancellation**
+- [x] **CORE-02.4 bounded request map**
+- [x] **CORE-02.5 hover**
+- [x] **CORE-02.6 definition**
+- [x] **CORE-02.7 references**
+- [x] **CORE-02.8 document/workspace symbols**
+- [x] **CORE-02.9 diagnostics**
+- [x] **CORE-02.10 rename**
+- [x] **CORE-02.11 expose LSP tools to Agent**
+- [x] **CORE-02.12 Desktop LSP status UI**
 
 ---
 
