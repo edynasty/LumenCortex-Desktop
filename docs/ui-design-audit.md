@@ -333,14 +333,16 @@ Status:
 Status:
 - **Fixed**.
 
-### P1-16 — Drawer keyboard/focus behavior is incomplete
+### P1-16 — Drawer keyboard/focus behavior
 
-Missing:
-- Escape closes active drawer,
-- focus trap for modal drawer states,
-- focus restore to trigger.
+Status: **Fixed**.
 
-Required before calling responsive drawer behavior complete.
+Implemented:
+- Escape closes active Sidebar/Drawer overlays,
+- modal drawer focus remains trapped inside the active surface,
+- opening moves focus into the overlay,
+- closing restores focus to the original trigger,
+- StrictMode-safe focus restoration prevents stale cleanup work from stealing focus.
 
 ### P1-17 — Composer textarea should have an explicit accessible name
 
