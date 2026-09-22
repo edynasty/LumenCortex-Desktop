@@ -834,16 +834,16 @@ Acceptance:
 
 Priority: **P1**
 
-- [ ] **UI-07.1 Add Extensions/settings navigation**
+- [x] **UI-07.1 Add Extensions/settings navigation**
 - [ ] **UI-07.2 Skills management UI**
-- [ ] **UI-07.3 MCP server management UI**
-- [ ] **UI-07.4 MCP tools list/status**
+- [x] **UI-07.3 MCP server management UI**
+- [x] **UI-07.4 MCP tools list/status**
 - [ ] **UI-07.5 Plugin/tool permission management**
 - [x] **UI-07.6 LSP server status**
 - [ ] **UI-07.7 Language capability diagnostics**
 - [ ] **UI-07.8 Per-project extension overrides**
-- [ ] **UI-07.9 Enable/disable extension controls**
-- [ ] **UI-07.10 Surface extension failures without blocking unrelated work**
+- [x] **UI-07.9 Enable/disable extension controls**
+- [x] **UI-07.10 Surface extension failures without blocking unrelated work**
 
 Acceptance:
 - Extensions are managed graphically.
@@ -894,14 +894,14 @@ Priority: **P1**
 
 Priority: **P1**
 
-- [ ] **CORE-03.1 MCP stdio transport**
-- [ ] **CORE-03.2 tool discovery**
-- [ ] **CORE-03.3 tool invocation**
-- [ ] **CORE-03.4 bounded output**
-- [ ] **CORE-03.5 cancellation**
-- [ ] **CORE-03.6 merge MCP tools into Agent registry**
-- [ ] **CORE-03.7 persistence/configuration model**
-- [ ] **CORE-03.8 Desktop MCP management UI**
+- [x] **CORE-03.1 MCP stdio transport**
+- [x] **CORE-03.2 tool discovery**
+- [x] **CORE-03.3 tool invocation**
+- [x] **CORE-03.4 bounded output**
+- [x] **CORE-03.5 cancellation**
+- [x] **CORE-03.6 merge MCP tools into Agent registry**
+- [x] **CORE-03.7 persistence/configuration model**
+- [x] **CORE-03.8 Desktop MCP management UI**
 - [ ] **CORE-03.9 HTTP transport if needed**
 
 ---
