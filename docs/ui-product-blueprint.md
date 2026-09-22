@@ -959,8 +959,8 @@ For every significant UI slice:
 - [ ] **QA-01.10 Frontend production build**
 - [x] **QA-01.11 Backend tests/vet when bridge/backend changes**
 - [ ] **QA-01.12 macOS universal Wails build when integration changes**
-- [ ] **QA-01.13 Verify no secret persistence**
-- [ ] **QA-01.14 Verify no new unbounded frontend collection**
+- [x] **QA-01.13 Verify no secret persistence**
+- [x] **QA-01.14 Verify no new unbounded frontend collection**
 
 ---
 
