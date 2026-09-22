@@ -84,6 +84,8 @@ export default function App() {
     loadOlder: loadOlderMessages,
     jumpToLatest: jumpToLatestMessages,
     handleRuntimeEvent: handleSessionRuntimeEvent,
+    reset: resetSessionRuntime,
+    replaceWorkflowSummary,
   } = useSessionRuntimeState({
     selectedSessionId: selected,
     setWorkspaceState: setState,
@@ -114,7 +116,7 @@ export default function App() {
   });
 
 
-  const events = useRuntimeEvents({
+  const { events, clearEvents } = useRuntimeEvents({
     selectedSessionId: selected,
     setWorkspaceState: setState,
     refreshLSPStatus,
@@ -270,12 +272,10 @@ export default function App() {
       const next = await bridge.pickWorkspace();
       setState(next);
       setRoute({ kind: "new-task" });
-      setMessages([]);
-      setMessageAtLatest(true);
-      setWorkflowSummary(null);
+      resetSessionRuntime();
       setContextPaths([]);
       setRuntimeKind("local");
-      setEvents([]);
+      clearEvents();
       setSidebarOpen(false);
     } catch (err) {
       setError(String(err));
@@ -288,10 +288,8 @@ export default function App() {
       const next = await bridge.openWorkspace(path);
       setState(next);
       setRoute({ kind: "new-task" });
-      setMessages([]);
-      setMessageAtLatest(true);
-      setWorkflowSummary(null);
-      setEvents([]);
+      resetSessionRuntime();
+      clearEvents();
       setSidebarOpen(false);
     } catch (err) {
       setError(String(err));
@@ -370,9 +368,7 @@ export default function App() {
         sessions: [session, ...currentState.sessions.filter((item) => item.id !== session.id)]
       }));
       setRoute({ kind: "thread", sessionId: session.id });
-      setMessages([]);
-      setMessageAtLatest(true);
-      setWorkflowSummary(null);
+      resetSessionRuntime();
       setGoal("");
       setContextPaths([]);
       setRuntimeKind("local");
@@ -415,7 +411,7 @@ export default function App() {
     setError("");
     try {
       const summary = await bridge.approveWorkflowGate(selected, gateId);
-      setWorkflowSummary(summary);
+      replaceWorkflowSummary(summary);
       await refreshCurrent(selected);
 
       const stillWaiting = (summary.pendingGates || []).some((gate) => gate.type === "human");
@@ -517,9 +513,7 @@ export default function App() {
       }));
       if (patch.archived === true && selected === sessionId) {
         setRoute({ kind: "new-task" });
-        setMessages([]);
-        setMessageAtLatest(true);
-        setWorkflowSummary(null);
+        resetSessionRuntime();
       }
     } catch (err) {
       setError(String(err));
@@ -528,8 +522,7 @@ export default function App() {
 
   function newTask() {
     setRoute({ kind: "new-task" });
-    setMessages([]);
-    setWorkflowSummary(null);
+    resetSessionRuntime();
     setGoal("");
     setContextPaths([]);
     setRuntimeKind("local");
