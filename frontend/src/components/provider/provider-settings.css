@@ -24,8 +24,8 @@
 }
 
 .provider-settings-header p {
-  max-width: 620px;
-  margin: 5px 0 0;
+  max-width: 720px;
+  margin: 0;
   color: var(--muted);
   font-size: 9.5px;
   line-height: 1.55;
