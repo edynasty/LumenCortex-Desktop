@@ -1,4 +1,5 @@
 import {
+  Blocks,
   ChevronRight,
   Folder,
   Languages,
@@ -37,6 +38,7 @@ type Props = {
   recentProjects: string[];
   selectedSessionId: string;
   providerActive: boolean;
+  extensionsActive: boolean;
   runtimeState: RuntimeState;
   runtimeVersion?: string;
   labels: {
@@ -49,6 +51,7 @@ type Props = {
     threadSearch: string;
     recentProjects: string;
     providerSettings: string;
+    extensions: string;
     language: string;
     runtimeReady: string;
     runtimeOnline: string;
@@ -73,6 +76,7 @@ type Props = {
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
   onOpenProviders: () => void;
+  onOpenExtensions: () => void;
   onSwitchLocale: () => void;
 };
 
@@ -84,6 +88,7 @@ export function Sidebar({
   recentProjects,
   selectedSessionId,
   providerActive,
+  extensionsActive,
   runtimeState,
   runtimeVersion,
   labels,
@@ -96,6 +101,7 @@ export function Sidebar({
   onPinSession,
   onArchiveSession,
   onOpenProviders,
+  onOpenExtensions,
   onSwitchLocale,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -230,6 +236,13 @@ export function Sidebar({
         >
           <Settings2 size={14} strokeWidth={1.7} aria-hidden />
           <span>{labels.providerSettings}</span>
+        </button>
+        <button
+          className={`footer-button ${extensionsActive ? "active" : ""}`}
+          onClick={onOpenExtensions}
+        >
+          <Blocks size={14} strokeWidth={1.7} aria-hidden />
+          <span>{labels.extensions}</span>
         </button>
         <button className="footer-button" onClick={onSwitchLocale}>
           <Languages size={14} strokeWidth={1.7} aria-hidden />
