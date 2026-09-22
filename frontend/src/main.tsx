@@ -5,6 +5,7 @@ import "./styles/tokens.css";
 import "./styles/global.css";
 import "./components/primitives/primitives.css";
 import "./styles.css";
+import "./components/inspector/inspector.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
