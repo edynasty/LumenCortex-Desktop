@@ -19,6 +19,8 @@ import type {
   ProviderCatalogScope,
   RuntimeEvent,
   Session,
+  Skill,
+  SkillScope,
   SessionRuntime,
   SessionUIPatch,
   ShellResult,
@@ -94,6 +96,11 @@ type AppAPI = {
   GetSubagentTree(parentSessionId: string): Promise<SubagentNode[]>;
   GetSessionCheckpoints(sessionId: string, limit: number): Promise<SessionCheckpoint[]>;
   RefreshMCPTools(sessionId: string, serverId: string): Promise<void>;
+  GetSkills(scope: SkillScope): Promise<Skill[]>;
+  GetSkillContent(scope: SkillScope, id: string): Promise<string>;
+  SaveSkill(scope: SkillScope, id: string, content: string): Promise<void>;
+  DeleteSkill(scope: SkillScope, id: string): Promise<void>;
+  SetSkillEnabled(scope: SkillScope, id: string, enabled: boolean): Promise<void>;
 };
 
 declare global {
