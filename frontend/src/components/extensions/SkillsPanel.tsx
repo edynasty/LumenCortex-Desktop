@@ -180,6 +180,7 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
         open={deleteOpen}
         title={labels.deleteTitle}
         description={labels.deleteBody}
+        closeLabel={labels.cancel}
         onOpenChange={setDeleteOpen}
         footer={
           <>
