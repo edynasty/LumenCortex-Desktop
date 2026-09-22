@@ -1444,3 +1444,64 @@
   color: var(--faint);
   font: 7.5px var(--mono);
 }
+
+
+.milestone-list {
+  display: grid;
+  padding: 4px 6px 12px;
+}
+
+.milestone-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.milestone-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.milestone-item.active .milestone-icon { color: var(--blue); }
+.milestone-item.success .milestone-icon { color: var(--green); }
+.milestone-item.warning .milestone-icon { color: var(--amber); }
+
+.milestone-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.milestone-copy > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.milestone-copy strong {
+  color: var(--text-soft);
+  font-size: 8.8px;
+  font-weight: 500;
+}
+
+.milestone-copy time {
+  color: var(--faint);
+  font: 7.5px var(--mono);
+}
+
+.milestone-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font: 7.8px/1.45 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
