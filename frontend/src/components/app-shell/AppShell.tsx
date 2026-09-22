@@ -38,8 +38,6 @@ export function AppShell({
       );
     };
 
-    const focusFrame = requestAnimationFrame(() => focusable()[0]?.focus());
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -66,7 +64,6 @@ export function AppShell({
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKeyDown);
       previous?.focus();
     };
