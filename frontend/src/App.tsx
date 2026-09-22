@@ -25,7 +25,7 @@ import { bridge, onRuntimeEvent } from "./lib/bridge";
 import { splitCommandArgs } from "./lib/command-line";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, SessionCheckpoint, SubagentNode, WorkflowSummary, WorkspaceState } from "./types";
+import type { AgentConfig, LSPDiagnostic, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, SessionCheckpoint, SubagentNode, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MESSAGE_PAGE_SIZE = 100;
@@ -94,6 +94,8 @@ export default function App() {
     pendingRequests: 0,
     diagnostics: 0
   });
+  const [lspDiagnosticPath, setLSPDiagnosticPath] = useState("");
+  const [lspDiagnostics, setLSPDiagnostics] = useState<LSPDiagnostic[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -136,6 +138,7 @@ export default function App() {
   }, [state.workspace]);
 
   useEffect(() => {
+    setLSPDiagnostics([]);
     if (!state.workspace) {
       setLSPStatus({ running: false, pendingRequests: 0, diagnostics: 0 });
       return;
@@ -637,6 +640,21 @@ export default function App() {
     }
   }
 
+  async function refreshLSPDiagnostics() {
+    if (!state.workspace || !lspStatus.running || !lspDiagnosticPath.trim() || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const items = await bridge.lspDiagnostics(selected || "", lspDiagnosticPath.trim());
+      setLSPDiagnostics(items);
+      setLSPStatus(await bridge.lspStatus(selected || ""));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runShell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !command.trim()) return;
@@ -797,6 +815,8 @@ export default function App() {
       lspArgs={lspArgs}
       lspLanguage={lspLanguage}
       lspStatus={lspStatus}
+      lspDiagnosticPath={lspDiagnosticPath}
+      lspDiagnostics={lspDiagnostics}
       subagents={subagents}
       checkpoints={checkpoints}
       workspaceOpen={Boolean(state.workspace)}
@@ -838,6 +858,13 @@ export default function App() {
         lspPid: t.lspPid,
         lspPending: t.lspPending,
         lspDiagnostics: t.lspDiagnostics,
+        lspDiagnosticPath: t.lspDiagnosticPath,
+        lspDiagnosticRefresh: t.lspDiagnosticRefresh,
+        lspNoDiagnostics: t.lspNoDiagnostics,
+        lspSeverityError: t.lspSeverityError,
+        lspSeverityWarning: t.lspSeverityWarning,
+        lspSeverityInfo: t.lspSeverityInfo,
+        lspSeverityHint: t.lspSeverityHint,
         lspLastError: t.lspLastError,
         milestoneAgentStarted: t.milestoneAgentStarted,
         milestoneAgentStopped: t.milestoneAgentStopped,
@@ -869,6 +896,8 @@ export default function App() {
       onMaxStepsChange={setMaxSteps}
       onCommandChange={setCommand}
       onLSPCommandChange={setLSPCommand}
+      onLSPDiagnosticPathChange={setLSPDiagnosticPath}
+      onRefreshLSPDiagnostics={() => void refreshLSPDiagnostics()}
       onLSPArgsChange={setLSPArgs}
       onLSPLanguageChange={setLSPLanguage}
       onStartLSP={() => void startLSP()}
