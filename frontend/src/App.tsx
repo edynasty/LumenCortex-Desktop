@@ -26,7 +26,7 @@ import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
-import { buildSidebarGroups, providerModelOptions } from "./app/presentation-model";
+import { buildSidebarGroups, providerModelOptions, sessionStatusLabel } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
@@ -501,7 +501,7 @@ export default function App() {
                     : route.kind === "review"
                       ? (current?.goal || t.review)
                       : state.workspace
-                    ? `${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${statusLabel(current.status, running)}` : ""}`
+                    ? `${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${sessionStatusLabel(t, current.status, running)}` : ""}`
                     : t.runtimeReady}
               </span>
             </div>
@@ -774,7 +774,7 @@ export default function App() {
             historicalMessages={!messageAtLatest}
             loadingOlderMessages={messageLoadingOlder}
             running={running}
-            statusLabel={statusLabel(current.status, running)}
+            statusLabel={sessionStatusLabel(t, current.status, running)}
             workspaceName={basename(state.workspace)}
             modelRef={modelRef}
             models={modelSelectOptions}
