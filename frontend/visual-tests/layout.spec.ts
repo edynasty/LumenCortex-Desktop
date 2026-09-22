@@ -92,14 +92,19 @@ for (const width of widths) {
         const inspectorWidth = await page.locator(".inspector").evaluate((element) => element.getBoundingClientRect().width);
         expect(inspectorWidth).toBeLessThanOrEqual(width);
       } else if (width <= 820) {
-        await page.getByRole("button", { name: "Open sidebar" }).click();
+        const sidebarTrigger = page.getByRole("button", { name: "Open sidebar" });
+        await sidebarTrigger.click();
         await expect(page.locator(".sidebar")).toHaveClass(/open/);
+        await expect(page.locator(".sidebar").getByRole("button", { name: "Close" })).toBeFocused();
         const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(mobileOverflow).toBeLessThanOrEqual(1);
         await page.screenshot({
           path: testInfo.outputPath(`${scene}-${width}-sidebar.png`),
           fullPage: true,
         });
+        await page.keyboard.press("Escape");
+        await expect(page.locator(".sidebar")).not.toHaveClass(/open/);
+        await expect(sidebarTrigger).toBeFocused();
       }
     });
   }
