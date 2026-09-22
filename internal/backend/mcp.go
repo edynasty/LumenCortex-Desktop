@@ -20,24 +20,42 @@ func (r *Runtime) MCPConfigs() ([]MCPConfig, error) {
 	return engine.MCPConfigs(), nil
 }
 
+func (r *Runtime) MCPConfigsScope(scope string) ([]MCPConfig, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return nil, ErrNoWorkspace
+	}
+	return engine.MCPConfigsScope(scope)
+}
+
 func (r *Runtime) MCPUpsertConfig(cfg MCPConfig) error {
+	return r.MCPUpsertConfigScope("project", cfg)
+}
+
+func (r *Runtime) MCPUpsertConfigScope(scope string, cfg MCPConfig) error {
 	r.mu.RLock()
 	engine := r.engine
 	r.mu.RUnlock()
 	if engine == nil {
 		return ErrNoWorkspace
 	}
-	return engine.MCPUpsertConfig(cfg)
+	return engine.MCPUpsertConfigScope(scope, cfg)
 }
 
 func (r *Runtime) MCPDeleteConfig(id string) error {
+	return r.MCPDeleteConfigScope("project", id)
+}
+
+func (r *Runtime) MCPDeleteConfigScope(scope, id string) error {
 	r.mu.RLock()
 	engine := r.engine
 	r.mu.RUnlock()
 	if engine == nil {
 		return ErrNoWorkspace
 	}
-	return engine.MCPDeleteConfig(id)
+	return engine.MCPDeleteConfigScope(scope, id)
 }
 
 func (r *Runtime) MCPStart(ctx context.Context, sessionID, serverID string) (MCPStatus, error) {
