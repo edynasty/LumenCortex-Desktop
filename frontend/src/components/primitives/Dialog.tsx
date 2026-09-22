@@ -9,9 +9,10 @@ type Props = {
   children?: ReactNode;
   onOpenChange: (open: boolean) => void;
   footer?: ReactNode;
+  closeLabel?: string;
 };
 
-export function Dialog({ open, title, description, children, onOpenChange, footer }: Props) {
+export function Dialog({ open, title, description, children, onOpenChange, footer, closeLabel = "Close" }: Props) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -86,7 +87,7 @@ export function Dialog({ open, title, description, children, onOpenChange, foote
           <button
             type="button"
             className="desktop-dialog-close"
-            aria-label="Close"
+            aria-label={closeLabel}
             onClick={() => onOpenChange(false)}
           >
             <X size={15} strokeWidth={1.8} aria-hidden />
