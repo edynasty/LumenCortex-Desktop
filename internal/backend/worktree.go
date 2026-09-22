@@ -13,6 +13,8 @@ var ErrWorktreeActive = errors.New("cannot remove worktree for an active agent r
 type SessionRuntime = lcx.SessionRuntime
 type RuntimeOwner = lcx.RuntimeOwner
 type WorktreeConflict = lcx.WorktreeConflict
+type WorktreeHandoffPlan = lcx.WorktreeHandoffPlan
+type WorktreeApplyResult = lcx.WorktreeApplyResult
 
 const (
 	RuntimeLocal    = lcx.RuntimeLocal
@@ -151,4 +153,29 @@ func (r *Runtime) WorktreeConflicts(ctx context.Context) ([]WorktreeConflict, er
 		return nil, ErrNoWorkspace
 	}
 	return engine.WorktreeConflicts(ctx)
+}
+
+
+func (r *Runtime) WorktreeHandoffPlan(ctx context.Context, sessionID string) (WorktreeHandoffPlan, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return WorktreeHandoffPlan{}, ErrNoWorkspace
+	}
+	return engine.WorktreeHandoffPlan(ctx, sessionID)
+}
+
+func (r *Runtime) ApplySessionWorktree(ctx context.Context, sessionID string) (WorktreeApplyResult, error) {
+	r.mu.RLock()
+	engine := r.engine
+	supervisor := r.supervisor
+	r.mu.RUnlock()
+	if engine == nil {
+		return WorktreeApplyResult{}, ErrNoWorkspace
+	}
+	if supervisor != nil && supervisor.Active(sessionID) {
+		return WorktreeApplyResult{}, ErrWorktreeActive
+	}
+	return engine.ApplySessionWorktree(ctx, sessionID)
 }
