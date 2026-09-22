@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, type KeyboardEvent as ReactKeyboardEvent, type RefObject, useEffect, useRef } from "react";
 
 type Props = {
   open: boolean;
@@ -9,6 +9,8 @@ type Props = {
   triggerClassName?: string;
   contentClassName?: string;
   disabled?: boolean;
+  triggerRef?: RefObject<HTMLButtonElement | null>;
+  onTriggerKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 };
 
 export function Popover({
@@ -20,8 +22,12 @@ export function Popover({
   triggerClassName = "",
   contentClassName = "",
   disabled = false,
+  triggerRef,
+  onTriggerKeyDown,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const internalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const activeTriggerRef = triggerRef || internalTriggerRef;
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +41,7 @@ export function Popover({
       if (event.key === "Escape") {
         event.preventDefault();
         onOpenChange(false);
+        requestAnimationFrame(() => activeTriggerRef.current?.focus());
       }
     };
 
@@ -44,17 +51,19 @@ export function Popover({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onOpenChange]);
+  }, [activeTriggerRef, open, onOpenChange]);
 
   return (
     <div className="desktop-popover" ref={rootRef}>
       <button
+        ref={activeTriggerRef}
         type="button"
         className={triggerClassName}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled}
+        onKeyDown={onTriggerKeyDown}
         onClick={() => onOpenChange(!open)}
       >
         {trigger}
