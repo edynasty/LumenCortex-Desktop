@@ -709,7 +709,7 @@ Priority: **P0**
 - [x] **UI-02.9 Add recent project quick-pick**
 - [x] **UI-02.10 Add empty-model state linking directly to Provider settings**
 - [x] **UI-02.11 Add running/cancel state directly in Composer**
-- [ ] **UI-02.12 Verify 1440 / 1180 / 820 / 560 layouts**
+- [x] **UI-02.12 Verify 1440 / 1180 / 820 / 560 layouts**
 
 Acceptance:
 - A user can start a coding task in under 10 seconds.
@@ -937,7 +937,7 @@ Priority: **P0 / continuous**
 - [x] **ARCH-01.10 Add frontend unit/component test setup**
 - [x] **ARCH-01.11 Prevent new direct `window.go` access outside bridge**
 - [x] **ARCH-01.12 Keep live UI buffers bounded**
-- [ ] **ARCH-01.13 Add screenshot/visual-regression workflow when practical**
+- [x] **ARCH-01.13 Add screenshot/visual-regression workflow when practical**
 
 ---
 
@@ -947,13 +947,13 @@ Priority: **P0 / continuous**
 
 For every significant UI slice:
 
-- [ ] **QA-01.1 1440 px visual check**
-- [ ] **QA-01.2 1180 px visual check**
-- [ ] **QA-01.3 820 px visual check**
-- [ ] **QA-01.4 560 px visual check**
-- [ ] **QA-01.5 No horizontal overflow**
-- [ ] **QA-01.6 Keyboard navigation**
-- [ ] **QA-01.7 Accessible labels for icon-only controls**
+- [x] **QA-01.1 1440 px visual check**
+- [x] **QA-01.2 1180 px visual check**
+- [x] **QA-01.3 820 px visual check**
+- [x] **QA-01.4 560 px visual check**
+- [x] **QA-01.5 No horizontal overflow**
+- [x] **QA-01.6 Keyboard navigation**
+- [x] **QA-01.7 Accessible labels for icon-only controls**
 - [ ] **QA-01.8 Chinese copy**
 - [ ] **QA-01.9 English copy**
 - [ ] **QA-01.10 Frontend production build**
