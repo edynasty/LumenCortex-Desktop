@@ -9,6 +9,7 @@ import type { Message, Session, SessionRuntime } from "./types";
 import "./styles/tokens.css";
 import "./styles/global.css";
 import "./components/primitives/primitives.css";
+import "./components/sidebar/sidebar.css";
 import "./styles.css";
 
 const noop = () => undefined;
