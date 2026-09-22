@@ -9,6 +9,7 @@ import type {
   LSPStatus,
   MCPAgentTool,
   MCPConfig,
+  MCPConfigScope,
   MCPStatus,
   Message,
   MessagePage,
@@ -79,8 +80,11 @@ type AppAPI = {
   StopLSP(sessionId: string): Promise<void>;
   GetLSPStatus(sessionId: string): Promise<LSPStatus>;
   GetMCPConfigs(): Promise<MCPConfig[]>;
+  GetMCPConfigsScope(scope: MCPConfigScope): Promise<MCPConfig[]>;
   SaveMCPConfig(config: MCPConfig): Promise<void>;
+  SaveMCPConfigScope(scope: MCPConfigScope, config: MCPConfig): Promise<void>;
   DeleteMCPConfig(id: string): Promise<void>;
+  DeleteMCPConfigScope(scope: MCPConfigScope, id: string): Promise<void>;
   StartMCP(sessionId: string, serverId: string): Promise<MCPStatus>;
   StopMCP(sessionId: string, serverId: string): Promise<void>;
   GetMCPStatuses(sessionId: string): Promise<MCPStatus[]>;
@@ -157,8 +161,11 @@ export const bridge = {
   stopLSP: (sessionId: string) => api().StopLSP(sessionId),
   lspStatus: (sessionId: string) => api().GetLSPStatus(sessionId),
   mcpConfigs: () => api().GetMCPConfigs(),
+  mcpConfigsScope: (scope: MCPConfigScope) => api().GetMCPConfigsScope(scope),
   saveMCPConfig: (config: MCPConfig) => api().SaveMCPConfig(config),
+  saveMCPConfigScope: (scope: MCPConfigScope, config: MCPConfig) => api().SaveMCPConfigScope(scope, config),
   deleteMCPConfig: (id: string) => api().DeleteMCPConfig(id),
+  deleteMCPConfigScope: (scope: MCPConfigScope, id: string) => api().DeleteMCPConfigScope(scope, id),
   startMCP: (sessionId: string, serverId: string) => api().StartMCP(sessionId, serverId),
   stopMCP: (sessionId: string, serverId: string) => api().StopMCP(sessionId, serverId),
   mcpStatuses: (sessionId: string) => api().GetMCPStatuses(sessionId),
