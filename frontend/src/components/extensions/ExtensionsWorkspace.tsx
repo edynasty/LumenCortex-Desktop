@@ -1,4 +1,4 @@
-import { BookOpen, Plus, RefreshCw, Server, Square, Trash2 } from "lucide-react";
+import { BookOpen, Plus, RefreshCw, Server, ShieldCheck, Square, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
 import { joinCommandArgs, splitCommandArgs } from "../../lib/command-line";
@@ -9,6 +9,7 @@ import { EmptyState } from "../primitives/EmptyState";
 import { DesktopSelect } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { SkillsPanel } from "./SkillsPanel";
+import { ToolPermissionsPanel } from "./ToolPermissionsPanel";
 import "./extensions.css";
 
 type Labels = {
@@ -57,6 +58,15 @@ type Labels = {
   projectSource: string;
   mcpTab: string;
   skillsTab: string;
+  permissionsTab: string;
+  permissions: string;
+  permissionsDescription: string;
+  permissionsBuiltIn: string;
+  permissionsLanguage: string;
+  permissionsSubagents: string;
+  permissionsMCP: string;
+  permissionsOther: string;
+  permissionsEmpty: string;
   skills: string;
   skillAdd: string;
   skillEmpty: string;
@@ -98,7 +108,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
   const [argsText, setArgsText] = useState("");
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [tab, setTab] = useState<"mcp" | "skills">("mcp");
+  const [tab, setTab] = useState<"mcp" | "skills" | "permissions">("mcp");
 
   const refresh = useCallback(async () => {
     if (!workspace) {
@@ -261,6 +271,16 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
             >
               <BookOpen size={12} strokeWidth={1.7} aria-hidden />
               {labels.skillsTab}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "permissions"}
+              className={tab === "permissions" ? "active" : ""}
+              onClick={() => setTab("permissions")}
+            >
+              <ShieldCheck size={12} strokeWidth={1.7} aria-hidden />
+              {labels.permissionsTab}
             </button>
           </div>
         </div>
@@ -493,7 +513,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
           )}
         </div>
       </div>
-      ) : (
+      ) : tab === "skills" ? (
         <SkillsPanel
           workspace={workspace}
           onError={onError}
@@ -518,6 +538,25 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
             deleteBody: labels.skillDeleteBody,
             cancel: labels.cancel,
             error: labels.skillError,
+          }}
+        />
+      ) : (
+        <ToolPermissionsPanel
+          workspace={workspace}
+          mcpTools={tools}
+          onError={onError}
+          labels={{
+            title: labels.permissions,
+            description: labels.permissionsDescription,
+            builtIn: labels.permissionsBuiltIn,
+            language: labels.permissionsLanguage,
+            subagents: labels.permissionsSubagents,
+            mcp: labels.permissionsMCP,
+            other: labels.permissionsOther,
+            enabled: labels.enabled,
+            disabled: labels.disabled,
+            save: labels.save,
+            empty: labels.permissionsEmpty,
           }}
         />
       )}
