@@ -297,6 +297,10 @@ func (a *App) GetLSPStatus(sessionID string) (backend.LSPStatus, error) {
 	return a.backend.LSPStatus(context.Background(), sessionID)
 }
 
+func (a *App) GetLSPDiagnostics(sessionID, path string) ([]backend.LSPDiagnostic, error) {
+	return a.backend.LSPDiagnostics(context.Background(), sessionID, path)
+}
+
 
 func (a *App) GetMCPConfigs() ([]backend.MCPConfig, error) {
 	return a.backend.MCPConfigs()
