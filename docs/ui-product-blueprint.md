@@ -838,7 +838,7 @@ Priority: **P1**
 - [x] **UI-07.2 Skills management UI**
 - [x] **UI-07.3 MCP server management UI**
 - [x] **UI-07.4 MCP tools list/status**
-- [ ] **UI-07.5 Plugin/tool permission management**
+- [x] **UI-07.5 Plugin/tool permission management**
 - [x] **UI-07.6 LSP server status**
 - [x] **UI-07.7 Language capability diagnostics**
 - [x] **UI-07.8 Per-project extension overrides**
@@ -954,10 +954,10 @@ For every significant UI slice:
 - [x] **QA-01.5 No horizontal overflow**
 - [x] **QA-01.6 Keyboard navigation**
 - [x] **QA-01.7 Accessible labels for icon-only controls**
-- [ ] **QA-01.8 Chinese copy**
-- [ ] **QA-01.9 English copy**
+- [x] **QA-01.8 Chinese copy**
+- [x] **QA-01.9 English copy**
 - [ ] **QA-01.10 Frontend production build**
-- [ ] **QA-01.11 Backend tests/vet when bridge/backend changes**
+- [x] **QA-01.11 Backend tests/vet when bridge/backend changes**
 - [ ] **QA-01.12 macOS universal Wails build when integration changes**
 - [ ] **QA-01.13 Verify no secret persistence**
 - [ ] **QA-01.14 Verify no new unbounded frontend collection**
