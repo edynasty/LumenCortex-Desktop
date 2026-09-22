@@ -116,15 +116,15 @@
   font-size: 9px;
 }
 
-.review-warning { background: #fff9ef; color: var(--amber); }
-.review-error { background: #fff5f5; color: var(--red); }
-.review-notice { background: #f3f8f5; color: var(--green); }
+.review-warning { background: var(--warning-bg); color: var(--amber); }
+.review-error { background: var(--danger-bg); color: var(--red); }
+.review-notice { background: var(--success-surface); color: var(--green); }
 
 .review-diff {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  background: #fbfbfa;
+  background: var(--surface-input);
 }
 
 .review-loading {
@@ -178,11 +178,11 @@
   white-space: pre;
 }
 
-.diff-line.add { background: #eef8f1; }
-.diff-line.delete { background: #fff0f0; }
+.diff-line.add { background: var(--success-bg); }
+.diff-line.delete { background: var(--danger-bg); }
 .diff-line.meta {
-  background: #f2f3f5;
-  color: #697386;
+  background: var(--surface-soft);
+  color: var(--tool-text);
 }
 
 .review-split {
@@ -215,9 +215,9 @@
   white-space: pre;
 }
 
-.split-cell.add { background: #eef8f1; }
-.split-cell.delete { background: #fff0f0; }
-.split-cell.meta { background: #f2f3f5; color: #697386; }
+.split-cell.add { background: var(--success-bg); }
+.split-cell.delete { background: var(--danger-bg); }
+.split-cell.meta { background: var(--surface-soft); color: var(--tool-text); }
 
 .review-footer {
   display: flex;
@@ -332,7 +332,7 @@
 }
 
 .review-feedback textarea:focus {
-  border-color: #bbbcb7;
+  border-color: var(--border-strong);
 }
 
 @media (max-width: 560px) {
@@ -402,8 +402,8 @@
   display: grid;
   gap: 5px;
   padding: 8px 12px;
-  border-bottom: 1px solid #e7d2ad;
-  background: #fff9ef;
+  border-bottom: 1px solid var(--warning-border);
+  background: var(--warning-bg);
 }
 
 .review-conflicts strong {
@@ -425,7 +425,7 @@
 
 .review-conflicts code {
   padding: 2px 5px;
-  border: 1px solid #ead8b9;
+  border: 1px solid var(--warning-border);
   border-radius: 5px;
   background: rgba(255,255,255,.55);
   color: var(--text-soft);
@@ -485,14 +485,14 @@
 }
 
 .worktree-handoff-state.ready {
-  border-color: #cfe2d5;
-  background: #f2f8f4;
+  border-color: var(--success-border);
+  background: var(--success-surface);
   color: var(--green);
 }
 
 .worktree-handoff-state.blocked {
-  border-color: #ead8b9;
-  background: #fff9ef;
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
   color: var(--amber);
 }
 
