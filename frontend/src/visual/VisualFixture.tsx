@@ -183,7 +183,10 @@ function InspectorFixture() {
 export function VisualFixture() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [goal, setGoal] = useState("");
-  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
+    const value = new URLSearchParams(window.location.search).get("theme");
+    return value === "dark" || value === "light" ? value : "system";
+  });
   const scene = sceneFromLocation();
   const sessionScene = scene === "thread" || scene === "review" || scene === "inspector";
 
