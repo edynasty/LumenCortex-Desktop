@@ -8,10 +8,6 @@ type Props = {
   compact?: boolean;
 };
 
-function basename(path: string) {
-  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
-}
-
 export function RuntimeIdentity({ runtime, localLabel, worktreeLabel, compact = false }: Props) {
   if (runtime.kind === "worktree") {
     return (
@@ -20,7 +16,7 @@ export function RuntimeIdentity({ runtime, localLabel, worktreeLabel, compact = 
         <span>{worktreeLabel}</span>
         {runtime.branch && <code>{runtime.branch}</code>}
         {!compact && runtime.base && <small>base {runtime.base}</small>}
-        {!compact && runtime.path && <small>{basename(runtime.path)}</small>}
+        {!compact && runtime.path && <small className="runtime-path">{runtime.path}</small>}
       </span>
     );
   }
