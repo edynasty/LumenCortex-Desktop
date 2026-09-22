@@ -8,7 +8,7 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "../../types";
 import { ThreadRow } from "./ThreadRow";
 
@@ -105,6 +105,13 @@ export function Sidebar({
   onSwitchLocale,
 }: Props) {
   const [query, setQuery] = useState("");
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [open]);
   const sessionCount = groups.reduce((total, group) => total + group.sessions.length, 0);
   const visibleGroups = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -137,7 +144,7 @@ export function Sidebar({
           <span>Desktop</span>
         </div>
         {open && (
-          <button autoFocus className="icon-button mobile-only" onClick={onClose} aria-label={labels.close}>
+          <button ref={closeButtonRef} className="icon-button mobile-only" onClick={onClose} aria-label={labels.close}>
             <X size={16} strokeWidth={1.7} aria-hidden />
           </button>
         )}
