@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ThemePreference } from "../lib/theme";
 import { Menu, PanelRight } from "lucide-react";
 import { WorkspaceExtensionsRoute } from "../app/WorkspaceExtensionsRoute";
 import { WorkspaceReviewRoute } from "../app/WorkspaceReviewRoute";
@@ -182,6 +183,7 @@ function InspectorFixture() {
 export function VisualFixture() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [goal, setGoal] = useState("");
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
   const scene = sceneFromLocation();
   const sessionScene = scene === "thread" || scene === "review" || scene === "inspector";
 
@@ -197,6 +199,7 @@ export function VisualFixture() {
       extensionsActive={scene === "extensions"}
       runtimeState="online"
       runtimeVersion="0.1.0"
+      themePreference={themePreference}
       labels={sidebarLabels}
       onClose={() => setSidebarOpen(false)}
       onNewTask={noop}
@@ -209,6 +212,7 @@ export function VisualFixture() {
       onOpenProviders={noop}
       onOpenExtensions={noop}
       onSwitchLocale={noop}
+      onThemePreferenceChange={setThemePreference}
     />
   );
 
