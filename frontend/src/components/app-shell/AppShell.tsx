@@ -66,7 +66,7 @@ export function AppShell({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      requestAnimationFrame(() => previous?.focus());
+      previous?.focus();
     };
   }, [sidebarOpen]);
 
