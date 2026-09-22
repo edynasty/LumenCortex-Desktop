@@ -59,10 +59,7 @@ export function ProviderSettingsPanel({
   return (
     <div className="provider-settings">
       <div className="provider-settings-header">
-        <div>
-          <h2>{t.title}</h2>
-          <p>{t.subtitle}</p>
-        </div>
+        <p>{t.subtitle}</p>
         <button className="provider-primary-button" type="button" onClick={() => startAddProvider()}>
           <Plus size={14} strokeWidth={1.8} aria-hidden />
           {t.addProvider}
