@@ -27,4 +27,19 @@ describe("frontend architecture", () => {
     const app = fs.readFileSync(path.resolve(process.cwd(), "src", "App.tsx"), "utf8");
     expect(app).not.toContain("const copy =");
   });
+
+  it("keeps production React components within the split threshold", () => {
+    const src = path.resolve(process.cwd(), "src");
+    const offenders = walk(src)
+      .filter((file) => file.endsWith(".tsx"))
+      .filter((file) => !file.endsWith(".test.tsx"))
+      .map((file) => ({
+        file: path.relative(src, file),
+        lines: fs.readFileSync(file, "utf8").split("\n").length,
+      }))
+      .filter((entry) => entry.lines > 350);
+
+    expect(offenders).toEqual([]);
+  });
+
 });
