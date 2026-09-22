@@ -99,7 +99,7 @@
 .provider-scope-bar > button small {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9.5px;
 }
 
 .provider-scope-bar > code {
@@ -109,7 +109,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
-  font: 8px var(--mono);
+  font: 9.5px var(--mono);
 }
 
 .provider-loading {
@@ -145,7 +145,7 @@
 .provider-empty p {
   max-width: 330px;
   margin: 5px 0 13px;
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.55;
 }
 
@@ -155,7 +155,7 @@
   gap: 6px;
   height: 30px;
   padding: 0 10px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .provider-list {
@@ -232,7 +232,7 @@
   margin-top: 3px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 8.5px;
+  font-size: 9.5px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -321,7 +321,7 @@
 .provider-model-copy strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 590;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -332,7 +332,7 @@
   margin-top: 3px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -342,7 +342,7 @@
   flex: 0 0 auto;
   padding: 2px 5px;
   border-radius: 999px;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 600;
 }
 
@@ -360,7 +360,7 @@
   padding: 22px;
   color: var(--muted);
   text-align: center;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .provider-add-model {
@@ -374,7 +374,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--text-soft);
-  font-size: 9px;
+  font-size: 10px;
   cursor: pointer;
 }
 
@@ -422,13 +422,13 @@
 .provider-form-grid label > span,
 .provider-model-form-grid label > span {
   color: var(--text-soft);
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 550;
 }
 
 .provider-form-grid label > small {
   color: var(--faint);
-  font-size: 7.5px;
+  font-size: 9px;
   line-height: 1.45;
 }
 
@@ -447,7 +447,7 @@
   outline: 0;
   background: var(--surface);
   color: var(--text);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .provider-form input:focus,
@@ -470,7 +470,7 @@
 .provider-form-actions button {
   height: 30px;
   padding: 0 10px;
-  font-size: 9px;
+  font-size: 9.5px;
 }
 
 .provider-form-actions button.primary {
@@ -500,7 +500,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   text-align: left;
   cursor: pointer;
 }
@@ -518,7 +518,7 @@
 .provider-advanced-body p {
   margin: 0 0 8px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9.5px;
   line-height: 1.5;
 }
 
@@ -532,7 +532,7 @@
   outline: 0;
   background: #fbfbfa;
   color: #373733;
-  font: 9px/1.55 var(--mono);
+  font: 9.5px/1.55 var(--mono);
   tab-size: 2;
 }
 
@@ -546,13 +546,13 @@
 
 .provider-advanced-footer span {
   color: var(--faint);
-  font-size: 8px;
+  font-size: 9.5px;
 }
 
 .provider-advanced-footer button {
   height: 29px;
   padding: 0 9px;
-  font-size: 8.5px;
+  font-size: 9.5px;
 }
 
 .provider-advanced-footer button:not(:disabled):hover {
@@ -641,7 +641,7 @@
 .provider-presets > span {
   margin-right: 2px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 9.5px;
 }
 
 .provider-presets button {
@@ -651,7 +651,7 @@
   border-radius: 7px;
   background: var(--surface);
   color: var(--text-soft);
-  font-size: 9px;
+  font-size: 9.5px;
   cursor: pointer;
 }
 
