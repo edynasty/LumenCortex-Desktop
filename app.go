@@ -350,3 +350,24 @@ func (a *App) GetSubagentTree(parentSessionID string) ([]backend.SubagentNode, e
 func (a *App) GetSessionCheckpoints(sessionID string, limit int) ([]backend.SessionCheckpoint, error) {
 	return a.backend.SessionCheckpoints(context.Background(), sessionID, limit)
 }
+
+
+func (a *App) GetSkills(scope string) ([]backend.Skill, error) {
+	return a.backend.Skills(scope)
+}
+
+func (a *App) GetSkillContent(scope, id string) (string, error) {
+	return a.backend.SkillContent(scope, id)
+}
+
+func (a *App) SaveSkill(scope, id, content string) error {
+	return a.backend.SaveSkill(scope, id, content)
+}
+
+func (a *App) DeleteSkill(scope, id string) error {
+	return a.backend.DeleteSkill(scope, id)
+}
+
+func (a *App) SetSkillEnabled(scope, id string, enabled bool) error {
+	return a.backend.SetSkillEnabled(scope, id, enabled)
+}
