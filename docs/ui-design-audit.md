@@ -49,24 +49,19 @@ Required direction:
 Roadmap dependency:
 - CORE-04 run supervisor.
 
-### P0-02 — Raw API keys may be persisted in config
+### P0-02 — Provider secret persistence
 
-Current Provider form accepts arbitrary text in `settings.apiKey`.
+Status: **Fixed for Desktop-managed configuration**.
 
-If the user types a real key, it is written to:
-- global `lumencortex.json`, or
-- project `lumencortex.json`.
+Implemented:
+- graphical Provider forms accept environment variable names and persist only `{env:VAR_NAME}` references,
+- backend save validation rejects literal API keys with `ErrLiteralProviderSecret`,
+- Advanced JSON uses the same backend save path, so it cannot bypass the secret rule,
+- resolved secret values are never written back to Provider configuration,
+- backend regression tests cover literal-secret rejection and environment-reference persistence.
 
-This conflicts with the design principle that secrets should be referenced rather than exposed/persisted.
-
-Required direction for current phase:
-- prefer and visibly validate `{env:VAR_NAME}`,
-- explicitly warn before saving a literal secret,
-- never display resolved secret values.
-
-Preferred future direction:
-- macOS Keychain integration,
-- config stores a keychain/environment reference only.
+Future hardening:
+- optional OS keychain-backed secret references can be added without changing this persistence contract.
 
 ### P0-03 — Provider save failure handling was unsafe
 
@@ -116,19 +111,11 @@ Recommended:
 - persist the last view/thread per project,
 - fall back to New Task if unavailable.
 
-### P1-02 — Provider settings has duplicated page title
+### P1-02 — Provider settings duplicated the page title
 
-The topbar already identifies the workspace as “Models & Providers”.
-The Provider page also renders an H2 with the same title.
+Status: **Fixed**.
 
-Effect:
-- unnecessary vertical hierarchy,
-- feels like a web settings page inside another page.
-
-Recommended:
-- topbar = navigation/context,
-- content header = descriptive settings header,
-- or remove one of the duplicate titles.
+The topbar owns the route title. Provider content now starts with descriptive copy and the Add Provider action instead of repeating “Models & Providers” as a second page heading.
 
 ### P1-03 — Composer uses native selects where richer desktop pickers are required
 
@@ -176,18 +163,20 @@ Provider, Inspector, Sidebar and Composer typography now follow the frontend sta
 
 Visual QA covers these surfaces at 1440 / 1180 / 820 / 560 widths.
 
-### P1-06 — Dark mode is documented but not implemented
+### P1-06 — Dark theme architecture
 
-The design system describes a future dark theme, but runtime CSS currently has only the light token set.
+Status: **Fixed**.
 
-This is a design/code mismatch.
+Implemented:
+- semantic Light/Dark tokens in the shared token layer,
+- `system | light | dark` user preference with local persistence,
+- OS `prefers-color-scheme` support when preference is `system`,
+- resolved theme applied on `html[data-theme]` before app render,
+- Sidebar theme selector,
+- core workspace / Provider / Inspector / Review / Extensions / Composer surfaces migrated to semantic tokens,
+- dark visual QA at 1440 and 560 for six primary scenes.
 
-Required:
-- explicit Light/Dark theme architecture,
-- OS preference + user override,
-- equivalent semantic tokens.
-
-Do not implement dark mode as scattered selector overrides.
+Component CSS does not define scattered `[data-theme="dark"]` overrides; theme differences remain centralized in semantic tokens.
 
 ### P1-07 — Native browser confirmation dialogs break desktop visual consistency
 
