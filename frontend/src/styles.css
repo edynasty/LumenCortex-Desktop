@@ -748,6 +748,13 @@
   gap: 7px;
 }
 
+.subagent-group > .settings-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .subagent-title {
   display: inline-flex;
   align-items: center;
