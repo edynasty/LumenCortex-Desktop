@@ -1,7 +1,8 @@
 import type { ChangeEvent, FormEvent } from "react";
-import { ServerCog, SquareTerminal, X } from "lucide-react";
+import { SquareTerminal, X } from "lucide-react";
 import type { Health, LSPDiagnostic, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { LSPSettingsPanel } from "./LSPSettingsPanel";
 import { MilestoneList } from "./MilestoneList";
 import { SubagentTreePanel } from "./SubagentTreePanel";
 
@@ -268,101 +269,24 @@ export function Inspector({
               />
             )}
 
-            <div className="settings-group lsp-group">
-              <div className="settings-title lsp-title">
-                <span><ServerCog size={13} strokeWidth={1.7} aria-hidden /> {labels.lsp}</span>
-                <span className={`lsp-status ${lspStatus.running ? "running" : "stopped"}`}>
-                  {lspStatus.running ? labels.lspRunning : labels.lspStopped}
-                </span>
-              </div>
-
-              <label className="settings-field">
-                <span>{labels.lspCommand}</span>
-                <input
-                  value={lspCommand}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPCommandChange(event.target.value)}
-                  disabled={lspStatus.running}
-                />
-              </label>
-
-              <label className="settings-field">
-                <span>{labels.lspArgs}</span>
-                <input
-                  value={lspArgs}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPArgsChange(event.target.value)}
-                  disabled={lspStatus.running}
-                />
-              </label>
-
-              <label className="settings-field">
-                <span>{labels.lspLanguage}</span>
-                <input
-                  value={lspLanguage}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPLanguageChange(event.target.value)}
-                  disabled={lspStatus.running}
-                />
-              </label>
-
-              <dl className="lsp-stats">
-                <div><dt>{labels.lspPid}</dt><dd>{lspStatus.pid || "—"}</dd></div>
-                <div><dt>{labels.lspPending}</dt><dd>{lspStatus.pendingRequests ?? 0}</dd></div>
-                <div><dt>{labels.lspDiagnostics}</dt><dd>{lspStatus.diagnostics ?? 0}</dd></div>
-              </dl>
-
-              <label className="settings-field">
-                <span>{labels.lspDiagnosticPath}</span>
-                <input
-                  value={lspDiagnosticPath}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPDiagnosticPathChange(event.target.value)}
-                  placeholder="frontend/src/App.tsx"
-                  disabled={!lspStatus.running}
-                />
-              </label>
-
-              <button
-                className="secondary-action"
-                type="button"
-                disabled={busy || !lspStatus.running || !lspDiagnosticPath.trim()}
-                onClick={onRefreshLSPDiagnostics}
-              >
-                {labels.lspDiagnosticRefresh}
-              </button>
-
-              {lspDiagnosticPath.trim() && (
-                <div className="lsp-diagnostic-list">
-                  {lspDiagnostics.length ? lspDiagnostics.map((item, index) => {
-                    const severity =
-                      item.severity === 1 ? labels.lspSeverityError :
-                      item.severity === 2 ? labels.lspSeverityWarning :
-                      item.severity === 3 ? labels.lspSeverityInfo :
-                      labels.lspSeverityHint;
-                    return (
-                      <div className="lsp-diagnostic-item" key={index}>
-                        <div>
-                          <strong>{severity}</strong>
-                          <code>{item.range.start.line + 1}:{item.range.start.character + 1}</code>
-                        </div>
-                        <p>{item.message}</p>
-                      </div>
-                    );
-                  }) : (
-                    <p className="lsp-empty">{labels.lspNoDiagnostics}</p>
-                  )}
-                </div>
-              )}
-
-              {lspStatus.lastError && (
-                <p className="lsp-error"><strong>{labels.lspLastError}</strong> {lspStatus.lastError}</p>
-              )}
-
-              <button
-                className="secondary-action"
-                type="button"
-                disabled={busy || !workspaceOpen || (!lspStatus.running && !lspCommand.trim())}
-                onClick={lspStatus.running ? onStopLSP : onStartLSP}
-              >
-                {lspStatus.running ? labels.lspStop : labels.lspStart}
-              </button>
+            <LSPSettingsPanel
+              command={lspCommand}
+              args={lspArgs}
+              language={lspLanguage}
+              status={lspStatus}
+              diagnosticPath={lspDiagnosticPath}
+              diagnostics={lspDiagnostics}
+              busy={busy}
+              workspaceOpen={workspaceOpen}
+              labels={labels}
+              onCommandChange={onLSPCommandChange}
+              onArgsChange={onLSPArgsChange}
+              onLanguageChange={onLSPLanguageChange}
+              onDiagnosticPathChange={onLSPDiagnosticPathChange}
+              onRefreshDiagnostics={onRefreshLSPDiagnostics}
+              onStart={onStartLSP}
+              onStop={onStopLSP}
+            />
             </div>
           </div>
         )}
