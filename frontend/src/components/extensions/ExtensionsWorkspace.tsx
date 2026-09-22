@@ -45,6 +45,8 @@ type Labels = {
   worktreeRuntime: string;
   lastError: string;
   selectServer: string;
+  enabled: string;
+  disabled: string;
 };
 
 type Props = {
@@ -61,6 +63,7 @@ const emptyConfig = (): MCPConfig => ({
   command: "",
   args: [],
   protocolMode: "legacy",
+  disabled: false,
 });
 
 export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onError }: Props) {
@@ -231,10 +234,10 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
                   className={config.id === selectedId ? "selected" : ""}
                   onClick={() => setSelectedId(config.id)}
                 >
-                  <span className={`mcp-server-dot ${status?.running ? "running" : ""}`} />
+                  <span className={`mcp-server-dot ${status?.running ? "running" : ""} ${config.disabled ? "disabled" : ""}`} />
                   <span>
                     <strong>{config.name || config.id}</strong>
-                    <small>{status?.running ? labels.running : labels.stopped}</small>
+                    <small>{config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}</small>
                   </span>
                   <code>{status?.tools ?? 0}</code>
                 </button>
@@ -299,6 +302,18 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
                 <input value={argsText} onChange={(event) => setArgsText(event.target.value)} />
               </label>
               <label>
+                <span>{labels.enabled}</span>
+                <button
+                  type="button"
+                  className={`mcp-enable-toggle ${draft.disabled ? "off" : "on"}`}
+                  aria-pressed={!draft.disabled}
+                  onClick={() => setDraft((current) => ({ ...current, disabled: !current.disabled }))}
+                >
+                  <span />
+                  <strong>{draft.disabled ? labels.disabled : labels.enabled}</strong>
+                </button>
+              </label>
+              <label>
                 <span>{labels.protocol}</span>
                 <DesktopSelect
                   ariaLabel={labels.protocol}
@@ -349,7 +364,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
                     <Button
                       variant={selectedStatus?.running ? "danger" : "primary"}
                       icon={selectedStatus?.running ? <Square size={11} /> : <Server size={12} />}
-                      disabled={busy}
+                      disabled={busy || Boolean(draft.disabled)}
                       onClick={() => void toggleServer()}
                     >
                       {selectedStatus?.running ? labels.stop : labels.start}
