@@ -1,8 +1,6 @@
 import type { FormEvent, KeyboardEvent, RefObject } from "react";
-import { ExtensionsWorkspace } from "../components/extensions/ExtensionsWorkspace";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import { ProviderSettingsPanel } from "../components/provider/ProviderSettingsPanel";
-import { ReviewWorkspace } from "../components/review/ReviewWorkspace";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type {
@@ -16,6 +14,8 @@ import type {
 } from "../types";
 import type { ConfiguredModelOption } from "./presentation-model";
 import { sessionStatusLabel } from "./presentation-model";
+import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
+import { WorkspaceReviewRoute } from "./WorkspaceReviewRoute";
 import type { WorkspaceRoute } from "./workspace-route";
 
 type Policy = "read-only" | "workspace" | "full";
@@ -136,136 +136,26 @@ export function WorkspaceRouteContent({
 
   if (route.kind === "extensions") {
     return (
-      <ExtensionsWorkspace
+      <WorkspaceExtensionsRoute
         workspace={workspace}
         sessionId={current?.id || route.sessionId || ""}
         runtime={runtime}
+        labels={labels}
         onError={onError}
-        labels={{
-          title: labels.extensions,
-          subtitle: labels.extensionsSubtitle,
-          mcpServers: labels.mcpServers,
-          addServer: labels.mcpAddServer,
-          noServers: labels.mcpNoServers,
-          serverId: labels.mcpServerId,
-          serverName: labels.mcpServerName,
-          command: labels.mcpCommand,
-          args: labels.mcpArgs,
-          protocol: labels.mcpProtocol,
-          legacy: labels.mcpLegacy,
-          modern: labels.mcpModern,
-          save: labels.save,
-          delete: labels.delete,
-          deleteTitle: labels.mcpDeleteTitle,
-          deleteBody: labels.mcpDeleteBody,
-          cancel: labels.cancel,
-          start: labels.mcpStart,
-          stop: labels.mcpStop,
-          refresh: labels.handoffRefresh,
-          running: labels.lspRunning,
-          stopped: labels.lspStopped,
-          pid: labels.lspPid,
-          pending: labels.lspPending,
-          tools: labels.mcpTools,
-          noTools: labels.mcpNoTools,
-          readOnly: labels.readOnly,
-          sideEffect: labels.mcpSideEffect,
-          noAutoStart: labels.mcpNoAutoStart,
-          currentRuntime: labels.currentRuntime,
-          localRuntime: labels.localRuntime,
-          worktreeRuntime: labels.worktreeRuntime,
-          lastError: labels.lspLastError,
-          selectServer: labels.mcpSelectServer,
-          enabled: labels.enabled,
-          disabled: labels.disabled,
-          globalScope: labels.mcpGlobalScope,
-          projectScope: labels.mcpProjectScope,
-          globalScopeHint: labels.mcpGlobalScopeHint,
-          projectScopeHint: labels.mcpProjectScopeHint,
-          inherited: labels.mcpInherited,
-          globalSource: labels.mcpGlobalSource,
-          projectSource: labels.mcpProjectSource,
-          mcpTab: labels.mcpTab,
-          skillsTab: labels.skillsTab,
-          permissionsTab: labels.permissionsTab,
-          permissions: labels.permissions,
-          permissionsDescription: labels.permissionsDescription,
-          permissionsBuiltIn: labels.permissionsBuiltIn,
-          permissionsLanguage: labels.permissionsLanguage,
-          permissionsSubagents: labels.permissionsSubagents,
-          permissionsMCP: labels.permissionsMCP,
-          permissionsOther: labels.permissionsOther,
-          permissionsEmpty: labels.permissionsEmpty,
-          skills: labels.skills,
-          skillAdd: labels.skillAdd,
-          skillEmpty: labels.skillEmpty,
-          skillGlobalHint: labels.skillGlobalHint,
-          skillProjectHint: labels.skillProjectHint,
-          skillId: labels.skillId,
-          skillContent: labels.skillContent,
-          skillDeleteTitle: labels.skillDeleteTitle,
-          skillDeleteBody: labels.skillDeleteBody,
-          skillError: labels.skillError,
-        }}
       />
     );
   }
 
   if (route.kind === "review" && current) {
     return (
-      <ReviewWorkspace
-        sessionId={current.id}
+      <WorkspaceReviewRoute
+        session={current}
         runtime={runtime}
         messages={messages}
-        agentBusy={busy}
-        agentRunning={running}
+        busy={busy}
+        running={running}
+        labels={labels}
         onSendInstruction={onSendReviewInstruction}
-        labels={{
-          title: labels.review,
-          changedFiles: labels.changedFiles,
-          noChanges: labels.noChanges,
-          unified: labels.unified,
-          split: labels.split,
-          worktree: labels.worktree,
-          staged: labels.staged,
-          stage: labels.stage,
-          unstage: labels.unstage,
-          revert: labels.revert,
-          revertTitle: labels.revertTitle,
-          revertBody: labels.revertBody,
-          cancel: labels.cancel,
-          commit: labels.commit,
-          commitPlaceholder: labels.commitPlaceholder,
-          push: labels.push,
-          truncated: labels.diffTruncated,
-          loading: labels.loading,
-          binaryDiff: labels.binaryDiff,
-          reviewInstruction: labels.reviewInstruction,
-          reviewInstructionPlaceholder: labels.reviewInstructionPlaceholder,
-          sendToAgent: labels.sendToAgent,
-          agentRunning: labels.agentRunning,
-          checks: labels.checks,
-          checkPassed: labels.checkPassed,
-          checkFailed: labels.checkFailed,
-          checkTruncated: labels.checkTruncated,
-          localRuntime: labels.localRuntime,
-          worktreeRuntime: labels.worktreeRuntime,
-          conflictTitle: labels.worktreeConflictTitle,
-          conflictHint: labels.worktreeConflictHint,
-          handoffTitle: labels.handoffTitle,
-          handoffTarget: labels.handoffTarget,
-          handoffCommits: labels.handoffCommits,
-          handoffReady: labels.handoffReady,
-          handoffSourceDirty: labels.handoffSourceDirty,
-          handoffTargetDirty: labels.handoffTargetDirty,
-          handoffNoCommits: labels.handoffNoCommits,
-          handoffOverlap: labels.handoffOverlap,
-          handoffApply: labels.handoffApply,
-          handoffRefresh: labels.handoffRefresh,
-          handoffConfirmTitle: labels.handoffConfirmTitle,
-          handoffConfirmBody: labels.handoffConfirmBody,
-          handoffApplied: labels.handoffApplied,
-        }}
       />
     );
   }
