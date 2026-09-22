@@ -29,15 +29,16 @@ export function AppShell({
     if (!sidebarOpen) return;
 
     const previous = document.activeElement as HTMLElement | null;
-    const sidebarElement = document.querySelector<HTMLElement>(".sidebar.open");
-    const focusable = () =>
-      Array.from(
+    const focusable = () => {
+      const sidebarElement = document.querySelector<HTMLElement>(".sidebar.open");
+      return Array.from(
         sidebarElement?.querySelectorAll<HTMLElement>(
           'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
         ) || []
       );
+    };
 
-    focusable()[0]?.focus();
+    const focusFrame = requestAnimationFrame(() => focusable()[0]?.focus());
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -65,6 +66,7 @@ export function AppShell({
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", onKeyDown);
       previous?.focus();
     };
