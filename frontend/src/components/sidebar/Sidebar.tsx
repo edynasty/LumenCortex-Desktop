@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "../../types";
+import type { ThemePreference } from "../../lib/theme";
+import { DesktopSelect } from "../primitives/Select";
 import { ThreadRow } from "./ThreadRow";
 
 export type SidebarThread = {
@@ -41,6 +43,7 @@ type Props = {
   extensionsActive: boolean;
   runtimeState: RuntimeState;
   runtimeVersion?: string;
+  themePreference: ThemePreference;
   labels: {
     close: string;
     newTask: string;
@@ -53,6 +56,10 @@ type Props = {
     providerSettings: string;
     extensions: string;
     language: string;
+    theme: string;
+    themeSystem: string;
+    themeLight: string;
+    themeDark: string;
     runtimeReady: string;
     runtimeOnline: string;
     runtimeOffline: string;
@@ -78,6 +85,7 @@ type Props = {
   onOpenProviders: () => void;
   onOpenExtensions: () => void;
   onSwitchLocale: () => void;
+  onThemePreferenceChange: (theme: ThemePreference) => void;
 };
 
 export function Sidebar({
@@ -91,6 +99,7 @@ export function Sidebar({
   extensionsActive,
   runtimeState,
   runtimeVersion,
+  themePreference,
   labels,
   onClose,
   onNewTask,
@@ -103,6 +112,7 @@ export function Sidebar({
   onOpenProviders,
   onOpenExtensions,
   onSwitchLocale,
+  onThemePreferenceChange,
 }: Props) {
   const [query, setQuery] = useState("");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -253,6 +263,21 @@ export function Sidebar({
           <Blocks size={14} strokeWidth={1.7} aria-hidden />
           <span>{labels.extensions}</span>
         </button>
+        <div className="sidebar-theme-control">
+          <DesktopSelect
+            ariaLabel={labels.theme}
+            value={themePreference}
+            placeholder={labels.theme}
+            showDescriptionInTrigger={false}
+            className="footer-theme-select"
+            options={[
+              { value: "system", label: labels.themeSystem },
+              { value: "light", label: labels.themeLight },
+              { value: "dark", label: labels.themeDark },
+            ]}
+            onChange={(value) => onThemePreferenceChange(value as ThemePreference)}
+          />
+        </div>
         <button className="footer-button" onClick={onSwitchLocale}>
           <Languages size={14} strokeWidth={1.7} aria-hidden />
           <span>{labels.language}</span>
