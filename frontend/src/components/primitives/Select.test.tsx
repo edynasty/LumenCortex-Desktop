@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DesktopSelect } from "./Select";
@@ -67,7 +67,7 @@ describe("DesktopSelect", () => {
     const trigger = screen.getByRole("button", { name: "Model" });
     trigger.focus();
     await user.keyboard("{ArrowDown}");
-    expect(screen.getByRole("option", { name: "GPT-5.6" })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole("option", { name: "GPT-5.6" })).toHaveFocus());
 
     await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("option", { name: "DeepSeek Chat" })).toHaveFocus();
