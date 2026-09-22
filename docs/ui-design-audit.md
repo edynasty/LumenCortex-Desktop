@@ -165,21 +165,16 @@ Still requires screenshot QA at:
 - 820,
 - 560.
 
-### P1-05 — Typography is too small in multiple settings surfaces
+### P1-05 — Tiny UI copy was overused
 
-Examples:
-- many Provider metadata labels are 8–9 px,
-- runtime metadata is frequently 8–9.5 px.
+Status: **Fixed for primary desktop surfaces**.
 
-Risk:
-- visually resembles a monitoring/debug panel,
-- less comfortable than Codex/Vetta-style desktop UI,
-- weaker Chinese readability.
+Provider, Inspector, Sidebar and Composer typography now follow the frontend standard:
+- ordinary UI text remains compact but readable,
+- metadata/helper text uses a 9.5–11 px floor,
+- sub-9 px text is limited to exceptional compact annotations/badges.
 
-Recommended scale:
-- normal UI text: 11–13 px,
-- metadata: 9.5–11 px,
-- 8 px only for exceptional technical annotation.
+Visual QA covers these surfaces at 1440 / 1180 / 820 / 560 widths.
 
 ### P1-06 — Dark mode is documented but not implemented
 
