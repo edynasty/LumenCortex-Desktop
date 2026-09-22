@@ -49,5 +49,8 @@ export function useRuntimeEvents({
     setWorkspaceState,
   ]);
 
-  return events;
+  return {
+    events,
+    clearEvents: () => setEvents([]),
+  };
 }
