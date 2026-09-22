@@ -35,7 +35,8 @@ for (const width of widths) {
     await card.locator('.provider-card-actions button[aria-label="Edit"]').click();
 
     await expect(card.locator(".provider-form")).toBeVisible();
-    const baseURL = card.locator(".provider-form label").filter({ hasText: "Base URL" }).locator("input");\n    await expect(baseURL).toHaveValue("https://api.openai.com/v1");
+    const baseURL = card.locator(".provider-form label").filter({ hasText: "Base URL" }).locator("input");
+    await expect(baseURL).toHaveValue("https://api.openai.com/v1");
     await capture(page, testInfo, "providers-edit", width);
   });
 
