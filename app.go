@@ -283,3 +283,16 @@ func (a *App) SessionGitPush(sessionID string) (backend.GitActionResult, error) 
 func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
 }
+
+
+func (a *App) StartLSP(sessionID string, config backend.LSPConfig) (backend.LSPStatus, error) {
+	return a.backend.StartLSP(context.Background(), sessionID, config)
+}
+
+func (a *App) StopLSP(sessionID string) error {
+	return a.backend.StopLSP(context.Background(), sessionID)
+}
+
+func (a *App) GetLSPStatus(sessionID string) (backend.LSPStatus, error) {
+	return a.backend.LSPStatus(context.Background(), sessionID)
+}
