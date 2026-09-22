@@ -145,7 +145,7 @@
 
 .new-task-hint {
   color: var(--faint);
-  font-size: 8.5px;
+  font-size: 9.5px;
   white-space: nowrap;
 }
 
@@ -301,7 +301,7 @@
   border-radius: 7px;
   background: transparent;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 9.5px;
   cursor: pointer;
 }
 
@@ -320,7 +320,7 @@
   border-radius: 999px;
   background: var(--surface-active);
   color: var(--text-soft);
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .composer-context-attach-popover {
