@@ -1033,7 +1033,19 @@ export default function App() {
               projectScopeHint: t.mcpProjectScopeHint,
               inherited: t.mcpInherited,
               globalSource: t.mcpGlobalSource,
-              projectSource: t.mcpProjectSource
+              projectSource: t.mcpProjectSource,
+              mcpTab: t.mcpTab,
+              skillsTab: t.skillsTab,
+              skills: t.skills,
+              skillAdd: t.skillAdd,
+              skillEmpty: t.skillEmpty,
+              skillGlobalHint: t.skillGlobalHint,
+              skillProjectHint: t.skillProjectHint,
+              skillId: t.skillId,
+              skillContent: t.skillContent,
+              skillDeleteTitle: t.skillDeleteTitle,
+              skillDeleteBody: t.skillDeleteBody,
+              skillError: t.skillError
             }}
           />
         ) : route.kind === "review" && current ? (
