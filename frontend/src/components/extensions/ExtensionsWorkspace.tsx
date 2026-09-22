@@ -303,6 +303,7 @@ export function ExtensionsWorkspace({ workspace, sessionId, runtime, labels, onE
                 <DesktopSelect
                   ariaLabel={labels.protocol}
                   value={draft.protocolMode || "legacy"}
+                  placeholder={labels.legacy}
                   options={[
                     { value: "legacy", label: labels.legacy },
                     { value: "modern", label: labels.modern },
