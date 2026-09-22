@@ -10,7 +10,7 @@ import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPan
 import { Button } from "./components/primitives/Button";
 import { Dialog } from "./components/primitives/Dialog";
 import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
-import { Sidebar } from "./components/sidebar/Sidebar";
+import { WorkspaceSidebar } from "./components/sidebar/WorkspaceSidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
@@ -283,10 +283,9 @@ export default function App() {
   const runtimeState = health ? "online" : state.workspace ? "offline" : "ready";
 
   const sidebar = (
-    <Sidebar
+    <WorkspaceSidebar
       open={sidebarOpen}
       workspace={state.workspace}
-      workspaceName={state.workspace ? basename(state.workspace) : ""}
       groups={sessionGroups}
       recentProjects={recentProjects}
       selectedSessionId={route.kind === "thread" || route.kind === "review" || route.kind === "extensions" ? selected : ""}
@@ -294,32 +293,7 @@ export default function App() {
       extensionsActive={route.kind === "extensions"}
       runtimeState={runtimeState}
       runtimeVersion={health?.version}
-      labels={{
-        close: t.close,
-        newTask: t.newTask,
-        project: t.project,
-        openProject: t.openProject,
-        sessions: t.sessions,
-        noSessions: t.noSessions,
-        threadSearch: t.threadSearch,
-        recentProjects: t.recentProjects,
-        providerSettings: t.providerSettings,
-        extensions: t.extensions,
-        language: t.language,
-        runtimeReady: t.runtimeReady,
-        runtimeOnline: t.runtimeOnline,
-        runtimeOffline: t.runtimeOffline,
-        renameThread: t.renameThread,
-        pinThread: t.pinThread,
-        unpinThread: t.unpinThread,
-        archiveThread: t.archiveThread,
-        restoreThread: t.restoreThread,
-        save: t.save,
-        cancel: t.cancel,
-        threadMenu: t.threadMenu,
-        localRuntime: t.localRuntime,
-        worktreeRuntime: t.worktreeRuntime
-      }}
+      labels={t}
       onClose={() => setSidebarOpen(false)}
       onNewTask={newTask}
       onPickWorkspace={pickWorkspace}
