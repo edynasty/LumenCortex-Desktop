@@ -28,7 +28,7 @@ describe("DesktopSelect", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
-  it("closes on Escape", async () => {
+  it("closes on Escape and restores focus to the trigger", async () => {
     const user = userEvent.setup();
     render(
       <DesktopSelect
@@ -39,9 +39,44 @@ describe("DesktopSelect", () => {
         options={[{ value: "workspace", label: "Workspace" }]}
       />
     );
-    await user.click(screen.getByRole("button", { name: "Policy" }));
+    const trigger = screen.getByRole("button", { name: "Policy" });
+    await user.click(trigger);
     expect(screen.getByRole("listbox")).toBeInTheDocument();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("supports arrow-key option navigation and restores focus after selection", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <DesktopSelect
+        ariaLabel="Model"
+        value="openai/gpt-5.6"
+        placeholder="Model"
+        onChange={onChange}
+        options={[
+          { value: "openai/gpt-5.6", label: "GPT-5.6" },
+          { value: "deepseek/chat", label: "DeepSeek Chat" },
+          { value: "local/qwen", label: "Qwen" },
+        ]}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Model" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: "GPT-5.6" })).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: "DeepSeek Chat" })).toHaveFocus();
+    await user.keyboard("{End}");
+    expect(screen.getByRole("option", { name: "Qwen" })).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(onChange).toHaveBeenCalledWith("local/qwen");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 });
