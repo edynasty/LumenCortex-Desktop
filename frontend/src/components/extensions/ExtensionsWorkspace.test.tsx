@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   startMCP: vi.fn(),
   stopMCP: vi.fn(),
   refreshMCPTools: vi.fn(),
+  toolPermissions: vi.fn(),
+  saveToolPermissions: vi.fn(),
 }));
 
 vi.mock("../../lib/bridge", () => ({
@@ -64,6 +66,15 @@ const labels = {
   projectSource: "Project",
   mcpTab: "MCP",
   skillsTab: "Skills",
+  permissionsTab: "Permissions",
+  permissions: "Tool permissions",
+  permissionsDescription: "Manage tool access",
+  permissionsBuiltIn: "Built-in tools",
+  permissionsLanguage: "Language services",
+  permissionsSubagents: "Subagents",
+  permissionsMCP: "MCP tools",
+  permissionsOther: "Other",
+  permissionsEmpty: "No tools",
   skills: "Skills",
   skillAdd: "Add skill",
   skillEmpty: "No skills yet",
@@ -131,6 +142,8 @@ describe("ExtensionsWorkspace", () => {
     });
     mocks.stopMCP.mockResolvedValue(undefined);
     mocks.refreshMCPTools.mockResolvedValue(undefined);
+    mocks.toolPermissions.mockResolvedValue({ disabled: [] });
+    mocks.saveToolPermissions.mockImplementation(async (value) => value);
   });
 
   it("loads saved configuration without auto-starting a server", async () => {
@@ -171,6 +184,22 @@ describe("ExtensionsWorkspace", () => {
           command: "helper-server",
           args: ["--flag", "two words"],
         })
+      )
+    );
+  });
+
+  it("persists disabled tool permissions from the permissions tab", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await user.click(screen.getByRole("tab", { name: "Permissions" }));
+    const shellRow = await screen.findByRole("button", { name: /shell/i });
+    await user.click(shellRow);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(mocks.saveToolPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({ disabled: expect.arrayContaining(["shell"]) })
       )
     );
   });
