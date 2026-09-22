@@ -1,10 +1,9 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { SquareTerminal, X } from "lucide-react";
 import type { Health, LSPDiagnostic, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
-import { DesktopSelect, type SelectOption } from "../primitives/Select";
-import { LSPSettingsPanel } from "./LSPSettingsPanel";
+import type { SelectOption } from "../primitives/Select";
 import { MilestoneList } from "./MilestoneList";
-import { SubagentTreePanel } from "./SubagentTreePanel";
+import { RunSettingsPanel } from "./RunSettingsPanel";
 
 export type InspectorTab = "activity" | "run" | "terminal";
 export type InspectorPolicy = "read-only" | "workspace" | "full";
@@ -111,13 +110,6 @@ type Props = {
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-function bytes(value = 0) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
-  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
 export function Inspector({
   tab,
   events,
@@ -194,100 +186,38 @@ export function Inspector({
         )}
 
         {tab === "run" && (
-          <div className="run-settings">
-            <div className="settings-group">
-              <div className="settings-title">{labels.provider}</div>
-              <label className="settings-field">
-                <span>{labels.modelSelect}</span>
-                <DesktopSelect
-                  ariaLabel={labels.modelSelect}
-                  value={modelRef}
-                  placeholder={labels.noModels}
-                  options={models}
-                  onChange={onModelChange}
-                  className="settings-desktop-select"
-                />
-              </label>
-              <button className="provider-link-button" type="button" onClick={onOpenProviders}>
-                {labels.providerConfig}
-              </button>
-              <p className="settings-note">{labels.envFallback}</p>
-            </div>
-
-            <div className="settings-group">
-              <div className="settings-title">{labels.run}</div>
-              <label className="settings-field">
-                <span>{labels.policy}</span>
-                <DesktopSelect
-                  ariaLabel={labels.policy}
-                  value={policy}
-                  placeholder={labels.workspace}
-                  options={[
-                    { value: "read-only", label: labels.readOnly },
-                    { value: "workspace", label: labels.workspace },
-                    { value: "full", label: labels.full },
-                  ]}
-                  onChange={(value) => onPolicyChange(value as InspectorPolicy)}
-                  className="settings-desktop-select"
-                />
-              </label>
-              <label>{labels.maxSteps}
-                <input
-                  type="number"
-                  min={1}
-                  max={200}
-                  value={maxSteps}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => onMaxStepsChange(Math.max(1, Number(event.target.value) || 1))}
-                />
-              </label>
-            </div>
-
-            <div className="settings-group runtime-group">
-              <div className="settings-title">{labels.runtime}</div>
-              <dl>
-                <div><dt>{labels.workingMemory}</dt><dd>{bytes(health?.usedBytes)}</dd></div>
-                <div><dt>{labels.softBudget}</dt><dd>{bytes(health?.budget.softBytes)}</dd></div>
-                <div><dt>{labels.hardBudget}</dt><dd>{bytes(health?.budget.hardBytes)}</dd></div>
-                <div><dt>{labels.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
-              </dl>
-              <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
-            </div>
-
-            {selectedSessionId && (
-              <SubagentTreePanel
-                nodes={subagents}
-                checkpoints={checkpoints}
-                labels={{
-                  title: labels.subagents,
-                  empty: labels.noSubagents,
-                  active: labels.subagentActive,
-                  completed: labels.subagentCompleted,
-                  interrupted: labels.subagentInterrupted,
-                  checkpoint: labels.subagentCheckpoint,
-                }}
-                onOpenSession={onOpenSubagent}
-              />
-            )}
-
-            <LSPSettingsPanel
-              command={lspCommand}
-              args={lspArgs}
-              language={lspLanguage}
-              status={lspStatus}
-              diagnosticPath={lspDiagnosticPath}
-              diagnostics={lspDiagnostics}
-              busy={busy}
-              workspaceOpen={workspaceOpen}
-              labels={labels}
-              onCommandChange={onLSPCommandChange}
-              onArgsChange={onLSPArgsChange}
-              onLanguageChange={onLSPLanguageChange}
-              onDiagnosticPathChange={onLSPDiagnosticPathChange}
-              onRefreshDiagnostics={onRefreshLSPDiagnostics}
-              onStart={onStartLSP}
-              onStop={onStopLSP}
-            />
-          </div>
+          <RunSettingsPanel
+            modelRef={modelRef}
+            models={models}
+            policy={policy}
+            maxSteps={maxSteps}
+            health={health}
+            pressure={pressure}
+            lspCommand={lspCommand}
+            lspArgs={lspArgs}
+            lspLanguage={lspLanguage}
+            lspStatus={lspStatus}
+            lspDiagnosticPath={lspDiagnosticPath}
+            lspDiagnostics={lspDiagnostics}
+            subagents={subagents}
+            checkpoints={checkpoints}
+            workspaceOpen={workspaceOpen}
+            selectedSessionId={selectedSessionId}
+            busy={busy}
+            labels={labels}
+            onModelChange={onModelChange}
+            onOpenProviders={onOpenProviders}
+            onPolicyChange={onPolicyChange}
+            onMaxStepsChange={onMaxStepsChange}
+            onLSPCommandChange={onLSPCommandChange}
+            onLSPArgsChange={onLSPArgsChange}
+            onLSPLanguageChange={onLSPLanguageChange}
+            onLSPDiagnosticPathChange={onLSPDiagnosticPathChange}
+            onRefreshLSPDiagnostics={onRefreshLSPDiagnostics}
+            onStartLSP={onStartLSP}
+            onStopLSP={onStopLSP}
+            onOpenSubagent={onOpenSubagent}
+          />
         )}
 
         {tab === "terminal" && (
