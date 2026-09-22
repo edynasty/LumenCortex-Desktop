@@ -5,8 +5,7 @@ import type { SelectOption } from "../primitives/Select";
 import { MilestoneList } from "./MilestoneList";
 import { RunSettingsPanel } from "./RunSettingsPanel";
 
-export type InspectorTab = "activity" | "run" | "terminal";
-export type InspectorPolicy = "read-only" | "workspace" | "full";
+import type { InspectorPolicy, InspectorTab } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
