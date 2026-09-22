@@ -1,4 +1,5 @@
 export type MCPProtocolMode = "legacy" | "modern";
+export type MCPConfigScope = "global" | "project" | "effective";
 
 export type MCPConfig = {
   id: string;
