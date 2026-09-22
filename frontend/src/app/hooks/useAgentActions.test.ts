@@ -17,6 +17,8 @@ vi.mock("../../lib/bridge", () => ({
 
 const baseSession = {
   id: "session-1",
+  createdAt: "2026-09-22T03:00:00Z",
+  updatedAt: "2026-09-22T03:00:00Z",
   status: "created",
   goal: "task",
 };
