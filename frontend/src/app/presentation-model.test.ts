@@ -39,7 +39,7 @@ describe("presentation model", () => {
             coder: {
               name: "Coder",
               modelID: "upstream-coder",
-              limit: { context: 65536 },
+              limit: { context: 65536, output: 8192 },
             },
           },
         },
@@ -50,7 +50,8 @@ describe("presentation model", () => {
       ref: "demo/coder",
       label: "Coder",
       group: "Demo",
-      description: "upstream-coder · 64K ctx",
+      description: "upstream-coder · 64K ctx · 8K out",
+      isDefault: true,
     }]);
   });
 
