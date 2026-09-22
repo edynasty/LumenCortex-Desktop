@@ -20,15 +20,14 @@ import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useLSPController } from "./app/hooks/useLSPController";
+import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
-import { bridge, onRuntimeEvent } from "./lib/bridge";
+import { bridge } from "./lib/bridge";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkspaceState } from "./types";
-
-const MAX_VISIBLE_EVENTS = 180;
+import type { AgentConfig, ProviderCatalog, RuntimeKind, Session, WorkspaceState } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
@@ -65,7 +64,6 @@ export default function App() {
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [contextPaths, setContextPaths] = useState<string[]>([]);
-  const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
   const [policy, setPolicy] = useState<Policy>("workspace");
@@ -115,6 +113,14 @@ export default function App() {
     setError,
   });
 
+
+  const events = useRuntimeEvents({
+    selectedSessionId: selected,
+    setWorkspaceState: setState,
+    refreshLSPStatus,
+    handleSessionRuntimeEvent,
+  });
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
@@ -147,31 +153,6 @@ export default function App() {
       setModelRef((current) => current || next.model || "");
     }).catch((err) => setError(String(err)));
   }, [state.workspace]);
-
-  useEffect(() => onRuntimeEvent((event) => {
-    setEvents((current) => [...current, event].slice(-MAX_VISIBLE_EVENTS));
-
-    if (
-      event.type === "run.started" ||
-      event.type === "run.stopped" ||
-      event.type === "session.complete" ||
-      event.type === "session.interrupted" ||
-      event.type === "workflow.gate_waiting" ||
-      event.type === "workflow.approved"
-    ) {
-      bridge.state().then(setState).catch(() => undefined);
-    }
-
-    if (
-      event.type === "lsp.started" ||
-      event.type === "lsp.stopped" ||
-      (event.type === "tool.end" && event.sessionId === selected)
-    ) {
-      void refreshLSPStatus();
-    }
-
-    handleSessionRuntimeEvent(event);
-  }), [handleSessionRuntimeEvent, refreshLSPStatus, selected]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
   const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
