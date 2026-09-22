@@ -48,6 +48,24 @@ export type MCPAgentTool = {
   readOnly: boolean;
 };
 
+export type LSPPosition = {
+  line: number;
+  character: number;
+};
+
+export type LSPRange = {
+  start: LSPPosition;
+  end: LSPPosition;
+};
+
+export type LSPDiagnostic = {
+  range: LSPRange;
+  severity?: number;
+  code?: unknown;
+  source?: string;
+  message: string;
+};
+
 export type LSPConfig = {
   name?: string;
   command: string;
