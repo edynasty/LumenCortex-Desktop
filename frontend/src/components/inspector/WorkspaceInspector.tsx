@@ -9,11 +9,8 @@ import type {
   SubagentNode,
 } from "../../types";
 import type { SelectOption } from "../primitives/Select";
-import {
-  Inspector,
-  type InspectorPolicy,
-  type InspectorTab,
-} from "./Inspector";
+import { Inspector } from "./Inspector";
+import type { InspectorPolicy, InspectorTab } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
