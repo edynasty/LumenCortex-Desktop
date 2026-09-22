@@ -820,7 +820,7 @@ Runtime dependency:
 - [x] **UI-06.5 Show branch/base/worktree path**
 - [x] **UI-06.6 Show parallel run status in sidebar**
 - [x] **UI-06.7 Detect worktree conflicts**
-- [ ] **UI-06.8 Add apply/handoff workflow**
+- [x] **UI-06.8 Add apply/handoff workflow**
 - [x] **UI-06.9 Add cleanup flow**
 - [x] **UI-06.10 Recover stale running sessions after Desktop restart**
 
