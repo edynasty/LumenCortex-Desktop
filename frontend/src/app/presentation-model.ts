@@ -8,20 +8,24 @@ export type ConfiguredModelOption = {
   label: string;
   group: string;
   description: string;
+  isDefault: boolean;
 };
 
 export function providerModelOptions(catalog: ProviderCatalog): ConfiguredModelOption[] {
   return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
     Object.entries(provider.models || {}).map(([modelID, definition]) => {
+      const ref = providerID + "/" + modelID;
       const metadata = [
         definition.modelID && definition.modelID !== modelID ? definition.modelID : "",
         definition.limit?.context ? Math.round(definition.limit.context / 1024) + "K ctx" : "",
+        definition.limit?.output ? Math.round(definition.limit.output / 1024) + "K out" : "",
       ].filter(Boolean).join(" · ");
       return {
-        ref: providerID + "/" + modelID,
+        ref,
         label: definition.name || modelID,
         group: provider.name || providerID,
         description: metadata,
+        isDefault: catalog.model === ref,
       };
     }),
   );
