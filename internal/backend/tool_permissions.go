@@ -69,7 +69,7 @@ func saveToolPermissions(workspace string, value ToolPermissions) error {
 	if err != nil {
 		return err
 	}
-	raw = append(raw, '\\n')
+	raw = append(raw, '\n')
 	if len(raw) > MaxToolPermissionsBytes {
 		return errors.New("tool permissions configuration exceeds size limit")
 	}
