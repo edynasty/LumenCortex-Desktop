@@ -5,7 +5,7 @@ const scenes = ["new-task", "thread", "providers", "review", "extensions", "insp
 
 const sceneRoots: Record<(typeof scenes)[number], string> = {
   "new-task": ".new-task-workspace",
-  thread: ".thread-workspace",
+  thread: ".thread-view",
   providers: ".provider-settings",
   review: ".review-workspace",
   extensions: ".extensions-workspace",
@@ -75,7 +75,11 @@ for (const width of widths) {
         fullPage: true,
       });
 
-      if (width <= 820) {
+      if (scene === "inspector" && width === 560) {
+        await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+        const inspectorWidth = await page.locator(".inspector").evaluate((element) => element.getBoundingClientRect().width);
+        expect(inspectorWidth).toBeLessThanOrEqual(width);
+      } else if (width <= 820) {
         await page.getByRole("button", { name: "Open sidebar" }).click();
         await expect(page.locator(".sidebar")).toHaveClass(/open/);
         const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
