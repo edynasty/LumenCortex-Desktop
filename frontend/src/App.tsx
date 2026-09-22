@@ -25,7 +25,7 @@ import { bridge, onRuntimeEvent } from "./lib/bridge";
 import { splitCommandArgs } from "./lib/command-line";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "./types";
+import type { AgentConfig, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, SessionCheckpoint, SubagentNode, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MESSAGE_PAGE_SIZE = 100;
@@ -77,6 +77,8 @@ export default function App() {
   const [messageAtLatest, setMessageAtLatest] = useState(true);
   const [messageLoadingOlder, setMessageLoadingOlder] = useState(false);
   const [workflowSummary, setWorkflowSummary] = useState<WorkflowSummary | null>(null);
+  const [subagents, setSubagents] = useState<SubagentNode[]>([]);
+  const [checkpoints, setCheckpoints] = useState<SessionCheckpoint[]>([]);
   const [events, setEvents] = useState<RuntimeEvent[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [modelRef, setModelRef] = useState("");
@@ -148,15 +150,21 @@ export default function App() {
       setMessages([]);
       setMessageAtLatest(true);
       setWorkflowSummary(null);
+      setSubagents([]);
+      setCheckpoints([]);
       return;
     }
     Promise.all([
       bridge.messagePage(selected, -1, MESSAGE_PAGE_SIZE),
       bridge.workflowSummary(selected),
-    ]).then(([page, summary]) => {
+      bridge.subagentTree(selected),
+      bridge.sessionCheckpoints(selected, 20),
+    ]).then(([page, summary, nextSubagents, nextCheckpoints]) => {
       setMessages(page.messages);
       setMessageAtLatest(true);
       setWorkflowSummary(summary);
+      setSubagents(nextSubagents);
+      setCheckpoints(nextCheckpoints);
     }).catch(() => undefined);
   }, [selected]);
 
@@ -180,6 +188,20 @@ export default function App() {
       (event.type === "tool.end" && event.sessionId === selected)
     ) {
       bridge.lspStatus(selected || "").then(setLSPStatus).catch(() => undefined);
+    }
+
+    if (
+      selected &&
+      event.sessionId === selected &&
+      (event.type === "subagent.spawned" || event.type === "subagent.event" || event.type === "subagent.stopped")
+    ) {
+      Promise.all([
+        bridge.subagentTree(selected),
+        bridge.sessionCheckpoints(selected, 20),
+      ]).then(([nextSubagents, nextCheckpoints]) => {
+        setSubagents(nextSubagents);
+        setCheckpoints(nextCheckpoints);
+      }).catch(() => undefined);
     }
 
     if (
@@ -241,6 +263,7 @@ export default function App() {
 
     for (const session of state.sessions) {
       const ui = sessionUI(session);
+      if (ui.parentSessionId) continue;
       const active = activeRunIds.has(session.id);
       const thread = {
         session,
@@ -312,15 +335,19 @@ export default function App() {
 
   async function refreshCurrent(sessionId = selected) {
     if (!sessionId) return;
-    const [session, page, summary] = await Promise.all([
+    const [session, page, summary, nextSubagents, nextCheckpoints] = await Promise.all([
       bridge.getSession(sessionId),
       bridge.messagePage(sessionId, -1, MESSAGE_PAGE_SIZE),
       bridge.workflowSummary(sessionId),
+      bridge.subagentTree(sessionId),
+      bridge.sessionCheckpoints(sessionId, 20),
     ]);
     if (sessionId === selected) {
       setMessages(page.messages);
       setMessageAtLatest(true);
       setWorkflowSummary(summary);
+      setSubagents(nextSubagents);
+      setCheckpoints(nextCheckpoints);
     }
     setState((currentState) => ({
       ...currentState,
@@ -750,6 +777,8 @@ export default function App() {
       lspArgs={lspArgs}
       lspLanguage={lspLanguage}
       lspStatus={lspStatus}
+      subagents={subagents}
+      checkpoints={checkpoints}
       workspaceOpen={Boolean(state.workspace)}
       selectedSessionId={selected}
       running={running}
@@ -789,7 +818,13 @@ export default function App() {
         lspPid: t.lspPid,
         lspPending: t.lspPending,
         lspDiagnostics: t.lspDiagnostics,
-        lspLastError: t.lspLastError
+        lspLastError: t.lspLastError,
+        subagents: t.subagents,
+        noSubagents: t.noSubagents,
+        subagentActive: t.subagentActive,
+        subagentCompleted: t.subagentCompleted,
+        subagentInterrupted: t.subagentInterrupted,
+        subagentCheckpoint: t.subagentCheckpoint
       }}
       onTabChange={setInspectorTab}
       onClose={() => setInspectorOpen(false)}
@@ -806,6 +841,11 @@ export default function App() {
       onLSPLanguageChange={setLSPLanguage}
       onStartLSP={() => void startLSP()}
       onStopLSP={() => void stopLSP()}
+      onOpenSubagent={(sessionId) => {
+        setRoute({ kind: "thread", sessionId });
+        setInspectorOpen(true);
+        setInspectorTab("run");
+      }}
       onRunShell={runShell}
     />
   ) : undefined;
