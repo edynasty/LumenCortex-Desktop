@@ -22,6 +22,7 @@ import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useLSPController } from "./app/hooks/useLSPController";
 import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
+import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -278,6 +279,27 @@ export default function App() {
     replaceWorkflowSummary,
   });
 
+
+  const {
+    runShell,
+    cleanupCurrentWorktree,
+    updateSessionUI,
+  } = useSessionMaintenanceActions({
+    selectedSessionId: selected,
+    currentSession: current,
+    currentRuntimeKind: currentRuntime.kind,
+    running,
+    busy,
+    command,
+    setWorkspaceState: setState,
+    setRoute,
+    setBusy,
+    setError,
+    setCleanupWorktreeOpen,
+    refreshCurrent,
+    resetSessionRuntime,
+  });
+
   function afterWorkspaceChanged() {
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
@@ -317,54 +339,6 @@ export default function App() {
     if (!state.workspace) return;
     try {
       mergeContextPaths(await bridge.pickContextDirectory());
-    } catch (err) {
-      setError(String(err));
-    }
-  }
-
-  async function runShell(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected || !command.trim()) return;
-    setBusy(true);
-    setError("");
-    try {
-      await bridge.runShell(selected, command.trim());
-      await refreshCurrent(selected);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cleanupCurrentWorktree(force: boolean) {
-    if (!current || currentRuntime.kind !== "worktree" || running || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      await bridge.removeSessionWorktree(current.id, force);
-      const nextState = await bridge.state();
-      setState(nextState);
-      setCleanupWorktreeOpen(false);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updateSessionUI(sessionId: string, patch: { title?: string; pinned?: boolean; archived?: boolean }) {
-    setError("");
-    try {
-      const updated = await bridge.updateSessionUI(sessionId, patch);
-      setState((currentState) => ({
-        ...currentState,
-        sessions: currentState.sessions.map((session) => session.id === updated.id ? updated : session)
-      }));
-      if (patch.archived === true && selected === sessionId) {
-        setRoute({ kind: "new-task" });
-        resetSessionRuntime();
-      }
     } catch (err) {
       setError(String(err));
     }
