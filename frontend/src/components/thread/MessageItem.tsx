@@ -1,3 +1,6 @@
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
+import { copyText } from "../../lib/clipboard";
 import type { Message } from "../../types";
 import { Markdown } from "./Markdown";
 import { ToolCard } from "./ToolCard";
@@ -7,6 +10,8 @@ type Labels = {
   roleAssistant: string;
   roleTool: string;
   roleSystem: string;
+  copy: string;
+  copied: string;
 };
 
 type Props = {
@@ -35,6 +40,7 @@ function roleClass(role: string) {
 }
 
 export function MessageItem({ message, labels }: Props) {
+  const [copied, setCopied] = useState(false);
   const payload = normalizePayload(message.json);
   const content = typeof payload.content === "string" ? payload.content : JSON.stringify(payload, null, 2);
   const roleLabel =
@@ -53,7 +59,24 @@ export function MessageItem({ message, labels }: Props) {
       <div className="message-body">
         <div className="message-head">
           <strong>{roleLabel}</strong>
-          <span>#{message.seq}</span>
+          <div className="message-head-actions">
+            <span>#{message.seq}</span>
+            {message.role !== "tool" && content && (
+              <button
+                type="button"
+                aria-label={copied ? labels.copied : labels.copy}
+                title={copied ? labels.copied : labels.copy}
+                onClick={async () => {
+                  if (await copyText(content)) {
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1200);
+                  }
+                }}
+              >
+                {copied ? <Check size={11} strokeWidth={1.8} aria-hidden /> : <Copy size={11} strokeWidth={1.7} aria-hidden />}
+              </button>
+            )}
+          </div>
         </div>
         {message.role === "tool"
           ? <ToolCard title={typeof payload.name === "string" ? payload.name : labels.roleTool} content={content} />
