@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 
 type Props = {
   sidebar: ReactNode;
@@ -25,7 +25,7 @@ export function AppShell({
     closeSidebarRef.current = onCloseSidebar;
   }, [onCloseSidebar]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!sidebarOpen) return;
 
     const previous = document.activeElement as HTMLElement | null;
