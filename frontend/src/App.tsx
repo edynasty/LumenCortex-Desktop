@@ -17,7 +17,7 @@ import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPan
 import { Button } from "./components/primitives/Button";
 import { Dialog } from "./components/primitives/Dialog";
 import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
-import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
+import { Sidebar } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
@@ -26,12 +26,12 @@ import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
+import { buildSidebarGroups, providerModelOptions } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
-import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, RuntimeKind, Session } from "./types";
+import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
@@ -163,90 +163,27 @@ export default function App() {
     [events, selected]
   );
 
-  const configuredModels = useMemo(() => {
-    return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
-      Object.entries(provider.models || {}).map(([modelID, definition]) => {
-        const metadata = [
-          definition.modelID && definition.modelID !== modelID ? definition.modelID : "",
-          definition.limit?.context ? Math.round(definition.limit.context / 1024) + "K ctx" : ""
-        ].filter(Boolean).join(" · ");
-        return {
-          ref: providerID + "/" + modelID,
-          label: definition.name || modelID,
-          group: provider.name || providerID,
-          description: metadata
-        };
-      })
-    );
-  }, [catalog]);
+  const configuredModels = useMemo(() => providerModelOptions(catalog), [catalog]);
 
-  const sessionGroups = useMemo<SidebarGroup[]>(() => {
-    const runningThreads: SidebarGroup["sessions"] = [];
-    const attentionThreads: SidebarGroup["sessions"] = [];
-    const pinnedThreads: SidebarGroup["sessions"] = [];
-    const recentThreads: SidebarGroup["sessions"] = [];
-    const archivedThreads: SidebarGroup["sessions"] = [];
-
-    for (const session of state.sessions) {
-      const ui = sessionUI(session);
-      if (ui.parentSessionId) continue;
-      const active = activeRunIds.has(session.id);
-      const thread = {
-        session,
-        runtime: sessionRuntime(session, state.workspace),
-        title: ui.title,
-        active,
-        pinned: ui.pinned,
-        archived: ui.archived,
-        statusLabel: session.status === "running" && !active
-          ? t.interrupted
-          : statusLabel(session.status, active)
-      };
-
-      if (ui.archived) {
-        archivedThreads.push(thread);
-      } else if (active) {
-        runningThreads.push(thread);
-      } else if (session.status === "waiting_gate" || session.error || session.status === "running") {
-        attentionThreads.push(thread);
-      } else if (ui.pinned) {
-        pinnedThreads.push(thread);
-      } else {
-        recentThreads.push(thread);
-      }
-    }
-
-    return [
-      { key: "running", label: t.runningThreads, sessions: runningThreads },
-      { key: "attention", label: t.attentionThreads, sessions: attentionThreads },
-      { key: "pinned", label: t.pinnedThreads, sessions: pinnedThreads },
-      { key: "recent", label: t.recentThreads, sessions: recentThreads },
-      { key: "archived", label: t.archivedThreads, sessions: archivedThreads }
-    ].filter((group) => group.sessions.length > 0);
-  }, [
+  const sessionGroups = useMemo(() => buildSidebarGroups({
+    sessions: state.sessions,
     activeRunIds,
-    state.sessions,
-    state.workspace,
-    t.archivedThreads,
-    t.attentionThreads,
-    t.interrupted,
-    t.pinnedThreads,
-    t.recentThreads,
-    t.runningThreads
-  ]);
-
-
-  function statusLabel(status?: string, isRunning = false) {
-    if (isRunning) return t.active;
-    switch (status) {
-      case "created": return t.created;
-      case "completed": return t.completed;
-      case "interrupted": return t.interrupted;
-      case "waiting_gate": return t.waiting;
-      case "running": return t.running;
-      default: return status || t.unknown;
-    }
-  }
+    workspace: state.workspace,
+    labels: {
+      active: t.active,
+      created: t.created,
+      completed: t.completed,
+      interrupted: t.interrupted,
+      waiting: t.waiting,
+      running: t.running,
+      unknown: t.unknown,
+      runningThreads: t.runningThreads,
+      attentionThreads: t.attentionThreads,
+      pinnedThreads: t.pinnedThreads,
+      recentThreads: t.recentThreads,
+      archivedThreads: t.archivedThreads,
+    },
+  }), [activeRunIds, state.sessions, state.workspace, t]);
 
   function agentConfig(): AgentConfig {
     return {
