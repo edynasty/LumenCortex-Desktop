@@ -1,7 +1,7 @@
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-  color: #242424;
-  background: #f7f7f5;
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 
@@ -9,6 +9,9 @@
   --sidebar: #f7f7f5;
   --surface: #ffffff;
   --surface-soft: #f7f7f5;
+  --surface-subtle: #fafaf8;
+  --surface-muted: #f0f0ed;
+  --surface-input: #fbfbfa;
   --surface-hover: #efefec;
   --surface-active: #e9e9e6;
   --border: #e9e9e5;
@@ -17,12 +20,43 @@
   --text-soft: #595957;
   --muted: #8a8a84;
   --faint: #aaa9a2;
+  --code-text: #333a35;
+  --tool-text: #536174;
+  --chrome: rgba(255, 255, 255, .93);
+  --scrollbar: #d0d0cb;
+  --focus-ring: rgba(60, 111, 200, .38);
+  --backdrop: rgba(20, 20, 18, .18);
+
   --accent: #111211;
+  --accent-hover: #2b2c2a;
   --accent-ink: #ffffff;
   --green: #247a4b;
   --amber: #9a6818;
   --red: #b13f49;
   --blue: #3c6fc8;
+
+  --success-bg: #f0f8f3;
+  --success-surface: #f7fbf8;
+  --success-border: #cfe2d6;
+  --warning-bg: #fff9ef;
+  --warning-border: #eadfc9;
+  --danger-bg: #fff5f5;
+  --danger-soft: #fff7f7;
+  --danger-hover: #fff0f1;
+  --danger-border: #ead0d3;
+  --info-bg: #eef3fb;
+  --info-text: #58719a;
+  --warning-badge-bg: #fff4d8;
+  --warning-badge-text: #8b5f13;
+
+  --assistant-avatar-bg: #20211f;
+  --assistant-avatar-ink: #ffffff;
+  --tool-avatar-bg: #f0f2f6;
+  --tool-avatar-ink: #5771a2;
+  --memory-track: #e5e5e1;
+  --memory-fill: #7d8b7f;
+  --tooltip-bg: #1f201f;
+  --tooltip-ink: #ffffff;
 
   --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 
@@ -54,4 +88,62 @@
   --ease-standard: cubic-bezier(.2, 0, 0, 1);
   --ease-out: cubic-bezier(.16, 1, .3, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
+}
+
+:root[data-theme="dark"] {
+  --bg: #171816;
+  --sidebar: #1b1c1a;
+  --surface: #20211f;
+  --surface-soft: #252622;
+  --surface-subtle: #242522;
+  --surface-muted: #2b2c28;
+  --surface-input: #1b1c1a;
+  --surface-hover: #2c2d29;
+  --surface-active: #32332f;
+  --border: #33342f;
+  --border-strong: #454640;
+  --text: #ecece7;
+  --text-soft: #c4c4bd;
+  --muted: #93938c;
+  --faint: #6f706a;
+  --code-text: #d9dad4;
+  --tool-text: #aab7ca;
+  --chrome: rgba(32, 33, 31, .94);
+  --scrollbar: #494a45;
+  --focus-ring: rgba(120, 154, 214, .55);
+  --backdrop: rgba(0, 0, 0, .48);
+
+  --accent: #ecece7;
+  --accent-hover: #ffffff;
+  --accent-ink: #181917;
+  --green: #6ec48f;
+  --amber: #d6a354;
+  --red: #e27c83;
+  --blue: #82a7e8;
+
+  --success-bg: #1e2c23;
+  --success-surface: #1c2820;
+  --success-border: #355b43;
+  --warning-bg: #31291d;
+  --warning-border: #5f4a2a;
+  --danger-bg: #302124;
+  --danger-soft: #2b2022;
+  --danger-hover: #382326;
+  --danger-border: #633941;
+  --info-bg: #202938;
+  --info-text: #9cb8e4;
+  --warning-badge-bg: #342a17;
+  --warning-badge-text: #e1b469;
+
+  --assistant-avatar-bg: #e4e4df;
+  --assistant-avatar-ink: #1c1d1b;
+  --tool-avatar-bg: #263044;
+  --tool-avatar-ink: #9cb8e4;
+  --memory-track: #34352f;
+  --memory-fill: #6b806f;
+  --tooltip-bg: #f0f0eb;
+  --tooltip-ink: #1d1e1c;
+
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, .34);
+  --shadow-sm: 0 9px 28px rgba(0, 0, 0, .24);
 }
