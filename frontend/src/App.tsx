@@ -23,7 +23,7 @@ import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
-import type { AgentConfig, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "./types";
+import type { AgentConfig, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "./types";
 
 const MAX_VISIBLE_EVENTS = 180;
 const MESSAGE_PAGE_SIZE = 100;
@@ -55,6 +55,11 @@ function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   return Array.from(bySeq.values()).sort((a, b) => a.seq - b.seq);
 }
 
+function splitCommandArgs(value: string): string[] {
+  const matches = value.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  return matches.map((item) => item.startsWith('"') && item.endsWith('"') ? item.slice(1, -1) : item);
+}
+
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = copy[locale];
@@ -82,6 +87,14 @@ export default function App() {
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
+  const [lspCommand, setLSPCommand] = useState(() => localStorage.getItem("lcx-lsp-command") || "gopls");
+  const [lspArgs, setLSPArgs] = useState(() => localStorage.getItem("lcx-lsp-args") || "");
+  const [lspLanguage, setLSPLanguage] = useState(() => localStorage.getItem("lcx-lsp-language") || "go");
+  const [lspStatus, setLSPStatus] = useState<LSPStatus>({
+    running: false,
+    pendingRequests: 0,
+    diagnostics: 0
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -102,6 +115,12 @@ export default function App() {
   }, [locale]);
 
   useEffect(() => {
+    localStorage.setItem("lcx-lsp-command", lspCommand);
+    localStorage.setItem("lcx-lsp-args", lspArgs);
+    localStorage.setItem("lcx-lsp-language", lspLanguage);
+  }, [lspArgs, lspCommand, lspLanguage]);
+
+  useEffect(() => {
     if (!state.workspace) return;
     setRecentProjects((current) => {
       const next = [state.workspace, ...current.filter((path) => path !== state.workspace)].slice(0, 8);
@@ -116,6 +135,16 @@ export default function App() {
       setModelRef((current) => current || next.model || "");
     }).catch((err) => setError(String(err)));
   }, [state.workspace]);
+
+  useEffect(() => {
+    if (!state.workspace) {
+      setLSPStatus({ running: false, pendingRequests: 0, diagnostics: 0 });
+      return;
+    }
+    bridge.lspStatus(selected || "")
+      .then(setLSPStatus)
+      .catch(() => setLSPStatus({ running: false, pendingRequests: 0, diagnostics: 0 }));
+  }, [selected, state.workspace]);
 
   useEffect(() => {
     if (!selected) {
@@ -146,6 +175,14 @@ export default function App() {
       event.type === "workflow.approved"
     ) {
       bridge.state().then(setState).catch(() => undefined);
+    }
+
+    if (
+      event.type === "lsp.started" ||
+      event.type === "lsp.stopped" ||
+      (event.type === "tool.end" && event.sessionId === selected)
+    ) {
+      bridge.lspStatus(selected || "").then(setLSPStatus).catch(() => undefined);
     }
 
     if (
@@ -523,6 +560,39 @@ export default function App() {
     }
   }
 
+  async function startLSP() {
+    if (!state.workspace || busy || !lspCommand.trim()) return;
+    setBusy(true);
+    setError("");
+    try {
+      const status = await bridge.startLSP(selected || "", {
+        name: lspCommand.trim(),
+        command: lspCommand.trim(),
+        args: splitCommandArgs(lspArgs),
+        languageId: lspLanguage.trim() || undefined
+      });
+      setLSPStatus(status);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stopLSP() {
+    if (!state.workspace || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await bridge.stopLSP(selected || "");
+      setLSPStatus(await bridge.lspStatus(selected || ""));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function runShell(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected || !command.trim()) return;
@@ -672,6 +742,11 @@ export default function App() {
       health={health}
       pressure={pressure}
       command={command}
+      lspCommand={lspCommand}
+      lspArgs={lspArgs}
+      lspLanguage={lspLanguage}
+      lspStatus={lspStatus}
+      workspaceOpen={Boolean(state.workspace)}
       selectedSessionId={selected}
       running={running}
       busy={busy}
@@ -698,7 +773,19 @@ export default function App() {
         maxAgents: t.maxAgents,
         shellCommand: t.shellCommand,
         runCommand: t.runCommand,
-        shellHint: t.shellHint
+        shellHint: t.shellHint,
+        lsp: t.lsp,
+        lspCommand: t.lspCommand,
+        lspArgs: t.lspArgs,
+        lspLanguage: t.lspLanguage,
+        lspStart: t.lspStart,
+        lspStop: t.lspStop,
+        lspRunning: t.lspRunning,
+        lspStopped: t.lspStopped,
+        lspPid: t.lspPid,
+        lspPending: t.lspPending,
+        lspDiagnostics: t.lspDiagnostics,
+        lspLastError: t.lspLastError
       }}
       onTabChange={setInspectorTab}
       onClose={() => setInspectorOpen(false)}
@@ -710,6 +797,11 @@ export default function App() {
       onPolicyChange={setPolicy}
       onMaxStepsChange={setMaxSteps}
       onCommandChange={setCommand}
+      onLSPCommandChange={setLSPCommand}
+      onLSPArgsChange={setLSPArgs}
+      onLSPLanguageChange={setLSPLanguage}
+      onStartLSP={() => void startLSP()}
+      onStopLSP={() => void stopLSP()}
       onRunShell={runShell}
     />
   ) : undefined;
