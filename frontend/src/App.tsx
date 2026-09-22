@@ -2,16 +2,12 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 import { X } from "lucide-react";
 import { AppShell } from "./components/app-shell/AppShell";
 import { WorkspaceTopbar } from "./components/app-shell/WorkspaceTopbar";
-import { NewTaskComposer } from "./components/composer/NewTaskComposer";
-import { ExtensionsWorkspace } from "./components/extensions/ExtensionsWorkspace";
 import type { InspectorTab } from "./components/inspector/Inspector";
 import { WorkspaceInspector } from "./components/inspector/WorkspaceInspector";
-import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
 import { Button } from "./components/primitives/Button";
 import { Dialog } from "./components/primitives/Dialog";
-import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { WorkspaceSidebar } from "./components/sidebar/WorkspaceSidebar";
-import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
+import { WorkspaceRouteContent } from "./app/WorkspaceRouteContent";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -28,9 +24,6 @@ import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
-function basename(path: string) {
-  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
-}
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
@@ -408,262 +401,53 @@ export default function App() {
           onToggleInspector={() => setInspectorOpen((open) => !open)}
         />
 
-        {route.kind === "providers" ? (
-          <ProviderSettingsPanel
-            locale={locale}
-            workspace={state.workspace}
-            effectiveCatalog={catalog}
-            selectedModelRef={modelRef}
-            onSelectedModelRef={setModelRef}
-            onEffectiveCatalogChange={setCatalog}
-            onError={setError}
-          />
-        ) : route.kind === "extensions" ? (
-          <ExtensionsWorkspace
-            workspace={state.workspace}
-            sessionId={selected}
-            runtime={currentRuntime}
-            onError={setError}
-            labels={{
-              title: t.extensions,
-              subtitle: t.extensionsSubtitle,
-              mcpServers: t.mcpServers,
-              addServer: t.mcpAddServer,
-              noServers: t.mcpNoServers,
-              serverId: t.mcpServerId,
-              serverName: t.mcpServerName,
-              command: t.mcpCommand,
-              args: t.mcpArgs,
-              protocol: t.mcpProtocol,
-              legacy: t.mcpLegacy,
-              modern: t.mcpModern,
-              save: t.save,
-              delete: t.delete,
-              deleteTitle: t.mcpDeleteTitle,
-              deleteBody: t.mcpDeleteBody,
-              cancel: t.cancel,
-              start: t.mcpStart,
-              stop: t.mcpStop,
-              refresh: t.handoffRefresh,
-              running: t.lspRunning,
-              stopped: t.lspStopped,
-              pid: t.lspPid,
-              pending: t.lspPending,
-              tools: t.mcpTools,
-              noTools: t.mcpNoTools,
-              readOnly: t.readOnly,
-              sideEffect: t.mcpSideEffect,
-              noAutoStart: t.mcpNoAutoStart,
-              currentRuntime: t.currentRuntime,
-              localRuntime: t.localRuntime,
-              worktreeRuntime: t.worktreeRuntime,
-              lastError: t.lspLastError,
-              selectServer: t.mcpSelectServer,
-              enabled: t.enabled,
-              disabled: t.disabled,
-              globalScope: t.mcpGlobalScope,
-              projectScope: t.mcpProjectScope,
-              globalScopeHint: t.mcpGlobalScopeHint,
-              projectScopeHint: t.mcpProjectScopeHint,
-              inherited: t.mcpInherited,
-              globalSource: t.mcpGlobalSource,
-              projectSource: t.mcpProjectSource,
-              mcpTab: t.mcpTab,
-              skillsTab: t.skillsTab,
-              permissionsTab: t.permissionsTab,
-              permissions: t.permissions,
-              permissionsDescription: t.permissionsDescription,
-              permissionsBuiltIn: t.permissionsBuiltIn,
-              permissionsLanguage: t.permissionsLanguage,
-              permissionsSubagents: t.permissionsSubagents,
-              permissionsMCP: t.permissionsMCP,
-              permissionsOther: t.permissionsOther,
-              permissionsEmpty: t.permissionsEmpty,
-              skills: t.skills,
-              skillAdd: t.skillAdd,
-              skillEmpty: t.skillEmpty,
-              skillGlobalHint: t.skillGlobalHint,
-              skillProjectHint: t.skillProjectHint,
-              skillId: t.skillId,
-              skillContent: t.skillContent,
-              skillDeleteTitle: t.skillDeleteTitle,
-              skillDeleteBody: t.skillDeleteBody,
-              skillError: t.skillError
-            }}
-          />
-        ) : route.kind === "review" && current ? (
-          <ReviewWorkspace
-            sessionId={current.id}
-            runtime={currentRuntime}
-            messages={messages}
-            agentBusy={busy}
-            agentRunning={running}
-            onSendInstruction={sendReviewInstruction}
-            labels={{
-              title: t.review,
-              changedFiles: t.changedFiles,
-              noChanges: t.noChanges,
-              unified: t.unified,
-              split: t.split,
-              worktree: t.worktree,
-              staged: t.staged,
-              stage: t.stage,
-              unstage: t.unstage,
-              revert: t.revert,
-              revertTitle: t.revertTitle,
-              revertBody: t.revertBody,
-              cancel: t.cancel,
-              commit: t.commit,
-              commitPlaceholder: t.commitPlaceholder,
-              push: t.push,
-              truncated: t.diffTruncated,
-              loading: t.loading,
-              binaryDiff: t.binaryDiff,
-              reviewInstruction: t.reviewInstruction,
-              reviewInstructionPlaceholder: t.reviewInstructionPlaceholder,
-              sendToAgent: t.sendToAgent,
-              agentRunning: t.agentRunning,
-              checks: t.checks,
-              checkPassed: t.checkPassed,
-              checkFailed: t.checkFailed,
-              checkTruncated: t.checkTruncated,
-              localRuntime: t.localRuntime,
-              worktreeRuntime: t.worktreeRuntime,
-              conflictTitle: t.worktreeConflictTitle,
-              conflictHint: t.worktreeConflictHint,
-              handoffTitle: t.handoffTitle,
-              handoffTarget: t.handoffTarget,
-              handoffCommits: t.handoffCommits,
-              handoffReady: t.handoffReady,
-              handoffSourceDirty: t.handoffSourceDirty,
-              handoffTargetDirty: t.handoffTargetDirty,
-              handoffNoCommits: t.handoffNoCommits,
-              handoffOverlap: t.handoffOverlap,
-              handoffApply: t.handoffApply,
-              handoffRefresh: t.handoffRefresh,
-              handoffConfirmTitle: t.handoffConfirmTitle,
-              handoffConfirmBody: t.handoffConfirmBody,
-              handoffApplied: t.handoffApplied
-            }}
-          />
-        ) : !current ? (
-          <NewTaskComposer
-            title={t.buildTitle}
-            subtitle={t.newTaskSubtitle}
-            placeholder={t.composerPlaceholder}
-            workspace={state.workspace}
-            workspaceName={state.workspace ? basename(state.workspace) : ""}
-            recentProjects={recentProjects}
-            recentProjectsLabel={t.recentProjects}
-            chooseProjectLabel={t.openProject}
-            modelLabel={t.modelSelect}
-            modelRef={modelRef}
-            models={configuredModels}
-            noModelsLabel={t.modelFallback}
-            contextPaths={contextPaths}
-            contextLabels={{
-              context: t.context,
-              files: t.attachFiles,
-              folder: t.attachFolder,
-              remove: t.removeContext
-            }}
-            policyLabel={t.policy}
-            policy={policy}
-            policyLabels={{
-              "read-only": t.readOnly,
-              workspace: t.workspace,
-              full: t.full
-            }}
-            environmentLabel={t.environment}
-            runtime={runtimeKind}
-            runtimeLabels={{
-              local: t.localRuntime,
-              worktree: t.worktreeRuntime
-            }}
-            runtimeDescriptions={{
-              local: t.localRuntimeDescription,
-              worktree: t.worktreeRuntimeDescription
-            }}
-            hint={t.composerHint}
-            startLabel={t.start}
-            goal={goal}
-            busy={busy}
-            textareaRef={composerRef}
-            onGoalChange={setGoal}
-            onModelChange={setModelRef}
-            onPickContextFiles={pickContextFiles}
-            onPickContextFolder={pickContextDirectory}
-            onRemoveContextPath={removeContextPath}
-            onPolicyChange={setPolicy}
-            onRuntimeChange={setRuntimeKind}
-            onPickWorkspace={pickWorkspace}
-            onOpenWorkspace={openWorkspace}
-            onOpenProviders={() => {
-              setRoute({ kind: "providers" });
-              setInspectorOpen(false);
-            }}
-            onSubmit={submitTask}
-            onKeyDown={onComposerKeyDown}
-          />
-        ) : (
-          <ThreadWorkspace
-            session={current}
-            runtime={currentRuntime}
-            messages={messages}
-            hasOlderMessages={messages.length > 0 && messages[0].seq > 0}
-            historicalMessages={!messageAtLatest}
-            loadingOlderMessages={messageLoadingOlder}
-            running={running}
-            statusLabel={sessionStatusLabel(t, current.status, running)}
-            workspaceName={basename(state.workspace)}
-            modelRef={modelRef}
-            models={modelSelectOptions}
-            policyLabel={policy === "read-only" ? t.readOnly : policy === "full" ? t.full : t.workspace}
-            goal={goal}
-            busy={busy}
-            workflowSummary={workflowSummary}
-            activeSubagents={subagents.filter((node) => node.active).length}
-            textareaRef={composerRef}
-            labels={{
-              newTask: t.newTask,
-              running: t.running,
-              noMessages: t.noMessages,
-              finalAnswer: t.finalAnswer,
-              startAnother: t.startAnother,
-              composerPlaceholder: t.composerPlaceholder,
-              composerHint: t.composerHint,
-              noModels: t.noModels,
-              start: t.start,
-              roleUser: t.messageRoleUser,
-              roleAssistant: t.messageRoleAssistant,
-              roleTool: t.messageRoleTool,
-              roleSystem: t.messageRoleSystem,
-              approvalTitle: t.approvalTitle,
-              approve: t.approve,
-              loadEarlier: t.loadEarlier,
-              backToLatest: t.backToLatest,
-              historyWindow: t.historyWindow,
-              localRuntime: t.localRuntime,
-              worktreeRuntime: t.worktreeRuntime,
-              plan: t.plan,
-              planRunning: t.planRunning,
-              planWaiting: t.planWaiting,
-              planSubagents: t.planSubagents,
-              copy: t.copy,
-              copied: t.copied,
-              retry: t.retry
-            }}
-            onGoalChange={setGoal}
-            onModelChange={setModelRef}
-            onApproveGate={approveGate}
-            onLoadOlderMessages={loadOlderMessages}
-            onJumpToLatest={jumpToLatestMessages}
-            onCancel={cancelAgent}
-            onRetry={() => void retryCurrent()}
-            onSubmit={submitTask}
-            onKeyDown={onComposerKeyDown}
-          />
-        )}
+        <WorkspaceRouteContent
+          route={route}
+          current={current}
+          runtime={currentRuntime}
+          locale={locale}
+          labels={t}
+          workspace={state.workspace}
+          recentProjects={recentProjects}
+          catalog={catalog}
+          modelRef={modelRef}
+          configuredModels={configuredModels}
+          contextPaths={contextPaths}
+          policy={policy}
+          runtimeKind={runtimeKind}
+          goal={goal}
+          busy={busy}
+          messages={messages}
+          messageAtLatest={messageAtLatest}
+          messageLoadingOlder={messageLoadingOlder}
+          running={running}
+          workflowSummary={workflowSummary}
+          subagents={subagents}
+          textareaRef={composerRef}
+          onCatalogChange={setCatalog}
+          onModelChange={setModelRef}
+          onError={setError}
+          onGoalChange={setGoal}
+          onPickContextFiles={pickContextFiles}
+          onPickContextFolder={pickContextDirectory}
+          onRemoveContextPath={removeContextPath}
+          onPolicyChange={setPolicy}
+          onRuntimeChange={setRuntimeKind}
+          onPickWorkspace={pickWorkspace}
+          onOpenWorkspace={openWorkspace}
+          onOpenProviders={() => {
+            setRoute({ kind: "providers" });
+            setInspectorOpen(false);
+          }}
+          onApproveGate={approveGate}
+          onLoadOlderMessages={loadOlderMessages}
+          onJumpToLatest={jumpToLatestMessages}
+          onCancel={cancelAgent}
+          onRetry={() => void retryCurrent()}
+          onSubmit={submitTask}
+          onKeyDown={onComposerKeyDown}
+          onSendReviewInstruction={sendReviewInstruction}
+        />
       </AppShell>
 
       <Dialog
