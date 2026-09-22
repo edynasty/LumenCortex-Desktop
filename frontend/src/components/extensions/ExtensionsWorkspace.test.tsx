@@ -62,6 +62,18 @@ const labels = {
   inherited: "Inherited from global",
   globalSource: "Global",
   projectSource: "Project",
+  mcpTab: "MCP",
+  skillsTab: "Skills",
+  skills: "Skills",
+  skillAdd: "Add skill",
+  skillEmpty: "No skills yet",
+  skillGlobalHint: "All projects",
+  skillProjectHint: "Current project",
+  skillId: "Skill ID",
+  skillContent: "SKILL.md content",
+  skillDeleteTitle: "Delete skill?",
+  skillDeleteBody: "Delete skill",
+  skillError: "Skill error",
 };
 
 const globalConfig = {
