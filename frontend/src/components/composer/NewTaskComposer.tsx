@@ -137,12 +137,13 @@ export function NewTaskComposer({
               <span>{workspace ? workspaceName : chooseProjectLabel}</span>
             </button>
 
-            {recentProjects.length > 0 && (
+            {!workspace && recentProjects.length > 0 && (
               <DesktopSelect
                 ariaLabel={recentProjectsLabel}
                 value={workspace}
                 placeholder={recentProjectsLabel}
                 className="composer-desktop-select project-select"
+                showDescriptionInTrigger={false}
                 options={recentProjects.map<SelectOption>((path) => ({
                   value: path,
                   label: path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path,
@@ -157,6 +158,7 @@ export function NewTaskComposer({
               value={modelRef}
               placeholder={noModelsLabel}
               className="composer-desktop-select model-select"
+              showDescriptionInTrigger={false}
               options={models.map<SelectOption>((item) => ({
                 value: item.ref,
                 label: item.label,
@@ -184,6 +186,7 @@ export function NewTaskComposer({
               value={runtime}
               placeholder={runtimeLabels.local}
               className="composer-desktop-select environment-select"
+              showDescriptionInTrigger={false}
               options={[
                 {
                   value: "local",
