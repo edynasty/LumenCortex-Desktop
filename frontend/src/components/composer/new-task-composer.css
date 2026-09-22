@@ -43,7 +43,7 @@
 }
 
 .new-task-composer:focus-within {
-  border-color: #bcbcb6;
+  border-color: var(--border-strong);
   box-shadow: 0 16px 44px rgba(24, 25, 24, .11);
 }
 
@@ -164,7 +164,7 @@
 }
 
 .new-task-send:not(:disabled):hover {
-  background: #2b2c2a;
+  background: var(--accent-hover);
 }
 
 .sr-only {
