@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 type Props = {
   sidebar: ReactNode;
@@ -19,6 +19,12 @@ export function AppShell({
   closeLabel,
   onCloseSidebar,
 }: Props) {
+  const closeSidebarRef = useRef(onCloseSidebar);
+
+  useEffect(() => {
+    closeSidebarRef.current = onCloseSidebar;
+  }, [onCloseSidebar]);
+
   useEffect(() => {
     if (!sidebarOpen) return;
 
@@ -36,7 +42,7 @@ export function AppShell({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCloseSidebar();
+        closeSidebarRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -62,7 +68,7 @@ export function AppShell({
       document.removeEventListener("keydown", onKeyDown);
       requestAnimationFrame(() => previous?.focus());
     };
-  }, [onCloseSidebar, sidebarOpen]);
+  }, [sidebarOpen]);
 
   return (
     <div className="app-shell">
