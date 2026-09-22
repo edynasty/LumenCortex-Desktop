@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { Popover } from "./Popover";
 
 export type SelectOption = {
@@ -7,6 +7,14 @@ export type SelectOption = {
   label: string;
   description?: string;
   group?: string;
+  badge?: string;
+  keywords?: string;
+};
+
+type SearchConfig = {
+  ariaLabel: string;
+  placeholder: string;
+  emptyLabel: string;
 };
 
 type Props = {
@@ -19,6 +27,7 @@ type Props = {
   disabled?: boolean;
   showDescriptionInTrigger?: boolean;
   popoverPlacement?: "top" | "bottom";
+  search?: SearchConfig;
 };
 
 export function DesktopSelect({
@@ -31,32 +40,62 @@ export function DesktopSelect({
   disabled = false,
   showDescriptionInTrigger = true,
   popoverPlacement = "top",
+  search,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [focusTarget, setFocusTarget] = useState<"first" | "last" | "selected" | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
   const selected = useMemo(() => options.find((option) => option.value === value), [options, value]);
+  const filteredOptions = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!search || !normalized) return options;
+    return options.filter((option) =>
+      [
+        option.label,
+        option.value,
+        option.group,
+        option.description,
+        option.keywords,
+      ].some((item) => item?.toLowerCase().includes(normalized)),
+    );
+  }, [options, query, search]);
 
   useEffect(() => {
-    if (!open || !focusTarget) return;
-    requestAnimationFrame(() => {
-      const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
-      if (!items.length) return;
-      const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
-      const index =
-        focusTarget === "last"
-          ? items.length - 1
-          : focusTarget === "selected"
-            ? Math.min(selectedIndex, items.length - 1)
-            : 0;
-      items[index]?.focus();
-      setFocusTarget(null);
+    if (!open) return;
+    const frame = requestAnimationFrame(() => {
+      if (focusTarget) {
+        const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+        if (!items.length) return;
+        const selectedIndex = Math.max(0, filteredOptions.findIndex((option) => option.value === value));
+        const index =
+          focusTarget === "last"
+            ? items.length - 1
+            : focusTarget === "selected"
+              ? Math.min(selectedIndex, items.length - 1)
+              : 0;
+        items[index]?.focus();
+        setFocusTarget(null);
+        return;
+      }
+      searchRef.current?.focus();
     });
-  }, [focusTarget, open, options, value]);
+    return () => cancelAnimationFrame(frame);
+  }, [filteredOptions, focusTarget, open, value]);
+
+  function setOpenState(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setQuery("");
+      setFocusTarget(null);
+    }
+  }
 
   function closeAndRestoreFocus() {
-    setOpen(false);
+    setOpenState(false);
     triggerRef.current?.focus();
   }
 
@@ -65,6 +104,18 @@ export function DesktopSelect({
       event.preventDefault();
       setFocusTarget(event.key === "ArrowUp" ? "last" : "selected");
       setOpen(true);
+    }
+  }
+
+  function focusOption(direction: "first" | "last") {
+    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+    items[direction === "last" ? items.length - 1 : 0]?.focus();
+  }
+
+  function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      focusOption(event.key === "ArrowUp" ? "last" : "first");
     }
   }
 
@@ -88,24 +139,39 @@ export function DesktopSelect({
   return (
     <Popover
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={setOpenState}
       ariaLabel={ariaLabel}
       disabled={disabled}
       placement={popoverPlacement}
       triggerRef={triggerRef}
       onTriggerKeyDown={onTriggerKeyDown}
       triggerClassName={`desktop-select-trigger ${className}`}
-      contentClassName="desktop-select-popover"
+      contentClassName={`desktop-select-popover ${search ? "searchable" : ""}`}
       trigger={
         <>
           <span className="desktop-select-trigger-copy">
             <span>{selected?.label || placeholder}</span>
+            {selected?.badge && <em>{selected.badge}</em>}
             {showDescriptionInTrigger && selected?.description && <small>{selected.description}</small>}
           </span>
           <ChevronDown size={13} strokeWidth={1.7} aria-hidden />
         </>
       }
     >
+      {search && (
+        <label className="desktop-select-search">
+          <Search size={12} strokeWidth={1.8} aria-hidden />
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={onSearchKeyDown}
+            aria-label={search.ariaLabel}
+            placeholder={search.placeholder}
+            autoComplete="off"
+          />
+        </label>
+      )}
       <div
         ref={listRef}
         className="desktop-select-list"
@@ -113,8 +179,8 @@ export function DesktopSelect({
         aria-label={ariaLabel}
         onKeyDown={onListKeyDown}
       >
-        {options.map((option, index) => {
-          const previousGroup = index > 0 ? options[index - 1].group : undefined;
+        {filteredOptions.map((option, index) => {
+          const previousGroup = index > 0 ? filteredOptions[index - 1].group : undefined;
           const showGroup = Boolean(option.group && option.group !== previousGroup);
           const selectedOption = option.value === value;
           return (
@@ -134,13 +200,19 @@ export function DesktopSelect({
                   {selectedOption && <Check size={12} strokeWidth={2} aria-hidden />}
                 </span>
                 <span className="desktop-select-option-copy">
-                  <strong>{option.label}</strong>
+                  <span className="desktop-select-option-title">
+                    <strong>{option.label}</strong>
+                    {option.badge && <em>{option.badge}</em>}
+                  </span>
                   {option.description && <small>{option.description}</small>}
                 </span>
               </button>
             </div>
           );
         })}
+        {search && filteredOptions.length === 0 && (
+          <div className="desktop-select-empty">{search.emptyLabel}</div>
+        )}
       </div>
     </Popover>
   );
