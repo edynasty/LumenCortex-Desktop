@@ -120,6 +120,14 @@ func (a *App) WorktreeConflicts() ([]backend.WorktreeConflict, error) {
 	return a.backend.WorktreeConflicts(context.Background())
 }
 
+func (a *App) WorktreeHandoffPlan(sessionID string) (backend.WorktreeHandoffPlan, error) {
+	return a.backend.WorktreeHandoffPlan(context.Background(), sessionID)
+}
+
+func (a *App) ApplySessionWorktree(sessionID string) (backend.WorktreeApplyResult, error) {
+	return a.backend.ApplySessionWorktree(context.Background(), sessionID)
+}
+
 func (a *App) PickContextFiles() ([]string, error) {
 	state, err := a.backend.State(context.Background())
 	if err != nil {
