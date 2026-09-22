@@ -57,64 +57,6 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
     toggleEnabled,
   } = useSkillsController({ workspace, onError });
 
-  return () => {
-      cancelled = true;
-    };
-  }, [onError, scope, selectedId, selectedScoped]);
-
-  function beginNew() {
-    setSelectedId("");
-    setDraftId("");
-    setContent(template);
-  }
-
-  async function save() {
-    const id = (selectedId || draftId).trim();
-    if (!id || !content.trim() || busy) return;
-    setBusy(true);
-    try {
-      await bridge.saveSkill(scope, id, content);
-      await refresh();
-      setSelectedId(id);
-    } catch (err) {
-      onError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    if (!selectedId || !selectedScoped || busy) return;
-    setBusy(true);
-    try {
-      await bridge.deleteSkill(scope, selectedId);
-      setDeleteOpen(false);
-      setSelectedId("");
-      await refresh();
-    } catch (err) {
-      onError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggleEnabled() {
-    if (!selectedId || !selectedEffective || busy) return;
-    if (scope === "global" && !selectedScoped) return;
-    const currentEnabled = selectedScoped?.enabled ?? selectedEffective.enabled;
-    setBusy(true);
-    try {
-      await bridge.setSkillEnabled(scope, selectedId, !currentEnabled);
-      await refresh();
-    } catch (err) {
-      onError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const enabled = selectedScoped?.enabled ?? selectedEffective?.enabled ?? true;
-
   return (
     <div className="skills-layout">
       <aside className="skills-list">
