@@ -218,7 +218,10 @@ export const copy = {
     plan: "执行计划",
     planRunning: "执行中",
     planWaiting: "等待确认",
-    planSubagents: "子 Agent"
+    planSubagents: "子 Agent",
+    copy: "复制",
+    copied: "已复制",
+    retry: "重试"
   },
   en: {
     newTask: "New task",
@@ -437,7 +440,10 @@ export const copy = {
     plan: "Plan",
     planRunning: "Running",
     planWaiting: "Awaiting approval",
-    planSubagents: "subagents"
+    planSubagents: "subagents",
+    copy: "Copy",
+    copied: "Copied",
+    retry: "Retry"
   }
 } as const;
 
