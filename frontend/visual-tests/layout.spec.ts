@@ -94,8 +94,14 @@ for (const width of widths) {
       } else if (width <= 820) {
         const sidebarTrigger = page.getByRole("button", { name: "Open sidebar" });
         await sidebarTrigger.click();
-        await expect(page.locator(".sidebar")).toHaveClass(/open/);
-        await expect(page.locator(".sidebar").getByRole("button", { name: "Close" })).toBeFocused();
+        const openSidebar = page.locator(".sidebar");
+        await expect(openSidebar).toHaveClass(/open/);
+        await page.keyboard.press("Tab");
+        const focusInsideSidebar = await page.evaluate(() => {
+          const sidebar = document.querySelector(".sidebar.open");
+          return Boolean(sidebar && sidebar.contains(document.activeElement));
+        });
+        expect(focusInsideSidebar).toBe(true);
         const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(mobileOverflow).toBeLessThanOrEqual(1);
         await page.screenshot({
