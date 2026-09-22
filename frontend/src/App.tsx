@@ -21,6 +21,7 @@ import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge, onRuntimeEvent } from "./lib/bridge";
+import { splitCommandArgs } from "./lib/command-line";
 import { sessionUI } from "./lib/session-ui";
 import { sessionRuntime } from "./lib/session-runtime";
 import type { AgentConfig, LSPStatus, Message, ProviderCatalog, RuntimeEvent, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "./types";
@@ -53,11 +54,6 @@ function mergeMessages(current: Message[], incoming: Message[]): Message[] {
   for (const message of current) bySeq.set(message.seq, message);
   for (const message of incoming) bySeq.set(message.seq, message);
   return Array.from(bySeq.values()).sort((a, b) => a.seq - b.seq);
-}
-
-function splitCommandArgs(value: string): string[] {
-  const matches = value.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  return matches.map((item) => item.startsWith('"') && item.endsWith('"') ? item.slice(1, -1) : item);
 }
 
 export default function App() {
