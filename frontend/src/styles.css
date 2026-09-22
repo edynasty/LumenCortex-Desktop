@@ -973,11 +973,20 @@
     left: 0;
     bottom: 0;
     width: min(266px, 88vw);
+    visibility: hidden;
+    pointer-events: none;
     transform: translateX(-102%);
-    transition: transform var(--motion-panel) var(--ease-out);
+    transition:
+      transform var(--motion-panel) var(--ease-out),
+      visibility 0s linear var(--motion-panel);
     box-shadow: 18px 0 50px rgba(20,20,16,.12);
   }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+  }
   .sidebar-backdrop {
     display: block;
     position: fixed;
