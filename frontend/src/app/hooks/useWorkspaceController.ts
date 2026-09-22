@@ -26,10 +26,9 @@ function modelExists(catalog: ProviderCatalog, ref: string): boolean {
 
 type Options = {
   setError: Dispatch<SetStateAction<string>>;
-  onWorkspaceChanged: () => void;
 };
 
-export function useWorkspaceController({ setError, onWorkspaceChanged }: Options) {
+export function useWorkspaceController({ setError }: Options) {
   const [state, setState] = useState<WorkspaceState>({
     workspace: "",
     sessions: [],
@@ -69,28 +68,27 @@ export function useWorkspaceController({ setError, onWorkspaceChanged }: Options
     };
   }, [setError, state.workspace]);
 
-  const applyWorkspace = useCallback((next: WorkspaceState) => {
-    setState(next);
-    onWorkspaceChanged();
-  }, [onWorkspaceChanged]);
-
-  const pickWorkspace = useCallback(async () => {
+  const pickWorkspace = useCallback(async (): Promise<boolean> => {
     setError("");
     try {
-      applyWorkspace(await bridge.pickWorkspace());
+      setState(await bridge.pickWorkspace());
+      return true;
     } catch (err) {
       setError(String(err));
+      return false;
     }
-  }, [applyWorkspace, setError]);
+  }, [setError]);
 
-  const openWorkspace = useCallback(async (path: string) => {
+  const openWorkspace = useCallback(async (path: string): Promise<boolean> => {
     setError("");
     try {
-      applyWorkspace(await bridge.openWorkspace(path));
+      setState(await bridge.openWorkspace(path));
+      return true;
     } catch (err) {
       setError(String(err));
+      return false;
     }
-  }, [applyWorkspace, setError]);
+  }, [setError]);
 
   return {
     state,
