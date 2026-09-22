@@ -1,3 +1,21 @@
+export type LSPConfig = {
+  name?: string;
+  command: string;
+  args?: string[];
+  languageId?: string;
+  workspace?: string;
+};
+
+export type LSPStatus = {
+  running: boolean;
+  name?: string;
+  command?: string;
+  pid?: number;
+  pendingRequests: number;
+  diagnostics: number;
+  lastError?: string;
+};
+
 export type Budget = {
   softBytes: number;
   hardBytes: number;
