@@ -152,7 +152,19 @@ export const copy = {
     context: "上下文",
     attachFiles: "添加文件",
     attachFolder: "添加文件夹",
-    removeContext: "移除上下文"
+    removeContext: "移除上下文",
+    lsp: "LSP",
+    lspCommand: "Server 命令",
+    lspArgs: "参数",
+    lspLanguage: "Language ID",
+    lspStart: "启动 LSP",
+    lspStop: "停止 LSP",
+    lspRunning: "运行中",
+    lspStopped: "未运行",
+    lspPid: "PID",
+    lspPending: "请求中",
+    lspDiagnostics: "诊断",
+    lspLastError: "最近错误"
   },
   en: {
     newTask: "New task",
@@ -305,7 +317,19 @@ export const copy = {
     context: "Context",
     attachFiles: "Attach files",
     attachFolder: "Attach folder",
-    removeContext: "Remove context"
+    removeContext: "Remove context",
+    lsp: "LSP",
+    lspCommand: "Server command",
+    lspArgs: "Arguments",
+    lspLanguage: "Language ID",
+    lspStart: "Start LSP",
+    lspStop: "Stop LSP",
+    lspRunning: "Running",
+    lspStopped: "Stopped",
+    lspPid: "PID",
+    lspPending: "Pending",
+    lspDiagnostics: "Diagnostics",
+    lspLastError: "Last error"
   }
 } as const;
 
