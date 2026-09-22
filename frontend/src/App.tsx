@@ -819,6 +819,18 @@ export default function App() {
         lspPending: t.lspPending,
         lspDiagnostics: t.lspDiagnostics,
         lspLastError: t.lspLastError,
+        milestoneAgentStarted: t.milestoneAgentStarted,
+        milestoneAgentStopped: t.milestoneAgentStopped,
+        milestoneToolCompleted: t.milestoneToolCompleted,
+        milestoneApprovalRequired: t.milestoneApprovalRequired,
+        milestoneApprovalGranted: t.milestoneApprovalGranted,
+        milestoneSubagentStarted: t.milestoneSubagentStarted,
+        milestoneSubagentStopped: t.milestoneSubagentStopped,
+        milestoneWorktreeCreated: t.milestoneWorktreeCreated,
+        milestoneWorktreeApplied: t.milestoneWorktreeApplied,
+        milestoneTaskCompleted: t.milestoneTaskCompleted,
+        milestoneTaskInterrupted: t.milestoneTaskInterrupted,
+        milestoneWorkflowAdvanced: t.milestoneWorkflowAdvanced,
         subagents: t.subagents,
         noSubagents: t.noSubagents,
         subagentActive: t.subagentActive,
@@ -1135,6 +1147,7 @@ export default function App() {
             goal={goal}
             busy={busy}
             workflowSummary={workflowSummary}
+            activeSubagents={subagents.filter((node) => node.active).length}
             textareaRef={composerRef}
             labels={{
               newTask: t.newTask,
@@ -1156,7 +1169,11 @@ export default function App() {
               backToLatest: t.backToLatest,
               historyWindow: t.historyWindow,
               localRuntime: t.localRuntime,
-              worktreeRuntime: t.worktreeRuntime
+              worktreeRuntime: t.worktreeRuntime,
+              plan: t.plan,
+              planRunning: t.planRunning,
+              planWaiting: t.planWaiting,
+              planSubagents: t.planSubagents
             }}
             onGoalChange={setGoal}
             onModelChange={setModelRef}
