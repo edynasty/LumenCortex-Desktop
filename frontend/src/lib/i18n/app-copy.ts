@@ -202,7 +202,19 @@ export const copy = {
     subagentActive: "运行中",
     subagentCompleted: "已完成",
     subagentInterrupted: "已中断",
-    subagentCheckpoint: "最近检查点"
+    subagentCheckpoint: "最近检查点",
+    milestoneAgentStarted: "Agent 已启动",
+    milestoneAgentStopped: "Agent 已停止",
+    milestoneToolCompleted: "工具执行完成",
+    milestoneApprovalRequired: "等待确认",
+    milestoneApprovalGranted: "确认已通过",
+    milestoneSubagentStarted: "子 Agent 已启动",
+    milestoneSubagentStopped: "子 Agent 已结束",
+    milestoneWorktreeCreated: "Worktree 已创建",
+    milestoneWorktreeApplied: "Worktree 已应用",
+    milestoneTaskCompleted: "任务完成",
+    milestoneTaskInterrupted: "任务中断",
+    milestoneWorkflowAdvanced: "执行计划已推进"
   },
   en: {
     newTask: "New task",
@@ -405,7 +417,19 @@ export const copy = {
     subagentActive: "Running",
     subagentCompleted: "Completed",
     subagentInterrupted: "Interrupted",
-    subagentCheckpoint: "Recent checkpoints"
+    subagentCheckpoint: "Recent checkpoints",
+    milestoneAgentStarted: "Agent started",
+    milestoneAgentStopped: "Agent stopped",
+    milestoneToolCompleted: "Tool completed",
+    milestoneApprovalRequired: "Approval required",
+    milestoneApprovalGranted: "Approval granted",
+    milestoneSubagentStarted: "Subagent started",
+    milestoneSubagentStopped: "Subagent stopped",
+    milestoneWorktreeCreated: "Worktree created",
+    milestoneWorktreeApplied: "Worktree applied",
+    milestoneTaskCompleted: "Task completed",
+    milestoneTaskInterrupted: "Task interrupted",
+    milestoneWorkflowAdvanced: "Plan advanced"
   }
 } as const;
 
