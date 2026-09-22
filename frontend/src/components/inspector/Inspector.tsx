@@ -1,7 +1,8 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { ServerCog, SquareTerminal, X } from "lucide-react";
-import type { Health, LSPStatus, RuntimeEvent } from "../../types";
+import type { Health, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
+import { SubagentTreePanel } from "./SubagentTreePanel";
 
 export type InspectorTab = "activity" | "run" | "terminal";
 export type InspectorPolicy = "read-only" | "workspace" | "full";
@@ -20,6 +21,8 @@ type Props = {
   lspArgs: string;
   lspLanguage: string;
   lspStatus: LSPStatus;
+  subagents: SubagentNode[];
+  checkpoints: SessionCheckpoint[];
   workspaceOpen: boolean;
   selectedSessionId: string;
   running: boolean;
@@ -60,6 +63,12 @@ type Props = {
     lspPending: string;
     lspDiagnostics: string;
     lspLastError: string;
+    subagents: string;
+    noSubagents: string;
+    subagentActive: string;
+    subagentCompleted: string;
+    subagentInterrupted: string;
+    subagentCheckpoint: string;
   };
   onTabChange: (tab: InspectorTab) => void;
   onClose: () => void;
@@ -73,6 +82,7 @@ type Props = {
   onLSPLanguageChange: (value: string) => void;
   onStartLSP: () => void;
   onStopLSP: () => void;
+  onOpenSubagent: (sessionId: string) => void;
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -107,6 +117,8 @@ export function Inspector({
   lspArgs,
   lspLanguage,
   lspStatus,
+  subagents,
+  checkpoints,
   workspaceOpen,
   selectedSessionId,
   running,
@@ -124,6 +136,7 @@ export function Inspector({
   onLSPLanguageChange,
   onStartLSP,
   onStopLSP,
+  onOpenSubagent,
   onRunShell,
 }: Props) {
   return (
@@ -214,6 +227,22 @@ export function Inspector({
               </dl>
               <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
             </div>
+
+            {selectedSessionId && (
+              <SubagentTreePanel
+                nodes={subagents}
+                checkpoints={checkpoints}
+                labels={{
+                  title: labels.subagents,
+                  empty: labels.noSubagents,
+                  active: labels.subagentActive,
+                  completed: labels.subagentCompleted,
+                  interrupted: labels.subagentInterrupted,
+                  checkpoint: labels.subagentCheckpoint,
+                }}
+                onOpenSession={onOpenSubagent}
+              />
+            )}
 
             <div className="settings-group lsp-group">
               <div className="settings-title lsp-title">
