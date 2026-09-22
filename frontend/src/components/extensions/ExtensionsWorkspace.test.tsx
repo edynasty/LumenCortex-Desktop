@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExtensionsWorkspace } from "./ExtensionsWorkspace";
 
 const mocks = vi.hoisted(() => ({
-  mcpConfigs: vi.fn(),
+  mcpConfigsScope: vi.fn(),
   mcpStatuses: vi.fn(),
   mcpTools: vi.fn(),
-  saveMCPConfig: vi.fn(),
-  deleteMCPConfig: vi.fn(),
+  saveMCPConfigScope: vi.fn(),
+  deleteMCPConfigScope: vi.fn(),
   startMCP: vi.fn(),
   stopMCP: vi.fn(),
   refreshMCPTools: vi.fn(),
@@ -53,18 +53,63 @@ const labels = {
   worktreeRuntime: "Worktree",
   lastError: "Last error",
   selectServer: "Select server",
+  enabled: "Enabled",
+  disabled: "Disabled",
+  globalScope: "Global",
+  projectScope: "Project",
+  globalScopeHint: "All projects",
+  projectScopeHint: "Current project",
+  inherited: "Inherited from global",
+  globalSource: "Global",
+  projectSource: "Project",
 };
+
+const globalConfig = {
+  id: "helper",
+  name: "Global Helper",
+  command: "helper-server",
+  args: [] as string[],
+  protocolMode: "legacy" as const,
+};
+
+function configureScopes(options?: {
+  global?: typeof globalConfig[];
+  project?: typeof globalConfig[];
+}) {
+  const global = options?.global ?? [globalConfig];
+  const project = options?.project ?? [];
+  const projectById = new Map(project.map((item) => [item.id, item]));
+  const effective = [
+    ...global.filter((item) => !projectById.has(item.id)),
+    ...project,
+  ];
+  mocks.mcpConfigsScope.mockImplementation(async (scope: string) => {
+    if (scope === "global") return global;
+    if (scope === "project") return project;
+    return effective;
+  });
+}
+
+function renderWorkspace(sessionId = "session-1") {
+  return render(
+    <ExtensionsWorkspace
+      workspace="/repo"
+      sessionId={sessionId}
+      runtime={{ kind: "local", path: "/repo" }}
+      labels={labels}
+      onError={() => undefined}
+    />
+  );
+}
 
 describe("ExtensionsWorkspace", () => {
   beforeEach(() => {
     for (const mock of Object.values(mocks)) mock.mockReset();
-    mocks.mcpConfigs.mockResolvedValue([
-      { id: "helper", name: "Helper", command: "helper-server", args: [], protocolMode: "legacy" },
-    ]);
+    configureScopes();
     mocks.mcpStatuses.mockResolvedValue([]);
     mocks.mcpTools.mockResolvedValue([]);
-    mocks.saveMCPConfig.mockResolvedValue(undefined);
-    mocks.deleteMCPConfig.mockResolvedValue(undefined);
+    mocks.saveMCPConfigScope.mockResolvedValue(undefined);
+    mocks.deleteMCPConfigScope.mockResolvedValue(undefined);
     mocks.startMCP.mockResolvedValue({
       id: "helper",
       running: true,
@@ -77,32 +122,16 @@ describe("ExtensionsWorkspace", () => {
   });
 
   it("loads saved configuration without auto-starting a server", async () => {
-    render(
-      <ExtensionsWorkspace
-        workspace="/repo"
-        sessionId="session-1"
-        runtime={{ kind: "local", path: "/repo" }}
-        labels={labels}
-        onError={() => undefined}
-      />
-    );
+    renderWorkspace();
 
     expect(await screen.findByDisplayValue("helper-server")).toBeInTheDocument();
     expect(mocks.startMCP).not.toHaveBeenCalled();
-    expect(screen.getByText("Saved only")).toBeInTheDocument();
+    expect(screen.getByText("Inherited from global")).toBeInTheDocument();
   });
 
   it("starts the selected server only after explicit user action", async () => {
     const user = userEvent.setup();
-    render(
-      <ExtensionsWorkspace
-        workspace="/repo"
-        sessionId="session-1"
-        runtime={{ kind: "local", path: "/repo" }}
-        labels={labels}
-        onError={() => undefined}
-      />
-    );
+    renderWorkspace();
 
     await screen.findByDisplayValue("helper-server");
     await user.click(screen.getByRole("button", { name: "Start server" }));
@@ -112,17 +141,10 @@ describe("ExtensionsWorkspace", () => {
     );
   });
 
-  it("saves edited server arguments through the typed bridge", async () => {
+  it("saves edited server arguments through the project-scoped typed bridge", async () => {
+    configureScopes({ global: [], project: [globalConfig] });
     const user = userEvent.setup();
-    render(
-      <ExtensionsWorkspace
-        workspace="/repo"
-        sessionId=""
-        runtime={{ kind: "local", path: "/repo" }}
-        labels={labels}
-        onError={() => undefined}
-      />
-    );
+    renderWorkspace("");
 
     await screen.findByDisplayValue("helper-server");
     const args = screen.getByLabelText("Arguments");
@@ -130,13 +152,36 @@ describe("ExtensionsWorkspace", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
-      expect(mocks.saveMCPConfig).toHaveBeenCalledWith(
+      expect(mocks.saveMCPConfigScope).toHaveBeenCalledWith(
+        "project",
         expect.objectContaining({
           id: "helper",
           command: "helper-server",
           args: ["--flag", "two words"],
         })
       )
+    );
+  });
+
+  it("shows a project override instead of the global config and falls back after deleting it", async () => {
+    const projectOverride = {
+      ...globalConfig,
+      name: "Project Helper",
+      command: "project-helper",
+    };
+    configureScopes({ global: [globalConfig], project: [projectOverride] });
+
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    expect(await screen.findByDisplayValue("project-helper")).toBeInTheDocument();
+    expect(screen.getByText("Project Helper")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(mocks.deleteMCPConfigScope).toHaveBeenCalledWith("project", "helper")
     );
   });
 });
