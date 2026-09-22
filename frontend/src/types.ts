@@ -43,6 +43,28 @@ export type WorktreeConflict = {
   owners: RuntimeOwner[];
 };
 
+export type WorktreeHandoffPlan = {
+  sessionId: string;
+  runtime: SessionRuntime;
+  targetBranch?: string;
+  targetHead?: string;
+  sourceHead?: string;
+  commits: string[];
+  sourceFiles: string[];
+  targetFiles: string[];
+  overlappingFiles: string[];
+  sourceDirty: boolean;
+  targetDirty: boolean;
+  canApply: boolean;
+  blockedReason?: string;
+};
+
+export type WorktreeApplyResult = {
+  plan: WorktreeHandoffPlan;
+  action: GitActionResult;
+  targetHead: string;
+};
+
 export type SessionUIPatch = {
   title?: string;
   pinned?: boolean;
