@@ -136,7 +136,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(20, 20, 18, .18);
+  background: var(--backdrop);
   animation: primitiveBackdropEnter var(--motion-base) var(--ease-out);
 }
 
@@ -250,8 +250,8 @@
 }
 
 .desktop-button.danger {
-  border-color: #e4c6c9;
-  background: #fff7f7;
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
   color: var(--red);
 }
 
@@ -371,8 +371,8 @@
   max-width: 240px;
   padding: 5px 7px;
   border-radius: 6px;
-  background: #1f201f;
-  color: white;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-ink);
   font-size: 8.5px;
   line-height: 1.35;
   opacity: 0;
@@ -416,7 +416,7 @@
   inset: 0;
   width: 100%;
   border: 0;
-  background: rgba(20,20,18,.18);
+  background: var(--backdrop);
 }
 
 .desktop-drawer {
