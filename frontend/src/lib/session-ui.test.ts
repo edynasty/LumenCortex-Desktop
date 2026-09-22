@@ -16,6 +16,7 @@ describe("sessionUI", () => {
       title: "Original goal",
       pinned: false,
       archived: false,
+      parentSessionId: undefined,
     });
   });
 
@@ -35,7 +36,22 @@ describe("sessionUI", () => {
       title: "Readable title",
       pinned: true,
       archived: true,
+      parentSessionId: undefined,
     });
     expect(session.goal).toBe("Original goal");
   });
 });
+
+
+  it("identifies durable subagent parent metadata", () => {
+    const session: Session = {
+      ...base,
+      metadata: {
+        subagent: {
+          parentSessionId: "parent-session",
+          mode: "read-only",
+        },
+      },
+    };
+    expect(sessionUI(session).parentSessionId).toBe("parent-session");
+  });
