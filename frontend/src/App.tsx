@@ -20,6 +20,7 @@ import { ReviewWorkspace } from "./components/review/ReviewWorkspace";
 import { Sidebar, type SidebarGroup } from "./components/sidebar/Sidebar";
 import { ThreadWorkspace } from "./components/thread/ThreadWorkspace";
 import { useAgentActions } from "./app/hooks/useAgentActions";
+import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
 import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
@@ -57,7 +58,6 @@ export default function App() {
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
-  const [contextPaths, setContextPaths] = useState<string[]>([]);
   const [policy, setPolicy] = useState<Policy>("workspace");
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
@@ -76,6 +76,18 @@ export default function App() {
     pickWorkspace: pickWorkspaceState,
     openWorkspace: openWorkspaceState,
   } = useWorkspaceController({ setError });
+
+
+  const {
+    paths: contextPaths,
+    pickFiles: pickContextFiles,
+    pickDirectory: pickContextDirectory,
+    remove: removeContextPath,
+    clear: clearContextPaths,
+  } = useContextAttachments({
+    workspace: state.workspace,
+    setError,
+  });
 
   const {
     messages,
