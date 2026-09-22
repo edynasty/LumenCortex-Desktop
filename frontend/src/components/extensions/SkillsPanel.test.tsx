@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Skill } from "../../types";
 import { SkillsPanel } from "./SkillsPanel";
 
 const mocks = vi.hoisted(() => ({
@@ -38,16 +39,16 @@ const labels = {
   error: "Skill error",
 };
 
-const globalSkill = {
+const globalSkill: Skill = {
   id: "go-backend",
   name: "Go Backend",
   description: "Go conventions",
-  scope: "global" as const,
+  scope: "global",
   path: "/global/go-backend/SKILL.md",
   enabled: true,
 };
 
-function setupScopes(project: typeof globalSkill[] = []) {
+function setupScopes(project: Skill[] = []) {
   const projectById = new Map(project.map((skill) => [skill.id, skill]));
   const effective = [
     ...[globalSkill].filter((skill) => !projectById.has(skill.id)),
