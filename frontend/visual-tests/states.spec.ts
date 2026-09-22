@@ -54,7 +54,7 @@ for (const width of widths) {
 
     await expect(page.locator(".skills-layout")).toBeVisible();
     await expect(page.getByText("Desktop UI", { exact: true })).toBeVisible();
-    await expect(page.locator(".skill-editor textarea")).toContainText("Keep LumenCortex dense");
+    await expect(page.locator(".skill-editor textarea")).toHaveValue(/Keep LumenCortex dense/);
     await capture(page, testInfo, "extensions-skills", width);
   });
 
