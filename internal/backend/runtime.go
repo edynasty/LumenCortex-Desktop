@@ -58,6 +58,7 @@ type AgentConfig struct {
 	MaxSteps            int            `json:"maxSteps,omitempty"`
 	RecentMessages      int            `json:"recentMessages,omitempty"`
 	MaxToolCallsPerStep int            `json:"maxToolCallsPerStep,omitempty"`
+	ToolDenylist        []string       `json:"toolDenylist,omitempty"`
 	MaxTokens           int            `json:"maxTokens,omitempty"`
 	Temperature         *float64       `json:"temperature,omitempty"`
 }
@@ -346,6 +347,11 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 	if !validPolicy(cfg.Policy) {
 		return Session{}, ErrInvalidPolicy
 	}
+	permissions, err := loadToolPermissions(workspace)
+	if err != nil {
+		return Session{}, err
+	}
+	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
 	return supervisor.Start(ctx, sessionID, client, lcx.AgentOptions{
 		ProviderName:        providerName,
@@ -353,6 +359,7 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 		MaxSteps:            cfg.MaxSteps,
 		RecentMessages:      cfg.RecentMessages,
 		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
+		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,
 		Temperature:         cfg.Temperature,
 	})
