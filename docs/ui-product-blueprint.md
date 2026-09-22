@@ -708,7 +708,7 @@ Priority: **P0**
   - Cmd/Ctrl+Enter optional explicit run shortcut
 - [x] **UI-02.9 Add recent project quick-pick**
 - [x] **UI-02.10 Add empty-model state linking directly to Provider settings**
-- [ ] **UI-02.11 Add running/cancel state directly in Composer**
+- [x] **UI-02.11 Add running/cancel state directly in Composer**
 - [ ] **UI-02.12 Verify 1440 / 1180 / 820 / 560 layouts**
 
 Acceptance:
