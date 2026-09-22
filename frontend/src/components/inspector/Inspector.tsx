@@ -1,6 +1,6 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { ServerCog, SquareTerminal, X } from "lucide-react";
-import type { Health, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
+import type { Health, LSPDiagnostic, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import { MilestoneList } from "./MilestoneList";
 import { SubagentTreePanel } from "./SubagentTreePanel";
@@ -22,6 +22,8 @@ type Props = {
   lspArgs: string;
   lspLanguage: string;
   lspStatus: LSPStatus;
+  lspDiagnosticPath: string;
+  lspDiagnostics: LSPDiagnostic[];
   subagents: SubagentNode[];
   checkpoints: SessionCheckpoint[];
   workspaceOpen: boolean;
@@ -63,6 +65,13 @@ type Props = {
     lspPid: string;
     lspPending: string;
     lspDiagnostics: string;
+    lspDiagnosticPath: string;
+    lspDiagnosticRefresh: string;
+    lspNoDiagnostics: string;
+    lspSeverityError: string;
+    lspSeverityWarning: string;
+    lspSeverityInfo: string;
+    lspSeverityHint: string;
     lspLastError: string;
     subagents: string;
     noSubagents: string;
@@ -93,6 +102,8 @@ type Props = {
   onLSPCommandChange: (value: string) => void;
   onLSPArgsChange: (value: string) => void;
   onLSPLanguageChange: (value: string) => void;
+  onLSPDiagnosticPathChange: (value: string) => void;
+  onRefreshLSPDiagnostics: () => void;
   onStartLSP: () => void;
   onStopLSP: () => void;
   onOpenSubagent: (sessionId: string) => void;
@@ -120,6 +131,8 @@ export function Inspector({
   lspArgs,
   lspLanguage,
   lspStatus,
+  lspDiagnosticPath,
+  lspDiagnostics,
   subagents,
   checkpoints,
   workspaceOpen,
@@ -137,6 +150,8 @@ export function Inspector({
   onLSPCommandChange,
   onLSPArgsChange,
   onLSPLanguageChange,
+  onLSPDiagnosticPathChange,
+  onRefreshLSPDiagnostics,
   onStartLSP,
   onStopLSP,
   onOpenSubagent,
@@ -293,6 +308,48 @@ export function Inspector({
                 <div><dt>{labels.lspPending}</dt><dd>{lspStatus.pendingRequests ?? 0}</dd></div>
                 <div><dt>{labels.lspDiagnostics}</dt><dd>{lspStatus.diagnostics ?? 0}</dd></div>
               </dl>
+
+              <label className="settings-field">
+                <span>{labels.lspDiagnosticPath}</span>
+                <input
+                  value={lspDiagnosticPath}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => onLSPDiagnosticPathChange(event.target.value)}
+                  placeholder="frontend/src/App.tsx"
+                  disabled={!lspStatus.running}
+                />
+              </label>
+
+              <button
+                className="secondary-action"
+                type="button"
+                disabled={busy || !lspStatus.running || !lspDiagnosticPath.trim()}
+                onClick={onRefreshLSPDiagnostics}
+              >
+                {labels.lspDiagnosticRefresh}
+              </button>
+
+              {lspDiagnosticPath.trim() && (
+                <div className="lsp-diagnostic-list">
+                  {lspDiagnostics.length ? lspDiagnostics.map((item, index) => {
+                    const severity =
+                      item.severity === 1 ? labels.lspSeverityError :
+                      item.severity === 2 ? labels.lspSeverityWarning :
+                      item.severity === 3 ? labels.lspSeverityInfo :
+                      labels.lspSeverityHint;
+                    return (
+                      <div className="lsp-diagnostic-item" key={index}>
+                        <div>
+                          <strong>{severity}</strong>
+                          <code>{item.range.start.line + 1}:{item.range.start.character + 1}</code>
+                        </div>
+                        <p>{item.message}</p>
+                      </div>
+                    );
+                  }) : (
+                    <p className="lsp-empty">{labels.lspNoDiagnostics}</p>
+                  )}
+                </div>
+              )}
 
               {lspStatus.lastError && (
                 <p className="lsp-error"><strong>{labels.lspLastError}</strong> {lspStatus.lastError}</p>
