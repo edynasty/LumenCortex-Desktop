@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import type { Message, SessionRuntime } from "../../types";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
-import { SyntaxLine } from "../code/SyntaxLine";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
@@ -11,6 +10,7 @@ import { SegmentedControl } from "../primitives/SegmentedControl";
 import { CheckSummary } from "./CheckSummary";
 import { extractCheckResults } from "./checks";
 import { diffStats, parseUnifiedDiff, splitDiffRows } from "./diff";
+import { ReviewDiffViewer } from "./ReviewDiffViewer";
 import { useReviewState, type DiffScope } from "./useReviewState";
 import { WorktreeHandoffCard } from "./WorktreeHandoffCard";
 import { useWorktreeHandoff } from "./useWorktreeHandoff";
@@ -228,41 +228,17 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
               }}
             />
 
-            <div className="review-diff">
-              {review.loading ? (
-                <div className="review-loading">{labels.loading}</div>
-              ) : binaryDiff ? (
-                <EmptyState title={labels.binaryDiff} body={review.selectedPath} />
-              ) : mode === "unified" ? (
-                <div className="review-unified">
-                  {lines.map((line, index) => (
-                    <div className={`diff-line ${line.kind}`} key={index}>
-                      <span>{line.oldLine ?? ""}</span>
-                      <span>{line.newLine ?? ""}</span>
-                      <code>
-                        <span className="diff-prefix">{line.kind === "add" ? "+" : line.kind === "delete" ? "-" : line.kind === "context" ? " " : ""}</span>
-                        {line.kind === "meta" ? line.text : <SyntaxLine text={line.text} language={language} />}
-                      </code>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="review-split">
-                  {rows.map((row, index) => (
-                    <div className="split-row" key={index}>
-                      <div className={`split-cell ${row.left?.kind || ""}`}>
-                        <span>{row.left?.oldLine ?? ""}</span>
-                        <code>{row.left?.kind === "meta" ? (row.left?.text || "") : <SyntaxLine text={row.left?.text || ""} language={language} />}</code>
-                      </div>
-                      <div className={`split-cell ${row.right?.kind || ""}`}>
-                        <span>{row.right?.newLine ?? ""}</span>
-                        <code>{row.right?.kind === "meta" ? (row.right?.text || "") : <SyntaxLine text={row.right?.text || ""} language={language} />}</code>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ReviewDiffViewer
+              loading={review.loading}
+              binary={binaryDiff}
+              selectedPath={review.selectedPath}
+              mode={mode}
+              lines={lines}
+              rows={rows}
+              language={language}
+              loadingLabel={labels.loading}
+              binaryLabel={labels.binaryDiff}
+            />
 
             <section className="review-feedback">
               <div className="review-feedback-label">
