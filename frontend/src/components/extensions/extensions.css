@@ -213,7 +213,7 @@
 }
 
 .mcp-form-grid input:focus {
-  border-color: #bbbcb7;
+  border-color: var(--border-strong);
 }
 
 .mcp-form-grid input:disabled {
@@ -254,9 +254,9 @@
 .mcp-runtime-error {
   margin: 8px 0 0;
   padding: 6px 7px;
-  border: 1px solid #ead0d3;
+  border: 1px solid var(--danger-border);
   border-radius: 7px;
-  background: #fff5f5;
+  background: var(--danger-bg);
   color: var(--red);
   font-size: 8px;
   line-height: 1.45;
@@ -311,12 +311,12 @@
 }
 
 .mcp-tool-row small.read-only {
-  background: #f2f8f4;
+  background: var(--success-surface);
   color: var(--green);
 }
 
 .mcp-tool-row small.side-effect {
-  background: #fff9ef;
+  background: var(--warning-bg);
   color: var(--amber);
 }
 
@@ -655,7 +655,7 @@
 
 .skill-editor-fields input:focus,
 .skill-editor-fields textarea:focus {
-  border-color: #bbbcb7;
+  border-color: var(--border-strong);
 }
 
 @media (max-width: 820px) {
