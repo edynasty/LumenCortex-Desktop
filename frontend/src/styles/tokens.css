@@ -23,6 +23,7 @@
   --code-text: #333a35;
   --tool-text: #536174;
   --chrome: rgba(255, 255, 255, .93);
+  --composer-fade: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,.90) 34%, #ffffff 68%);
   --scrollbar: #d0d0cb;
   --focus-ring: rgba(60, 111, 200, .38);
   --backdrop: rgba(20, 20, 18, .18);
@@ -57,6 +58,11 @@
   --memory-fill: #7d8b7f;
   --tooltip-bg: #1f201f;
   --tooltip-ink: #ffffff;
+  --syntax-keyword: #7b4ab8;
+  --syntax-string: #8a5c1b;
+  --syntax-number: #2e6fa8;
+  --syntax-comment: #8b8c87;
+  --syntax-type: #3f6b86;
 
   --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 
@@ -109,6 +115,7 @@
   --code-text: #d9dad4;
   --tool-text: #aab7ca;
   --chrome: rgba(32, 33, 31, .94);
+  --composer-fade: linear-gradient(to bottom, rgba(32,33,31,0), rgba(32,33,31,.90) 34%, #20211f 68%);
   --scrollbar: #494a45;
   --focus-ring: rgba(120, 154, 214, .55);
   --backdrop: rgba(0, 0, 0, .48);
@@ -143,6 +150,11 @@
   --memory-fill: #6b806f;
   --tooltip-bg: #f0f0eb;
   --tooltip-ink: #1d1e1c;
+  --syntax-keyword: #c59af5;
+  --syntax-string: #d8ab72;
+  --syntax-number: #8fbadf;
+  --syntax-comment: #777a73;
+  --syntax-type: #8eb8d2;
 
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, .34);
   --shadow-sm: 0 9px 28px rgba(0, 0, 0, .24);
