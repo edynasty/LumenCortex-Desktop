@@ -43,6 +43,13 @@ for (const width of widths) {
         borderRightStyle: "solid",
       });
 
+      if (width > 820) {
+        await expect(page.getByRole("button", { name: "Open sidebar" })).toBeHidden();
+        await expect(page.locator(".sidebar .mobile-only")).toBeHidden();
+      } else {
+        await expect(page.getByRole("button", { name: "Open sidebar" })).toBeVisible();
+      }
+
       const unlabeledIconButtons = await page.locator("button:visible").evaluateAll((buttons) =>
         buttons
           .filter((button) => (button.textContent || "").trim() === "")
