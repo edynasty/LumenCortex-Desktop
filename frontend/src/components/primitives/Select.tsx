@@ -17,6 +17,7 @@ type Props = {
   onChange: (value: string) => void;
   className?: string;
   disabled?: boolean;
+  showDescriptionInTrigger?: boolean;
 };
 
 export function DesktopSelect({
@@ -27,6 +28,7 @@ export function DesktopSelect({
   onChange,
   className = "",
   disabled = false,
+  showDescriptionInTrigger = true,
 }: Props) {
   const [open, setOpen] = useState(false);
   const selected = useMemo(() => options.find((option) => option.value === value), [options, value]);
@@ -43,7 +45,7 @@ export function DesktopSelect({
         <>
           <span className="desktop-select-trigger-copy">
             <span>{selected?.label || placeholder}</span>
-            {selected?.description && <small>{selected.description}</small>}
+            {showDescriptionInTrigger && selected?.description && <small>{selected.description}</small>}
           </span>
           <ChevronDown size={13} strokeWidth={1.7} aria-hidden />
         </>
