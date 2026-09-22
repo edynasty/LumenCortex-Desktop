@@ -6,6 +6,7 @@ import "./styles/global.css";
 import "./components/primitives/primitives.css";
 import "./styles.css";
 import "./components/inspector/inspector.css";
+import "./components/sidebar/sidebar.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
