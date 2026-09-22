@@ -795,7 +795,7 @@ Runtime dependency:
 - [x] **UI-05.10 Add commit action**
 - [x] **UI-05.11 Add push action**
 - [x] **UI-05.12 Add test/check summary beside changes**
-- [~] **UI-05.13 Lazy-load very large diffs**
+- [x] **UI-05.13 Lazy-load very large diffs**
 - [x] **UI-05.14 Add binary/large-file fallback states**
 
 Acceptance:
