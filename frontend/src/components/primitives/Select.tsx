@@ -18,6 +18,7 @@ type Props = {
   className?: string;
   disabled?: boolean;
   showDescriptionInTrigger?: boolean;
+  popoverPlacement?: "top" | "bottom";
 };
 
 export function DesktopSelect({
@@ -29,6 +30,7 @@ export function DesktopSelect({
   className = "",
   disabled = false,
   showDescriptionInTrigger = true,
+  popoverPlacement = "top",
 }: Props) {
   const [open, setOpen] = useState(false);
   const [focusTarget, setFocusTarget] = useState<"first" | "last" | "selected" | null>(null);
@@ -89,6 +91,7 @@ export function DesktopSelect({
       onOpenChange={setOpen}
       ariaLabel={ariaLabel}
       disabled={disabled}
+      placement={popoverPlacement}
       triggerRef={triggerRef}
       onTriggerKeyDown={onTriggerKeyDown}
       triggerClassName={`desktop-select-trigger ${className}`}
