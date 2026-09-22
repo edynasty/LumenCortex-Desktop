@@ -4,7 +4,8 @@ import { AppShell } from "./components/app-shell/AppShell";
 import { WorkspaceTopbar } from "./components/app-shell/WorkspaceTopbar";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
 import { ExtensionsWorkspace } from "./components/extensions/ExtensionsWorkspace";
-import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
+import type { InspectorTab } from "./components/inspector/Inspector";
+import { WorkspaceInspector } from "./components/inspector/WorkspaceInspector";
 import { ProviderSettingsPanel } from "./components/provider/ProviderSettingsPanel";
 import { Button } from "./components/primitives/Button";
 import { Dialog } from "./components/primitives/Dialog";
@@ -345,7 +346,7 @@ export default function App() {
   );
 
   const inspector = route.kind === "thread" || route.kind === "new-task" ? (
-    <Inspector
+    <WorkspaceInspector
       tab={inspectorTab}
       events={selectedEvents}
       modelRef={modelRef}
@@ -367,68 +368,7 @@ export default function App() {
       selectedSessionId={selected}
       running={running}
       busy={busy}
-      labels={{
-        activity: t.activity,
-        run: t.run,
-        terminal: t.terminal,
-        close: t.close,
-        noActivity: t.noActivity,
-        provider: t.provider,
-        modelSelect: t.modelSelect,
-        noModels: t.noModels,
-        providerConfig: t.providerConfig,
-        envFallback: t.envFallback,
-        policy: t.policy,
-        readOnly: t.readOnly,
-        workspace: t.workspace,
-        full: t.full,
-        maxSteps: t.maxSteps,
-        runtime: t.runtime,
-        workingMemory: t.workingMemory,
-        softBudget: t.softBudget,
-        hardBudget: t.hardBudget,
-        maxAgents: t.maxAgents,
-        shellCommand: t.shellCommand,
-        runCommand: t.runCommand,
-        shellHint: t.shellHint,
-        lsp: t.lsp,
-        lspCommand: t.lspCommand,
-        lspArgs: t.lspArgs,
-        lspLanguage: t.lspLanguage,
-        lspStart: t.lspStart,
-        lspStop: t.lspStop,
-        lspRunning: t.lspRunning,
-        lspStopped: t.lspStopped,
-        lspPid: t.lspPid,
-        lspPending: t.lspPending,
-        lspDiagnostics: t.lspDiagnostics,
-        lspDiagnosticPath: t.lspDiagnosticPath,
-        lspDiagnosticRefresh: t.lspDiagnosticRefresh,
-        lspNoDiagnostics: t.lspNoDiagnostics,
-        lspSeverityError: t.lspSeverityError,
-        lspSeverityWarning: t.lspSeverityWarning,
-        lspSeverityInfo: t.lspSeverityInfo,
-        lspSeverityHint: t.lspSeverityHint,
-        lspLastError: t.lspLastError,
-        milestoneAgentStarted: t.milestoneAgentStarted,
-        milestoneAgentStopped: t.milestoneAgentStopped,
-        milestoneToolCompleted: t.milestoneToolCompleted,
-        milestoneApprovalRequired: t.milestoneApprovalRequired,
-        milestoneApprovalGranted: t.milestoneApprovalGranted,
-        milestoneSubagentStarted: t.milestoneSubagentStarted,
-        milestoneSubagentStopped: t.milestoneSubagentStopped,
-        milestoneWorktreeCreated: t.milestoneWorktreeCreated,
-        milestoneWorktreeApplied: t.milestoneWorktreeApplied,
-        milestoneTaskCompleted: t.milestoneTaskCompleted,
-        milestoneTaskInterrupted: t.milestoneTaskInterrupted,
-        milestoneWorkflowAdvanced: t.milestoneWorkflowAdvanced,
-        subagents: t.subagents,
-        noSubagents: t.noSubagents,
-        subagentActive: t.subagentActive,
-        subagentCompleted: t.subagentCompleted,
-        subagentInterrupted: t.subagentInterrupted,
-        subagentCheckpoint: t.subagentCheckpoint
-      }}
+      labels={t}
       onTabChange={setInspectorTab}
       onClose={() => setInspectorOpen(false)}
       onModelChange={setModelRef}
