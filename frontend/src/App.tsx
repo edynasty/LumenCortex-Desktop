@@ -1,15 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowUp,
-  Code2,
-  FileDiff,
-  Menu,
-  PanelRight,
-  Square,
-  Trash2,
-  X
-} from "lucide-react";
+import { X } from "lucide-react";
 import { AppShell } from "./components/app-shell/AppShell";
+import { WorkspaceTopbar } from "./components/app-shell/WorkspaceTopbar";
 import { NewTaskComposer } from "./components/composer/NewTaskComposer";
 import { ExtensionsWorkspace } from "./components/extensions/ExtensionsWorkspace";
 import { Inspector, type InspectorTab } from "./components/inspector/Inspector";
@@ -34,19 +26,6 @@ import { sessionRuntime } from "./lib/session-runtime";
 import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
-
-type IconName = "menu" | "panel" | "play" | "stop" | "close";
-
-function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
-  const props = { size, strokeWidth: 1.7, "aria-hidden": true as const };
-  switch (name) {
-    case "menu": return <Menu {...props} />;
-    case "panel": return <PanelRight {...props} />;
-    case "play": return <ArrowUp {...props} />;
-    case "stop": return <Square {...props} />;
-    case "close": return <X {...props} />;
-  }
-}
 
 function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
@@ -486,87 +465,34 @@ export default function App() {
         closeLabel={t.close}
         onCloseSidebar={() => setSidebarOpen(false)}
       >
-        <header className="topbar">
-          <div className="topbar-left">
-            <button className="icon-button sidebar-toggle" onClick={() => setSidebarOpen(true)} aria-label={t.expandSidebar}>
-              <Icon name="menu" />
-            </button>
-            <div className="title-stack">
-              <strong>{route.kind === "providers" ? t.providerSettings : route.kind === "extensions" ? t.extensions : route.kind === "review" ? t.review : current?.goal || (state.workspace ? basename(state.workspace) : "LumenCortex")}</strong>
-              <span>
-                {route.kind === "providers"
-                  ? (state.workspace ? `${t.project} · ${basename(state.workspace)}` : t.providerConfig)
-                  : route.kind === "extensions"
-                    ? (state.workspace ? `${t.project} · ${basename(state.workspace)} · ${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}` : t.extensions)
-                    : route.kind === "review"
-                      ? (current?.goal || t.review)
-                      : state.workspace
-                    ? `${currentRuntime.kind === "worktree" ? (currentRuntime.branch || t.worktreeRuntime) : t.localRuntime}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${sessionStatusLabel(t, current.status, running)}` : ""}`
-                    : t.runtimeReady}
-              </span>
-            </div>
-          </div>
-
-          <div className="topbar-actions">
-            {route.kind === "providers" && (
-              <button className="toolbar-button" onClick={() => setRoute({ kind: "new-task" })}>
-                <Code2 size={14} strokeWidth={1.7} aria-hidden />
-                <span>{t.backToWorkspace}</span>
-              </button>
-            )}
-            {route.kind === "extensions" && (
-              <button
-                className="toolbar-button"
-                onClick={() => setRoute(current ? { kind: "thread", sessionId: current.id } : { kind: "new-task" })}
-              >
-                <Code2 size={14} strokeWidth={1.7} aria-hidden />
-                <span>{t.backToWorkspace}</span>
-              </button>
-            )}
-            {route.kind === "thread" && current && (
-              <button className="toolbar-button" onClick={() => {
-                setRoute({ kind: "review", sessionId: current.id });
-                setInspectorOpen(false);
-              }}>
-                <FileDiff size={14} strokeWidth={1.7} aria-hidden />
-                <span>{t.review}</span>
-              </button>
-            )}
-            {route.kind === "review" && current && (
-              <button className="toolbar-button" onClick={() => setRoute({ kind: "thread", sessionId: current.id })}>
-                <Code2 size={14} strokeWidth={1.7} aria-hidden />
-                <span>{t.thread}</span>
-              </button>
-            )}
-            {(route.kind === "thread" || route.kind === "review") && current && currentRuntime.kind === "worktree" && !running && (
-              <button className="toolbar-button" onClick={() => setCleanupWorktreeOpen(true)} disabled={busy}>
-                <Trash2 size={14} strokeWidth={1.7} aria-hidden />
-                <span>{t.cleanupWorktree}</span>
-              </button>
-            )}
-            {route.kind === "thread" && current && running && (
-              <button className="toolbar-button stop" onClick={cancelAgent} disabled={busy}>
-                <Icon name="stop" size={14} />
-                <span>{t.stop}</span>
-              </button>
-            )}
-            {route.kind === "thread" && current && !running && (current.status === "created" || current.status === "interrupted") && (
-              <button className="toolbar-button" onClick={() => startAgent()} disabled={busy}>
-                <Icon name="play" size={14} />
-                <span>{current.status === "interrupted" ? t.resume : t.start}</span>
-              </button>
-            )}
-            {route.kind !== "providers" && route.kind !== "extensions" && (
-              <button
-                className={`icon-button ${inspectorOpen ? "active" : ""}`}
-                onClick={() => setInspectorOpen((open) => !open)}
-                aria-label={t.inspector}
-              >
-                <Icon name="panel" />
-              </button>
-            )}
-          </div>
-        </header>
+        <WorkspaceTopbar
+          route={route}
+          current={current}
+          workspace={state.workspace}
+          runtime={currentRuntime}
+          running={running}
+          busy={busy}
+          inspectorOpen={inspectorOpen}
+          labels={t}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onBackToWorkspace={() => {
+            setRoute(route.kind === "extensions" && current
+              ? { kind: "thread", sessionId: current.id }
+              : { kind: "new-task" });
+          }}
+          onOpenReview={() => {
+            if (!current) return;
+            setRoute({ kind: "review", sessionId: current.id });
+            setInspectorOpen(false);
+          }}
+          onOpenThread={() => {
+            if (current) setRoute({ kind: "thread", sessionId: current.id });
+          }}
+          onCleanupWorktree={() => setCleanupWorktreeOpen(true)}
+          onCancelAgent={() => void cancelAgent()}
+          onStartAgent={() => void startAgent()}
+          onToggleInspector={() => setInspectorOpen((open) => !open)}
+        />
 
         {route.kind === "providers" ? (
           <ProviderSettingsPanel
@@ -848,7 +774,7 @@ export default function App() {
         <div className="error-toast" role="alert">
           <strong>{t.error}</strong>
           <span>{error}</span>
-          <button onClick={() => setError("")} aria-label={t.close}><Icon name="close" size={14} /></button>
+          <button onClick={() => setError("")} aria-label={t.close}><X size={14} strokeWidth={1.7} aria-hidden /></button>
         </div>
       )}
     </>
