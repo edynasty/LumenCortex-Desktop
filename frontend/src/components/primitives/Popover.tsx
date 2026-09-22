@@ -10,7 +10,7 @@ type Props = {
   contentClassName?: string;
   disabled?: boolean;
   placement?: "top" | "bottom";
-  triggerRef?: RefObject<HTMLButtonElement | null>;
+  triggerRef?: RefObject<HTMLButtonElement>;
   onTriggerKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
 };
 
@@ -28,7 +28,7 @@ export function Popover({
   onTriggerKeyDown,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const internalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const internalTriggerRef = useRef<HTMLButtonElement>(null);
   const activeTriggerRef = triggerRef || internalTriggerRef;
 
   useEffect(() => {
