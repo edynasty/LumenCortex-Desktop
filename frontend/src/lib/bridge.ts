@@ -22,6 +22,8 @@ import type {
   SessionRuntime,
   SessionUIPatch,
   ShellResult,
+  SubagentNode,
+  SessionCheckpoint,
   WorkspaceState,
   WorkflowSummary,
   WorktreeApplyResult,
@@ -89,6 +91,8 @@ type AppAPI = {
   StopMCP(sessionId: string, serverId: string): Promise<void>;
   GetMCPStatuses(sessionId: string): Promise<MCPStatus[]>;
   GetMCPTools(sessionId: string): Promise<MCPAgentTool[]>;
+  GetSubagentTree(parentSessionId: string): Promise<SubagentNode[]>;
+  GetSessionCheckpoints(sessionId: string, limit: number): Promise<SessionCheckpoint[]>;
   RefreshMCPTools(sessionId: string, serverId: string): Promise<void>;
 };
 
@@ -170,7 +174,9 @@ export const bridge = {
   stopMCP: (sessionId: string, serverId: string) => api().StopMCP(sessionId, serverId),
   mcpStatuses: (sessionId: string) => api().GetMCPStatuses(sessionId),
   mcpTools: (sessionId: string) => api().GetMCPTools(sessionId),
-  refreshMCPTools: (sessionId: string, serverId: string) => api().RefreshMCPTools(sessionId, serverId)
+  refreshMCPTools: (sessionId: string, serverId: string) => api().RefreshMCPTools(sessionId, serverId),
+  subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
+  sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit)
 };
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {
