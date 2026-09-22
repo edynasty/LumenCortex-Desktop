@@ -7,6 +7,7 @@ export type MCPConfig = {
   args?: string[];
   workspace?: string;
   protocolMode?: MCPProtocolMode;
+  disabled?: boolean;
 };
 
 export type MCPStatus = {
