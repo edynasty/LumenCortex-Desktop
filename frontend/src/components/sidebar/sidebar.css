@@ -258,6 +258,23 @@
 .footer-button.active { background: var(--surface-active); color: var(--text); }
 .provider-settings-entry { margin-top: 3px; color: var(--text-soft); font-weight: 540; }
 
+.sidebar-theme-control,
+.sidebar-theme-control .desktop-popover {
+  width: 100%;
+}
+
+.footer-theme-select {
+  width: 100%;
+  min-height: 32px;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+.footer-theme-select:hover,
+.footer-theme-select[aria-expanded="true"] {
+  color: var(--text);
+}
+
 .sidebar-toggle, .mobile-only { display: none; }
 
 .sidebar-backdrop { display: none; }
