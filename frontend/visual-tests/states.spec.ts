@@ -40,6 +40,57 @@ for (const width of widths) {
     await capture(page, testInfo, "providers-edit", width);
   });
 
+  test(`provider advanced json is usable at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "providers", width);
+    await page.getByRole("button", { name: "Advanced JSON" }).click();
+
+    const editor = page.getByRole("textbox", { name: "Advanced JSON" });
+    const save = page.getByRole("button", { name: "Save JSON" });
+    await expect(editor).toBeVisible();
+    await expect(save).toBeDisabled();
+    await editor.fill((await editor.inputValue()) + "\n");
+    await expect(save).toBeEnabled();
+    await capture(page, testInfo, "providers-advanced", width);
+  });
+
+  test(`provider delete dialog restores focus at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "providers", width);
+    const card = page.locator(".provider-card").filter({ hasText: "OpenAI" }).first();
+    const deleteTrigger = card.locator('.provider-card-actions button[aria-label="Delete"]');
+    await deleteTrigger.click();
+
+    const dialog = page.getByRole("dialog", { name: "Delete" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Delete" })).toBeVisible();
+    await capture(page, testInfo, "providers-delete-dialog", width);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).not.toBeVisible();
+    await expect(deleteTrigger).toBeFocused();
+  });
+
+  test(`inspector select popover stays in viewport at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "inspector", width);
+    await page.locator(".inspector-tabs").getByRole("button", { name: "Run" }).click();
+
+    const trigger = page.locator(".settings-desktop-select").first();
+    await trigger.focus();
+    await trigger.press("ArrowDown");
+    const listbox = page.getByRole("listbox").first();
+    await expect(listbox).toBeVisible();
+    const bounds = await page.locator(".desktop-select-popover").first().evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    });
+    expect(bounds.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom).toBeLessThanOrEqual(900);
+    await capture(page, testInfo, "inspector-select", width);
+
+    await page.keyboard.press("Escape");
+    await expect(listbox).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+  });
+
   test(`review split mode is bounded at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "review", width);
     await page.getByRole("radio", { name: "Split" }).click();
