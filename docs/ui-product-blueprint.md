@@ -964,25 +964,16 @@ For every significant UI slice:
 
 ---
 
-## 10. Immediate execution order
+## 10. Current execution status
 
-Work should continue in this order unless a blocking runtime dependency changes the sequence:
+As of 2026-09-22, every enumerated implementation item in this blueprint is complete.
 
-1. **Finish UI-01 Provider graphical management**
-   - Provider presets
-   - connection test
-   - Provider UI tests
-2. **UI-02 New Task Composer**
-3. **UI-03 Sidebar / Projects / Threads**
-4. **ARCH-01 component extraction while implementing UI-02/UI-03**
-5. **CORE-01 repository search + Git diff/status**
-6. **UI-04 Thread workspace**
-7. **UI-05 Review / Diff**
-8. **CORE-04 multi-run supervisor + worktree foundation**
-9. **UI-06 parallel runs/worktrees**
-10. **CORE-02 LSP**
-11. **CORE-03 MCP**
-12. **UI-07 Extensions**
-13. **Subagent visualization and advanced long-task recovery**
+The previous milestone order (Provider → Composer → Sidebar → Review → Worktrees → LSP/MCP → Extensions) has been executed. Future work should no longer restart that sequence.
 
-Rule: do not start a later visual layer merely to make screenshots look complete when the underlying runtime capability does not exist.
+Continue from one of these concrete inputs only:
+- a newly observed product/UI defect,
+- a visual-regression finding,
+- a runtime or integration bug,
+- or a newly approved product milestone.
+
+Rule: do not invent placeholder UI for runtime capabilities that do not exist, and do not reopen completed milestones without a reproducible regression or changed requirement.
