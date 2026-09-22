@@ -13,12 +13,14 @@ import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
 import { sessionRuntime } from "./lib/session-runtime";
+import { useThemePreference } from "./lib/theme";
 import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [themePreference, setThemePreference] = useThemePreference();
   const t = copy[locale];
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
@@ -255,6 +257,7 @@ export default function App() {
       runtime={currentRuntime}
       locale={locale}
       labels={t}
+      themePreference={themePreference}
       workspace={state.workspace}
       groups={sessionGroups}
       recentProjects={recentProjects}
@@ -304,6 +307,7 @@ export default function App() {
       onPinSession={(sessionId, pinned) => void updateSessionUI(sessionId, { pinned })}
       onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
       onSwitchLocale={switchLocale}
+      onThemePreferenceChange={setThemePreference}
       onCatalogChange={setCatalog}
       onModelChange={setModelRef}
       onError={setError}
