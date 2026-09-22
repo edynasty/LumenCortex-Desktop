@@ -5,6 +5,8 @@ import type {
   GitActionResult,
   GitDiff,
   GitStatus,
+  LSPConfig,
+  LSPStatus,
   Message,
   MessagePage,
   ProviderConnectionResult,
@@ -70,6 +72,9 @@ type AppAPI = {
   GitPush(): Promise<GitActionResult>;
   SessionGitPush(sessionId: string): Promise<GitActionResult>;
   RunShell(sessionId: string, command: string): Promise<ShellResult>;
+  StartLSP(sessionId: string, config: LSPConfig): Promise<LSPStatus>;
+  StopLSP(sessionId: string): Promise<void>;
+  GetLSPStatus(sessionId: string): Promise<LSPStatus>;
 };
 
 declare global {
@@ -136,7 +141,10 @@ export const bridge = {
   sessionGitCommit: (sessionId: string, message: string) => api().SessionGitCommit(sessionId, message),
   gitPush: () => api().GitPush(),
   sessionGitPush: (sessionId: string) => api().SessionGitPush(sessionId),
-  runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command)
+  runShell: (sessionId: string, command: string) => api().RunShell(sessionId, command),
+  startLSP: (sessionId: string, config: LSPConfig) => api().StartLSP(sessionId, config),
+  stopLSP: (sessionId: string) => api().StopLSP(sessionId),
+  lspStatus: (sessionId: string) => api().GetLSPStatus(sessionId)
 };
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {
