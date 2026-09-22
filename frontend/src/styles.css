@@ -1592,3 +1592,72 @@
     opacity: .65;
   }
 }
+
+
+.message-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.message-head-actions button,
+.thread-inline-action,
+.thread-retry-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.message-head-actions button {
+  width: 24px;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+}
+
+.message-row:hover .message-head-actions button,
+.message-head-actions button:focus-visible {
+  opacity: 1;
+}
+
+.message-head-actions button:hover,
+.thread-inline-action:hover,
+.thread-retry-row button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.final-label {
+  justify-content: space-between;
+}
+
+.final-label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thread-retry-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 0 8px;
+}
+
+.thread-retry-row button {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.thread-retry-row button:disabled {
+  opacity: .5;
+  cursor: default;
+}
