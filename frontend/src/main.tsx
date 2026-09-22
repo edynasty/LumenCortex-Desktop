@@ -1,12 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { applyThemePreference, initialThemePreference } from "./lib/theme";
 import "./styles/tokens.css";
 import "./styles/global.css";
 import "./components/primitives/primitives.css";
 import "./styles.css";
 import "./components/inspector/inspector.css";
 import "./components/sidebar/sidebar.css";
+
+applyThemePreference(initialThemePreference());
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
