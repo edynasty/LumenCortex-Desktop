@@ -5,6 +5,7 @@ type Props = {
   children: ReactNode;
   inspector?: ReactNode;
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   inspectorOpen: boolean;
   closeLabel: string;
   onCloseSidebar: () => void;
@@ -15,6 +16,7 @@ export function AppShell({
   children,
   inspector,
   sidebarOpen,
+  sidebarCollapsed,
   inspectorOpen,
   closeLabel,
   onCloseSidebar,
@@ -74,7 +76,7 @@ export function AppShell({
   }, [sidebarOpen]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       {sidebar}
       {sidebarOpen && (
         <button
