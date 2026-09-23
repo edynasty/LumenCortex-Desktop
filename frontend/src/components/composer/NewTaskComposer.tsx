@@ -40,6 +40,7 @@ type Props = {
   policyLabel: string;
   policy: ComposerPolicy;
   policyLabels: Record<ComposerPolicy, string>;
+  policyDescriptions: Record<ComposerPolicy, string>;
   environmentLabel: string;
   runtime: ComposerRuntime;
   runtimeLabels: Record<ComposerRuntime, string>;
@@ -83,6 +84,7 @@ export function NewTaskComposer({
   policyLabel,
   policy,
   policyLabels,
+  policyDescriptions,
   environmentLabel,
   runtime,
   runtimeLabels,
@@ -185,9 +187,9 @@ export function NewTaskComposer({
               placeholder={policyLabels.workspace}
               className="composer-desktop-select policy-select"
               options={[
-                { value: "read-only", label: policyLabels["read-only"] },
-                { value: "workspace", label: policyLabels.workspace },
-                { value: "full", label: policyLabels.full },
+                { value: "read-only", label: policyLabels["read-only"], description: policyDescriptions["read-only"] },
+                { value: "workspace", label: policyLabels.workspace, description: policyDescriptions.workspace },
+                { value: "full", label: policyLabels.full, description: policyDescriptions.full },
               ]}
               onChange={(value) => onPolicyChange(value as ComposerPolicy)}
             />
