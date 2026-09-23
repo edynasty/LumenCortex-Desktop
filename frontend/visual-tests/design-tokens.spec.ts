@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
@@ -50,13 +50,29 @@ test("light semantic tokens stay aligned with the canonical design system", asyn
 });
 
 
-test("component stylesheet keeps reusable colors behind semantic tokens", () => {
-  const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
-  const literalColors = [
-    ...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g),
-    ...css.matchAll(/\brgba?\([^)]*\)/g),
-    ...css.matchAll(/\bhsla?\([^)]*\)/g),
-  ].map((match) => match[0]);
+function cssFilesUnder(directory: string): string[] {
+  return readdirSync(directory).flatMap((entry) => {
+    const path = resolve(directory, entry);
+    return statSync(path).isDirectory()
+      ? cssFilesUnder(path)
+      : path.endsWith(".css")
+        ? [path]
+        : [];
+  });
+}
+
+test("non-token stylesheets keep reusable colors behind semantic tokens", () => {
+  const tokenStylesheet = resolve(process.cwd(), "src/styles/tokens.css");
+  const literalColors = cssFilesUnder(resolve(process.cwd(), "src"))
+    .filter((path) => path !== tokenStylesheet)
+    .flatMap((path) => {
+      const css = readFileSync(path, "utf8");
+      return [
+        ...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g),
+        ...css.matchAll(/\brgba?\([^)]*\)/g),
+        ...css.matchAll(/\bhsla?\([^)]*\)/g),
+      ].map((match) => ({ path, value: match[0] }));
+    });
 
   expect(literalColors).toEqual([]);
 });
