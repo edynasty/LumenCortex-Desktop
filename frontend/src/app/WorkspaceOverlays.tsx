@@ -10,6 +10,8 @@ type Props = {
   labels: AppCopy;
   onCleanupOpenChange: (open: boolean) => void;
   onCleanup: (force: boolean) => void;
+  errorActionLabel?: string;
+  onErrorAction?: () => void;
   onClearError: () => void;
 };
 
@@ -20,6 +22,8 @@ export function WorkspaceOverlays({
   labels,
   onCleanupOpenChange,
   onCleanup,
+  errorActionLabel,
+  onErrorAction,
   onClearError,
 }: Props) {
   return (
@@ -45,8 +49,15 @@ export function WorkspaceOverlays({
       {error && (
         <div className="error-toast" role="alert">
           <strong>{labels.error}</strong>
-          <span>{error}</span>
-          <button onClick={onClearError} aria-label={labels.close}>
+          <div className="error-toast-copy">
+            <span>{error}</span>
+            {errorActionLabel && onErrorAction && (
+              <button className="error-toast-action" type="button" onClick={onErrorAction}>
+                {errorActionLabel}
+              </button>
+            )}
+          </div>
+          <button className="error-toast-close" type="button" onClick={onClearError} aria-label={labels.close}>
             <X size={14} strokeWidth={1.7} aria-hidden />
           </button>
         </div>
