@@ -37,6 +37,8 @@ type Props = {
     noActivity: string;
     provider: string;
     modelSelect: string;
+    modelSearch: string;
+    noModelMatches: string;
     noModels: string;
     providerConfig: string;
     envFallback: string;
