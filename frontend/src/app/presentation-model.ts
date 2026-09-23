@@ -1,7 +1,7 @@
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { sessionRuntime } from "../lib/session-runtime";
 import { sessionUI } from "../lib/session-ui";
-import type { ProviderCatalog, Session } from "../types";
+import type { ProviderCatalog, ProviderSecretStatus, Session } from "../types";
 
 export type ConfiguredModelOption = {
   ref: string;
@@ -9,9 +9,13 @@ export type ConfiguredModelOption = {
   group: string;
   description: string;
   isDefault: boolean;
+  missingSecret: boolean;
 };
 
-export function providerModelOptions(catalog: ProviderCatalog): ConfiguredModelOption[] {
+export function providerModelOptions(
+  catalog: ProviderCatalog,
+  secretStatuses: Record<string, ProviderSecretStatus> = {},
+): ConfiguredModelOption[] {
   return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
     Object.entries(provider.models || {}).map(([modelID, definition]) => {
       const ref = providerID + "/" + modelID;
@@ -26,6 +30,9 @@ export function providerModelOptions(catalog: ProviderCatalog): ConfiguredModelO
         group: provider.name || providerID,
         description: metadata,
         isDefault: catalog.model === ref,
+        missingSecret:
+          secretStatuses[providerID]?.configured === true &&
+          secretStatuses[providerID]?.available === false,
       };
     }),
   );
