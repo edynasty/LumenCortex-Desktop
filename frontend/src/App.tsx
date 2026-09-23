@@ -138,6 +138,7 @@ export default function App() {
       created: t.created,
       completed: t.completed,
       interrupted: t.interrupted,
+      failed: t.failed,
       waiting: t.waiting,
       running: t.running,
       unknown: t.unknown,
