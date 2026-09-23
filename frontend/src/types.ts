@@ -271,6 +271,11 @@ export type ProviderConnectionResult = {
   message: string;
 };
 
+export type ProviderSecretStatus = {
+  configured: boolean;
+  available: boolean;
+};
+
 export type ProviderModel = {
   name?: string;
   modelID?: string;
