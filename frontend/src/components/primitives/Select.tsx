@@ -65,23 +65,25 @@ export function DesktopSelect({
   }, [options, query, search]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || focusTarget) return;
+    const frame = requestAnimationFrame(() => searchRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, focusTarget, Boolean(search)]);
+
+  useEffect(() => {
+    if (!open || !focusTarget) return;
     const frame = requestAnimationFrame(() => {
-      if (focusTarget) {
-        const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
-        if (!items.length) return;
-        const selectedIndex = Math.max(0, filteredOptions.findIndex((option) => option.value === value));
-        const index =
-          focusTarget === "last"
-            ? items.length - 1
-            : focusTarget === "selected"
-              ? Math.min(selectedIndex, items.length - 1)
-              : 0;
-        items[index]?.focus();
-        setFocusTarget(null);
-        return;
-      }
-      searchRef.current?.focus();
+      const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+      if (!items.length) return;
+      const selectedIndex = Math.max(0, filteredOptions.findIndex((option) => option.value === value));
+      const index =
+        focusTarget === "last"
+          ? items.length - 1
+          : focusTarget === "selected"
+            ? Math.min(selectedIndex, items.length - 1)
+            : 0;
+      items[index]?.focus();
+      setFocusTarget(null);
     });
     return () => cancelAnimationFrame(frame);
   }, [filteredOptions, focusTarget, open, value]);
