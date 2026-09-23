@@ -87,7 +87,7 @@ function ThreadScene({ goal, onGoalChange }: { goal: string; onGoalChange: (valu
       modelRef="openai/gpt-5.6"
       models={[
         { value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" },
-        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out", badge: "Missing key", badgeTone: "warning" },
       ]}
       policyLabel="Workspace"
       goal={goal}
@@ -148,7 +148,7 @@ function InspectorFixture() {
       modelRef="openai/gpt-5.6"
       models={[
         { value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" },
-        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out", badge: "Missing key", badgeTone: "warning" },
       ]}
       policy="workspace"
       maxSteps={24}
@@ -272,7 +272,7 @@ export function VisualFixture() {
           modelRef="openai/gpt-5.6"
           models={[
             { ref: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: labels.defaultModel },
-            { ref: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+            { ref: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out", badge: labels.missingProviderKey, badgeTone: "warning" },
           ]}
           noModelsLabel={labels.modelFallback}
           contextPaths={["frontend/src/App.tsx", "internal/backend"]}
