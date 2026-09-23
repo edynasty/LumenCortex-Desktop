@@ -21,6 +21,7 @@ export type SidebarThread = {
   active: boolean;
   pinned: boolean;
   archived: boolean;
+  attentionTone?: "warning" | "danger";
   statusLabel: string;
 };
 
@@ -203,12 +204,12 @@ export function Sidebar({
 
       <div className="thread-list">
         {visibleGroups.map((group) => (
-          <section className="thread-group" key={group.key}>
+          <section className={`thread-group ${group.key === "attention" ? "attention" : ""}`} key={group.key}>
             <div className="thread-group-title">
               <span>{group.label}</span>
               <span>{group.sessions.length}</span>
             </div>
-            {group.sessions.map(({ session, runtime, title, active, pinned, archived, statusLabel }) => (
+            {group.sessions.map(({ session, runtime, title, active, pinned, archived, attentionTone, statusLabel }) => (
               <ThreadRow
                 key={session.id}
                 session={session}
@@ -219,6 +220,7 @@ export function Sidebar({
                 archived={archived}
                 selected={session.id === selectedSessionId}
                 statusLabel={statusLabel}
+                attentionTone={attentionTone}
                 labels={{
                   rename: labels.renameThread,
                   pin: labels.pinThread,
