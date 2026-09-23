@@ -280,6 +280,11 @@ export function VisualFixture() {
           policyLabel={labels.policy}
           policy="workspace"
           policyLabels={{ "read-only": labels.readOnly, workspace: labels.workspace, full: labels.full }}
+          policyDescriptions={{
+            "read-only": labels.readOnlyDescription,
+            workspace: labels.workspaceDescription,
+            full: labels.fullDescription,
+          }}
           environmentLabel={labels.environment}
           runtime="worktree"
           runtimeLabels={{ local: labels.localRuntime, worktree: labels.worktreeRuntime }}
