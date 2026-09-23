@@ -28,6 +28,40 @@ async function capture(page: Page, testInfo: TestInfo, name: string, width: numb
 }
 
 for (const width of widths) {
+  test(`actionable provider error stays readable at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/visual.html?scene=new-task&error=provider");
+    await page.waitForLoadState("networkidle");
+
+    const toast = page.getByRole("alert");
+    const action = toast.getByRole("button", { name: "Provider configuration" });
+    await expect(toast).toContainText("provider model not found");
+    await expect(action).toBeVisible();
+
+    const typography = await toast.evaluate((element) => {
+      const title = element.querySelector("strong");
+      const body = element.querySelector(".error-toast-copy > span");
+      const actionButton = element.querySelector(".error-toast-action");
+      return {
+        title: title ? Number.parseFloat(getComputedStyle(title).fontSize) : 0,
+        body: body ? Number.parseFloat(getComputedStyle(body).fontSize) : 0,
+        action: actionButton ? Number.parseFloat(getComputedStyle(actionButton).fontSize) : 0,
+      };
+    });
+    expect(typography.title).toBeGreaterThanOrEqual(9.5);
+    expect(typography.body).toBeGreaterThanOrEqual(9.5);
+    expect(typography.action).toBeGreaterThanOrEqual(9.5);
+
+    const bounds = await toast.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, bottom: rect.bottom };
+    });
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(width);
+    expect(bounds.bottom).toBeLessThanOrEqual(900);
+    await capture(page, testInfo, "error-provider", width);
+  });
+
   test(`model picker search is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "new-task", width);
 
