@@ -1,4 +1,4 @@
-import { ArrowUp, Code2, FileDiff, Menu, PanelRight, Square, Trash2 } from "lucide-react";
+import { ArrowUp, Code2, FileDiff, Menu, PanelLeftOpen, PanelRight, Square, Trash2 } from "lucide-react";
 import { sessionStatusLabel } from "../../app/presentation-model";
 import type { WorkspaceRoute } from "../../app/workspace-route";
 import type { AppCopy } from "../../lib/i18n/app-copy";
@@ -12,8 +12,10 @@ type Props = {
   running: boolean;
   busy: boolean;
   inspectorOpen: boolean;
+  sidebarCollapsed: boolean;
   labels: AppCopy;
   onOpenSidebar: () => void;
+  onExpandSidebar: () => void;
   onBackToWorkspace: () => void;
   onOpenReview: () => void;
   onOpenThread: () => void;
@@ -35,8 +37,10 @@ export function WorkspaceTopbar({
   running,
   busy,
   inspectorOpen,
+  sidebarCollapsed,
   labels,
   onOpenSidebar,
+  onExpandSidebar,
   onBackToWorkspace,
   onOpenReview,
   onOpenThread,
@@ -78,6 +82,15 @@ export function WorkspaceTopbar({
         >
           <Menu size={16} strokeWidth={1.7} aria-hidden />
         </button>
+        {sidebarCollapsed && (
+          <button
+            className="icon-button sidebar-expand-toggle"
+            onClick={onExpandSidebar}
+            aria-label={labels.expandSidebar}
+          >
+            <PanelLeftOpen size={16} strokeWidth={1.7} aria-hidden />
+          </button>
+        )}
         <div className="title-stack">
           <strong>{title}</strong>
           <span>{subtitle}</span>
