@@ -72,6 +72,12 @@
   font-weight: 650;
 }
 
+.desktop-select-trigger-copy em.warning,
+.desktop-select-option-title em.warning {
+  background: var(--warning-bg);
+  color: var(--amber);
+}
+
 .desktop-select-trigger-copy small {
   color: var(--faint);
   font-size: 8.5px;
