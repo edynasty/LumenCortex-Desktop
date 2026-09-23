@@ -1,5 +1,6 @@
 import { Bot, CheckCircle2, CircleDot, GitBranch, ShieldCheck, Wrench } from "lucide-react";
 import type { RuntimeEvent } from "../../types";
+import { EmptyState } from "../primitives/EmptyState";
 import { milestonesFromEvents } from "./milestones";
 
 type Labels = Parameters<typeof milestonesFromEvents>[1] & {
@@ -34,7 +35,7 @@ function MilestoneIcon({ kind }: { kind: string }) {
 export function MilestoneList({ events, labels }: Props) {
   const items = milestonesFromEvents(events, labels);
   if (!items.length) {
-    return <div className="inspector-empty">{labels.empty}</div>;
+    return <EmptyState compact icon={<CircleDot size={18} />} title={labels.empty} />;
   }
 
   return (
