@@ -8,6 +8,8 @@ import type { InspectorPolicy } from "./inspector-types";
 type RunSettingsLabels = LSPSettingsLabels & {
   provider: string;
   modelSelect: string;
+  modelSearch: string;
+  noModelMatches: string;
   noModels: string;
   providerConfig: string;
   envFallback: string;
@@ -113,6 +115,11 @@ export function RunSettingsPanel({
             value={modelRef}
             placeholder={labels.noModels}
             options={models}
+            search={{
+              ariaLabel: labels.modelSearch,
+              placeholder: labels.modelSearch,
+              emptyLabel: labels.noModelMatches,
+            }}
             onChange={onModelChange}
             popoverPlacement="bottom"
             className="settings-desktop-select"
