@@ -17,6 +17,7 @@ type Props = {
   labels: AppCopy;
   themePreference: ThemePreference;
   onClose: () => void;
+  onCollapse: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -47,6 +48,7 @@ export function WorkspaceSidebar({
   labels,
   themePreference,
   onClose,
+  onCollapse,
   onNewTask,
   onPickWorkspace,
   onOpenWorkspace,
@@ -73,6 +75,7 @@ export function WorkspaceSidebar({
       runtimeVersion={runtimeVersion}
       labels={{
         close: labels.close,
+        collapse: labels.collapseSidebar,
         newTask: labels.newTask,
         project: labels.project,
         openProject: labels.openProject,
@@ -102,6 +105,7 @@ export function WorkspaceSidebar({
         worktreeRuntime: labels.worktreeRuntime,
       }}
       onClose={onClose}
+      onCollapse={onCollapse}
       onNewTask={onNewTask}
       onPickWorkspace={onPickWorkspace}
       onOpenWorkspace={onOpenWorkspace}
