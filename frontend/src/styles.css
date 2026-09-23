@@ -557,14 +557,14 @@
   color: var(--red);
   animation: toastEnter var(--motion-base) var(--ease-out);
 }
-.error-toast strong { font-size: 9px; }
+.error-toast strong { font-size: 9.5px; }
 .error-toast-copy {
   min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 9px;
 }
-.error-toast-copy span { min-width: 0; flex: 1 1 auto; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+.error-toast-copy span { min-width: 0; flex: 1 1 auto; font-size: 9.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .error-toast-action {
   flex: 0 0 auto;
   min-height: 24px;
@@ -573,7 +573,7 @@
   border-radius: 6px;
   background: var(--surface);
   color: var(--red);
-  font-size: 8.5px;
+  font-size: 9.5px;
   cursor: pointer;
 }
 .error-toast-action:hover { background: var(--danger-hover); }
