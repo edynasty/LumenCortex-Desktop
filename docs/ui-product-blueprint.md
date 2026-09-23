@@ -972,10 +972,12 @@ As of 2026-09-23, every enumerated implementation item in this blueprint is comp
 
 The previous milestone order (Provider → Composer → Sidebar → Review → Worktrees → LSP/MCP → Extensions) has been executed. Future work should no longer restart that sequence.
 
-The remaining known design-delivery debt is tracked in `docs/ui-design-audit.md` as P1-18 through P1-20:
-- restore Product Screens in Figma,
-- complete component state/variant coverage,
-- add interaction/motion prototypes.
+The remaining external design-delivery action is applying the prepared Figma finalizer to the linked file. Source-controlled implementation for P1-18 through P1-20 is complete:
+- `tools/figma/delivery-manifest.json` defines the full responsive screen/state/flow contract,
+- `tools/figma/finalize-lumencortex.mjs` creates Product Screens, production component-state variants, and Flows & Specs,
+- CI validates the finalizer syntax and manifest coverage.
+
+The actual Figma canvas write remains blocked by the Figma Starter MCP call quota; this is an external execution dependency rather than additional product/frontend implementation work.
 
 Continue implementation work only from one of these concrete inputs:
 - a newly observed product/UI defect,
