@@ -3,6 +3,7 @@ import type { ThemePreference } from "../lib/theme";
 import { Menu, PanelRight } from "lucide-react";
 import { WorkspaceExtensionsRoute } from "../app/WorkspaceExtensionsRoute";
 import { WorkspaceReviewRoute } from "../app/WorkspaceReviewRoute";
+import { WorkspaceOverlays } from "../app/WorkspaceOverlays";
 import { AppShell } from "../components/app-shell/AppShell";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
@@ -196,6 +197,7 @@ export function VisualFixture() {
     return value === "dark" || value === "light" ? value : "system";
   });
   const scene = sceneFromLocation();
+  const visualError = new URLSearchParams(window.location.search).get("error");
   const sessionScene = scene === "thread" || scene === "review" || scene === "inspector";
 
   const sidebar = (
@@ -344,6 +346,18 @@ export function VisualFixture() {
           onError={noop}
         />
       )}
+
+      <WorkspaceOverlays
+        cleanupOpen={false}
+        busy={false}
+        error={visualError === "provider" ? "provider model not found" : ""}
+        labels={labels}
+        onCleanupOpenChange={noop}
+        onCleanup={noop}
+        errorActionLabel={visualError === "provider" ? labels.providerConfig : undefined}
+        onErrorAction={noop}
+        onClearError={noop}
+      />
     </AppShell>
   );
 }
