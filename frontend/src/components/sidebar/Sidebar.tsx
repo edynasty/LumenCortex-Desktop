@@ -5,6 +5,7 @@ import {
   Languages,
   Plus,
   Search,
+  PanelLeftClose,
   Settings2,
   X,
 } from "lucide-react";
@@ -47,6 +48,7 @@ type Props = {
   themePreference: ThemePreference;
   labels: {
     close: string;
+    collapse: string;
     newTask: string;
     project: string;
     openProject: string;
@@ -76,6 +78,7 @@ type Props = {
     worktreeRuntime: string;
   };
   onClose: () => void;
+  onCollapse: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -103,6 +106,7 @@ export function Sidebar({
   themePreference,
   labels,
   onClose,
+  onCollapse,
   onNewTask,
   onPickWorkspace,
   onOpenWorkspace,
@@ -154,6 +158,9 @@ export function Sidebar({
           <strong>LumenCortex</strong>
           <span>Desktop</span>
         </div>
+        <button className="icon-button sidebar-collapse-button" onClick={onCollapse} aria-label={labels.collapse}>
+          <PanelLeftClose size={16} strokeWidth={1.7} aria-hidden />
+        </button>
         {open && (
           <button ref={closeButtonRef} className="icon-button mobile-only" onClick={onClose} aria-label={labels.close}>
             <X size={16} strokeWidth={1.7} aria-hidden />
