@@ -27,3 +27,37 @@ for (const width of [820, 560] as const) {
     await expect(trigger).toBeFocused();
   });
 }
+
+
+for (const width of [1440, 560] as const) {
+  test(`sidebar attention state stays visible at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/visual.html?scene=new-task");
+    await page.waitForLoadState("networkidle");
+
+    if (width <= 820) {
+      await page.getByRole("button", { name: "Open sidebar" }).click();
+      await expect(page.locator(".sidebar")).toHaveClass(/open/);
+    }
+
+    const attentionGroup = page.locator(".thread-group.attention");
+    await expect(attentionGroup.getByText("Needs attention", { exact: true })).toBeVisible();
+
+    const attentionRow = page.locator(".thread-item-row.attention-warning");
+    await expect(
+      attentionRow.getByRole("button", {
+        name: "Approve database migration · Waiting for approval",
+      }),
+    ).toBeVisible();
+
+    const colors = await attentionRow.evaluate((element) => {
+      const copy = element.querySelector(".thread-copy small");
+      const dot = element.querySelector(".thread-dot");
+      return {
+        copy: copy ? getComputedStyle(copy).color : "",
+        dot: dot ? getComputedStyle(dot).backgroundColor : "",
+      };
+    });
+    expect(colors.copy).toBe(colors.dot);
+  });
+}
