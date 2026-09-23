@@ -66,6 +66,11 @@ type ProviderConnectionResult struct {
 	Message string `json:"message"`
 }
 
+type ProviderSecretStatus struct {
+	Configured bool `json:"configured"`
+	Available  bool `json:"available"`
+}
+
 func defaultProviderCatalog() ProviderCatalog {
 	return ProviderCatalog{
 		Schema:    ProviderConfigSchema,
@@ -398,6 +403,18 @@ func resolveEnvReference(value string) string {
 		return os.Getenv(name)
 	}
 	return value
+}
+
+func providerSecretStatuses(catalog ProviderCatalog) map[string]ProviderSecretStatus {
+	statuses := make(map[string]ProviderSecretStatus, len(catalog.Providers))
+	for providerID, provider := range catalog.Providers {
+		value := strings.TrimSpace(provider.Settings.APIKey)
+		statuses[providerID] = ProviderSecretStatus{
+			Configured: value != "",
+			Available:  value == "" || resolveEnvReference(value) != "",
+		}
+	}
+	return statuses
 }
 
 
