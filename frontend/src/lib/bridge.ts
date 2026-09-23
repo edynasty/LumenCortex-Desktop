@@ -15,6 +15,7 @@ import type {
   Message,
   MessagePage,
   ProviderConnectionResult,
+  ProviderSecretStatus,
   SearchResult,
   ProviderCatalog,
   ProviderCatalogScope,
@@ -57,6 +58,7 @@ type AppAPI = {
   DiscoverProviderModels(providerId: string): Promise<DiscoveredModel[]>;
   TestProviderConnection(providerId: string): Promise<ProviderConnectionResult>;
   GetProviderCatalog(): Promise<ProviderCatalog>;
+  GetProviderSecretStatuses(): Promise<Record<string, ProviderSecretStatus>>;
   SaveProviderCatalog(config: ProviderCatalog): Promise<ProviderCatalog>;
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalog>;
   SaveProviderCatalogScope(scope: ProviderCatalogScope, config: ProviderCatalog): Promise<ProviderCatalog>;
@@ -148,6 +150,7 @@ export const bridge = {
   discoverProviderModels: (providerId: string) => api().DiscoverProviderModels(providerId),
   testProviderConnection: (providerId: string) => api().TestProviderConnection(providerId),
   providerCatalog: () => api().GetProviderCatalog(),
+  providerSecretStatuses: () => api().GetProviderSecretStatuses(),
   saveProviderCatalog: (config: ProviderCatalog) => api().SaveProviderCatalog(config),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
   saveProviderCatalogScope: (scope: ProviderCatalogScope, config: ProviderCatalog) => api().SaveProviderCatalogScope(scope, config),
