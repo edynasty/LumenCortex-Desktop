@@ -239,6 +239,25 @@ export const groups: SidebarGroup[] = [
     }],
   },
   {
+    key: "attention",
+    label: "Needs attention",
+    sessions: [{
+      session: {
+        ...session,
+        id: "session-attention",
+        status: "waiting_gate",
+        goal: "Approve database migration before continuing",
+      },
+      runtime: localRuntime,
+      title: "Approve database migration",
+      active: false,
+      pinned: false,
+      archived: false,
+      attentionTone: "warning",
+      statusLabel: "Waiting for approval",
+    }],
+  },
+  {
     key: "recent",
     label: "Recent",
     sessions: [{
