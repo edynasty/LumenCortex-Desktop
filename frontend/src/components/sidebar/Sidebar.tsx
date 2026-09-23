@@ -158,7 +158,12 @@ export function Sidebar({
           <strong>LumenCortex</strong>
           <span>Desktop</span>
         </div>
-        <button className="icon-button sidebar-collapse-button" onClick={onCollapse} aria-label={labels.collapse}>
+        <button
+          className="icon-button sidebar-collapse-button"
+          onClick={onCollapse}
+          aria-label={labels.collapse}
+          aria-keyshortcuts="Meta+B Control+B"
+        >
           <PanelLeftClose size={16} strokeWidth={1.7} aria-hidden />
         </button>
         {open && (

@@ -322,15 +322,21 @@ This is useful for design review, but code/document specification remains the ca
 
 ## 7. P2 findings
 
-### P2-01 — Sidebar needs thread search and richer recent-project behavior
+### P2-01 — Sidebar thread navigation and attention
 
-Current grouping is a useful first step.
+Status: **Fixed for current durable thread state**.
 
-Still missing:
-- search,
-- pinned threads,
-- recent projects,
-- attention/unread behavior.
+Implemented:
+- thread search across title, goal, Provider, and model,
+- pinned / recent / archived grouping,
+- recent project shortcuts,
+- explicit “Needs attention” grouping,
+- warning severity for approval gates,
+- danger severity for failed, interrupted, and stale-running threads,
+- accessible row names that include thread status,
+- persistent desktop Sidebar collapse with `Meta+B / Control+B`.
+
+Unread state is intentionally **not inferred** from timestamps. A future unread badge should be backed by a durable read cursor/event from Core rather than a frontend-only guess.
 
 ### P2-02 — Provider scope remembers the last selected layer
 

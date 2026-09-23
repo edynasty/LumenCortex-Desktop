@@ -87,6 +87,7 @@ export function WorkspaceTopbar({
             className="icon-button sidebar-expand-toggle"
             onClick={onExpandSidebar}
             aria-label={labels.expandSidebar}
+            aria-keyshortcuts="Meta+B Control+B"
           >
             <PanelLeftOpen size={16} strokeWidth={1.7} aria-hidden />
           </button>
