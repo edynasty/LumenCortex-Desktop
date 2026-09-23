@@ -31,7 +31,7 @@ for (const width of widths) {
   test(`model picker search is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "new-task", width);
 
-    await page.getByRole("button", { name: "Model" }).click();
+    await page.getByRole("button", { name: "Model", exact: true }).click();
     const popover = page.locator(".desktop-select-popover").first();
     const search = page.getByRole("textbox", { name: "Search models" });
     await expect(search).toBeFocused();
