@@ -12,6 +12,7 @@ type ModelOption = {
   label: string;
   description?: string;
   group?: string;
+  badge?: string;
 };
 
 type Props = {
@@ -24,6 +25,8 @@ type Props = {
   recentProjectsLabel: string;
   chooseProjectLabel: string;
   modelLabel: string;
+  modelSearchLabel: string;
+  noModelMatchesLabel: string;
   modelRef: string;
   models: ModelOption[];
   noModelsLabel: string;
@@ -70,6 +73,8 @@ export function NewTaskComposer({
   recentProjectsLabel,
   chooseProjectLabel,
   modelLabel,
+  modelSearchLabel,
+  noModelMatchesLabel,
   modelRef,
   models,
   noModelsLabel,
@@ -159,11 +164,17 @@ export function NewTaskComposer({
               placeholder={noModelsLabel}
               className="composer-desktop-select model-select"
               showDescriptionInTrigger={false}
+              search={{
+                ariaLabel: modelSearchLabel,
+                placeholder: modelSearchLabel,
+                emptyLabel: noModelMatchesLabel,
+              }}
               options={models.map<SelectOption>((item) => ({
                 value: item.ref,
                 label: item.label,
                 description: item.description,
                 group: item.group,
+                badge: item.badge,
               }))}
               onChange={onModelChange}
             />
