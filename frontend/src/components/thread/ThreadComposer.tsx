@@ -18,6 +18,8 @@ type Props = {
     startAnother: string;
     composerHint: string;
     noModels: string;
+    modelSearch: string;
+    noModelMatches: string;
     start: string;
     running: string;
     localRuntime: string;
@@ -67,6 +69,11 @@ export function ThreadComposer({
               value={modelRef}
               placeholder={labels.noModels}
               options={models}
+              search={{
+                ariaLabel: labels.modelSearch,
+                placeholder: labels.modelSearch,
+                emptyLabel: labels.noModelMatches,
+              }}
               onChange={onModelChange}
               className="composer-model-trigger"
             />
