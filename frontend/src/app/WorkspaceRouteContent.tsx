@@ -119,6 +119,7 @@ export function WorkspaceRouteContent({
     label: item.label,
     description: item.description,
     group: item.group,
+    badge: item.isDefault ? labels.defaultModel : undefined,
   }));
 
   const providerActive = route.kind === "providers";
@@ -189,8 +190,13 @@ export function WorkspaceRouteContent({
         recentProjectsLabel={labels.recentProjects}
         chooseProjectLabel={labels.openProject}
         modelLabel={labels.modelSelect}
+        modelSearchLabel={labels.modelSearch}
+        noModelMatchesLabel={labels.noModelMatches}
         modelRef={modelRef}
-        models={configuredModels}
+        models={configuredModels.map((item) => ({
+          ...item,
+          badge: item.isDefault ? labels.defaultModel : undefined,
+        }))}
         noModelsLabel={labels.modelFallback}
         contextPaths={contextPaths}
         contextLabels={{
@@ -265,6 +271,8 @@ export function WorkspaceRouteContent({
         composerPlaceholder: labels.composerPlaceholder,
         composerHint: labels.composerHint,
         noModels: labels.noModels,
+        modelSearch: labels.modelSearch,
+        noModelMatches: labels.noModelMatches,
         start: labels.start,
         roleUser: labels.messageRoleUser,
         roleAssistant: labels.messageRoleAssistant,
