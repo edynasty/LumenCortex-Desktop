@@ -42,6 +42,7 @@ type Props = {
   health?: Health;
   pressure: number;
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   inspectorOpen: boolean;
   inspectorTab: InspectorTab;
   events: RuntimeEvent[];
@@ -73,6 +74,7 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   onSetRoute: (route: WorkspaceRoute) => void;
   onSidebarOpenChange: (open: boolean) => void;
+  onSidebarCollapsedChange: (collapsed: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
   onCleanupWorktreeOpenChange: (open: boolean) => void;
@@ -133,6 +135,7 @@ export function WorkspaceView(props: Props) {
     health,
     pressure,
     sidebarOpen,
+    sidebarCollapsed,
     inspectorOpen,
     inspectorTab,
     events,
@@ -213,6 +216,7 @@ export function WorkspaceView(props: Props) {
         health={health}
         pressure={pressure}
         sidebarOpen={sidebarOpen}
+        sidebarCollapsed={sidebarCollapsed}
         inspectorOpen={inspectorOpen}
         inspectorTab={inspectorTab}
         events={events}
@@ -233,6 +237,7 @@ export function WorkspaceView(props: Props) {
         busy={busy}
         onSetRoute={props.onSetRoute}
         onSidebarOpenChange={props.onSidebarOpenChange}
+        onSidebarCollapsedChange={props.onSidebarCollapsedChange}
         onInspectorOpenChange={props.onInspectorOpenChange}
         onInspectorTabChange={props.onInspectorTabChange}
         onNewTask={props.onNewTask}
