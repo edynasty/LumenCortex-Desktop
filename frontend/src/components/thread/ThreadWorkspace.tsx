@@ -42,6 +42,8 @@ type Props = {
     composerPlaceholder: string;
     composerHint: string;
     noModels: string;
+    modelSearch: string;
+    noModelMatches: string;
     start: string;
     roleUser: string;
     roleAssistant: string;
@@ -260,6 +262,8 @@ export function ThreadWorkspace({
           startAnother: labels.startAnother,
           composerHint: labels.composerHint,
           noModels: labels.noModels,
+          modelSearch: labels.modelSearch,
+          noModelMatches: labels.noModelMatches,
           start: labels.start,
           running: labels.running,
           localRuntime: labels.localRuntime,
