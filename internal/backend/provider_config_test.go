@@ -185,6 +185,32 @@ func TestProviderCatalogAllowsEnvironmentSecretReference(t *testing.T) {
 }
 
 
+func TestProviderSecretStatusesDoNotExposeValues(t *testing.T) {
+	t.Setenv("AVAILABLE_PROVIDER_KEY", "secret-value")
+	catalog := ProviderCatalog{
+		Providers: map[string]ProviderDefinition{
+			"ready": {
+				Settings: ProviderSettings{APIKey: "{env:AVAILABLE_PROVIDER_KEY}"},
+			},
+			"missing": {
+				Settings: ProviderSettings{APIKey: "{env:MISSING_PROVIDER_KEY}"},
+			},
+			"anonymous": {},
+		},
+	}
+
+	statuses := providerSecretStatuses(catalog)
+	if got := statuses["ready"]; !got.Configured || !got.Available {
+		t.Fatalf("ready=%#v", got)
+	}
+	if got := statuses["missing"]; !got.Configured || got.Available {
+		t.Fatalf("missing=%#v", got)
+	}
+	if got := statuses["anonymous"]; got.Configured || !got.Available {
+		t.Fatalf("anonymous=%#v", got)
+	}
+}
+
 func TestDiscoverProviderModelsUsesEnvSecretAndBoundsCatalog(t *testing.T) {
 	t.Setenv("DEMO_DISCOVERY_KEY", "secret")
 	var authorization string
