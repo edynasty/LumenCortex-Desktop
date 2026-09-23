@@ -22,6 +22,17 @@ import { VisualInspectorFixture, VisualThreadScene, VisualTopbar } from "./Visua
 
 const noop = () => undefined;
 
+function sceneFromLocation(): VisualScene {
+  const value = new URLSearchParams(window.location.search).get("scene");
+  return value === "thread" ||
+    value === "providers" ||
+    value === "review" ||
+    value === "extensions" ||
+    value === "inspector"
+    ? value
+    : "new-task";
+}
+
 export function VisualFixture() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [goal, setGoal] = useState("");
