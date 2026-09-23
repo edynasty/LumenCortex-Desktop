@@ -13,6 +13,7 @@ type Props = {
   active: boolean;
   selected: boolean;
   statusLabel: string;
+  attentionTone?: "warning" | "danger";
   labels: {
     rename: string;
     pin: string;
@@ -50,6 +51,7 @@ export function ThreadRow({
   active,
   selected,
   statusLabel,
+  attentionTone,
   labels,
   pinned,
   archived,
@@ -69,9 +71,14 @@ export function ThreadRow({
   }
 
   return (
-    <div className={`thread-item-row ${selected ? "selected" : ""}`}>
-      <button type="button" className="thread-item thread-item-main" onClick={onSelect}>
-        <span className={`thread-dot ${active ? "live" : session.status}`} />
+    <div className={`thread-item-row ${selected ? "selected" : ""} ${attentionTone ? `attention-${attentionTone}` : ""}`}>
+      <button
+        type="button"
+        className="thread-item thread-item-main"
+        onClick={onSelect}
+        aria-label={`${title} · ${statusLabel}`}
+      >
+        <span className={`thread-dot ${active ? "live" : attentionTone ? `attention-${attentionTone}` : session.status}`} />
         <span className="thread-copy">
           <strong>{title}</strong>
           <small>
