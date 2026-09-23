@@ -38,6 +38,7 @@ export default function App() {
     recentProjects,
     catalog,
     setCatalog,
+    providerSecretStatuses,
     modelRef,
     setModelRef,
     pickWorkspace: pickWorkspaceState,
@@ -128,7 +129,10 @@ export default function App() {
     [events, selected]
   );
 
-  const configuredModels = useMemo(() => providerModelOptions(catalog), [catalog]);
+  const configuredModels = useMemo(
+    () => providerModelOptions(catalog, providerSecretStatuses),
+    [catalog, providerSecretStatuses],
+  );
 
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
