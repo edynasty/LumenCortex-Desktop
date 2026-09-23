@@ -415,6 +415,44 @@
   text-align: center;
 }
 
+.desktop-empty-state.compact {
+  min-height: 96px;
+  padding: 16px;
+}
+
+.desktop-loading-state {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 9.5px;
+}
+
+.desktop-loading-state.compact {
+  min-height: 96px;
+  padding: 16px;
+}
+
+.desktop-loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.desktop-loading-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: thinkingPulse 1.2s infinite ease-in-out;
+}
+
+.desktop-loading-dots i:nth-child(2) { animation-delay: .14s; }
+.desktop-loading-dots i:nth-child(3) { animation-delay: .28s; }
+
 .desktop-empty-state strong {
   color: var(--text);
   font-size: 11px;
