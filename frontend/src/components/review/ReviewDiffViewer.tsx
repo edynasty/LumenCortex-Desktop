@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { SyntaxLine } from "../code/SyntaxLine";
 import { Button } from "../primitives/Button";
 import { EmptyState } from "../primitives/EmptyState";
+import { LoadingState } from "../primitives/LoadingState";
 import type { DiffLine, SplitRow } from "./diff";
 
 const DIFF_RENDER_CHUNK = 240;
@@ -45,7 +46,7 @@ export function ReviewDiffViewer({
   return (
     <div className="review-diff">
       {loading ? (
-        <div className="review-loading">{loadingLabel}</div>
+        <LoadingState label={loadingLabel} />
       ) : binary ? (
         <EmptyState title={binaryLabel} body={selectedPath} />
       ) : mode === "unified" ? (
