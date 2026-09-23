@@ -102,27 +102,19 @@ Status: **Fixed**.
 
 The topbar owns the route title. Provider content now starts with descriptive copy and the Add Provider action instead of repeating “Models & Providers” as a second page heading.
 
-### P1-03 — Composer uses native selects where richer desktop pickers are required
+### P1-03 — Desktop model and permission pickers
 
-Current:
-- native `select` for model,
-- native `select` for permission.
+Status: **Fixed**.
 
-This is acceptable for a first implementation but does not satisfy the final design goal.
-
-Model picker needs:
+The shared Popover/Listbox-based `DesktopSelect` now provides:
 - Provider grouping,
 - model search,
-- default indicator,
+- default-model badge,
 - context/output metadata,
-- missing-secret state.
+- missing Provider secret status without exposing secret values,
+- keyboard navigation and focus restoration.
 
-Permission picker needs:
-- concise explanation of read-only/workspace/full,
-- clear risk semantics.
-
-Recommended:
-- shared Popover + Command/Listbox primitives.
+Permission pickers use the same desktop primitive and display concise Read only / Workspace / Full risk descriptions.
 
 ### P1-04 — New Task composition was vertically inconsistent with Figma
 
@@ -196,32 +188,19 @@ Route/entity state and back semantics are explicit without adding a web-router d
 
 ## 4. P1 frontend architecture findings
 
-### P1-10 — App.tsx remains a large feature container
+### P1-10 — App orchestration and feature extraction
 
-Already extracted:
-- Composer,
-- Provider.
+Status: **Fixed for the current surface**.
 
-Still inside App:
-- sidebar,
-- thread rendering,
-- inspector,
-- terminal,
-- runtime state,
-- all translation copy,
-- navigation.
+Feature rendering and controllers have been split out of `App.tsx` into:
+- Sidebar / workspace chrome,
+- Thread workspace and message rendering,
+- Inspector,
+- Provider / Review / Extensions routes,
+- runtime/session/workspace hooks,
+- navigation and presentation helpers.
 
-Impact:
-- high merge/conflict surface,
-- difficult testing,
-- encourages cross-feature state coupling.
-
-Next extraction order:
-1. Sidebar,
-2. ThreadWorkspace,
-3. Inspector,
-4. app navigation shell,
-5. i18n copy.
+Architecture tests enforce the typed bridge boundary and a 350-line production TSX split threshold.
 
 ### P1-11 — Design tokens and implementation tokens drift
 
@@ -255,20 +234,19 @@ Frontend now uses:
 
 Provider, primitives, routing/presentation behavior, accessibility/focus behavior, theme behavior, typography, and responsive states have regression coverage.
 
-### P1-13 — Thread renderer is still raw
+### P1-13 — Thread renderer
 
-Current assistant/tool content uses `pre`.
+Status: **Fixed for the current message contract**.
 
-Missing:
+Thread rendering now includes:
 - Markdown,
-- code fences,
-- compact tool cards,
+- syntax-aware code fences,
+- compact tool/result cards,
 - approval UI,
-- message actions.
+- copy/retry message actions,
+- final-answer rendering.
 
-This makes the shell look more like a runtime console than a coding assistant.
-
-Tracked by UI-04.
+Future message types should extend the same structured renderer instead of falling back to raw console-style `pre` blocks.
 
 ## 5. P1 accessibility findings
 
@@ -361,24 +339,28 @@ Status: **Fixed**.
 The Provider controller remembers Global/Project scope per workspace in localStorage.
 Only the scope enum is persisted; Provider drafts, Advanced JSON, and secret material remain in memory/config-specific paths.
 
-### P2-03 — Error UI needs action-oriented recovery
+### P2-03 — Action-oriented error recovery
 
-Current toast is generic.
+Status: **Fixed for current recoverable error classes**.
 
-Future:
-- provider error → open provider config,
-- permission error → open permission picker,
-- cancelled → resume,
-- runtime unavailable → retry/reopen project.
+The desktop error layer classifies recoverable errors and presents direct actions:
+- Provider/model/secret errors → Provider settings,
+- permission/policy errors → Run permissions,
+- workspace/runtime unavailable → reopen or choose project,
+- interrupted/error threads expose Retry in the thread surface.
 
-### P2-04 — Empty/loading states need a shared component
+Unknown errors remain dismissible without inventing an unsafe recovery action.
 
-Current surfaces define empty/loading states independently.
+### P2-04 — Shared empty/loading states
 
-Required:
-- shared EmptyState,
-- shared inline loading pattern,
-- no large decorative empty illustrations.
+Status: **Fixed for primary surfaces**.
+
+Shared primitives now provide:
+- `EmptyState` with regular and compact variants,
+- `LoadingState` with status/live-region semantics and reduced-motion-compatible pulse,
+- consistent use across Review, Extensions, Thread, and Inspector primary empty/loading surfaces.
+
+Small context-specific states such as Sidebar search emptiness remain intentionally compact and local.
 
 ## 8. Motion status
 
