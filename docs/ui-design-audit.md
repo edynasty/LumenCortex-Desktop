@@ -224,7 +224,7 @@ Frontend now uses:
 
 Provider, primitives, routing/presentation behavior, accessibility/focus behavior, theme behavior, typography, and responsive states have regression coverage.
 
-2026-09-23 visual-artifact follow-up found that Split Review remained horizontally clipped at narrow widths even though the document itself stayed bounded. Review now automatically uses Unified mode at <=1024 px, hides the unavailable Split control, and the visual test asserts the diff surface itself has no horizontal overflow at the narrow breakpoint.
+2026-09-23 visual-artifact follow-up found that Split Review remained horizontally clipped at narrow widths even though the document itself stayed bounded. Review now automatically uses Unified mode at <=1024 px and hides the unavailable Split control. Visual regression coverage asserts the single-column renderer at 820 / 560; long source lines may still scroll horizontally inside the Unified diff by design.
 
 ### P1-13 — Thread renderer
 
