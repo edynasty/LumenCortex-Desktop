@@ -119,7 +119,12 @@ export function WorkspaceRouteContent({
     label: item.label,
     description: item.description,
     group: item.group,
-    badge: item.isDefault ? labels.defaultModel : undefined,
+    badge: item.missingSecret
+      ? labels.missingProviderKey
+      : item.isDefault
+        ? labels.defaultModel
+        : undefined,
+    badgeTone: item.missingSecret ? "warning" as const : "default" as const,
   }));
 
   const providerActive = route.kind === "providers";
@@ -195,7 +200,12 @@ export function WorkspaceRouteContent({
         modelRef={modelRef}
         models={configuredModels.map((item) => ({
           ...item,
-          badge: item.isDefault ? labels.defaultModel : undefined,
+          badge: item.missingSecret
+            ? labels.missingProviderKey
+            : item.isDefault
+              ? labels.defaultModel
+              : undefined,
+          badgeTone: item.missingSecret ? "warning" as const : "default" as const,
         }))}
         noModelsLabel={labels.modelFallback}
         contextPaths={contextPaths}
