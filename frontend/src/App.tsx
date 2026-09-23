@@ -14,6 +14,7 @@ import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
 import { sessionRuntime } from "./lib/session-runtime";
 import { useThemePreference } from "./lib/theme";
+import { useSidebarCollapsedPreference } from "./lib/sidebar-preference";
 import type { AgentConfig, RuntimeKind } from "./types";
 
 type Policy = "read-only" | "workspace" | "full";
@@ -21,6 +22,7 @@ type Policy = "read-only" | "workspace" | "full";
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [themePreference, setThemePreference] = useThemePreference();
+  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsedPreference();
   const t = copy[locale];
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
@@ -266,6 +268,7 @@ export default function App() {
       health={health}
       pressure={pressure}
       sidebarOpen={sidebarOpen}
+      sidebarCollapsed={sidebarCollapsed}
       inspectorOpen={inspectorOpen}
       inspectorTab={inspectorTab}
       events={selectedEvents}
@@ -297,6 +300,7 @@ export default function App() {
       textareaRef={composerRef}
       onSetRoute={setRoute}
       onSidebarOpenChange={setSidebarOpen}
+      onSidebarCollapsedChange={setSidebarCollapsed}
       onInspectorOpenChange={setInspectorOpen}
       onInspectorTabChange={setInspectorTab}
       onCleanupWorktreeOpenChange={setCleanupWorktreeOpen}
