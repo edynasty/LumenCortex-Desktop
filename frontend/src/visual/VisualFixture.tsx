@@ -85,7 +85,10 @@ function ThreadScene({ goal, onGoalChange }: { goal: string; onGoalChange: (valu
       statusLabel="Active"
       workspaceName="lumencortex"
       modelRef="openai/gpt-5.6"
-      models={[{ value: "openai/gpt-5.6", label: "GPT-5.6" }]}
+      models={[
+        { value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" },
+        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+      ]}
       policyLabel="Workspace"
       goal={goal}
       busy={false}
@@ -101,6 +104,8 @@ function ThreadScene({ goal, onGoalChange }: { goal: string; onGoalChange: (valu
         composerPlaceholder: labels.composerPlaceholder,
         composerHint: labels.composerHint,
         noModels: labels.noModels,
+        modelSearch: labels.modelSearch,
+        noModelMatches: labels.noModelMatches,
         start: labels.start,
         roleUser: labels.messageRoleUser,
         roleAssistant: labels.messageRoleAssistant,
@@ -141,7 +146,10 @@ function InspectorFixture() {
       tab={tab}
       events={visualEvents}
       modelRef="openai/gpt-5.6"
-      models={[{ value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI" }]}
+      models={[
+        { value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" },
+        { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+      ]}
       policy="workspace"
       maxSteps={24}
       health={health}
@@ -259,8 +267,13 @@ export function VisualFixture() {
           recentProjectsLabel={labels.recentProjects}
           chooseProjectLabel={labels.openProject}
           modelLabel={labels.modelSelect}
+          modelSearchLabel={labels.modelSearch}
+          noModelMatchesLabel={labels.noModelMatches}
           modelRef="openai/gpt-5.6"
-          models={[{ ref: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx" }]}
+          models={[
+            { ref: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: labels.defaultModel },
+            { ref: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out" },
+          ]}
           noModelsLabel={labels.modelFallback}
           contextPaths={["frontend/src/App.tsx", "internal/backend"]}
           contextLabels={{ context: labels.context, files: labels.attachFiles, folder: labels.attachFolder, remove: labels.removeContext }}
