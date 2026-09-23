@@ -35,6 +35,9 @@ function sceneFromLocation(): VisualScene {
 
 export function VisualFixture() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => new URLSearchParams(window.location.search).get("sidebar") === "collapsed",
+  );
   const [goal, setGoal] = useState("");
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
     const value = new URLSearchParams(window.location.search).get("theme");
@@ -59,6 +62,7 @@ export function VisualFixture() {
       themePreference={themePreference}
       labels={sidebarLabels}
       onClose={() => setSidebarOpen(false)}
+      onCollapse={() => setSidebarCollapsed(true)}
       onNewTask={noop}
       onPickWorkspace={noop}
       onOpenWorkspace={noop}
@@ -90,6 +94,7 @@ export function VisualFixture() {
     <AppShell
       sidebar={sidebar}
       sidebarOpen={sidebarOpen}
+      sidebarCollapsed={sidebarCollapsed}
       inspectorOpen={scene === "inspector"}
       inspector={scene === "inspector" ? <VisualInspectorFixture /> : undefined}
       closeLabel={labels.close}
@@ -97,6 +102,8 @@ export function VisualFixture() {
     >
       <VisualTopbar
         onOpenSidebar={() => setSidebarOpen(true)}
+        onExpandSidebar={() => setSidebarCollapsed(false)}
+        sidebarCollapsed={sidebarCollapsed}
         title={title}
         subtitle={subtitle}
         inspectorActive={scene === "inspector"}
