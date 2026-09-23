@@ -68,7 +68,7 @@ export function DesktopSelect({
     if (!open || focusTarget) return;
     const frame = requestAnimationFrame(() => searchRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [open, focusTarget, Boolean(search)]);
+  }, [open]);
 
   useEffect(() => {
     if (!open || !focusTarget) return;
