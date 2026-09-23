@@ -213,3 +213,51 @@ test("review keeps split diff unavailable at the 820px compact breakpoint", asyn
   await expect(page.locator(".review-unified")).toBeVisible();
   await expect(page.locator(".review-split")).toHaveCount(0);
 });
+
+
+for (const width of [820, 560] as const) {
+  test(`new-task configuration controls stay legible at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "new-task", width);
+
+    const controls = page.locator([
+      ".composer-context-button",
+      ".composer-desktop-select.model-select",
+      ".composer-desktop-select.policy-select",
+      ".composer-desktop-select.environment-select",
+    ].join(", "));
+    await expect(controls).toHaveCount(4);
+    await expect(page.locator(".composer-desktop-select.policy-select .desktop-select-trigger-copy small")).toHaveCount(0);
+
+    const geometry = await controls.evaluateAll((elements) => elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      };
+    }));
+
+    for (const item of geometry) {
+      expect(item.left).toBeGreaterThanOrEqual(0);
+      expect(item.right).toBeLessThanOrEqual(width);
+      expect(item.scrollWidth - item.clientWidth).toBeLessThanOrEqual(1);
+    }
+
+    for (let i = 0; i < geometry.length; i += 1) {
+      for (let j = i + 1; j < geometry.length; j += 1) {
+        const a = geometry[i];
+        const b = geometry[j];
+        const overlaps = a.left < b.right - 1
+          && a.right > b.left + 1
+          && a.top < b.bottom - 1
+          && a.bottom > b.top + 1;
+        expect(overlaps).toBe(false);
+      }
+    }
+
+    await capture(page, testInfo, "new-task-config-compact", width);
+  });
+}
