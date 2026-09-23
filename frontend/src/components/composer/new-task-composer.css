@@ -36,7 +36,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 18px;
   background: var(--surface);
-  box-shadow: 0 14px 40px rgba(24, 25, 24, .08);
+  box-shadow: var(--shadow-composer);
   transition:
     border-color var(--motion-base) var(--ease-standard),
     box-shadow var(--motion-base) var(--ease-standard);
@@ -44,7 +44,7 @@
 
 .new-task-composer:focus-within {
   border-color: var(--border-strong);
-  box-shadow: 0 16px 44px rgba(24, 25, 24, .11);
+  box-shadow: var(--shadow-composer-focus);
 }
 
 .new-task-composer textarea {
