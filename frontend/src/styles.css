@@ -549,8 +549,31 @@
   animation: toastEnter var(--motion-base) var(--ease-out);
 }
 .error-toast strong { font-size: 9px; }
-.error-toast span { min-width: 0; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
-.error-toast button { width: 24px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; color: var(--red); cursor: pointer; }
+.error-toast-copy {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.error-toast-copy span { min-width: 0; flex: 1 1 auto; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+.error-toast-action {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid var(--danger-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--red);
+  font-size: 8.5px;
+  cursor: pointer;
+}
+.error-toast-action:hover { background: var(--danger-hover); }
+.error-toast-close { width: 24px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; color: var(--red); cursor: pointer; }
+
+@media (max-width: 560px) {
+  .error-toast-copy { align-items: stretch; flex-direction: column; gap: 6px; }
+  .error-toast-action { align-self: flex-start; }
+}
 
 
 @keyframes inspectorEnter {
