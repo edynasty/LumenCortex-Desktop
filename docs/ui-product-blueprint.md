@@ -9,16 +9,18 @@ This document is the **master index and implementation roadmap** for the Desktop
 Figma:
 `https://www.figma.com/design/Jr6qaL9kGPtj45VYn9m62q`
 
-Figma pages:
-- `01 Design System`
-- `02 Product Screens`
-- `03 Flows & Specs`
+Figma file status (verified 2026-09-23):
+- `01 Design System` exists.
+- `02 Product Screens` is planned but not currently present in the file.
+- `03 Flows & Specs` is planned but not currently present in the file.
 
-Current reference screens:
-- `Screen / New Task / 1440`
-- `Screen / Provider Settings / 1440`
-- `Screen / Running Thread / 1440`
-- `Screen / Review Diff / 1440`
+Required design-delivery backlog:
+- product reference screens for New Task, Provider Settings, Running Thread, and Review / Diff,
+- responsive frames at 1440 / 1180 / 820 / 560 where applicable,
+- component state/variant coverage,
+- interaction/motion prototypes from the source-controlled motion specification.
+
+The production UI and Playwright visual QA remain the implementation reference until these Figma deliverables are restored.
 
 ### Product and UX specifications
 
@@ -92,13 +94,13 @@ Current reference screens:
 
 | Slice | Product spec | Figma | Runtime dependency | Implementation status |
 |---|---|---|---|---|
-| UI-01 Provider | PRD / Interaction / Screen Specs | Provider Settings | Provider catalog | In progress |
-| UI-02 New Task | PRD / Interaction / Screen Specs | New Task | Session + Provider | In progress |
-| UI-03 Sidebar | IA / Screen Specs | New Task + Running Thread | Session list | In progress |
-| UI-04 Thread | Interaction / Screen Specs | Running Thread | Agent events/messages | Not started |
-| UI-05 Review | PRD / Interaction / Screen Specs | Review Diff | Git/diff tools | Blocked by CORE-01 |
-| UI-06 Parallel | PRD / IA | Flows & Specs | Run supervisor/worktree | Blocked by CORE-04 |
-| UI-07 Extensions | PRD / IA | To be designed | MCP/LSP/Skills | Blocked by CORE-02/03 |
+| UI-01 Provider | PRD / Interaction / Screen Specs | Provider Settings planned | Provider catalog | Complete in code |
+| UI-02 New Task | PRD / Interaction / Screen Specs | New Task planned | Session + Provider | Complete in code |
+| UI-03 Sidebar | IA / Screen Specs | New Task + Running Thread planned | Session list | Complete in code |
+| UI-04 Thread | Interaction / Screen Specs | Running Thread planned | Agent events/messages | Complete in code |
+| UI-05 Review | PRD / Interaction / Screen Specs | Review Diff planned | Git/diff tools | Complete in code |
+| UI-06 Parallel | PRD / IA | Flows & Specs planned | Run supervisor/worktree | Complete in code |
+| UI-07 Extensions | PRD / IA | Design package pending | MCP/LSP/Skills | Complete in code |
 
 ### Design delivery rule
 
@@ -493,7 +495,7 @@ Never edit a merged/effective object and write it back into one source implicitl
 We implement one slice at a time.
 
 ### UI-01 — Provider graphical management
-Status: in progress.
+Status: complete in production code; Figma reference restoration remains a separate design-delivery task.
 
 Includes:
 - Global / Project scope,
@@ -966,11 +968,16 @@ For every significant UI slice:
 
 ## 10. Current execution status
 
-As of 2026-09-22, every enumerated implementation item in this blueprint is complete.
+As of 2026-09-23, every enumerated implementation item in this blueprint is complete.
 
 The previous milestone order (Provider → Composer → Sidebar → Review → Worktrees → LSP/MCP → Extensions) has been executed. Future work should no longer restart that sequence.
 
-Continue from one of these concrete inputs only:
+The remaining known design-delivery debt is tracked in `docs/ui-design-audit.md` as P1-18 through P1-20:
+- restore Product Screens in Figma,
+- complete component state/variant coverage,
+- add interaction/motion prototypes.
+
+Continue implementation work only from one of these concrete inputs:
 - a newly observed product/UI defect,
 - a visual-regression finding,
 - a runtime or integration bug,
