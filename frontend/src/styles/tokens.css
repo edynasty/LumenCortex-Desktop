@@ -85,6 +85,7 @@
 
   --shadow-lg: 0 18px 50px rgba(20, 20, 16, .10);
   --shadow-sm: 0 8px 24px rgba(20, 20, 16, .08);
+  --shadow-drawer: -18px 0 50px rgba(20, 20, 16, .10);
 
   --motion-instant: 80ms;
   --motion-fast: 120ms;
@@ -158,4 +159,5 @@
 
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, .34);
   --shadow-sm: 0 9px 28px rgba(0, 0, 0, .24);
+  --shadow-drawer: -18px 0 50px rgba(0, 0, 0, .34);
 }
