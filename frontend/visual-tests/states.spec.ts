@@ -28,6 +28,32 @@ async function capture(page: Page, testInfo: TestInfo, name: string, width: numb
 }
 
 for (const width of widths) {
+  test(`model picker search is usable at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "new-task", width);
+
+    await page.getByRole("button", { name: "Model" }).click();
+    const popover = page.locator(".desktop-select-popover").first();
+    const search = page.getByRole("textbox", { name: "Search models" });
+    await expect(search).toBeFocused();
+    await expect(popover.getByText("Default", { exact: true })).toBeVisible();
+    await expect(popover.getByRole("option", { name: /GPT-5.6/ })).toBeVisible();
+    await expect(popover.getByRole("option", { name: /DeepSeek Coder/ })).toBeVisible();
+
+    await search.fill("deep");
+    await expect(popover.getByRole("option", { name: /GPT-5.6/ })).not.toBeVisible();
+    await expect(popover.getByRole("option", { name: /DeepSeek Coder/ })).toBeVisible();
+
+    const bounds = await popover.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(width);
+    expect(bounds.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom).toBeLessThanOrEqual(900);
+    await capture(page, testInfo, "model-search", width);
+  });
+
   test(`provider editor is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "providers", width);
     const card = page.locator(".provider-card").filter({ hasText: "OpenAI" }).first();
