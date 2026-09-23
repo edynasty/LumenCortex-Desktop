@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "figmaFileKey": "Jr6qaL9kGPtj45VYn9m62q",
+  "canonicalSources": [
+    "docs/design-system.md",
+    "docs/motion-design.md",
+    "docs/screen-specs.md",
+    "docs/ui-design-audit.md",
+    "frontend/visual-tests"
+  ],
+  "pages": {
+    "designSystem": "01 Design System",
+    "productScreens": "02 Product Screens",
+    "flowsAndSpecs": "03 Flows & Specs"
+  },
+  "productScreens": [
+    {
+      "name": "New Task",
+      "widths": [
+        1440,
+        1180,
+        820,
+        560
+      ]
+    },
+    {
+      "name": "Running Thread",
+      "widths": [
+        1440,
+        1180,
+        820,
+        560
+      ]
+    },
+    {
+      "name": "Provider Settings",
+      "widths": [
+        1440,
+        1180,
+        820,
+        560
+      ]
+    },
+    {
+      "name": "Review Diff",
+      "widths": [
+        1440,
+        1180,
+        820,
+        560
+      ]
+    }
+  ],
+  "componentStates": {
+    "Button / Primary": [
+      "Default",
+      "Hover",
+      "Focus",
+      "Pressed",
+      "Disabled",
+      "Loading"
+    ],
+    "Button / Secondary": [
+      "Default",
+      "Hover",
+      "Focus",
+      "Pressed",
+      "Disabled",
+      "Loading"
+    ],
+    "Button / Destructive": [
+      "Default",
+      "Hover",
+      "Focus",
+      "Pressed",
+      "Disabled",
+      "Loading"
+    ],
+    "Input": [
+      "Default",
+      "Focus",
+      "Invalid",
+      "Disabled"
+    ],
+    "Select": [
+      "Default",
+      "Hover",
+      "Focus",
+      "Selected",
+      "Disabled"
+    ],
+    "Thread Row": [
+      "Default",
+      "Hover",
+      "Selected",
+      "Running",
+      "Attention",
+      "Error"
+    ],
+    "Composer": [
+      "Default",
+      "Focus",
+      "Running",
+      "Disabled",
+      "Error"
+    ],
+    "Status Indicator": [
+      "Running",
+      "Success",
+      "Waiting",
+      "Interrupted",
+      "Info",
+      "Completed"
+    ]
+  },
+  "flows": [
+    {
+      "name": "Sidebar / Inspector drawer",
+      "durationMs": 200,
+      "easing": "ease-out",
+      "reducedMotion": "Immediate or opacity-only"
+    },
+    {
+      "name": "Composer → Thread",
+      "durationMs": 160,
+      "easing": "ease-standard",
+      "reducedMotion": "Immediate state swap"
+    },
+    {
+      "name": "Provider expand / collapse",
+      "durationMs": 160,
+      "easing": "ease-standard",
+      "reducedMotion": "Immediate reveal"
+    },
+    {
+      "name": "Review inline comment",
+      "durationMs": 160,
+      "easing": "ease-out",
+      "reducedMotion": "Opacity-only"
+    }
+  ],
+  "motionTokens": {
+    "instant": 80,
+    "fast": 120,
+    "base": 160,
+    "panel": 200,
+    "page": 220,
+    "maxNormal": 260
+  },
+  "acceptance": [
+    "Light mode is canonical in Figma; dark mode remains code-defined.",
+    "No horizontal overflow in 560 responsive references.",
+    "Chinese-first copy must fit without clipping.",
+    "Screen names and widths match the production visual QA breakpoints.",
+    "All state matrices include visible labels for state/tone.",
+    "Flows include standard timing, easing, and reduced-motion behavior."
+  ]
+}
