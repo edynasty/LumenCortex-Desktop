@@ -61,3 +61,35 @@ for (const width of [1440, 560] as const) {
     expect(colors.copy).toBe(colors.dot);
   });
 }
+
+
+for (const width of [1440, 1180] as const) {
+  test(`desktop sidebar collapses and expands at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/visual.html?scene=new-task");
+    await page.waitForLoadState("networkidle");
+
+    const shell = page.locator(".app-shell");
+    const sidebar = page.locator(".sidebar");
+    const collapse = page.getByRole("button", { name: "Collapse sidebar" });
+
+    await expect(sidebar).toBeVisible();
+    await expect(collapse).toBeVisible();
+    await collapse.click();
+
+    await expect(shell).toHaveClass(/sidebar-collapsed/);
+    await expect(sidebar).toBeHidden();
+    const expand = page.getByRole("button", { name: "Expand sidebar" });
+    await expect(expand).toBeVisible();
+
+    const collapsedOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(collapsedOverflow).toBeLessThanOrEqual(1);
+
+    await expand.click();
+    await expect(shell).not.toHaveClass(/sidebar-collapsed/);
+    await expect(sidebar).toBeVisible();
+    await expect(collapse).toBeVisible();
+  });
+}
