@@ -54,6 +54,26 @@ for (const width of widths) {
     await capture(page, testInfo, "model-search", width);
   });
 
+  test(`permission picker explains risk levels at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "new-task", width);
+
+    await page.getByRole("button", { name: "Permissions" }).click();
+    const popover = page.locator(".desktop-select-popover").first();
+    await expect(popover.getByText("Inspect the project and use non-mutating tools", { exact: true })).toBeVisible();
+    await expect(popover.getByText("Edit project files and run project commands", { exact: true })).toBeVisible();
+    await expect(popover.getByText("Broader tool access; high-impact actions still require explicit approval", { exact: true })).toBeVisible();
+
+    const bounds = await popover.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(width);
+    expect(bounds.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom).toBeLessThanOrEqual(900);
+    await capture(page, testInfo, "permission-picker", width);
+  });
+
   test(`provider editor is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "providers", width);
     const card = page.locator(".provider-card").filter({ hasText: "OpenAI" }).first();
