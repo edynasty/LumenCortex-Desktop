@@ -7,6 +7,7 @@ const labels = {
   created: "Created",
   completed: "Completed",
   interrupted: "Interrupted",
+  failed: "Failed",
   waiting: "Waiting",
   running: "Running",
   unknown: "Unknown",
@@ -63,6 +64,8 @@ describe("presentation model", () => {
       session("active", "running"),
       session("orphan-running", "running"),
       session("waiting", "waiting_gate"),
+      { ...session("failed", "completed"), error: "tool failed" },
+      session("interrupted", "interrupted"),
       session("pinned", "completed", { ui: { pinned: true, title: "Pinned title" } }),
       session("recent", "completed"),
       session("archived", "completed", { ui: { archived: true } }),
@@ -78,7 +81,7 @@ describe("presentation model", () => {
 
     expect(groups.map((group) => [group.key, group.sessions.map((item) => item.session.id)])).toEqual([
       ["running", ["active"]],
-      ["attention", ["orphan-running", "waiting"]],
+      ["attention", ["orphan-running", "waiting", "failed", "interrupted"]],
       ["pinned", ["pinned"]],
       ["recent", ["recent"]],
       ["archived", ["archived"]],
@@ -86,8 +89,11 @@ describe("presentation model", () => {
 
     const running = groups[0].sessions[0];
     expect(running.statusLabel).toBe("Active");
-    const attention = groups[1].sessions[0];
-    expect(attention.statusLabel).toBe("Interrupted");
+    const attention = groups[1].sessions;
+    expect(attention[0]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });
+    expect(attention[1]).toMatchObject({ statusLabel: "Waiting", attentionTone: "warning" });
+    expect(attention[2]).toMatchObject({ statusLabel: "Failed", attentionTone: "danger" });
+    expect(attention[3]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });
     expect(groups[2].sessions[0].title).toBe("Pinned title");
   });
 });
