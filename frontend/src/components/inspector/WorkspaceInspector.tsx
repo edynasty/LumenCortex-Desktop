@@ -124,6 +124,8 @@ export function WorkspaceInspector({
         noActivity: labels.noActivity,
         provider: labels.provider,
         modelSelect: labels.modelSelect,
+        modelSearch: labels.modelSearch,
+        noModelMatches: labels.noModelMatches,
         noModels: labels.noModels,
         providerConfig: labels.providerConfig,
         envFallback: labels.envFallback,
