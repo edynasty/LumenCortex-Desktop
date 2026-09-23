@@ -456,6 +456,14 @@ func (r *Runtime) ProviderCatalog() (ProviderCatalog, error) {
 	return loadProviderCatalog(workspace)
 }
 
+func (r *Runtime) ProviderSecretStatuses() (map[string]ProviderSecretStatus, error) {
+	catalog, err := r.ProviderCatalog()
+	if err != nil {
+		return nil, err
+	}
+	return providerSecretStatuses(catalog), nil
+}
+
 func (r *Runtime) SaveProviderCatalog(catalog ProviderCatalog) (ProviderCatalog, error) {
 	r.mu.RLock()
 	workspace := r.workspace
