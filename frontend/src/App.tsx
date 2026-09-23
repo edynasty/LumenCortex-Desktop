@@ -1,6 +1,7 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/inspector-types";
 import { WorkspaceView } from "./app/WorkspaceView";
+import { buildAgentConfig, type AgentPolicy } from "./app/agent-config";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -15,9 +16,7 @@ import { bridge } from "./lib/bridge";
 import { sessionRuntime } from "./lib/session-runtime";
 import { useThemePreference } from "./lib/theme";
 import { useSidebarCollapsedPreference } from "./lib/sidebar-preference";
-import type { AgentConfig, RuntimeKind } from "./types";
-
-type Policy = "read-only" | "workspace" | "full";
+import type { RuntimeKind } from "./types";
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
@@ -27,7 +26,7 @@ export default function App() {
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
-  const [policy, setPolicy] = useState<Policy>("workspace");
+  const [policy, setPolicy] = useState<AgentPolicy>("workspace");
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
@@ -152,17 +151,6 @@ export default function App() {
     },
   }), [activeRunIds, state.sessions, state.workspace, t]);
 
-  function agentConfig(): AgentConfig {
-    return {
-      provider: {},
-      modelRef: modelRef || undefined,
-      policy,
-      maxSteps,
-      recentMessages: 12,
-      maxToolCallsPerStep: 8
-    };
-  }
-
   const {
     startAgent,
     submitTask,
@@ -180,7 +168,7 @@ export default function App() {
     goal,
     contextPaths,
     runtimeKind,
-    getAgentConfig: agentConfig,
+    getAgentConfig: () => buildAgentConfig(modelRef, policy, maxSteps),
     setWorkspaceState: setState,
     setRoute,
     setGoal,
