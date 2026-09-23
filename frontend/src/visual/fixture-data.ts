@@ -274,6 +274,7 @@ export const groups: SidebarGroup[] = [
 
 export const sidebarLabels = {
   close: labels.close,
+  collapse: labels.collapseSidebar,
   newTask: labels.newTask,
   project: labels.project,
   openProject: labels.openProject,
