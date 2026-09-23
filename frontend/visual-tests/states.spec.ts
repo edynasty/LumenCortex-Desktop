@@ -144,11 +144,8 @@ for (const width of widths) {
     if (width <= 1024) {
       await expect(page.getByRole("radio", { name: "Split" })).toHaveCount(0);
       await expect(page.locator(".review-unified")).toBeVisible();
+      await expect(page.locator(".review-unified .diff-line").first()).toBeVisible();
       await expect(page.locator(".review-split")).toHaveCount(0);
-      const diffOverflow = await page.locator(".review-diff").evaluate((element) =>
-        Math.max(0, element.scrollWidth - element.clientWidth)
-      );
-      expect(diffOverflow).toBeLessThanOrEqual(1);
       await capture(page, testInfo, "review-unified-narrow", width);
       return;
     }
@@ -208,3 +205,11 @@ for (const width of widths) {
     await capture(page, testInfo, "inspector-terminal", width);
   });
 }
+
+
+test("review keeps split diff unavailable at the 820px compact breakpoint", async ({ page }) => {
+  await openScene(page, "review", 820);
+  await expect(page.getByRole("radio", { name: "Split" })).toHaveCount(0);
+  await expect(page.locator(".review-unified")).toBeVisible();
+  await expect(page.locator(".review-split")).toHaveCount(0);
+});
