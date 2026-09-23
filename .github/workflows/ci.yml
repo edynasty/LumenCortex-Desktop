@@ -52,6 +52,8 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
@@ -59,6 +61,15 @@ jobs:
           go-version: '1.27.x'
           cache: true
       - run: go mod tidy
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add go.mod go.sum
+            git commit -m "build: lock Go modules"
+            git push
+          fi
       - run: go test -v -timeout 90s ./internal/backend
       - run: go vet ./internal/backend
 
