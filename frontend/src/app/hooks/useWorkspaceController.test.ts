@@ -6,6 +6,7 @@ import type { ProviderCatalog } from "../../types";
 const mocks = vi.hoisted(() => ({
   state: vi.fn(),
   providerCatalog: vi.fn(),
+  providerSecretStatuses: vi.fn(),
   pickWorkspace: vi.fn(),
   openWorkspace: vi.fn(),
 }));
@@ -43,6 +44,8 @@ describe("useWorkspaceController", () => {
     localStorage.clear();
     mocks.state.mockReset();
     mocks.providerCatalog.mockReset();
+    mocks.providerSecretStatuses.mockReset();
+    mocks.providerSecretStatuses.mockResolvedValue({});
     mocks.pickWorkspace.mockReset();
     mocks.openWorkspace.mockReset();
   });
@@ -55,6 +58,10 @@ describe("useWorkspaceController", () => {
       activeRuns: [],
     });
     mocks.providerCatalog.mockImplementation(async () => activeCatalog);
+    mocks.providerSecretStatuses.mockResolvedValue({
+      alpha: { configured: true, available: true },
+      beta: { configured: true, available: false },
+    });
     mocks.openWorkspace.mockResolvedValue({
       workspace: "/repo-b",
       sessions: [],
@@ -66,6 +73,7 @@ describe("useWorkspaceController", () => {
 
     await waitFor(() => expect(result.current.state.workspace).toBe("/repo-a"));
     await waitFor(() => expect(result.current.modelRef).toBe("alpha/main"));
+    await waitFor(() => expect(result.current.providerSecretStatuses.alpha?.available).toBe(true));
     await waitFor(() => expect(result.current.recentProjects[0]).toBe("/repo-a"));
 
     activeCatalog = catalogB;
@@ -77,6 +85,7 @@ describe("useWorkspaceController", () => {
     expect(opened).toBe(true);
     await waitFor(() => expect(result.current.state.workspace).toBe("/repo-b"));
     await waitFor(() => expect(result.current.modelRef).toBe("beta/code"));
+    await waitFor(() => expect(result.current.providerSecretStatuses.beta?.available).toBe(false));
     await waitFor(() => expect(result.current.recentProjects[0]).toBe("/repo-b"));
     expect(result.current.recentProjects).toContain("/repo-a");
   });
