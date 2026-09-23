@@ -9,6 +9,8 @@ import { copyText } from "../../lib/clipboard";
 import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import type { SelectOption } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
+import { EmptyState } from "../primitives/EmptyState";
+import { LoadingState } from "../primitives/LoadingState";
 import { ApprovalCard } from "./ApprovalCard";
 import { Markdown } from "./Markdown";
 import { MessageItem } from "./MessageItem";
@@ -195,10 +197,9 @@ export function ThreadWorkspace({
             ))}
 
             {!messages.length && (
-              <div className="inline-empty">
-                {running && <span className="thinking-pulse"><i /><i /><i /></span>}
-                <p>{running ? labels.running : labels.noMessages}</p>
-              </div>
+              running
+                ? <LoadingState compact label={labels.running} />
+                : <EmptyState compact title={labels.noMessages} />
             )}
           </section>
 
