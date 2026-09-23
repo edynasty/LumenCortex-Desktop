@@ -116,18 +116,13 @@ The shared Popover/Listbox-based `DesktopSelect` now provides:
 
 Permission pickers use the same desktop primitive and display concise Read only / Workspace / Full risk descriptions.
 
-### P1-04 — New Task composition was vertically inconsistent with Figma
+### P1-04 — New Task composition was vertically inconsistent with the intended reference
 
-Previous code placed the task composer much higher than the Figma reference.
+Status: **Fixed in implementation**.
 
-Status:
-- **Adjusted** to a center-weighted layout.
+The New Task surface uses the center-weighted Composer layout, and the production visual QA suite covers the required 1440 / 1180 / 820 / 560 widths.
 
-Still requires screenshot QA at:
-- 1440,
-- 1180,
-- 820,
-- 560.
+The corresponding Figma reference frames are tracked separately under P1-18 because the current Figma file no longer contains the previously documented Product Screens page.
 
 ### P1-05 — Tiny UI copy was overused
 
@@ -273,45 +268,64 @@ New Task composer exposes an explicit `aria-label`; placeholder text is no longe
 
 ## 6. Design deliverable gaps
 
-### P1-18 — Figma currently has only canonical wide screens
+### P1-18 — Figma product screens and responsive frames
 
-Current reference:
-- 1440 × 900 screens.
+Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
 
-Responsive rules exist in documentation, but there are no equivalent Figma frames for:
-- 1180,
-- 820,
-- 560.
+Verified 2026-09-23:
+- the linked Figma file currently exposes only the top-level page `01 Design System`,
+- the previously documented `02 Product Screens` and `03 Flows & Specs` pages are not present,
+- therefore the earlier documentation overstated the available 1440 reference screens.
+
+Required when Figma write access is available:
+- create/restore Product Screens,
+- New Task at 1440 / 1180 / 820 / 560,
+- Running Thread at 1440 / 1180 / 820 / 560,
+- Provider Settings at 1440 / 1180 / 820 / 560,
+- Review / Diff at the widths that materially change its layout.
+
+Production Playwright responsive QA remains the implementation truth until these design frames exist.
+
+### P1-19 — Component library state/variant coverage
+
+Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
+
+The current `01 Design System` contains a small reusable set including:
+- Primary / Secondary / Destructive Button components,
+- Default Input,
+- three-way Segmented Control,
+- Running Status,
+- Default Thread Row,
+- New Task Composer.
+
+It does not yet represent the full production state matrix.
 
 Required:
-- at least New Task,
-- Running Thread,
-- Provider Settings at narrow desktop widths.
-
-### P1-19 — Component library is not yet a full variant/state library
-
-Figma currently establishes core primitives, but final component specifications need:
 - default,
 - hover,
 - focus,
-- active,
+- active/pressed where applicable,
 - disabled,
 - loading,
-- error,
+- error/invalid,
 - selected,
-- dark theme where applicable.
+- semantic status variants.
 
-### P1-20 — Motion is documented but not yet prototyped in Figma
+Dark theme remains code-defined because the current Figma variable-mode constraint makes Light the canonical design mode.
 
-The motion specification is now source-controlled.
+### P1-20 — Figma interaction and motion prototypes
 
-Figma still needs:
-- interaction notes/prototype for drawer,
+Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
+
+The source-controlled motion contract in `docs/motion-design.md` remains canonical.
+
+When Figma write access is available, add `03 Flows & Specs` with:
+- Sidebar/Inspector drawer open-close behavior,
 - Composer → Thread transition,
-- Provider expand,
-- Review inline comment.
+- Provider expand/collapse,
+- Review inline-comment flow,
+- reduced-motion notes and timing/easing references.
 
-This is useful for design review, but code/document specification remains the canonical timing/easing source.
 
 ## 7. P2 findings
 
@@ -383,15 +397,12 @@ Rules:
 - no large spring/bounce effects,
 - no fake progress animation.
 
-## 9. Recommended execution order
+## 9. Current continuation order
 
-1. Resolve secret-handling contract.
-2. Resolve active-run source of truth.
-3. Extract Sidebar and Thread workspace.
-4. Build shared Popover/Dialog/Select primitives.
-5. Replace native model picker.
-6. Normalize typography/token drift.
-7. Add frontend component tests.
-8. Implement dark theme architecture.
-9. Draw responsive Figma frames.
-10. Complete Thread/Review surfaces.
+All previously listed implementation fixes are complete.
+
+1. Complete P1-18 through P1-20 when Figma write access is available.
+2. Keep production visual QA and the design-token contract green.
+3. Continue code work only for a reproducible defect, integration/runtime bug, visual-regression finding, or newly approved product milestone.
+
+Do not reopen completed Provider / Composer / Sidebar / Thread / Review / Worktree / LSP / MCP / Extensions milestones solely to recreate historical sequencing.
