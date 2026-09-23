@@ -16,6 +16,7 @@ import {
   session,
   sidebarLabels,
   workspace,
+  visualLocale,
   type VisualScene,
 } from "./fixture-data";
 import { VisualInspectorFixture, VisualThreadScene, VisualTopbar } from "./VisualFixtureParts";
@@ -83,12 +84,13 @@ export function VisualFixture() {
     scene === "review" ? labels.review :
     scene === "new-task" ? "lumencortex" :
     session.goal;
+  const zh = visualLocale === "zh-CN";
   const subtitle =
-    scene === "providers" ? "Global & project configuration" :
-    scene === "extensions" ? "MCP · Skills · Permissions" :
-    scene === "review" ? "3 changed files · Local" :
-    scene === "new-task" ? "Local" :
-    "Worktree · GPT-5.6 · Active";
+    scene === "providers" ? (zh ? "全局与项目配置" : "Global & project configuration") :
+    scene === "extensions" ? (zh ? "MCP · 技能 · 权限" : "MCP · Skills · Permissions") :
+    scene === "review" ? (zh ? "3 个变更文件 · 本地" : "3 changed files · Local") :
+    scene === "new-task" ? (zh ? "本地" : "Local") :
+    (zh ? "Worktree · GPT-5.6 · 运行中" : "Worktree · GPT-5.6 · Active");
 
   return (
     <AppShell
@@ -166,7 +168,7 @@ export function VisualFixture() {
 
       {scene === "providers" && (
         <ProviderSettingsPanel
-          locale="en"
+          locale={visualLocale}
           workspace={workspace}
           effectiveCatalog={providerCatalog}
           selectedModelRef="openai/gpt-5.6"
