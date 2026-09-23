@@ -184,6 +184,10 @@ func (a *App) GetProviderCatalog() (backend.ProviderCatalog, error) {
 	return a.backend.ProviderCatalog()
 }
 
+func (a *App) GetProviderSecretStatuses() (map[string]backend.ProviderSecretStatus, error) {
+	return a.backend.ProviderSecretStatuses()
+}
+
 func (a *App) SaveProviderCatalog(config backend.ProviderCatalog) (backend.ProviderCatalog, error) {
 	return a.backend.SaveProviderCatalog(config)
 }
