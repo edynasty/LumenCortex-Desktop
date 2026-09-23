@@ -289,6 +289,10 @@ export function installVisualAppStub() {
     GetProviderCatalogScope: async () => providerCatalog,
     SaveProviderCatalogScope: async (_scope: string, catalog: ProviderCatalog) => catalog,
     GetProviderCatalog: async () => providerCatalog,
+    GetProviderSecretStatuses: async () => ({
+      openai: { configured: true, available: true },
+      deepseek: { configured: true, available: false },
+    }),
     TestProviderConnection: async () => ({ ok: true, models: 2, message: "Connected" }),
     DiscoverProviderModels: async () => [{ id: "gpt-5.6" }, { id: "gpt-5.6-mini" }],
 
