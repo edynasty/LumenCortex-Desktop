@@ -153,6 +153,15 @@ Use only for:
 
 Static panels use borders/surface contrast.
 
+Production CSS uses semantic elevation tokens rather than component-local color literals:
+- `--shadow-sm` / `--shadow-lg`: general transient elevation,
+- `--shadow-drawer` / `--shadow-sidebar`: right/left overlay surfaces,
+- `--shadow-dialog`: modal surfaces,
+- `--shadow-composer` / `--shadow-composer-focus`: task composer resting/focus states,
+- `--shadow-control` / `--shadow-toggle`: compact active controls.
+
+Overlay backdrops use `--backdrop`; warning-context chips use `--warning-chip-bg`. Light/dark values are defined only in `frontend/src/styles/tokens.css`. Non-token component stylesheets must not embed reusable hex/rgb/hsl literals.
+
 ## 12. Core components
 
 ### Button
