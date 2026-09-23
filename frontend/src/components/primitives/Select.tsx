@@ -8,6 +8,7 @@ export type SelectOption = {
   description?: string;
   group?: string;
   badge?: string;
+  badgeTone?: "default" | "warning";
   keywords?: string;
 };
 
@@ -153,7 +154,7 @@ export function DesktopSelect({
         <>
           <span className="desktop-select-trigger-copy">
             <span>{selected?.label || placeholder}</span>
-            {selected?.badge && <em>{selected.badge}</em>}
+            {selected?.badge && <em className={selected.badgeTone === "warning" ? "warning" : ""}>{selected.badge}</em>}
             {showDescriptionInTrigger && selected?.description && <small>{selected.description}</small>}
           </span>
           <ChevronDown size={13} strokeWidth={1.7} aria-hidden />
@@ -204,7 +205,7 @@ export function DesktopSelect({
                 <span className="desktop-select-option-copy">
                   <span className="desktop-select-option-title">
                     <strong>{option.label}</strong>
-                    {option.badge && <em>{option.badge}</em>}
+                    {option.badge && <em className={option.badgeTone === "warning" ? "warning" : ""}>{option.badge}</em>}
                   </span>
                   {option.description && <small>{option.description}</small>}
                 </span>
