@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { bridge } from "../../lib/bridge";
-import type { ProviderCatalog, WorkspaceState } from "../../types";
+import type { ProviderCatalog, ProviderSecretStatus, WorkspaceState } from "../../types";
 
 const MAX_RECENT_PROJECTS = 8;
 
@@ -35,7 +35,8 @@ export function useWorkspaceController({ setError }: Options) {
     activeRuns: [],
   });
   const [recentProjects, setRecentProjects] = useState<string[]>(initialRecentProjects);
-  const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
+  const [catalog, setCatalogState] = useState<ProviderCatalog>({ providers: {} });
+  const [providerSecretStatuses, setProviderSecretStatuses] = useState<Record<string, ProviderSecretStatus>>({});
   const [modelRef, setModelRef] = useState("");
 
   useEffect(() => {
@@ -56,10 +57,12 @@ export function useWorkspaceController({ setError }: Options) {
 
   useEffect(() => {
     let cancelled = false;
-    bridge.providerCatalog().then((next) => {
+    bridge.providerCatalog().then(async (next) => {
       if (cancelled) return;
-      setCatalog(next);
+      setCatalogState(next);
       setModelRef((current) => modelExists(next, current) ? current : (next.model || ""));
+      const statuses = await bridge.providerSecretStatuses();
+      if (!cancelled) setProviderSecretStatuses(statuses);
     }).catch((err) => {
       if (!cancelled) setError(String(err));
     });
@@ -90,12 +93,20 @@ export function useWorkspaceController({ setError }: Options) {
     }
   }, [setError]);
 
+  const setCatalog = useCallback((next: ProviderCatalog) => {
+    setCatalogState(next);
+    bridge.providerSecretStatuses()
+      .then(setProviderSecretStatuses)
+      .catch((err) => setError(String(err)));
+  }, [setError]);
+
   return {
     state,
     setState,
     recentProjects,
     catalog,
     setCatalog,
+    providerSecretStatuses,
     modelRef,
     setModelRef,
     pickWorkspace,
