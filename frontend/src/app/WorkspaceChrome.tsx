@@ -38,6 +38,7 @@ type Props = {
   health?: Health;
   pressure: number;
   sidebarOpen: boolean;
+  sidebarCollapsed: boolean;
   inspectorOpen: boolean;
   inspectorTab: InspectorTab;
   events: RuntimeEvent[];
@@ -58,6 +59,7 @@ type Props = {
   busy: boolean;
   onSetRoute: (route: WorkspaceRoute) => void;
   onSidebarOpenChange: (open: boolean) => void;
+  onSidebarCollapsedChange: (collapsed: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
   onNewTask: () => void;
@@ -101,6 +103,7 @@ export function WorkspaceChrome(props: Props) {
     health,
     pressure,
     sidebarOpen,
+    sidebarCollapsed,
     inspectorOpen,
     inspectorTab,
     events,
@@ -158,6 +161,7 @@ export function WorkspaceChrome(props: Props) {
       labels={labels}
       themePreference={themePreference}
       onClose={() => props.onSidebarOpenChange(false)}
+      onCollapse={() => props.onSidebarCollapsedChange(true)}
       onNewTask={props.onNewTask}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}
@@ -226,6 +230,7 @@ export function WorkspaceChrome(props: Props) {
     <AppShell
       sidebar={sidebar}
       sidebarOpen={sidebarOpen}
+      sidebarCollapsed={sidebarCollapsed}
       inspectorOpen={inspectorOpen && (route.kind === "thread" || route.kind === "new-task")}
       inspector={inspector}
       closeLabel={labels.close}
@@ -240,7 +245,9 @@ export function WorkspaceChrome(props: Props) {
         busy={busy}
         inspectorOpen={inspectorOpen}
         labels={labels}
+        sidebarCollapsed={sidebarCollapsed}
         onOpenSidebar={() => props.onSidebarOpenChange(true)}
+        onExpandSidebar={() => props.onSidebarCollapsedChange(false)}
         onBackToWorkspace={() => {
           props.onSetRoute(
             route.kind === "extensions" && current
