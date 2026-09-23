@@ -221,7 +221,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 13px;
   background: var(--surface);
-  box-shadow: 0 22px 70px rgba(20, 20, 16, .16);
+  box-shadow: var(--shadow-dialog);
   animation: primitiveDialogEnter var(--motion-base) var(--ease-out);
 }
 
@@ -376,7 +376,7 @@
 .desktop-segmented button.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(20,20,16,.06);
+  box-shadow: var(--shadow-control);
 }
 
 .desktop-text-field {
