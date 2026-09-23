@@ -626,7 +626,7 @@
     right: 0;
     bottom: 0;
     width: min(370px, 90vw);
-    box-shadow: -18px 0 50px rgba(20,20,16,.10);
+    box-shadow: var(--shadow-drawer);
   }
 }
 
