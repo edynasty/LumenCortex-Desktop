@@ -93,3 +93,22 @@ for (const width of [1440, 1180] as const) {
     await expect(collapse).toBeVisible();
   });
 }
+
+
+test("mobile sidebar ignores the desktop collapsed preference", async ({ page }) => {
+  await page.setViewportSize({ width: 560, height: 900 });
+  await page.goto("/visual.html?scene=new-task&sidebar=collapsed");
+  await page.waitForLoadState("networkidle");
+
+  const shell = page.locator(".app-shell");
+  const sidebar = page.locator(".sidebar");
+  await expect(shell).toHaveClass(/sidebar-collapsed/);
+  await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeHidden();
+
+  const trigger = page.getByRole("button", { name: "Open sidebar" });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(sidebar).toHaveClass(/open/);
+  await expect(sidebar).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+});
