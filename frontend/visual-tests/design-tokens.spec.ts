@@ -48,3 +48,15 @@ test("light semantic tokens stay aligned with the canonical design system", asyn
     expect(cssTokens[cssName], `${cssName} drifted from ${designName}`).toBe(designTokens.get(designName));
   }
 });
+
+
+test("component stylesheet keeps reusable colors behind semantic tokens", () => {
+  const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+  const literalColors = [
+    ...css.matchAll(/#[0-9a-fA-F]{3,8}\b/g),
+    ...css.matchAll(/\brgba?\([^)]*\)/g),
+    ...css.matchAll(/\bhsla?\([^)]*\)/g),
+  ].map((match) => match[0]);
+
+  expect(literalColors).toEqual([]);
+});
