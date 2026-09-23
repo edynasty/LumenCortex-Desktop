@@ -427,7 +427,7 @@
   padding: 2px 5px;
   border: 1px solid var(--warning-border);
   border-radius: 5px;
-  background: rgba(255,255,255,.55);
+  background: var(--warning-chip-bg);
   color: var(--text-soft);
   font: 8px/1.3 var(--mono);
 }
