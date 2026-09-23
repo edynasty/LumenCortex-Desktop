@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Message, SessionRuntime } from "../../types";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
@@ -78,9 +78,31 @@ function statusLabel(index: string, worktree: string) {
   return worktree === " " ? "M" : worktree;
 }
 
+function useSplitDiffAvailable() {
+  const query = "(min-width: 1025px)";
+  const [available, setAvailable] = useState(() =>
+    typeof window === "undefined" || typeof window.matchMedia !== "function"
+      ? true
+      : window.matchMedia(query).matches
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const media = window.matchMedia(query);
+    const sync = () => setAvailable(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return available;
+}
+
 export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
   const review = useReviewState(sessionId);
   const [mode, setMode] = useState<"unified" | "split">("unified");
+  const splitDiffAvailable = useSplitDiffAvailable();
   const [revertOpen, setRevertOpen] = useState(false);
   const [commitMessage, setCommitMessage] = useState("");
   const [instruction, setInstruction] = useState("");
@@ -90,6 +112,10 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
   const checks = useMemo(() => extractCheckResults(messages), [messages]);
   const language = useMemo(() => languageFromPath(review.selectedPath), [review.selectedPath]);
   const binaryDiff = /(^|\n)(Binary files .* differ|GIT binary patch)(\n|$)/.test(review.diff.content);
+  useEffect(() => {
+    if (!splitDiffAvailable && mode === "split") setMode("unified");
+  }, [mode, splitDiffAvailable]);
+
   const relevantConflicts = useMemo(
     () => review.conflicts.filter((conflict) =>
       conflict.owners.some((owner) =>
@@ -187,15 +213,17 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
                   ]}
                   onChange={review.setScope}
                 />
-                <SegmentedControl
-                  value={mode}
-                  ariaLabel="Diff layout"
-                  options={[
-                    { value: "unified", label: labels.unified },
-                    { value: "split", label: labels.split },
-                  ]}
-                  onChange={setMode}
-                />
+                {splitDiffAvailable && (
+                  <SegmentedControl
+                    value={mode}
+                    ariaLabel="Diff layout"
+                    options={[
+                      { value: "unified", label: labels.unified },
+                      { value: "split", label: labels.split },
+                    ]}
+                    onChange={setMode}
+                  />
+                )}
                 {canStage && <Button onClick={() => void review.stage()} disabled={review.actionBusy}>{labels.stage}</Button>}
                 {canUnstage && <Button onClick={() => void review.unstage()} disabled={review.actionBusy}>{labels.unstage}</Button>}
                 <Button variant="danger" icon={<RotateCcw size={12} />} disabled={!review.selectedPath || review.actionBusy} onClick={() => setRevertOpen(true)}>
