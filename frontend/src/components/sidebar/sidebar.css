@@ -299,6 +299,10 @@
 .sidebar-expand-toggle,
 .mobile-only { display: none; }
 
+.app-shell.sidebar-collapsed .sidebar-expand-toggle {
+  display: grid;
+}
+
 .sidebar-backdrop { display: none; }
 
 .thread-item-row {
