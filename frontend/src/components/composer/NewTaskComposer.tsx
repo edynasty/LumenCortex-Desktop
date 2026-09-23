@@ -188,6 +188,7 @@ export function NewTaskComposer({
               value={policy}
               placeholder={policyLabels.workspace}
               className="composer-desktop-select policy-select"
+              showDescriptionInTrigger={false}
               options={[
                 { value: "read-only", label: policyLabels["read-only"], description: policyDescriptions["read-only"] },
                 { value: "workspace", label: policyLabels.workspace, description: policyDescriptions.workspace },
