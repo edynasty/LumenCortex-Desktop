@@ -44,8 +44,11 @@ type Props = {
     envFallback: string;
     policy: string;
     readOnly: string;
+    readOnlyDescription: string;
     workspace: string;
+    workspaceDescription: string;
     full: string;
+    fullDescription: string;
     maxSteps: string;
     runtime: string;
     workingMemory: string;
