@@ -42,6 +42,7 @@ for (const width of widths) {
     await search.fill("deep");
     await expect(popover.getByRole("option", { name: /GPT-5.6/ })).not.toBeVisible();
     await expect(popover.getByRole("option", { name: /DeepSeek Coder/ })).toBeVisible();
+    await expect(popover.getByText("Missing key", { exact: true })).toBeVisible();
 
     const bounds = await popover.evaluate((element) => {
       const rect = element.getBoundingClientRect();
