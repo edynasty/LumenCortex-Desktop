@@ -110,5 +110,5 @@ test("mobile sidebar ignores the desktop collapsed preference", async ({ page })
   await trigger.click();
   await expect(sidebar).toHaveClass(/open/);
   await expect(sidebar).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+  await expect(sidebar.getByRole("button", { name: "Close" })).toBeVisible();
 });
