@@ -212,6 +212,11 @@ export function WorkspaceRouteContent({
           workspace: labels.workspace,
           full: labels.full,
         }}
+        policyDescriptions={{
+          "read-only": labels.readOnlyDescription,
+          workspace: labels.workspaceDescription,
+          full: labels.fullDescription,
+        }}
         environmentLabel={labels.environment}
         runtime={runtimeKind}
         runtimeLabels={{
