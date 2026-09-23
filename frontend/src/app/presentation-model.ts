@@ -46,6 +46,7 @@ export type SessionStatusLabels = {
   waiting: string;
   running: string;
   unknown: string;
+  failed: string;
 };
 
 type SidebarLabels = SessionStatusLabels & {
@@ -91,6 +92,12 @@ export function buildSidebarGroups({
     const ui = sessionUI(session);
     if (ui.parentSessionId) continue;
     const active = activeRunIds.has(session.id);
+    const attentionTone =
+      !active && session.status === "waiting_gate"
+        ? "warning" as const
+        : !active && (Boolean(session.error) || session.status === "running" || session.status === "interrupted")
+          ? "danger" as const
+          : undefined;
     const thread = {
       session,
       runtime: sessionRuntime(session, workspace),
@@ -98,16 +105,19 @@ export function buildSidebarGroups({
       active,
       pinned: ui.pinned,
       archived: ui.archived,
-      statusLabel: session.status === "running" && !active
-        ? labels.interrupted
-        : sessionStatusLabel(labels, session.status, active),
+      attentionTone,
+      statusLabel: session.error
+        ? labels.failed
+        : session.status === "running" && !active
+          ? labels.interrupted
+          : sessionStatusLabel(labels, session.status, active),
     };
 
     if (ui.archived) {
       archivedThreads.push(thread);
     } else if (active) {
       runningThreads.push(thread);
-    } else if (session.status === "waiting_gate" || session.error || session.status === "running") {
+    } else if (attentionTone) {
       attentionThreads.push(thread);
     } else if (ui.pinned) {
       pinnedThreads.push(thread);
