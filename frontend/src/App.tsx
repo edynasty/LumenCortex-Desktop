@@ -128,12 +128,7 @@ export default function App() {
     () => events.filter((event) => !selected || !event.sessionId || event.sessionId === selected),
     [events, selected]
   );
-
-  const configuredModels = useMemo(
-    () => providerModelOptions(catalog, providerSecretStatuses),
-    [catalog, providerSecretStatuses],
-  );
-
+  const configuredModels = useMemo(() => providerModelOptions(catalog, providerSecretStatuses), [catalog, providerSecretStatuses]);
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
