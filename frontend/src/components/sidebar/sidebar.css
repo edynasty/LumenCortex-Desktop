@@ -169,6 +169,11 @@
 .thread-group + .thread-group {
   margin-top: 8px;
 }
+
+.thread-group.attention .thread-group-title {
+  color: var(--amber);
+}
+
 .thread-group-title {
   display: flex;
   align-items: center;
@@ -205,7 +210,18 @@
 .thread-dot.live, .thread-dot.running { background: var(--green); }
 .thread-dot.completed { background: var(--tool-text); }
 .thread-dot.interrupted { background: var(--red); }
-.thread-dot.waiting_gate { background: var(--amber); }
+.thread-dot.waiting_gate,
+.thread-dot.attention-warning { background: var(--amber); }
+.thread-dot.attention-danger { background: var(--red); }
+
+.thread-item-row.attention-warning .thread-copy small {
+  color: var(--amber);
+}
+
+.thread-item-row.attention-danger .thread-copy small {
+  color: var(--red);
+}
+
 .thread-copy { min-width: 0; }
 .thread-copy strong, .thread-copy small { display: block; }
 .thread-copy strong {
