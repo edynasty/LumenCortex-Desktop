@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, PanelRight } from "lucide-react";
+import { Menu, PanelLeftOpen, PanelRight } from "lucide-react";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import {
@@ -18,11 +18,15 @@ const noop = () => undefined;
 
 export function VisualTopbar({
   onOpenSidebar,
+  onExpandSidebar,
+  sidebarCollapsed,
   title,
   subtitle,
   inspectorActive = false,
 }: {
   onOpenSidebar: () => void;
+  onExpandSidebar: () => void;
+  sidebarCollapsed: boolean;
   title: string;
   subtitle: string;
   inspectorActive?: boolean;
@@ -33,6 +37,11 @@ export function VisualTopbar({
         <button className="icon-button sidebar-toggle" onClick={onOpenSidebar} aria-label="Open sidebar">
           <Menu size={16} strokeWidth={1.7} aria-hidden />
         </button>
+        {sidebarCollapsed && (
+          <button className="icon-button sidebar-expand-toggle" onClick={onExpandSidebar} aria-label="Expand sidebar">
+            <PanelLeftOpen size={16} strokeWidth={1.7} aria-hidden />
+          </button>
+        )}
         <div className="title-stack">
           <strong>{title}</strong>
           <span>{subtitle}</span>
