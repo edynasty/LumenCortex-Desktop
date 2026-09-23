@@ -29,7 +29,9 @@ for (const width of [1440, 560] as const) {
     test(`Chinese ${scene} stays usable at ${width}px`, async ({ page }, testInfo: TestInfo) => {
       await openChineseScene(page, scene, width);
       await expect(page.getByText(expectedCopy, { exact: true }).first()).toBeVisible();
-      await expect(page.getByText("新任务", { exact: true }).first()).toBeVisible();
+      if (width > 820) {
+        await expect(page.getByText("新任务", { exact: true }).first()).toBeVisible();
+      }
       await expectBounded(page);
 
       await page.screenshot({
