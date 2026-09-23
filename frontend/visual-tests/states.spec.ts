@@ -138,10 +138,22 @@ for (const width of widths) {
     await expect(trigger).toBeFocused();
   });
 
-  test(`review split mode is bounded at ${width}px`, async ({ page }, testInfo) => {
+  test(`review diff layout is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "review", width);
-    await page.getByRole("radio", { name: "Split" }).click();
 
+    if (width <= 1024) {
+      await expect(page.getByRole("radio", { name: "Split" })).toHaveCount(0);
+      await expect(page.locator(".review-unified")).toBeVisible();
+      await expect(page.locator(".review-split")).toHaveCount(0);
+      const diffOverflow = await page.locator(".review-diff").evaluate((element) =>
+        Math.max(0, element.scrollWidth - element.clientWidth)
+      );
+      expect(diffOverflow).toBeLessThanOrEqual(1);
+      await capture(page, testInfo, "review-unified-narrow", width);
+      return;
+    }
+
+    await page.getByRole("radio", { name: "Split" }).click();
     await expect(page.locator(".review-split")).toBeVisible();
     await expect(page.locator(".split-row").first()).toBeVisible();
     await capture(page, testInfo, "review-split", width);
