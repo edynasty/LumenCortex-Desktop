@@ -16,8 +16,11 @@ type RunSettingsLabels = LSPSettingsLabels & {
   run: string;
   policy: string;
   readOnly: string;
+  readOnlyDescription: string;
   workspace: string;
+  workspaceDescription: string;
   full: string;
+  fullDescription: string;
   maxSteps: string;
   runtime: string;
   workingMemory: string;
@@ -140,9 +143,9 @@ export function RunSettingsPanel({
             value={policy}
             placeholder={labels.workspace}
             options={[
-              { value: "read-only", label: labels.readOnly },
-              { value: "workspace", label: labels.workspace },
-              { value: "full", label: labels.full },
+              { value: "read-only", label: labels.readOnly, description: labels.readOnlyDescription },
+              { value: "workspace", label: labels.workspace, description: labels.workspaceDescription },
+              { value: "full", label: labels.full, description: labels.fullDescription },
             ]}
             onChange={(value) => onPolicyChange(value as InspectorPolicy)}
             popoverPlacement="bottom"
