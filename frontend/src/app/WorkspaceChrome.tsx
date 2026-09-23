@@ -126,6 +126,7 @@ export function WorkspaceChrome(props: Props) {
     label: item.label,
     description: item.description,
     group: item.group,
+    badge: item.isDefault ? labels.defaultModel : undefined,
   }));
 
   const openProviders = () => {
