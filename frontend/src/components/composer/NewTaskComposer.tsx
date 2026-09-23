@@ -13,6 +13,7 @@ type ModelOption = {
   description?: string;
   group?: string;
   badge?: string;
+  badgeTone?: "default" | "warning";
 };
 
 type Props = {
@@ -177,6 +178,7 @@ export function NewTaskComposer({
                 description: item.description,
                 group: item.group,
                 badge: item.badge,
+                badgeTone: item.badgeTone,
               }))}
               onChange={onModelChange}
             />
