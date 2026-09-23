@@ -7,6 +7,8 @@ const labels = {
   startAnother: "Continue",
   composerHint: "Enter to send",
   noModels: "No models",
+  modelSearch: "Search models",
+  noModelMatches: "No matching models",
   start: "Start",
   running: "Running",
   localRuntime: "Local",
