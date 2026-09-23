@@ -3,11 +3,17 @@
 Figma source:
 `https://www.figma.com/design/Jr6qaL9kGPtj45VYn9m62q`
 
-Reference frames:
-- Screen / New Task / 1440
-- Screen / Provider Settings / 1440
-- Screen / Running Thread / 1440
-- Screen / Review Diff / 1440
+Figma delivery contract:
+- `tools/figma/delivery-manifest.json`
+- `tools/figma/finalize-lumencortex.mjs`
+
+The source-controlled finalizer defines the complete reference set for:
+- New Task at 1440 / 1180 / 820 / 560,
+- Provider Settings at 1440 / 1180 / 820 / 560,
+- Running Thread at 1440 / 1180 / 820 / 560,
+- Review Diff at 1440 / 1180 / 820 / 560.
+
+As of 2026-09-23, applying those generated frames to the linked Figma file is externally blocked by the Figma Starter MCP call quota. Production Playwright screenshots remain the rendered implementation reference until the finalizer can be executed against the file.
 
 ## 1. New Task
 
