@@ -204,10 +204,12 @@ Status: **Fixed for the canonical semantic token set**.
 Implemented:
 - Light theme core semantic colors in `frontend/src/styles/tokens.css` now match `docs/design-system.md`,
 - Sidebar/background/surface/hover/text/border/accent and semantic state colors use the documented canonical values,
+- composer/dialog/sidebar/toggle/control shadows and warning-context chip surfaces are also semantic tokens with Light/Dark values,
 - a Playwright regression test reads the design-system token table and compares it against the rendered CSS custom properties,
+- the same suite scans every non-token stylesheet under `frontend/src` and rejects reusable hex/rgb/hsl literals,
 - Dark theme remains code-defined while preserving the same semantic token names.
 
-Component-specific derived surfaces may still use dedicated tokens, but new reusable visual values must extend the canonical semantic system instead of introducing near-duplicate neutrals.
+Component-specific derived surfaces may still use dedicated tokens, but reusable visual values must extend the canonical semantic system instead of introducing component-local color literals or near-duplicate neutrals.
 
 ### P1-12 — Frontend component test setup
 
@@ -221,6 +223,8 @@ Frontend now uses:
 - Playwright visual/interaction QA.
 
 Provider, primitives, routing/presentation behavior, accessibility/focus behavior, theme behavior, typography, and responsive states have regression coverage.
+
+2026-09-23 visual-artifact follow-up found that Split Review remained horizontally clipped at narrow widths even though the document itself stayed bounded. Review now automatically uses Unified mode at <=1024 px, hides the unavailable Split control, and the visual test asserts the diff surface itself has no horizontal overflow at the narrow breakpoint.
 
 ### P1-13 — Thread renderer
 
