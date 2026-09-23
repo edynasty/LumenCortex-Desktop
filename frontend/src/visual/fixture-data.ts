@@ -1,5 +1,5 @@
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
-import { copy } from "../lib/i18n/app-copy";
+import { copy, type Locale } from "../lib/i18n/app-copy";
 import type {
   Health,
   LSPStatus,
@@ -14,7 +14,11 @@ import type {
 
 export type VisualScene = "new-task" | "thread" | "providers" | "review" | "extensions" | "inspector";
 
-export const labels = copy.en;
+const localeParam = typeof window === "undefined"
+  ? null
+  : new URLSearchParams(window.location.search).get("locale");
+export const visualLocale: Locale = localeParam === "zh-CN" ? "zh-CN" : "en";
+export const labels = copy[visualLocale];
 export const workspace = "/Users/demo/Projects/lumencortex";
 export const localRuntime: SessionRuntime = { kind: "local", path: workspace, branch: "main", head: "0f6c33a" };
 export const runtime: SessionRuntime = {
@@ -227,7 +231,7 @@ export const checkpoints: SessionCheckpoint[] = [{
 export const groups: SidebarGroup[] = [
   {
     key: "running",
-    label: "Running",
+    label: labels.runningThreads,
     sessions: [{
       session,
       runtime,
@@ -235,12 +239,12 @@ export const groups: SidebarGroup[] = [
       active: true,
       pinned: false,
       archived: false,
-      statusLabel: "Active",
+      statusLabel: labels.running,
     }],
   },
   {
     key: "attention",
-    label: "Needs attention",
+    label: labels.attentionThreads,
     sessions: [{
       session: {
         ...session,
@@ -259,7 +263,7 @@ export const groups: SidebarGroup[] = [
   },
   {
     key: "recent",
-    label: "Recent",
+    label: labels.recentThreads,
     sessions: [{
       session: { ...session, id: "session-recent", status: "completed", goal: "Improve review diff rendering" },
       runtime: localRuntime,
