@@ -17,6 +17,7 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
+import { errorRecoveryKind } from "./error-recovery";
 import type { ConfiguredModelOption } from "./presentation-model";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
@@ -169,6 +170,33 @@ export function WorkspaceView(props: Props) {
     props.onSidebarOpenChange(false);
   };
 
+  const recoveryKind = errorRecoveryKind(error);
+  const recoveryLabel =
+    recoveryKind === "provider"
+      ? labels.providerConfig
+      : recoveryKind === "permissions"
+        ? labels.permissions
+        : recoveryKind === "workspace"
+          ? (workspace ? labels.reopenProject : labels.openProject)
+          : undefined;
+
+  const recoverError = recoveryKind ? () => {
+    props.onClearError();
+    if (recoveryKind === "provider") {
+      openProviders();
+    } else if (recoveryKind === "permissions") {
+      if (route.kind !== "new-task" && route.kind !== "thread") {
+        props.onSetRoute(current ? { kind: "thread", sessionId: current.id } : { kind: "new-task" });
+      }
+      props.onInspectorTabChange("run");
+      props.onInspectorOpenChange(true);
+    } else if (workspace) {
+      props.onOpenWorkspace(workspace);
+    } else {
+      props.onPickWorkspace();
+    }
+  } : undefined;
+
   return (
     <>
       <WorkspaceChrome
@@ -285,6 +313,8 @@ export function WorkspaceView(props: Props) {
         labels={labels}
         onCleanupOpenChange={props.onCleanupWorktreeOpenChange}
         onCleanup={props.onCleanupWorktree}
+        errorActionLabel={recoveryLabel}
+        onErrorAction={recoverError}
         onClearError={props.onClearError}
       />
     </>
