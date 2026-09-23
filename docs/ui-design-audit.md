@@ -204,22 +204,15 @@ Architecture tests enforce the typed bridge boundary and a 350-line production T
 
 ### P1-11 — Design tokens and implementation tokens drift
 
-Design spec examples:
-- bg/app `#F6F6F4`.
+Status: **Fixed for the canonical semantic token set**.
 
-Runtime currently uses nearby but different values such as:
-- `#F7F7F5`.
+Implemented:
+- Light theme core semantic colors in `frontend/src/styles/tokens.css` now match `docs/design-system.md`,
+- Sidebar/background/surface/hover/text/border/accent and semantic state colors use the documented canonical values,
+- a Playwright regression test reads the design-system token table and compares it against the rendered CSS custom properties,
+- Dark theme remains code-defined while preserving the same semantic token names.
 
-Small drift compounds across:
-- surfaces,
-- borders,
-- typography,
-- spacing.
-
-Required:
-- one code token file,
-- Figma values generated/reconciled from the same semantic naming system,
-- components never introduce arbitrary near-duplicate neutrals without a documented reason.
+Component-specific derived surfaces may still use dedicated tokens, but new reusable visual values must extend the canonical semantic system instead of introducing near-duplicate neutrals.
 
 ### P1-12 — Frontend component test setup
 
