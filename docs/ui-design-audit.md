@@ -274,61 +274,49 @@ New Task composer exposes an explicit `aria-label`; placeholder text is no longe
 
 ### P1-18 — Figma product screens and responsive frames
 
-Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
+Status: **Delivery implementation complete; canvas application blocked only by the Figma Starter MCP call quota**.
+
+Completed in source control:
+- `tools/figma/delivery-manifest.json` locks the required Product Screens and 1440 / 1180 / 820 / 560 width matrix,
+- `tools/figma/finalize-lumencortex.mjs` deterministically creates `02 Product Screens`,
+- New Task, Running Thread, Provider Settings, and Review Diff all have generated responsive reference builders,
+- CI syntax-checks the finalizer and Vitest verifies the delivery manifest.
 
 Verified 2026-09-23:
-- the linked Figma file currently exposes only the top-level page `01 Design System`,
-- the previously documented `02 Product Screens` and `03 Flows & Specs` pages are not present,
-- therefore the earlier documentation overstated the available 1440 reference screens.
+- the linked Figma file still exposes only `01 Design System`,
+- Figma MCP rejects both read and write calls because the Starter-plan quota is exhausted.
 
-Required when Figma write access is available:
-- create/restore Product Screens,
-- New Task at 1440 / 1180 / 820 / 560,
-- Running Thread at 1440 / 1180 / 820 / 560,
-- Provider Settings at 1440 / 1180 / 820 / 560,
-- Review / Diff at the widths that materially change its layout.
-
-Production Playwright responsive QA remains the implementation truth until these design frames exist.
+Production Playwright responsive QA remains the implementation truth until the prepared finalizer can be executed against the linked Figma file.
 
 ### P1-19 — Component library state/variant coverage
 
-Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
+Status: **Delivery implementation complete; canvas application blocked only by the Figma Starter MCP call quota**.
 
-The current `01 Design System` contains a small reusable set including:
-- Primary / Secondary / Destructive Button components,
-- Default Input,
-- three-way Segmented Control,
-- Running Status,
-- Default Thread Row,
-- New Task Composer.
+The finalizer now defines production-state component sets for:
+- Primary / Secondary / Destructive Button,
+- Input,
+- Select,
+- Thread Row,
+- Composer,
+- Status Indicator.
 
-It does not yet represent the full production state matrix.
+The state matrix covers default, hover, focus, pressed, disabled, loading, invalid/error, selected, running/attention, and semantic status tones where applicable. `tools/figma/delivery-manifest.json` is regression-tested so required variants cannot silently disappear.
 
-Required:
-- default,
-- hover,
-- focus,
-- active/pressed where applicable,
-- disabled,
-- loading,
-- error/invalid,
-- selected,
-- semantic status variants.
-
-Dark theme remains code-defined because the current Figma variable-mode constraint makes Light the canonical design mode.
+Dark theme remains code-defined; Light stays the canonical Figma design mode.
 
 ### P1-20 — Figma interaction and motion prototypes
 
-Status: **Open; Figma write work blocked in this session by the Starter-plan MCP call limit**.
+Status: **Delivery implementation complete; canvas application blocked only by the Figma Starter MCP call quota**.
 
-The source-controlled motion contract in `docs/motion-design.md` remains canonical.
-
-When Figma write access is available, add `03 Flows & Specs` with:
+The source-controlled finalizer defines `03 Flows & Specs` with:
 - Sidebar/Inspector drawer open-close behavior,
 - Composer → Thread transition,
 - Provider expand/collapse,
 - Review inline-comment flow,
-- reduced-motion notes and timing/easing references.
+- motion duration/easing annotations,
+- the reduced-motion contract.
+
+`docs/motion-design.md` remains canonical for engineering behavior; `tools/figma/delivery-manifest.json` locks the required flow list and timing bounds.
 
 
 ## 7. P2 findings
@@ -405,8 +393,8 @@ Rules:
 
 All previously listed implementation fixes are complete.
 
-1. Complete P1-18 through P1-20 when Figma write access is available.
-2. Keep production visual QA and the design-token contract green.
+1. Execute `tools/figma/finalize-lumencortex.mjs` for the three targets when Figma MCP quota is available; no additional design implementation is required before that execution.
+2. Keep production visual QA, Chinese-first coverage, the design-token contract, and the Figma delivery manifest green.
 3. Continue code work only for a reproducible defect, integration/runtime bug, visual-regression finding, or newly approved product milestone.
 
 Do not reopen completed Provider / Composer / Sidebar / Thread / Review / Worktree / LSP / MCP / Extensions milestones solely to recreate historical sequencing.
