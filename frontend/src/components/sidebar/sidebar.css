@@ -32,6 +32,10 @@
 .brand-copy strong { font-size: 12px; font-weight: 620; letter-spacing: -.015em; }
 .brand-copy span { display: none; }
 
+.sidebar-collapse-button {
+  margin-left: auto;
+}
+
 .new-task-button, .project-button, .thread-item, .footer-button {
   width: 100%;
   border: 0;
@@ -291,7 +295,9 @@
   color: var(--text);
 }
 
-.sidebar-toggle, .mobile-only { display: none; }
+.sidebar-toggle,
+.sidebar-expand-toggle,
+.mobile-only { display: none; }
 
 .sidebar-backdrop { display: none; }
 
@@ -431,5 +437,7 @@
     background: rgba(30,30,26,.18);
     animation: backdropEnter var(--motion-base) var(--ease-out);
   }
+  .sidebar-collapse-button,
+  .sidebar-expand-toggle { display: none !important; }
   .sidebar-toggle, .mobile-only { display: grid; }
 }
