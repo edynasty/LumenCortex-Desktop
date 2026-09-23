@@ -1,10 +1,10 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
 const scenes = [
-  ["new-task", "想让 LumenCortex 做什么？"],
-  ["providers", "模型与提供商"],
-  ["review", "审查"],
-  ["extensions", "扩展"],
+  ["new-task", ".new-task-workspace", "想让 LumenCortex 做什么？"],
+  ["providers", ".topbar", "模型与提供商"],
+  ["review", ".topbar", "审查"],
+  ["extensions", ".topbar", "扩展"],
 ] as const;
 
 async function openChineseScene(page: Page, scene: string, width: number) {
@@ -25,10 +25,10 @@ async function expectBounded(page: Page) {
 }
 
 for (const width of [1440, 560] as const) {
-  for (const [scene, expectedCopy] of scenes) {
+  for (const [scene, visibleRoot, expectedCopy] of scenes) {
     test(`Chinese ${scene} stays usable at ${width}px`, async ({ page }, testInfo: TestInfo) => {
       await openChineseScene(page, scene, width);
-      await expect(page.getByText(expectedCopy, { exact: true }).first()).toBeVisible();
+      await expect(page.locator(visibleRoot).getByText(expectedCopy, { exact: true })).toBeVisible();
       if (width > 820) {
         await expect(page.getByText("新任务", { exact: true }).first()).toBeVisible();
       }
