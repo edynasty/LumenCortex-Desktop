@@ -44,6 +44,8 @@ describe("presentation model", () => {
           },
         },
       },
+    }, {
+      demo: { configured: true, available: false },
     });
 
     expect(options).toEqual([{
@@ -52,6 +54,7 @@ describe("presentation model", () => {
       group: "Demo",
       description: "upstream-coder · 64K ctx · 8K out",
       isDefault: true,
+      missingSecret: true,
     }]);
   });
 
