@@ -44,8 +44,8 @@ for (const width of [1440, 560] as const) {
 
 test("Chinese provider scene uses localized provider controls", async ({ page }) => {
   await openChineseScene(page, "providers", 1440);
-  await expect(page.getByText("保存配置", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("默认", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("快速添加", { exact: true })).toBeVisible();
+  await expect(page.getByText("高级配置 JSON", { exact: true })).toBeVisible();
 });
 
 test("Chinese review scene uses localized diff controls", async ({ page }) => {
