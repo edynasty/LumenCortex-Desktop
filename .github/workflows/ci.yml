@@ -64,6 +64,26 @@ jobs:
       - run: go test -v -timeout 90s ./internal/backend
       - run: go vet ./internal/backend
 
+  # I13: catch core regressions that surface through Desktop before the pin
+  # moves. The checkout is disposable, so mutating go.mod/go.sum here is safe.
+  core-head:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: edynasty/LumenCortex
+          path: core
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.x'
+          cache: true
+      - run: go mod edit -replace github.com/edynasty/LumenCortex=${{ github.workspace }}/core
+      - run: go mod tidy
+      - run: go build ./...
+      - run: go test -v -timeout 90s ./internal/backend
+      - run: go vet ./internal/backend
+
   macos-build:
     runs-on: macos-latest
     steps:

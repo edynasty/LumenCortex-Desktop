@@ -13,7 +13,15 @@ func setupGitWorkspace(t *testing.T) string {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git not installed")
 	}
-	root := t.TempDir()
+	// t.TempDir() can sit behind a symlink (macOS default TMPDIR: /var →
+	// /private/var). Core's EnsureLocalExclude cannot write the .lumencortex
+	// exclude entry for a workspace reached through a symlink (design F3,
+	// fixed in core M0.2), so resolve the path here and assert the exclude
+	// behavior on the canonical path users open.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	run := func(args ...string) {
 		cmd := exec.Command("git", args...)
 		cmd.Dir = root
