@@ -213,7 +213,7 @@
 }
 .thread-dot.live, .thread-dot.running { background: var(--green); }
 .thread-dot.completed { background: var(--tool-text); }
-.thread-dot.interrupted { background: var(--red); }
+.thread-dot.interrupted, .thread-dot.failed { background: var(--red); }
 .thread-dot.waiting_gate,
 .thread-dot.attention-warning { background: var(--amber); }
 .thread-dot.attention-danger { background: var(--red); }

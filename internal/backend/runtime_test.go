@@ -32,8 +32,8 @@ func TestWorkspaceUsesEmbeddedLumenCortexRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(messages) != 0 {
-		t.Fatalf("new session has %d messages", len(messages))
+	if len(messages) != 1 {
+		t.Fatalf("new session has %d messages, want exactly the goal row", len(messages))
 	}
 }
 

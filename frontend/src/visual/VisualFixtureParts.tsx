@@ -7,7 +7,7 @@ import {
   health,
   labels,
   lspStatus,
-  messages,
+  threadMessages,
   runtime,
   session,
   subagents,
@@ -67,12 +67,14 @@ export function VisualThreadScene({
     <ThreadWorkspace
       session={session}
       runtime={runtime}
-      messages={messages}
+      messages={threadMessages}
       hasOlderMessages
       historicalMessages={false}
       loadingOlderMessages={false}
       running
       statusLabel="Active"
+      statusDetail=""
+      runningElsewhere={false}
       workspaceName="lumencortex"
       modelRef="openai/gpt-5.6"
       models={[
@@ -115,6 +117,11 @@ export function VisualThreadScene({
         copy: labels.copy,
         copied: labels.copied,
         retry: labels.retry,
+        runningElsewhereNotice: labels.runningElsewhereNotice,
+        runtimeNotice: labels.runtimeNotice,
+        originToolInterrupted: labels.originToolInterrupted,
+        originToolInterruptedBody: labels.originToolInterruptedBody,
+        originCompletionBlocked: labels.originCompletionBlocked,
       }}
       onGoalChange={onGoalChange}
       onModelChange={noop}

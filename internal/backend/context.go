@@ -82,10 +82,9 @@ func (r *Runtime) CreateSessionWithContext(ctx context.Context, goal string, pat
 	if len(normalized) > 0 {
 		metadata["contextPaths"] = normalized
 	}
-	handle, err := r.engine.NewSession(ctx, lcx.SessionOptions{Goal: goal, Metadata: metadata})
-	if err != nil {
-		return Session{}, err
-	}
+	// The first user row carries the goal and its context attachments; Core writes
+	// it in the transaction that creates the session.
+	input := ""
 	if len(normalized) > 0 {
 		var prompt strings.Builder
 		prompt.WriteString(strings.TrimSpace(goal))
@@ -95,9 +94,11 @@ func (r *Runtime) CreateSessionWithContext(ctx context.Context, goal string, pat
 			prompt.WriteString(path)
 			prompt.WriteByte('\n')
 		}
-		if _, err := handle.AppendMessage(ctx, "user", map[string]string{"content": strings.TrimSpace(prompt.String())}); err != nil {
-			return Session{}, err
-		}
+		input = strings.TrimSpace(prompt.String())
+	}
+	handle, err := r.engine.NewSession(ctx, lcx.SessionOptions{Goal: goal, Input: input, Metadata: metadata})
+	if err != nil {
+		return Session{}, err
 	}
 	_, info, err := r.engine.Session(ctx, handle.ID)
 	return info, err

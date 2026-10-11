@@ -15,7 +15,9 @@ import (
 
 var (
 	ErrNoWorkspace   = errors.New("no workspace is open")
-	ErrAgentRunning  = lcx.ErrRunAlreadyActive
+	// ErrRunHeld means another Engine (this process or another) owns the session's
+	// run. Start wrote nothing; the UI shows "running elsewhere".
+	ErrRunHeld       = lcx.ErrRunHeld
 	ErrModelRequired = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
 	ErrInvalidPolicy = errors.New("invalid agent policy")
 	ErrArchiveActive  = errors.New("cannot archive an active agent run")
@@ -84,10 +86,6 @@ func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceStat
 	}
 	next, err := lcx.Open(lcx.Options{Workspace: abs})
 	if err != nil {
-		return WorkspaceState{}, err
-	}
-	if _, err := next.RecoverStaleRuns(ctx); err != nil {
-		_ = next.Close()
 		return WorkspaceState{}, err
 	}
 	nextSupervisor, err := lcx.NewRunSupervisor(next)
@@ -332,6 +330,12 @@ func (r *Runtime) RunShell(ctx context.Context, sessionID, command string) (Shel
 }
 
 func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentConfig) (Session, error) {
+	return r.startAgent(ctx, sessionID, "", cfg)
+}
+
+// startAgent starts a run; input, when set, is appended by Core as the next user
+// message under the run lock, after Core has reconciled the transcript.
+func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg AgentConfig) (Session, error) {
 	r.mu.RLock()
 	workspace := r.workspace
 	supervisor := r.supervisor
@@ -354,6 +358,7 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
 	return supervisor.Start(ctx, sessionID, client, lcx.AgentOptions{
+		Input:               input,
 		ProviderName:        providerName,
 		Policy:              normalizedPolicy(cfg.Policy),
 		MaxSteps:            cfg.MaxSteps,
@@ -366,24 +371,11 @@ func (r *Runtime) StartAgent(ctx context.Context, sessionID string, cfg AgentCon
 }
 
 func (r *Runtime) ContinueAgent(ctx context.Context, sessionID, content string, cfg AgentConfig) (Session, error) {
-	if strings.TrimSpace(content) == "" {
+	content = strings.TrimSpace(content)
+	if content == "" {
 		return Session{}, errors.New("follow-up content is required")
 	}
-
-	r.mu.RLock()
-	engine := r.engine
-	r.mu.RUnlock()
-	if engine == nil {
-		return Session{}, ErrNoWorkspace
-	}
-	handle, _, err := engine.Session(ctx, sessionID)
-	if err != nil {
-		return Session{}, err
-	}
-	if _, err := handle.AppendMessage(ctx, "user", map[string]string{"content": strings.TrimSpace(content)}); err != nil {
-		return Session{}, err
-	}
-	return r.StartAgent(ctx, sessionID, cfg)
+	return r.startAgent(ctx, sessionID, content, cfg)
 }
 
 func (r *Runtime) CancelAgent(sessionID string) bool {

@@ -141,7 +141,7 @@ export default function App() {
       interrupted: t.interrupted,
       failed: t.failed,
       waiting: t.waiting,
-      running: t.running,
+      runningElsewhere: t.runningElsewhere,
       unknown: t.unknown,
       runningThreads: t.runningThreads,
       attentionThreads: t.attentionThreads,

@@ -46,6 +46,13 @@ export const messages: Message[] = [
   { sessionId: session.id, seq: 3, role: "assistant", json: { content: "The project already separates global and project scopes. I’ll preserve that contract." } },
 ];
 
+// Runtime-authored rows (origin) render as notices; the thread scene shows each kind.
+export const threadMessages: Message[] = [
+  ...messages,
+  { sessionId: session.id, seq: 4, role: "tool", json: { tool_call_id: "call_1", origin: "tool_interrupted", content: "run ended before the tool result was saved; re-check workspace state before repeating side effects" } },
+  { sessionId: session.id, seq: 5, role: "user", json: { origin: "completion_blocked", content: "Workflow contract rejected completion: the verify action has not passed. Continue the current action and obtain the required evidence." } },
+];
+
 export const reviewMessages: Message[] = [
   ...messages,
   {

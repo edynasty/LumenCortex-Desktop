@@ -1,6 +1,7 @@
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { copyText } from "../../lib/clipboard";
+import { runtimeNotice, type RuntimeNoticeCopy } from "../../lib/runtime-notice";
 import type { Message } from "../../types";
 import { Markdown } from "./Markdown";
 import { ToolCard } from "./ToolCard";
@@ -12,7 +13,8 @@ type Labels = {
   roleSystem: string;
   copy: string;
   copied: string;
-};
+  runtimeNotice: string;
+} & RuntimeNoticeCopy;
 
 type Props = {
   message: Message;
@@ -43,6 +45,23 @@ export function MessageItem({ message, labels }: Props) {
   const [copied, setCopied] = useState(false);
   const payload = normalizePayload(message.json);
   const content = typeof payload.content === "string" ? payload.content : JSON.stringify(payload, null, 2);
+  const origin = typeof payload.origin === "string" ? payload.origin : "";
+  if (origin) {
+    // Written by the runtime, not by the user or the model: a notice keyed by origin.
+    const notice = runtimeNotice(labels, origin, content);
+    return (
+      <article className="message-row notice" role="note" aria-label={`${labels.runtimeNotice}: ${notice.title}`}>
+        <div className="message-avatar" aria-hidden>RT</div>
+        <div className="message-body">
+          <div className="message-head">
+            <strong>{notice.title}</strong>
+            <div className="message-head-actions"><span>#{message.seq}</span></div>
+          </div>
+          {notice.body && <p className="notice-body">{notice.body}</p>}
+        </div>
+      </article>
+    );
+  }
   const roleLabel =
     message.role === "assistant" ? labels.roleAssistant :
     message.role === "tool" ? labels.roleTool :

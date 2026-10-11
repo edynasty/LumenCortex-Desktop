@@ -194,6 +194,7 @@
 }
 .status-pill.running, .status-pill.active { border-color: var(--success-border); background: var(--success-bg); color: var(--green) !important; }
 .status-pill.interrupted { border-color: var(--danger-border); background: var(--danger-bg); color: var(--red) !important; }
+.status-pill.failed { border-color: var(--danger-border); background: var(--danger-bg); color: var(--red) !important; }
 .status-pill.waiting_gate { border-color: var(--warning-border); background: var(--warning-bg); color: var(--amber) !important; }
 
 .message-list { padding-top: 4px; }
@@ -216,6 +217,26 @@
 }
 .message-row.assistant .message-avatar { background: var(--assistant-avatar-bg); color: var(--assistant-avatar-ink); }
 .message-row.tool .message-avatar { background: var(--tool-avatar-bg); color: var(--tool-avatar-ink); font-family: var(--mono); }
+.message-row.notice .message-avatar { background: var(--info-bg); color: var(--info-text); font-family: var(--mono); }
+.message-row.notice .message-body {
+  padding: 8px 11px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+}
+.message-row.notice .message-head { margin-bottom: 4px; }
+.notice-body { margin: 0; color: var(--text-soft); font-size: 11px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.thread-notice {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 .message-body { min-width: 0; }
 .message-head { display: flex; align-items: center; justify-content: space-between; margin: 1px 0 7px; }
 .message-head strong { color: var(--text-soft); font-size: 10.5px; font-weight: 600; }

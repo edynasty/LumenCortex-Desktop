@@ -17,6 +17,7 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
+import { isRunHeldError } from "../lib/session-status";
 import { errorRecoveryKind } from "./error-recovery";
 import type { ConfiguredModelOption } from "./presentation-model";
 import { WorkspaceChrome } from "./WorkspaceChrome";
@@ -314,7 +315,7 @@ export function WorkspaceView(props: Props) {
       <WorkspaceOverlays
         cleanupOpen={cleanupWorktreeOpen}
         busy={busy}
-        error={error}
+        error={isRunHeldError(error) ? labels.runningElsewhereError : error}
         labels={labels}
         onCleanupOpenChange={props.onCleanupWorktreeOpenChange}
         onCleanup={props.onCleanupWorktree}

@@ -26,6 +26,8 @@ type Props = {
   loadingOlderMessages: boolean;
   running: boolean;
   statusLabel: string;
+  statusDetail: string;
+  runningElsewhere: boolean;
   workspaceName: string;
   modelRef: string;
   models: SelectOption[];
@@ -65,6 +67,11 @@ type Props = {
     copy: string;
     copied: string;
     retry: string;
+    runningElsewhereNotice: string;
+    runtimeNotice: string;
+    originToolInterrupted: string;
+    originToolInterruptedBody: string;
+    originCompletionBlocked: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -86,6 +93,8 @@ export function ThreadWorkspace({
   loadingOlderMessages,
   running,
   statusLabel,
+  statusDetail,
+  runningElsewhere,
   workspaceName,
   modelRef,
   models,
@@ -137,6 +146,7 @@ export function ThreadWorkspace({
               <h1>{session.goal}</h1>
               <div className="task-meta">
                 <span className={`status-pill ${running ? "running" : session.status}`}>{statusLabel}</span>
+                {statusDetail && <span>{statusDetail}</span>}
                 {session.provider && <span>{session.provider}</span>}
                 {session.model && <span>{session.model}</span>}
                 <RuntimeIdentity
@@ -148,6 +158,8 @@ export function ThreadWorkspace({
               </div>
             </div>
           </section>
+
+          {runningElsewhere && <p className="thread-notice" role="status">{labels.runningElsewhereNotice}</p>}
 
           <ThreadProgress
             running={running}
@@ -192,6 +204,10 @@ export function ThreadWorkspace({
                   roleSystem: labels.roleSystem,
                   copy: labels.copy,
                   copied: labels.copied,
+                  runtimeNotice: labels.runtimeNotice,
+                  originToolInterrupted: labels.originToolInterrupted,
+                  originToolInterruptedBody: labels.originToolInterruptedBody,
+                  originCompletionBlocked: labels.originCompletionBlocked,
                 }}
               />
             ))}
@@ -238,7 +254,7 @@ export function ThreadWorkspace({
             </section>
           )}
 
-          {!running && (session.status === "interrupted" || Boolean(session.error)) && (
+          {!running && (session.status === "interrupted" || session.status === "failed") && (
             <div className="thread-retry-row">
               <button type="button" disabled={busy} onClick={onRetry}>
                 <RotateCcw size={12} strokeWidth={1.7} aria-hidden />

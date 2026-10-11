@@ -9,7 +9,7 @@ const labels = {
   interrupted: "Interrupted",
   failed: "Failed",
   waiting: "Waiting",
-  running: "Running",
+  runningElsewhere: "Running elsewhere",
   unknown: "Unknown",
   runningThreads: "Running",
   attentionThreads: "Attention",
@@ -64,7 +64,8 @@ describe("presentation model", () => {
       session("active", "running"),
       session("orphan-running", "running"),
       session("waiting", "waiting_gate"),
-      { ...session("failed", "completed"), error: "tool failed" },
+      session("failed", "failed"),
+      { ...session("stale-error", "completed"), error: { kind: "storage", message: "left over" } },
       session("interrupted", "interrupted"),
       session("pinned", "completed", { ui: { pinned: true, title: "Pinned title" } }),
       session("recent", "completed"),
@@ -80,20 +81,23 @@ describe("presentation model", () => {
     });
 
     expect(groups.map((group) => [group.key, group.sessions.map((item) => item.session.id)])).toEqual([
-      ["running", ["active"]],
-      ["attention", ["orphan-running", "waiting", "failed", "interrupted"]],
+      ["running", ["active", "orphan-running"]],
+      ["attention", ["waiting", "failed", "interrupted"]],
       ["pinned", ["pinned"]],
-      ["recent", ["recent"]],
+      ["recent", ["stale-error", "recent"]],
       ["archived", ["archived"]],
     ]);
 
-    const running = groups[0].sessions[0];
+    const [running, elsewhere] = groups[0].sessions;
     expect(running.statusLabel).toBe("Active");
+    // Durably running but not run by this process: shown as such, never rewritten as interrupted.
+    expect(elsewhere).toMatchObject({ statusLabel: "Running elsewhere", attentionTone: undefined, active: false });
     const attention = groups[1].sessions;
-    expect(attention[0]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });
-    expect(attention[1]).toMatchObject({ statusLabel: "Waiting", attentionTone: "warning" });
-    expect(attention[2]).toMatchObject({ statusLabel: "Failed", attentionTone: "danger" });
-    expect(attention[3]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });
+    expect(attention[0]).toMatchObject({ statusLabel: "Waiting", attentionTone: "warning" });
+    expect(attention[1]).toMatchObject({ statusLabel: "Failed", attentionTone: "danger" });
+    expect(attention[2]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });
+    // error_json presence does not decide the label: a completed session stays Completed.
+    expect(groups[3].sessions[0]).toMatchObject({ statusLabel: "Completed", attentionTone: undefined });
     expect(groups[2].sessions[0].title).toBe("Pinned title");
   });
 });

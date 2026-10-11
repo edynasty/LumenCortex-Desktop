@@ -14,6 +14,7 @@ import type {
   WorkflowSummary,
 } from "../types";
 import type { ConfiguredModelOption } from "./presentation-model";
+import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel } from "./presentation-model";
 import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
 import { WorkspaceReviewRoute } from "./WorkspaceReviewRoute";
@@ -258,6 +259,13 @@ export function WorkspaceRouteContent({
     );
   }
 
+  // kind is detail under the durable status; only statuses that carry a cause show it.
+  const cause = sessionCause(current);
+  const statusDetail =
+    !running && cause?.kind && ["interrupted", "waiting_gate", "failed"].includes(current.status)
+      ? kindLabel(labels, cause.kind)
+      : "";
+
   return withProviderLayer(
     <ThreadWorkspace
       session={current}
@@ -268,6 +276,8 @@ export function WorkspaceRouteContent({
       loadingOlderMessages={messageLoadingOlder}
       running={running}
       statusLabel={sessionStatusLabel(labels, current.status, running)}
+      statusDetail={statusDetail}
+      runningElsewhere={isRunningElsewhere(current.status, running)}
       workspaceName={basename(workspace)}
       modelRef={modelRef}
       models={modelSelectOptions}
@@ -307,6 +317,11 @@ export function WorkspaceRouteContent({
         copy: labels.copy,
         copied: labels.copied,
         retry: labels.retry,
+        runningElsewhereNotice: labels.runningElsewhereNotice,
+        runtimeNotice: labels.runtimeNotice,
+        originToolInterrupted: labels.originToolInterrupted,
+        originToolInterruptedBody: labels.originToolInterruptedBody,
+        originCompletionBlocked: labels.originCompletionBlocked,
       }}
       onGoalChange={onGoalChange}
       onModelChange={onModelChange}

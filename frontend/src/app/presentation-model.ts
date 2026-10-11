@@ -1,5 +1,6 @@
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { sessionRuntime } from "../lib/session-runtime";
+import { isRunningElsewhere } from "../lib/session-status";
 import { sessionUI } from "../lib/session-ui";
 import type { ProviderCatalog, ProviderSecretStatus, Session } from "../types";
 
@@ -44,7 +45,7 @@ export type SessionStatusLabels = {
   completed: string;
   interrupted: string;
   waiting: string;
-  running: string;
+  runningElsewhere: string;
   unknown: string;
   failed: string;
 };
@@ -64,6 +65,8 @@ type SidebarGroupsInput = {
   labels: SidebarLabels;
 };
 
+// The label comes from the durable status. `isRunning` means this process runs the
+// session; a durably running session it does not run is running elsewhere.
 export function sessionStatusLabel(labels: SessionStatusLabels, status?: string, isRunning = false): string {
   if (isRunning) return labels.active;
   switch (status) {
@@ -71,7 +74,8 @@ export function sessionStatusLabel(labels: SessionStatusLabels, status?: string,
     case "completed": return labels.completed;
     case "interrupted": return labels.interrupted;
     case "waiting_gate": return labels.waiting;
-    case "running": return labels.running;
+    case "running": return labels.runningElsewhere;
+    case "failed": return labels.failed;
     default: return status || labels.unknown;
   }
 }
@@ -95,9 +99,10 @@ export function buildSidebarGroups({
     const attentionTone =
       !active && session.status === "waiting_gate"
         ? "warning" as const
-        : !active && (Boolean(session.error) || session.status === "running" || session.status === "interrupted")
+        : !active && (session.status === "failed" || session.status === "interrupted")
           ? "danger" as const
           : undefined;
+    const elsewhere = isRunningElsewhere(session.status, active);
     const thread = {
       session,
       runtime: sessionRuntime(session, workspace),
@@ -106,16 +111,12 @@ export function buildSidebarGroups({
       pinned: ui.pinned,
       archived: ui.archived,
       attentionTone,
-      statusLabel: session.error
-        ? labels.failed
-        : session.status === "running" && !active
-          ? labels.interrupted
-          : sessionStatusLabel(labels, session.status, active),
+      statusLabel: sessionStatusLabel(labels, session.status, active),
     };
 
     if (ui.archived) {
       archivedThreads.push(thread);
-    } else if (active) {
+    } else if (active || elsewhere) {
       runningThreads.push(thread);
     } else if (attentionTone) {
       attentionThreads.push(thread);
