@@ -72,6 +72,8 @@ type Props = {
     originToolInterrupted: string;
     originToolInterruptedBody: string;
     originCompletionBlocked: string;
+    originResume: string;
+    originTurn: string;
   };
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -208,6 +210,8 @@ export function ThreadWorkspace({
                   originToolInterrupted: labels.originToolInterrupted,
                   originToolInterruptedBody: labels.originToolInterruptedBody,
                   originCompletionBlocked: labels.originCompletionBlocked,
+                  originResume: labels.originResume,
+                  originTurn: labels.originTurn,
                 }}
               />
             ))}

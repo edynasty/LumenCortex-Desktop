@@ -1,5 +1,5 @@
 export type RuntimeNoticeCopy = Record<
-  "originToolInterrupted" | "originToolInterruptedBody" | "originCompletionBlocked",
+  "originToolInterrupted" | "originToolInterruptedBody" | "originCompletionBlocked" | "originResume" | "originTurn",
   string
 >;
 
@@ -13,6 +13,10 @@ export function runtimeNotice(labels: RuntimeNoticeCopy, origin: string, content
       return { title: labels.originToolInterrupted, body: labels.originToolInterruptedBody };
     case "completion_blocked":
       return { title: labels.originCompletionBlocked, body: content };
+    case "resume":
+      return { title: labels.originResume, body: content };
+    case "turn":
+      return { title: labels.originTurn, body: content };
     default:
       return { title: origin, body: content };
   }

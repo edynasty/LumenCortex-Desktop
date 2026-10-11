@@ -16,6 +16,8 @@ const labels = {
   originToolInterrupted: t.originToolInterrupted,
   originToolInterruptedBody: t.originToolInterruptedBody,
   originCompletionBlocked: t.originCompletionBlocked,
+  originResume: t.originResume,
+  originTurn: t.originTurn,
 };
 
 function row(role: string, json: Record<string, unknown>): Message {

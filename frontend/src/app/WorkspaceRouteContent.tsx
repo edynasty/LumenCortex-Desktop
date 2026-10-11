@@ -322,6 +322,8 @@ export function WorkspaceRouteContent({
         originToolInterrupted: labels.originToolInterrupted,
         originToolInterruptedBody: labels.originToolInterruptedBody,
         originCompletionBlocked: labels.originCompletionBlocked,
+        originResume: labels.originResume,
+        originTurn: labels.originTurn,
       }}
       onGoalChange={onGoalChange}
       onModelChange={onModelChange}

@@ -53,6 +53,17 @@ describe("runtime notices", () => {
     });
   });
 
+  it.each(["zh-CN", "en"] as const)("has copy for every A7 origin in %s", (locale) => {
+    for (const origin of ["tool_interrupted", "completion_blocked", "resume", "turn"]) {
+      expect(runtimeNotice(copy[locale], origin, "row text").title, origin).not.toBe(origin);
+    }
+  });
+
+  it("keeps the row text for resume and turn", () => {
+    expect(runtimeNotice(copy.en, "resume", "resume text")).toEqual({ title: copy.en.originResume, body: "resume text" });
+    expect(runtimeNotice(copy["zh-CN"], "turn", "turn text")).toEqual({ title: copy["zh-CN"].originTurn, body: "turn text" });
+  });
+
   it("shows an unknown origin by its raw value", () => {
     expect(runtimeNotice(copy.en, "future_origin", "text")).toEqual({ title: "future_origin", body: "text" });
   });
