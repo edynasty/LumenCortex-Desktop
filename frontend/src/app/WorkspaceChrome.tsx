@@ -17,7 +17,7 @@ import type {
   SessionRuntime,
   SubagentNode,
 } from "../types";
-import type { ConfiguredModelOption } from "./presentation-model";
+import type { ConfiguredModelOption } from "./model-selection";
 import type { WorkspaceRoute } from "./workspace-route";
 
 type Policy = "read-only" | "workspace" | "full";

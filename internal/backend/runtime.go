@@ -3,24 +3,21 @@ package backend
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/edynasty/LumenCortex/provider/openai"
+	"github.com/edynasty/LumenCortex/config"
 	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
 var (
-	ErrNoWorkspace   = errors.New("no workspace is open")
+	ErrNoWorkspace = errors.New("no workspace is open")
 	// ErrRunHeld means another Engine (this process or another) owns the session's
 	// run. Start wrote nothing; the UI shows "running elsewhere".
 	ErrRunHeld       = lcx.ErrRunHeld
-	ErrModelRequired = errors.New("provider model is required (set it in the UI or LCX_MODEL)")
 	ErrInvalidPolicy = errors.New("invalid agent policy")
-	ErrArchiveActive  = errors.New("cannot archive an active agent run")
+	ErrArchiveActive = errors.New("cannot archive an active agent run")
 )
 
 type Runtime struct {
@@ -44,25 +41,16 @@ type GitActionResult = lcx.GitActionResult
 type MessagePage = lcx.MessagePage
 type SessionUIPatch = lcx.SessionUIPatch
 
-type ProviderConfig struct {
-	Endpoint         string `json:"endpoint,omitempty"`
-	BaseURL          string `json:"baseUrl,omitempty"`
-	APIKey           string `json:"apiKey,omitempty"`
-	Model            string `json:"model,omitempty"`
-	DisableStreaming bool   `json:"disableStreaming,omitempty"`
-	DisableRetries   bool   `json:"disableRetries,omitempty"`
-}
-
 type AgentConfig struct {
-	Provider            ProviderConfig `json:"provider"`
-	ModelRef            string         `json:"modelRef,omitempty"`
-	Policy              string         `json:"policy,omitempty"`
-	MaxSteps            int            `json:"maxSteps,omitempty"`
-	RecentMessages      int            `json:"recentMessages,omitempty"`
-	MaxToolCallsPerStep int            `json:"maxToolCallsPerStep,omitempty"`
-	ToolDenylist        []string       `json:"toolDenylist,omitempty"`
-	MaxTokens           int            `json:"maxTokens,omitempty"`
-	Temperature         *float64       `json:"temperature,omitempty"`
+	ModelRef            string   `json:"modelRef,omitempty"`
+	Effort              string   `json:"effort,omitempty"`
+	Policy              string   `json:"policy,omitempty"`
+	MaxSteps            int      `json:"maxSteps,omitempty"`
+	RecentMessages      int      `json:"recentMessages,omitempty"`
+	MaxToolCallsPerStep int      `json:"maxToolCallsPerStep,omitempty"`
+	ToolDenylist        []string `json:"toolDenylist,omitempty"`
+	MaxTokens           int      `json:"maxTokens,omitempty"`
+	Temperature         *float64 `json:"temperature,omitempty"`
 }
 
 type WorkspaceState struct {
@@ -344,10 +332,6 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 		return Session{}, ErrNoWorkspace
 	}
 
-	client, providerName, err := providerFromAgentConfig(workspace, cfg)
-	if err != nil {
-		return Session{}, err
-	}
 	if !validPolicy(cfg.Policy) {
 		return Session{}, ErrInvalidPolicy
 	}
@@ -357,9 +341,11 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 	}
 	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
-	return supervisor.Start(ctx, sessionID, client, lcx.AgentOptions{
+	return supervisor.Start(ctx, sessionID, lcx.AgentOptions{
+		// Empty ModelRef continues the session on its pinned model; Core resolves everything else.
+		ModelRef:            config.ModelRef(strings.TrimSpace(cfg.ModelRef)),
+		Effort:              config.Effort(strings.TrimSpace(cfg.Effort)),
 		Input:               input,
-		ProviderName:        providerName,
 		Policy:              normalizedPolicy(cfg.Policy),
 		MaxSteps:            cfg.MaxSteps,
 		RecentMessages:      cfg.RecentMessages,
@@ -416,127 +402,6 @@ func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	}
 	ch, stop := r.engine.Events(buffer)
 	return ch, stop, true
-}
-
-func (r *Runtime) DiscoverProviderModels(providerID string) ([]DiscoveredModel, error) {
-	r.mu.RLock()
-	workspace := r.workspace
-	r.mu.RUnlock()
-	catalog, err := loadProviderCatalog(workspace)
-	if err != nil {
-		return nil, err
-	}
-	return discoverProviderModels(catalog, providerID)
-}
-
-func (r *Runtime) TestProviderConnection(providerID string) (ProviderConnectionResult, error) {
-	models, err := r.DiscoverProviderModels(providerID)
-	if err != nil {
-		return ProviderConnectionResult{}, err
-	}
-	return ProviderConnectionResult{
-		OK: true,
-		Models: len(models),
-		Message: fmt.Sprintf("provider reachable; discovered %d models", len(models)),
-	}, nil
-}
-
-func (r *Runtime) ProviderCatalog() (ProviderCatalog, error) {
-	r.mu.RLock()
-	workspace := r.workspace
-	r.mu.RUnlock()
-	return loadProviderCatalog(workspace)
-}
-
-func (r *Runtime) ProviderSecretStatuses() (map[string]ProviderSecretStatus, error) {
-	catalog, err := r.ProviderCatalog()
-	if err != nil {
-		return nil, err
-	}
-	return providerSecretStatuses(catalog), nil
-}
-
-func (r *Runtime) SaveProviderCatalog(catalog ProviderCatalog) (ProviderCatalog, error) {
-	r.mu.RLock()
-	workspace := r.workspace
-	r.mu.RUnlock()
-	if err := saveProviderCatalog(workspace, catalog); err != nil {
-		return ProviderCatalog{}, err
-	}
-	return loadProviderCatalog(workspace)
-}
-
-func (r *Runtime) ProviderCatalogScope(scope string) (ProviderCatalog, error) {
-	r.mu.RLock()
-	workspace := r.workspace
-	r.mu.RUnlock()
-	return loadProviderCatalogScope(workspace, scope)
-}
-
-func (r *Runtime) SaveProviderCatalogScope(scope string, catalog ProviderCatalog) (ProviderCatalog, error) {
-	r.mu.RLock()
-	workspace := r.workspace
-	r.mu.RUnlock()
-	if err := saveProviderCatalogScope(workspace, scope, catalog); err != nil {
-		return ProviderCatalog{}, err
-	}
-	return loadProviderCatalogScope(workspace, scope)
-}
-
-func providerFromAgentConfig(workspace string, cfg AgentConfig) (*openai.Client, string, error) {
-	providerName := "openai-compatible"
-	providerCfg := cfg.Provider
-
-	if strings.TrimSpace(cfg.ModelRef) != "" || strings.TrimSpace(providerCfg.Model) == "" {
-		catalog, err := loadProviderCatalog(workspace)
-		if err != nil && !errors.Is(err, ErrNoWorkspace) {
-			return nil, "", err
-		}
-		ref := strings.TrimSpace(cfg.ModelRef)
-		if ref == "" && catalog.Model != "" {
-			ref = catalog.Model
-		}
-		if ref != "" {
-			resolved, name, err := resolveCatalogProvider(catalog, ref)
-			if err != nil {
-				return nil, "", err
-			}
-			resolved.DisableRetries = providerCfg.DisableRetries
-			resolved.DisableStreaming = providerCfg.DisableStreaming
-			providerCfg = resolved
-			providerName = name
-		}
-	}
-
-	client, err := providerFromConfig(providerCfg)
-	if err != nil {
-		return nil, "", err
-	}
-	return client, providerName, nil
-}
-
-func providerFromConfig(cfg ProviderConfig) (*openai.Client, error) {
-	model := firstNonEmpty(cfg.Model, os.Getenv("LCX_MODEL"))
-	if model == "" {
-		return nil, ErrModelRequired
-	}
-	return openai.New(openai.Config{
-		Endpoint:         firstNonEmpty(cfg.Endpoint, os.Getenv("LCX_ENDPOINT")),
-		BaseURL:          firstNonEmpty(cfg.BaseURL, os.Getenv("LCX_BASE_URL")),
-		APIKey:           firstNonEmpty(cfg.APIKey, os.Getenv("LCX_API_KEY")),
-		Model:            model,
-		DisableStreaming: cfg.DisableStreaming,
-		DisableRetries:   cfg.DisableRetries,
-	})
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			return trimmed
-		}
-	}
-	return ""
 }
 
 func normalizedPolicy(policy string) string {

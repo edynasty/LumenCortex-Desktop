@@ -110,8 +110,12 @@ LumenCortex Desktop supports a global provider catalog at `~/.config/lumencortex
 }
 ```
 
-The Desktop model picker is populated from the effective merged catalog. With no workspace open, the Provider settings surface edits the global catalog; with a workspace open, it edits the workspace override. `settings.apiKey` supports `{env:VARIABLE_NAME}`; environment references are recommended so secrets do not need to be stored in either config file. If no configured model is selected, the existing `LCX_MODEL`, `LCX_BASE_URL`, `LCX_ENDPOINT`, and `LCX_API_KEY` environment fallbacks remain available.
+Configuration is read, merged, validated and saved by LumenCortex Core (`config` package); Desktop is an adapter over it and keeps no second resolver. `docs/lumencortex.schema.json` is Core's canonical schema, byte for byte.
 
+- **Model picker.** It lists Core's catalog (`Config.Catalog`), without models that set `toolCalling: false`, and marks a provider whose `{env:VARIABLE_NAME}` is not set. A new task starts from the configured `model`; an existing session shows the model it is pinned to (`SessionInfo.modelRef`) and is never moved by a later change of the default. `AgentOptions.ModelRef` is sent only when you pick a model other than the one shown. Candidate selection and failover stay in Core.
+- **Provider settings.** The panel edits one file at a time (global, or the workspace override) through `config.ReadDocument` and `config.Save` with the file's digest. A file that changed since it was read is a conflict: nothing is written and the panel shows the file as it is now. Fields the panel does not edit (`failover`, `subagentModel`, `effort`, `checks`, `trustedWorkspaces`, headers, timeouts, `reasoning`, `toolCalling`, modalities) are kept on every save.
+- **Workspace trust.** A workspace `lumencortex.json` may define providers and checks only when the workspace is listed in the global `trustedWorkspaces`; otherwise Core ignores them and Desktop shows the `untrusted_override` warning with a "Trust this project" action, which adds the canonical path to the global file only.
+- **Secrets.** `settings.apiKey` supports `{env:VARIABLE_NAME}`; a literal key is refused. API keys and header values never cross the Wails bridge.
 
 ## Engineering standards
 

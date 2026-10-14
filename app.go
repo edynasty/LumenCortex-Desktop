@@ -180,24 +180,20 @@ func (a *App) TestProviderConnection(providerID string) (backend.ProviderConnect
 	return a.backend.TestProviderConnection(providerID)
 }
 
-func (a *App) GetProviderCatalog() (backend.ProviderCatalog, error) {
-	return a.backend.ProviderCatalog()
+func (a *App) GetConfigState() (backend.ConfigState, error) {
+	return a.backend.ConfigState()
 }
 
-func (a *App) GetProviderSecretStatuses() (map[string]backend.ProviderSecretStatus, error) {
-	return a.backend.ProviderSecretStatuses()
+func (a *App) TrustWorkspace(globalDigest string) (backend.ConfigState, error) {
+	return a.backend.TrustWorkspace(globalDigest)
 }
 
-func (a *App) SaveProviderCatalog(config backend.ProviderCatalog) (backend.ProviderCatalog, error) {
-	return a.backend.SaveProviderCatalog(config)
-}
-
-func (a *App) GetProviderCatalogScope(scope string) (backend.ProviderCatalog, error) {
+func (a *App) GetProviderCatalogScope(scope string) (backend.ProviderCatalogDocument, error) {
 	return a.backend.ProviderCatalogScope(scope)
 }
 
-func (a *App) SaveProviderCatalogScope(scope string, config backend.ProviderCatalog) (backend.ProviderCatalog, error) {
-	return a.backend.SaveProviderCatalogScope(scope, config)
+func (a *App) SaveProviderCatalogScope(scope string, doc backend.ProviderCatalogDocument) (backend.ProviderCatalogDocument, error) {
+	return a.backend.SaveProviderCatalogScope(scope, doc)
 }
 
 func (a *App) StartAgent(sessionID string, config backend.AgentConfig) (backend.Session, error) {

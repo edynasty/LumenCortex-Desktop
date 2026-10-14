@@ -2,42 +2,7 @@ import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { sessionRuntime } from "../lib/session-runtime";
 import { isRunningElsewhere } from "../lib/session-status";
 import { sessionUI } from "../lib/session-ui";
-import type { ProviderCatalog, ProviderSecretStatus, Session } from "../types";
-
-export type ConfiguredModelOption = {
-  ref: string;
-  label: string;
-  group: string;
-  description: string;
-  isDefault: boolean;
-  missingSecret: boolean;
-};
-
-export function providerModelOptions(
-  catalog: ProviderCatalog,
-  secretStatuses: Record<string, ProviderSecretStatus> = {},
-): ConfiguredModelOption[] {
-  return Object.entries(catalog.providers || {}).flatMap(([providerID, provider]) =>
-    Object.entries(provider.models || {}).map(([modelID, definition]) => {
-      const ref = providerID + "/" + modelID;
-      const metadata = [
-        definition.modelID && definition.modelID !== modelID ? definition.modelID : "",
-        definition.limit?.context ? Math.round(definition.limit.context / 1024) + "K ctx" : "",
-        definition.limit?.output ? Math.round(definition.limit.output / 1024) + "K out" : "",
-      ].filter(Boolean).join(" · ");
-      return {
-        ref,
-        label: definition.name || modelID,
-        group: provider.name || providerID,
-        description: metadata,
-        isDefault: catalog.model === ref,
-        missingSecret:
-          secretStatuses[providerID]?.configured === true &&
-          secretStatuses[providerID]?.available === false,
-      };
-    }),
-  );
-}
+import type { Session } from "../types";
 
 export type SessionStatusLabels = {
   active: string;

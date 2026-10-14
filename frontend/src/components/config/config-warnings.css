@@ -1,0 +1,54 @@
+.config-warnings {
+  margin: 0 0 var(--space-3);
+  padding: 8px 11px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.config-warnings p,
+.config-warnings ul {
+  margin: 0;
+}
+
+.config-warnings ul {
+  padding-left: var(--space-4);
+}
+
+.config-warnings code {
+  font-family: var(--mono);
+}
+
+.config-warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.config-warning-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.config-warning-actions button:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+.config-warning-untrusted + .config-warning-lines {
+  margin-top: var(--space-2);
+}

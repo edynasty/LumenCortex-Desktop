@@ -1,6 +1,8 @@
 import { ChevronDown, ChevronRight, FileJson2, Plus } from "lucide-react";
 import { Dialog } from "../primitives/Dialog";
-import type { ProviderCatalog } from "../../types";
+import { copy } from "../../lib/i18n/app-copy";
+import type { ConfigState } from "../../types";
+import { ConfigWarnings } from "../config/ConfigWarnings";
 import { ProviderCatalogList } from "./ProviderCatalogList";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { providerPresets } from "./provider-presets";
@@ -10,29 +12,27 @@ import "./provider-settings.css";
 type Props = {
   locale: ProviderLocale;
   workspace: string;
-  effectiveCatalog: ProviderCatalog;
-  selectedModelRef: string;
-  onSelectedModelRef: (value: string) => void;
-  onEffectiveCatalogChange: (catalog: ProviderCatalog) => void;
+  config: ConfigState;
+  trusting: boolean;
+  onTrust: () => void;
+  onConfigChanged: () => void;
   onError: (message: string) => void;
 };
 
 export function ProviderSettingsPanel({
   locale,
   workspace,
-  effectiveCatalog,
-  selectedModelRef,
-  onSelectedModelRef,
-  onEffectiveCatalogChange,
+  config,
+  trusting,
+  onTrust,
+  onConfigChanged,
   onError,
 }: Props) {
   const t = providerCopy[locale];
   const controller = useProviderSettingsController({
     locale,
     workspace,
-    selectedModelRef,
-    onSelectedModelRef,
-    onEffectiveCatalogChange,
+    onConfigChanged,
     onError,
   });
 
@@ -65,6 +65,8 @@ export function ProviderSettingsPanel({
           {t.addProvider}
         </button>
       </div>
+
+      <ConfigWarnings labels={copy[locale]} warnings={config.warnings} trusting={trusting} onTrust={onTrust} />
 
       <div className="provider-presets" aria-label={t.presets}>
         <span>{t.presets}</span>
@@ -103,7 +105,7 @@ export function ProviderSettingsPanel({
         <>
           <ProviderCatalogList
             locale={locale}
-            effectiveCatalog={effectiveCatalog}
+            effectiveModel={config.model}
             controller={controller}
           />
 

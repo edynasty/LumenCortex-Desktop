@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type {
   FormEvent,
   KeyboardEvent,
+  ReactNode,
   Ref,
 } from "react";
 import { Check, CircleCheck, Copy, RotateCcw } from "lucide-react";
@@ -32,6 +33,7 @@ type Props = {
   modelRef: string;
   models: SelectOption[];
   policyLabel: string;
+  notice?: ReactNode;
   goal: string;
   busy: boolean;
   workflowSummary?: WorkflowSummary | null;
@@ -101,6 +103,7 @@ export function ThreadWorkspace({
   modelRef,
   models,
   policyLabel,
+  notice,
   goal,
   busy,
   workflowSummary,
@@ -160,6 +163,8 @@ export function ThreadWorkspace({
               </div>
             </div>
           </section>
+
+          {notice}
 
           {runningElsewhere && <p className="thread-notice" role="status">{labels.runningElsewhereNotice}</p>}
 

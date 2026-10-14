@@ -11,7 +11,7 @@ import {
   groups,
   labels,
   localRuntime,
-  providerCatalog,
+  visualConfigState,
   reviewMessages,
   session,
   sidebarLabels,
@@ -170,10 +170,10 @@ export function VisualFixture() {
         <ProviderSettingsPanel
           locale={visualLocale}
           workspace={workspace}
-          effectiveCatalog={providerCatalog}
-          selectedModelRef="openai/gpt-5.6"
-          onSelectedModelRef={noop}
-          onEffectiveCatalogChange={noop}
+          config={visualConfigState}
+          trusting={false}
+          onTrust={noop}
+          onConfigChanged={noop}
           onError={noop}
         />
       )}

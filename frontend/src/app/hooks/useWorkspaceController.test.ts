@@ -1,12 +1,12 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useWorkspaceController } from "./useWorkspaceController";
-import type { ProviderCatalog } from "../../types";
+import type { ConfigState } from "../../types";
 
 const mocks = vi.hoisted(() => ({
   state: vi.fn(),
-  providerCatalog: vi.fn(),
-  providerSecretStatuses: vi.fn(),
+  configState: vi.fn(),
+  trustWorkspace: vi.fn(),
   pickWorkspace: vi.fn(),
   openWorkspace: vi.fn(),
 }));
@@ -15,99 +15,113 @@ vi.mock("../../lib/bridge", () => ({
   bridge: mocks,
 }));
 
-const catalogA: ProviderCatalog = {
-  model: "alpha/main",
-  providers: {
-    alpha: {
-      name: "Alpha",
-      models: {
-        main: { name: "Main" },
-      },
-    },
-  },
-};
+function configFor(workspace: string, model: string, overrides: Partial<ConfigState> = {}): ConfigState {
+  return {
+    workspace,
+    trusted: false,
+    model,
+    failover: [],
+    models: [],
+    warnings: [],
+    globalPath: "/home/.config/lumencortex/lumencortex.json",
+    globalDigest: "sha256:one",
+    ...overrides,
+  };
+}
 
-const catalogB: ProviderCatalog = {
-  model: "beta/code",
-  providers: {
-    beta: {
-      name: "Beta",
-      models: {
-        code: { name: "Code" },
-      },
-    },
-  },
-};
+const emptyState = { workspace: "", sessions: [], activeRuns: [] };
 
 describe("useWorkspaceController", () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.state.mockReset();
-    mocks.providerCatalog.mockReset();
-    mocks.providerSecretStatuses.mockReset();
-    mocks.providerSecretStatuses.mockResolvedValue({});
-    mocks.pickWorkspace.mockReset();
-    mocks.openWorkspace.mockReset();
+    for (const mock of Object.values(mocks)) mock.mockReset();
   });
 
-  it("tracks recent projects and resets an invalid model on workspace change", async () => {
-    let activeCatalog = catalogA;
-    mocks.state.mockResolvedValue({
-      workspace: "/repo-a",
-      sessions: [],
-      activeRuns: [],
-    });
-    mocks.providerCatalog.mockImplementation(async () => activeCatalog);
-    mocks.providerSecretStatuses.mockResolvedValue({
-      alpha: { configured: true, available: true },
-      beta: { configured: true, available: false },
-    });
-    mocks.openWorkspace.mockResolvedValue({
-      workspace: "/repo-b",
-      sessions: [],
-      activeRuns: [],
-    });
+  it("tracks recent projects and reloads Core's configuration when the workspace changes", async () => {
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo-a" });
+    mocks.configState.mockImplementation(async () => configFor("/repo-a", "alpha/main"));
+    mocks.openWorkspace.mockResolvedValue({ ...emptyState, workspace: "/repo-b" });
 
     const setError = vi.fn();
     const { result } = renderHook(() => useWorkspaceController({ setError }));
 
-    await waitFor(() => expect(result.current.state.workspace).toBe("/repo-a"));
-    await waitFor(() => expect(result.current.modelRef).toBe("alpha/main"));
-    await waitFor(() => expect(result.current.providerSecretStatuses.alpha?.available).toBe(true));
+    await waitFor(() => expect(result.current.config.model).toBe("alpha/main"));
     await waitFor(() => expect(result.current.recentProjects[0]).toBe("/repo-a"));
 
-    activeCatalog = catalogB;
+    mocks.configState.mockImplementation(async () => configFor("/repo-b", "beta/code"));
     let opened = false;
     await act(async () => {
       opened = await result.current.openWorkspace("/repo-b");
     });
 
     expect(opened).toBe(true);
-    await waitFor(() => expect(result.current.state.workspace).toBe("/repo-b"));
-    await waitFor(() => expect(result.current.modelRef).toBe("beta/code"));
-    await waitFor(() => expect(result.current.providerSecretStatuses.beta?.available).toBe(false));
-    await waitFor(() => expect(result.current.recentProjects[0]).toBe("/repo-b"));
+    await waitFor(() => expect(result.current.config.model).toBe("beta/code"));
+    expect(result.current.recentProjects[0]).toBe("/repo-b");
     expect(result.current.recentProjects).toContain("/repo-a");
+    expect(result.current.opening).toBe(false);
   });
 
-  it("returns false and reports workspace open errors", async () => {
-    mocks.state.mockResolvedValue({
-      workspace: "",
-      sessions: [],
-      activeRuns: [],
-    });
-    mocks.providerCatalog.mockResolvedValue({ providers: {} });
-    mocks.openWorkspace.mockRejectedValue(new Error("cannot open"));
+  it("is busy while a project opens and reports the open error", async () => {
+    mocks.state.mockResolvedValue(emptyState);
+    mocks.configState.mockResolvedValue(configFor("", ""));
+    const pending = Promise.withResolvers<never>();
+    mocks.openWorkspace.mockReturnValue(pending.promise);
 
     const setError = vi.fn();
     const { result } = renderHook(() => useWorkspaceController({ setError }));
 
-    let opened = true;
+    let opened: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      opened = result.current.openWorkspace("/locked");
+    });
+    expect(result.current.opening).toBe(true);
+
     await act(async () => {
-      opened = await result.current.openWorkspace("/missing");
+      pending.reject(new Error("database is open in another process; close it to change the schema"));
+      expect(await opened).toBe(false);
     });
 
-    expect(opened).toBe(false);
-    expect(setError).toHaveBeenCalledWith("Error: cannot open");
+    expect(result.current.opening).toBe(false);
+    expect(setError).toHaveBeenLastCalledWith("Error: database is open in another process; close it to change the schema");
+  });
+
+  it("trusts the workspace with the digest it last read", async () => {
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo" });
+    mocks.configState.mockResolvedValue(configFor("/repo", "a/b"));
+    mocks.trustWorkspace.mockResolvedValue(configFor("/repo", "a/b", { trusted: true, globalDigest: "sha256:two" }));
+
+    const setError = vi.fn(); // stable, like the state setter App passes
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(result.current.state.workspace).toBe("/repo"));
+    await waitFor(() => expect(result.current.config.globalDigest).toBe("sha256:one"));
+    await act(async () => undefined);
+
+    await act(async () => {
+      await result.current.trustWorkspace();
+    });
+
+    expect(mocks.trustWorkspace).toHaveBeenCalledWith("sha256:one");
+    expect(result.current.config.trusted).toBe(true);
+    expect(result.current.config.globalDigest).toBe("sha256:two");
+  });
+
+  it("refreshes the configuration and reports a conflict when the global file changed", async () => {
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo" });
+    mocks.configState.mockResolvedValue(configFor("/repo", "a/b"));
+    mocks.trustWorkspace.mockRejectedValue(new Error("config file changed since it was read: /home/lumencortex.json"));
+
+    const setError = vi.fn();
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(result.current.config.globalDigest).toBe("sha256:one"));
+
+    mocks.configState.mockResolvedValue(configFor("/repo", "a/b", { globalDigest: "sha256:newer" }));
+    await act(async () => {
+      await result.current.trustWorkspace();
+    });
+
+    expect(result.current.config.globalDigest).toBe("sha256:newer");
+    expect(result.current.config.trusted).toBe(false);
+    expect(setError).toHaveBeenLastCalledWith(expect.stringContaining("config file changed since it was read"));
+    expect(result.current.trusting).toBe(false);
   });
 });

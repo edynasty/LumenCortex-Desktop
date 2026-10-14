@@ -121,6 +121,23 @@ for (const width of widths) {
     await capture(page, testInfo, "providers-edit", width);
   });
 
+  test(`configuration warnings and the trust action stay inside the panel at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "providers", width);
+    const warnings = page.getByRole("status", { name: "Configuration notices" });
+    await expect(warnings).toContainText("providers.local");
+    await expect(warnings).toContainText("deepseek/deepseek-chat.output is not set");
+    const trust = warnings.getByRole("button", { name: "Trust this project" });
+    await expect(trust).toBeVisible();
+
+    const bounds = await warnings.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right };
+    });
+    expect(bounds.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.right).toBeLessThanOrEqual(width);
+    await capture(page, testInfo, "provider-warnings", width);
+  });
+
   test(`provider advanced json is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "providers", width);
     await page.getByRole("button", { name: "Advanced JSON" }).click();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSidebarGroups, providerModelOptions } from "./presentation-model";
+import { buildSidebarGroups } from "./presentation-model";
 import type { Session } from "../types";
 
 const labels = {
@@ -30,35 +30,6 @@ function session(id: string, status: string, metadata?: Record<string, unknown>)
 }
 
 describe("presentation model", () => {
-  it("builds provider model options with upstream ids and context metadata", () => {
-    const options = providerModelOptions({
-      model: "demo/coder",
-      providers: {
-        demo: {
-          name: "Demo",
-          models: {
-            coder: {
-              name: "Coder",
-              modelID: "upstream-coder",
-              limit: { context: 65536, output: 8192 },
-            },
-          },
-        },
-      },
-    }, {
-      demo: { configured: true, available: false },
-    });
-
-    expect(options).toEqual([{
-      ref: "demo/coder",
-      label: "Coder",
-      group: "Demo",
-      description: "upstream-coder · 64K ctx · 8K out",
-      isDefault: true,
-      missingSecret: true,
-    }]);
-  });
-
   it("groups top-level threads by runtime attention and UI metadata", () => {
     const sessions = [
       session("active", "running"),

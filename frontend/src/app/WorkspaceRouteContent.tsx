@@ -4,16 +4,17 @@ import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import { ProviderSettingsPanel } from "../components/provider/ProviderSettingsPanel";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
+import { ConfigWarnings } from "../components/config/ConfigWarnings";
 import type {
+  ConfigState,
   Message,
-  ProviderCatalog,
   RuntimeKind,
   Session,
   SessionRuntime,
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import type { ConfiguredModelOption } from "./presentation-model";
+import type { ConfiguredModelOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel } from "./presentation-model";
 import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
@@ -30,7 +31,8 @@ type Props = {
   labels: AppCopy;
   workspace: string;
   recentProjects: string[];
-  catalog: ProviderCatalog;
+  config: ConfigState;
+  trusting: boolean;
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
   contextPaths: string[];
@@ -45,7 +47,8 @@ type Props = {
   workflowSummary: WorkflowSummary | null;
   subagents: SubagentNode[];
   textareaRef: Ref<HTMLTextAreaElement>;
-  onCatalogChange: (catalog: ProviderCatalog) => void;
+  onConfigChanged: () => void;
+  onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
   onError: (message: string) => void;
   onGoalChange: (value: string) => void;
@@ -79,7 +82,8 @@ export function WorkspaceRouteContent({
   labels,
   workspace,
   recentProjects,
-  catalog,
+  config,
+  trusting,
   modelRef,
   configuredModels,
   contextPaths,
@@ -94,7 +98,8 @@ export function WorkspaceRouteContent({
   workflowSummary,
   subagents,
   textareaRef,
-  onCatalogChange,
+  onConfigChanged,
+  onTrustWorkspace,
   onModelChange,
   onError,
   onGoalChange,
@@ -115,11 +120,8 @@ export function WorkspaceRouteContent({
   onKeyDown,
   onSendReviewInstruction,
 }: Props) {
-  const modelSelectOptions = configuredModels.map((item) => ({
-    value: item.ref,
-    label: item.label,
-    description: item.description,
-    group: item.group,
+  const composerModels = configuredModels.map((item) => ({
+    ...item,
     badge: item.missingSecret
       ? labels.missingProviderKey
       : item.isDefault
@@ -127,6 +129,16 @@ export function WorkspaceRouteContent({
         : undefined,
     badgeTone: item.missingSecret ? "warning" as const : "default" as const,
   }));
+  const modelSelectOptions = composerModels.map((item) => ({
+    value: item.ref,
+    label: item.label,
+    description: item.description,
+    group: item.group,
+    badge: item.badge,
+    badgeTone: item.badgeTone,
+  }));
+
+  const configNotice = <ConfigWarnings labels={labels} warnings={config.warnings} trusting={trusting} hideDefaultLimit onTrust={onTrustWorkspace} />;
 
   const providerActive = route.kind === "providers";
   const [providerMounted, setProviderMounted] = useState(providerActive);
@@ -140,10 +152,10 @@ export function WorkspaceRouteContent({
       <ProviderSettingsPanel
         locale={locale}
         workspace={workspace}
-        effectiveCatalog={catalog}
-        selectedModelRef={modelRef}
-        onSelectedModelRef={onModelChange}
-        onEffectiveCatalogChange={onCatalogChange}
+        config={config}
+        trusting={trusting}
+        onTrust={onTrustWorkspace}
+        onConfigChanged={onConfigChanged}
         onError={onError}
       />
     </div>
@@ -199,15 +211,7 @@ export function WorkspaceRouteContent({
         modelSearchLabel={labels.modelSearch}
         noModelMatchesLabel={labels.noModelMatches}
         modelRef={modelRef}
-        models={configuredModels.map((item) => ({
-          ...item,
-          badge: item.missingSecret
-            ? labels.missingProviderKey
-            : item.isDefault
-              ? labels.defaultModel
-              : undefined,
-          badgeTone: item.missingSecret ? "warning" as const : "default" as const,
-        }))}
+        models={composerModels}
         noModelsLabel={labels.modelFallback}
         contextPaths={contextPaths}
         contextLabels={{
@@ -240,6 +244,7 @@ export function WorkspaceRouteContent({
         }}
         hint={labels.composerHint}
         startLabel={labels.start}
+        notice={configNotice}
         goal={goal}
         busy={busy}
         textareaRef={textareaRef}
@@ -282,6 +287,7 @@ export function WorkspaceRouteContent({
       modelRef={modelRef}
       models={modelSelectOptions}
       policyLabel={policy === "read-only" ? labels.readOnly : policy === "full" ? labels.full : labels.workspace}
+      notice={configNotice}
       goal={goal}
       busy={busy}
       workflowSummary={workflowSummary}

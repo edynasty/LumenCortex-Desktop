@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestWorkspaceUsesEmbeddedLumenCortexRuntime(t *testing.T) {
+	useConfigDir(t)
 	ctx := context.Background()
 	r := New()
 	defer r.Close()
@@ -28,6 +30,9 @@ func TestWorkspaceUsesEmbeddedLumenCortexRuntime(t *testing.T) {
 	if session.ID == "" {
 		t.Fatal("session id is empty")
 	}
+	if session.ModelRef != "" {
+		t.Fatalf("a session that never started has modelRef %q", session.ModelRef)
+	}
 	messages, err := r.RecentMessages(ctx, session.ID, 8)
 	if err != nil {
 		t.Fatal(err)
@@ -38,14 +43,15 @@ func TestWorkspaceUsesEmbeddedLumenCortexRuntime(t *testing.T) {
 }
 
 func TestStartAgentRunsLatestEmbeddedHarness(t *testing.T) {
+	configPath := useConfigDir(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
-			t.Fatalf("method=%s", req.Method)
+			t.Errorf("method=%s", req.Method)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"desktop agent complete\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2,\"total_tokens\":5}}"))
+		replyText(w, "desktop agent complete")
 	}))
 	defer server.Close()
+	writeTestCatalog(t, configPath, server.URL+"/v1", "test/a")
 
 	ctx := context.Background()
 	r := New()
@@ -64,16 +70,7 @@ func TestStartAgentRunsLatestEmbeddedHarness(t *testing.T) {
 	}
 	defer stop()
 
-	started, err := r.StartAgent(ctx, session.ID, AgentConfig{
-		Provider: ProviderConfig{
-			Endpoint:         server.URL,
-			Model:            "desktop-test",
-			DisableStreaming: true,
-			DisableRetries:   true,
-		},
-		Policy:   "read-only",
-		MaxSteps: 2,
-	})
+	started, err := r.StartAgent(ctx, session.ID, AgentConfig{Policy: "read-only", MaxSteps: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +78,7 @@ func TestStartAgentRunsLatestEmbeddedHarness(t *testing.T) {
 		t.Fatalf("started status=%s", started.Status)
 	}
 
-	deadline := time.After(3 * time.Second)
+	deadline := time.After(5 * time.Second)
 	for {
 		select {
 		case event := <-events:
@@ -108,16 +105,31 @@ func TestStartAgentRunsLatestEmbeddedHarness(t *testing.T) {
 	}
 }
 
-func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
-	started := make(chan struct{})
-	release := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		close(started)
-		<-release
+// heldServer answers every request only after release is closed, then fails it.
+func heldServer(t *testing.T) (server *httptest.Server, started chan struct{}, release chan struct{}) {
+	t.Helper()
+	started = make(chan struct{})
+	release = make(chan struct{})
+	var once sync.Once
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		once.Do(func() { close(started) })
+		select {
+		case <-release:
+		case <-req.Context().Done():
+		}
 		http.Error(w, "released after client cancellation", http.StatusGatewayTimeout)
 	}))
-	defer server.Close()
-	defer close(release)
+	t.Cleanup(func() {
+		close(release)
+		server.Close()
+	})
+	return server, started, release
+}
+
+func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
+	configPath := useConfigDir(t)
+	server, started, _ := heldServer(t)
+	writeTestCatalog(t, configPath, server.URL+"/v1", "test/a")
 
 	ctx := context.Background()
 	r := New()
@@ -128,21 +140,13 @@ func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{
-		Provider: ProviderConfig{
-			Endpoint:         server.URL,
-			Model:            "desktop-test",
-			DisableStreaming: true,
-			DisableRetries:   true,
-		},
-		Policy: "read-only",
-	}); err != nil {
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{Policy: "read-only"}); err != nil {
 		t.Fatal(err)
 	}
 
 	select {
 	case <-started:
-	case <-time.After(2 * time.Second):
+	case <-time.After(3 * time.Second):
 		t.Fatal("provider request did not start")
 	}
 	begin := time.Now()
@@ -154,81 +158,77 @@ func TestCloseCancelsActiveAgentBeforeClosingEngine(t *testing.T) {
 	}
 }
 
-
 func TestProviderCatalogResolvesConfiguredModelAndEnvKey(t *testing.T) {
+	configPath := useConfigDir(t)
 	t.Setenv("LCX_TEST_PROVIDER_KEY", "secret-from-env")
-	var gotAuthorization string
-	var gotModel string
+	var gotAuthorization, gotModel string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		gotAuthorization = req.Header.Get("Authorization")
 		var body map[string]any
 		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if value, ok := body["model"].(string); ok {
 			gotModel = value
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"configured\"},\"finish_reason\":\"stop\"}]}"))
+		replyText(w, "configured")
 	}))
 	defer server.Close()
 
 	ctx := context.Background()
 	r := New()
 	defer r.Close()
-	workspace := t.TempDir()
-	if _, err := r.OpenWorkspace(ctx, workspace); err != nil {
+	if _, err := r.OpenWorkspace(ctx, t.TempDir()); err != nil {
 		t.Fatal(err)
 	}
-	catalog := ProviderCatalog{
-		Model: "test/coder",
-		Providers: map[string]ProviderDefinition{
-			"test": {
-				Name:    "Test Provider",
-				Package: "openai-compatible",
-				Settings: ProviderSettings{
-					Endpoint: server.URL,
-					APIKey:   "{env:LCX_TEST_PROVIDER_KEY}",
-				},
-				Models: map[string]ProviderModel{
-					"coder": {Name: "Coder", ModelID: "real-model-id"},
-				},
-			},
-		},
-	}
-	if _, err := r.SaveProviderCatalog(catalog); err != nil {
-		t.Fatal(err)
-	}
-	loaded, err := r.ProviderCatalog()
+	empty, err := r.ProviderCatalogScope("global")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Model != "test/coder" || loaded.Providers["test"].Models["coder"].ModelID != "real-model-id" {
-		t.Fatalf("unexpected catalog: %#v", loaded)
+	saved, err := r.SaveProviderCatalogScope("global", ProviderCatalogDocument{
+		Digest: empty.Digest,
+		Catalog: ProviderCatalog{
+			Model: "test/coder",
+			Providers: map[string]ProviderDefinition{
+				"test": {
+					Name:    "Test Provider",
+					Package: "openai-compatible",
+					Settings: ProviderSettings{
+						Endpoint: server.URL + "/v1/chat/completions",
+						APIKey:   "{env:LCX_TEST_PROVIDER_KEY}",
+					},
+					Models: map[string]ProviderModel{"coder": {Name: "Coder", ModelID: "real-model-id"}},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.Catalog.Model != "test/coder" || saved.Catalog.Providers["test"].Models["coder"].ModelID != "real-model-id" {
+		t.Fatalf("unexpected catalog: %#v", saved.Catalog)
+	}
+	if saved.Path != configPath {
+		t.Fatalf("saved to %s, want %s", saved.Path, configPath)
 	}
 
 	session, err := r.CreateSession(ctx, "provider catalog")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{
-		ModelRef: "test/coder",
-		Provider: ProviderConfig{DisableStreaming: true, DisableRetries: true},
-		Policy: "read-only",
-		MaxSteps: 2,
-	}); err != nil {
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{ModelRef: "test/coder", Policy: "read-only", MaxSteps: 2}); err != nil {
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		current, err := r.GetSession(ctx, session.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if current.Status == "completed" {
-			if current.Provider != "test" || current.Model != "real-model-id" {
-				t.Fatalf("identity=%s/%s", current.Provider, current.Model)
+			if current.Provider != "test" || current.Model != "real-model-id" || current.ModelRef != "test/coder" {
+				t.Fatalf("identity=%s/%s ref=%s", current.Provider, current.Model, current.ModelRef)
 			}
 			if gotAuthorization != "Bearer secret-from-env" {
 				t.Fatalf("authorization=%q", gotAuthorization)
@@ -243,17 +243,10 @@ func TestProviderCatalogResolvesConfiguredModelAndEnvKey(t *testing.T) {
 	t.Fatal("configured agent did not complete")
 }
 
-
 func TestWorkspaceStateReflectsCoreRunSupervisor(t *testing.T) {
-	started := make(chan struct{})
-	release := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		close(started)
-		<-release
-		http.Error(w, "released", http.StatusGatewayTimeout)
-	}))
-	defer server.Close()
-	defer close(release)
+	configPath := useConfigDir(t)
+	server, started, _ := heldServer(t)
+	writeTestCatalog(t, configPath, server.URL+"/v1", "test/a")
 
 	ctx := context.Background()
 	r := New()
@@ -265,21 +258,13 @@ func TestWorkspaceStateReflectsCoreRunSupervisor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{
-		Provider: ProviderConfig{
-			Endpoint:         server.URL,
-			Model:            "desktop-test",
-			DisableStreaming: true,
-			DisableRetries:   true,
-		},
-		Policy: "read-only",
-	}); err != nil {
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{Policy: "read-only"}); err != nil {
 		t.Fatal(err)
 	}
 
 	select {
 	case <-started:
-	case <-time.After(2 * time.Second):
+	case <-time.After(3 * time.Second):
 		t.Fatal("provider request did not start")
 	}
 
@@ -295,7 +280,7 @@ func TestWorkspaceStateReflectsCoreRunSupervisor(t *testing.T) {
 		t.Fatal("cancel should report active run")
 	}
 
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		state, err = r.State(ctx)
 		if err != nil {

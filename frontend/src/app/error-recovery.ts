@@ -1,3 +1,5 @@
+import { coreErrorKey } from "../lib/core-errors";
+
 export type ErrorRecoveryKind = "provider" | "permissions" | "workspace";
 
 const providerPatterns = [
@@ -35,6 +37,11 @@ const workspacePatterns = [
 export function errorRecoveryKind(error: string): ErrorRecoveryKind | null {
   const value = error.trim().toLowerCase();
   if (!value) return null;
+  const core = coreErrorKey(error);
+  // Opening again retries the migration once the other process released the database.
+  if (core === "databaseInUse") return "workspace";
+  if (core === "unknownModel" || core === "modelWithoutToolCalls" || core === "invalidConfig" || core === "conflict") return "provider";
+  if (core) return null;
   if (providerPatterns.some((pattern) => value.includes(pattern))) return "provider";
   if (permissionPatterns.some((pattern) => value.includes(pattern))) return "permissions";
   if (workspacePatterns.some((pattern) => value.includes(pattern))) return "workspace";

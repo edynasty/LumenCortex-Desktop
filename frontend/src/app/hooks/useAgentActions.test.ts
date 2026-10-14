@@ -47,7 +47,6 @@ function renderActions(overrides: Partial<Parameters<typeof useAgentActions>[0]>
     contextPaths: ["src"],
     runtimeKind: "local",
     getAgentConfig: () => ({
-      provider: {},
       modelRef: "demo/model",
       policy: "workspace",
       maxSteps: 24,

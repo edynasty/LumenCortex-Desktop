@@ -9,7 +9,9 @@ import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
-import { buildSidebarGroups, providerModelOptions } from "./app/presentation-model";
+import { useModelSelection } from "./app/hooks/useModelSelection";
+import { modelOptions } from "./app/model-selection";
+import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
@@ -37,11 +39,11 @@ export default function App() {
     state,
     setState,
     recentProjects,
-    catalog,
-    setCatalog,
-    providerSecretStatuses,
-    modelRef,
-    setModelRef,
+    config,
+    refreshConfig,
+    trustWorkspace,
+    trusting,
+    opening,
     pickWorkspace: pickWorkspaceState,
     openWorkspace: openWorkspaceState,
   } = useWorkspaceController({ setError });
@@ -129,7 +131,8 @@ export default function App() {
     () => events.filter((event) => !selected || !event.sessionId || event.sessionId === selected),
     [events, selected]
   );
-  const configuredModels = useMemo(() => providerModelOptions(catalog, providerSecretStatuses), [catalog, providerSecretStatuses]);
+  const configuredModels = useMemo(() => modelOptions(config), [config]);
+  const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "" });
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
@@ -168,7 +171,7 @@ export default function App() {
     goal,
     contextPaths,
     runtimeKind,
-    getAgentConfig: () => buildAgentConfig(modelRef, policy, maxSteps),
+    getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps),
     setWorkspaceState: setState,
     setRoute,
     setGoal,
@@ -203,6 +206,7 @@ export default function App() {
   });
 
   function afterWorkspaceChanged() {
+    resetModelChoice();
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
     clearContextPaths();
@@ -221,6 +225,7 @@ export default function App() {
   }
 
   function newTask() {
+    resetModelChoice();
     setRoute({ kind: "new-task" });
     resetSessionRuntime();
     setGoal("");
@@ -260,7 +265,8 @@ export default function App() {
       inspectorOpen={inspectorOpen}
       inspectorTab={inspectorTab}
       events={selectedEvents}
-      catalog={catalog}
+      config={config}
+      trusting={trusting}
       modelRef={modelRef}
       configuredModels={configuredModels}
       contextPaths={contextPaths}
@@ -278,7 +284,7 @@ export default function App() {
       messageAtLatest={messageAtLatest}
       messageLoadingOlder={messageLoadingOlder}
       running={running}
-      busy={busy}
+      busy={busy || opening}
       goal={goal}
       workflowSummary={workflowSummary}
       subagents={subagents}
@@ -300,8 +306,9 @@ export default function App() {
       onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
       onSwitchLocale={switchLocale}
       onThemePreferenceChange={setThemePreference}
-      onCatalogChange={setCatalog}
-      onModelChange={setModelRef}
+      onConfigChanged={() => void refreshConfig()}
+      onTrustWorkspace={() => void trustWorkspace()}
+      onModelChange={selectModel}
       onError={setError}
       onClearError={() => setError("")}
       onPolicyChange={setPolicy}

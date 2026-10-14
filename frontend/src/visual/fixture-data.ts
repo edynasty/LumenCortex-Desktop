@@ -4,6 +4,7 @@ import type {
   Health,
   LSPStatus,
   Message,
+  ConfigState,
   ProviderCatalog,
   RuntimeEvent,
   Session,
@@ -86,6 +87,23 @@ export const reviewMessages: Message[] = [
     },
   },
 ];
+
+export const visualConfigState: ConfigState = {
+  workspace: "/repo/lumencortex",
+  trusted: true,
+  model: "openai/gpt-5.6",
+  failover: [],
+  models: [
+    { ref: "openai/gpt-5.6", providerName: "OpenAI", modelName: "GPT-5.6", modelID: "gpt-5.6", context: 128000, output: 32000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "OPENAI_API_KEY", apiKeySet: true },
+    { ref: "deepseek/deepseek-chat", providerName: "DeepSeek", modelName: "DeepSeek Chat", modelID: "deepseek-chat", context: 64000, output: 8000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "DEEPSEEK_API_KEY", apiKeySet: false },
+  ],
+  warnings: [
+    { code: "untrusted_override", path: "/repo/lumencortex.json", key: "providers.local", trustEntry: "/repo/lumencortex", trustFile: "/home/.config/lumencortex/lumencortex.json", message: "ignored providers.local" },
+    { code: "default_limit", key: "deepseek/deepseek-chat.output", message: "model deepseek/deepseek-chat sets no output; using 4096" },
+  ],
+  globalPath: "/home/.config/lumencortex/lumencortex.json",
+  globalDigest: "sha256:visual",
+};
 
 export const providerCatalog: ProviderCatalog = {
   model: "openai/gpt-5.6",
@@ -317,13 +335,14 @@ export const sidebarLabels = {
 
 export function installVisualAppStub() {
   const visualApp = {
-    GetProviderCatalogScope: async () => providerCatalog,
-    SaveProviderCatalogScope: async (_scope: string, catalog: ProviderCatalog) => catalog,
-    GetProviderCatalog: async () => providerCatalog,
-    GetProviderSecretStatuses: async () => ({
-      openai: { configured: true, available: true },
-      deepseek: { configured: true, available: false },
+    GetConfigState: async () => visualConfigState,
+    GetProviderCatalogScope: async (scope: string) => ({
+      scope,
+      path: visualConfigState.globalPath,
+      digest: visualConfigState.globalDigest,
+      catalog: providerCatalog,
     }),
+    SaveProviderCatalogScope: async (_scope: string, doc: unknown) => doc,
     TestProviderConnection: async () => ({ ok: true, models: 2, message: "Connected" }),
     DiscoverProviderModels: async () => [{ id: "gpt-5.6" }, { id: "gpt-5.6-mini" }],
 

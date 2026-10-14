@@ -14,11 +14,11 @@ import type {
   MCPStatus,
   Message,
   MessagePage,
-  ProviderConnectionResult,
-  ProviderSecretStatus,
-  SearchResult,
-  ProviderCatalog,
+  ConfigState,
+  ProviderCatalogDocument,
   ProviderCatalogScope,
+  ProviderConnectionResult,
+  SearchResult,
   RuntimeEvent,
   Session,
   Skill,
@@ -57,11 +57,10 @@ type AppAPI = {
   RecentMessages(sessionId: string, limit: number): Promise<Message[]>;
   DiscoverProviderModels(providerId: string): Promise<DiscoveredModel[]>;
   TestProviderConnection(providerId: string): Promise<ProviderConnectionResult>;
-  GetProviderCatalog(): Promise<ProviderCatalog>;
-  GetProviderSecretStatuses(): Promise<Record<string, ProviderSecretStatus>>;
-  SaveProviderCatalog(config: ProviderCatalog): Promise<ProviderCatalog>;
-  GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalog>;
-  SaveProviderCatalogScope(scope: ProviderCatalogScope, config: ProviderCatalog): Promise<ProviderCatalog>;
+  GetConfigState(): Promise<ConfigState>;
+  TrustWorkspace(globalDigest: string): Promise<ConfigState>;
+  GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalogDocument>;
+  SaveProviderCatalogScope(scope: ProviderCatalogScope, doc: ProviderCatalogDocument): Promise<ProviderCatalogDocument>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
   ContinueAgent(sessionId: string, content: string, config: AgentConfig): Promise<Session>;
   CancelAgent(sessionId: string): Promise<boolean>;
@@ -149,11 +148,10 @@ export const bridge = {
   recentMessages: (sessionId: string, limit = 80) => api().RecentMessages(sessionId, limit),
   discoverProviderModels: (providerId: string) => api().DiscoverProviderModels(providerId),
   testProviderConnection: (providerId: string) => api().TestProviderConnection(providerId),
-  providerCatalog: () => api().GetProviderCatalog(),
-  providerSecretStatuses: () => api().GetProviderSecretStatuses(),
-  saveProviderCatalog: (config: ProviderCatalog) => api().SaveProviderCatalog(config),
+  configState: () => api().GetConfigState(),
+  trustWorkspace: (globalDigest: string) => api().TrustWorkspace(globalDigest),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
-  saveProviderCatalogScope: (scope: ProviderCatalogScope, config: ProviderCatalog) => api().SaveProviderCatalogScope(scope, config),
+  saveProviderCatalogScope: (scope: ProviderCatalogScope, doc: ProviderCatalogDocument) => api().SaveProviderCatalogScope(scope, doc),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
   continueAgent: (sessionId: string, content: string, config: AgentConfig) => api().ContinueAgent(sessionId, content, config),
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),

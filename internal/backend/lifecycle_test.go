@@ -64,14 +64,14 @@ func TestContinueAgentAfterCancelledToolLeavesPairedTranscript(t *testing.T) {
 		requests = append(requests, body)
 		n := len(requests)
 		mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
 		if n == 1 {
-			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"sleep-1","type":"function","function":{"name":"shell","arguments":"{\"command\":\"echo ready && exec sleep 5\"}"}}]},"finish_reason":"tool_calls"}]}`))
+			replyToolCall(w, "sleep-1", "shell", `{"command":"echo ready && exec sleep 5"}`)
 			return
 		}
-		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"resumed"},"finish_reason":"stop"}]}`))
+		replyText(w, "resumed")
 	}))
 	defer server.Close()
+	writeTestCatalog(t, useConfigDir(t), server.URL+"/v1", "test/a")
 
 	ctx := context.Background()
 	r := New()
@@ -85,11 +85,7 @@ func TestContinueAgentAfterCancelledToolLeavesPairedTranscript(t *testing.T) {
 	}
 	events, stop, _ := r.Events(256)
 	defer stop()
-	cfg := AgentConfig{
-		Provider: ProviderConfig{Endpoint: server.URL, Model: "desktop-test", DisableStreaming: true, DisableRetries: true},
-		Policy:   "full",
-		MaxSteps: 4,
-	}
+	cfg := AgentConfig{Policy: "full", MaxSteps: 4}
 	if _, err := r.StartAgent(ctx, session.ID, cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -150,11 +146,15 @@ func TestRunHeldElsewhereIsNotRecovered(t *testing.T) {
 	var once sync.Once
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		once.Do(func() { close(started) })
-		<-release
+		select {
+		case <-release:
+		case <-req.Context().Done():
+		}
 		http.Error(w, "released", http.StatusGatewayTimeout)
 	}))
 	defer server.Close()
 	defer close(release)
+	writeTestCatalog(t, useConfigDir(t), server.URL+"/v1", "test/a")
 
 	ctx := context.Background()
 	workspace := t.TempDir()
@@ -167,10 +167,7 @@ func TestRunHeldElsewhereIsNotRecovered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := AgentConfig{
-		Provider: ProviderConfig{Endpoint: server.URL, Model: "desktop-test", DisableStreaming: true, DisableRetries: true},
-		Policy:   "read-only",
-	}
+	cfg := AgentConfig{Policy: "read-only"}
 	if _, err := owner.StartAgent(ctx, session.ID, cfg); err != nil {
 		t.Fatal(err)
 	}

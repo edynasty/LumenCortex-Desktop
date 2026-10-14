@@ -8,7 +8,7 @@ import type {
   LSPDiagnostic,
   LSPStatus,
   Message,
-  ProviderCatalog,
+  ConfigState,
   RuntimeEvent,
   RuntimeKind,
   Session,
@@ -17,9 +17,9 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import { isRunHeldError } from "../lib/session-status";
+import { presentError } from "../lib/error-presentation";
 import { errorRecoveryKind } from "./error-recovery";
-import type { ConfiguredModelOption } from "./presentation-model";
+import type { ConfiguredModelOption } from "./model-selection";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
@@ -47,7 +47,8 @@ type Props = {
   inspectorOpen: boolean;
   inspectorTab: InspectorTab;
   events: RuntimeEvent[];
-  catalog: ProviderCatalog;
+  config: ConfigState;
+  trusting: boolean;
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
   contextPaths: string[];
@@ -87,7 +88,8 @@ type Props = {
   onArchiveSession: (sessionId: string, archived: boolean) => void;
   onSwitchLocale: () => void;
   onThemePreferenceChange: (theme: ThemePreference) => void;
-  onCatalogChange: (catalog: ProviderCatalog) => void;
+  onConfigChanged: () => void;
+  onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
   onError: (message: string) => void;
   onClearError: () => void;
@@ -140,7 +142,8 @@ export function WorkspaceView(props: Props) {
     inspectorOpen,
     inspectorTab,
     events,
-    catalog,
+    config,
+    trusting,
     modelRef,
     configuredModels,
     contextPaths,
@@ -274,7 +277,8 @@ export function WorkspaceView(props: Props) {
           labels={labels}
           workspace={workspace}
           recentProjects={recentProjects}
-          catalog={catalog}
+          config={config}
+          trusting={trusting}
           modelRef={modelRef}
           configuredModels={configuredModels}
           contextPaths={contextPaths}
@@ -289,7 +293,8 @@ export function WorkspaceView(props: Props) {
           workflowSummary={workflowSummary}
           subagents={subagents}
           textareaRef={textareaRef}
-          onCatalogChange={props.onCatalogChange}
+          onConfigChanged={props.onConfigChanged}
+          onTrustWorkspace={props.onTrustWorkspace}
           onModelChange={props.onModelChange}
           onError={props.onError}
           onGoalChange={props.onGoalChange}
@@ -315,7 +320,7 @@ export function WorkspaceView(props: Props) {
       <WorkspaceOverlays
         cleanupOpen={cleanupWorktreeOpen}
         busy={busy}
-        error={isRunHeldError(error) ? labels.runningElsewhereError : error}
+        error={presentError(labels, error)}
         labels={labels}
         onCleanupOpenChange={props.onCleanupWorktreeOpenChange}
         onCleanup={props.onCleanupWorktree}

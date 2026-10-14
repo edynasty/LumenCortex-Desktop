@@ -189,6 +189,7 @@ export type Session = {
   status: string;
   provider?: string;
   model?: string;
+  modelRef?: string;
   goal: string;
   metadata?: unknown;
   final?: string;
@@ -252,15 +253,6 @@ export type MessagePage = {
 
 
 
-export type ProviderConfig = {
-  endpoint?: string;
-  baseUrl?: string;
-  apiKey?: string;
-  model?: string;
-  disableStreaming?: boolean;
-  disableRetries?: boolean;
-};
-
 export type DiscoveredModel = {
   id: string;
 };
@@ -301,9 +293,59 @@ export type ProviderCatalog = {
 
 export type ProviderCatalogScope = "global" | "workspace";
 
+// One configuration file as the provider panel edits it. `digest` is the identity the file had
+// when it was read; saving sends it back, and a changed file is rejected as a conflict.
+export type ProviderCatalogDocument = {
+  scope: ProviderCatalogScope;
+  path: string;
+  digest: string;
+  catalog: ProviderCatalog;
+};
+
+// A catalog model as Core resolves it. It carries no credential and no header.
+export type ModelInfo = {
+  ref: string;
+  providerName: string;
+  modelName: string;
+  modelID: string;
+  context: number;
+  output: number;
+  toolCalling: boolean;
+  inputModalities: string[];
+  reasoningFormat: string;
+  efforts?: string[];
+  apiKeyEnv?: string;
+  apiKeySet: boolean;
+};
+
+// Core's structured configuration warning; `message` is shown for a code this build does not know.
+export type ConfigWarning = {
+  code: string;
+  path?: string;
+  key?: string;
+  moveTo?: string;
+  trustEntry?: string;
+  trustFile?: string;
+  message: string;
+};
+
+export type ConfigState = {
+  workspace: string;
+  trusted: boolean;
+  model: string;
+  subagentModel?: string;
+  failover: string[];
+  models: ModelInfo[];
+  warnings: ConfigWarning[];
+  globalPath: string;
+  globalDigest: string;
+};
+
+export type AgentEffort = "none" | "low" | "medium" | "high" | "max";
+
 export type AgentConfig = {
-  provider: ProviderConfig;
   modelRef?: string;
+  effort?: AgentEffort;
   policy?: "read-only" | "workspace" | "full";
   maxSteps?: number;
   recentMessages?: number;

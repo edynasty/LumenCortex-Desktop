@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
+import { coreErrorKey } from "../../lib/core-errors";
 import type {
   ProviderCatalog,
+  ProviderCatalogDocument,
   ProviderCatalogScope,
   ProviderDefinition,
   ProviderModel,
@@ -32,22 +34,21 @@ function initialScope(workspace: string): ProviderCatalogScope {
 type Options = {
   locale: ProviderLocale;
   workspace: string;
-  selectedModelRef: string;
-  onSelectedModelRef: (value: string) => void;
-  onEffectiveCatalogChange: (catalog: ProviderCatalog) => void;
+  onConfigChanged: () => void;
   onError: (message: string) => void;
 };
 
 export function useProviderSettingsController({
   locale,
   workspace,
-  selectedModelRef,
-  onSelectedModelRef,
-  onEffectiveCatalogChange,
+  onConfigChanged,
   onError,
 }: Options) {
   const t = providerCopy[locale];
   const [scope, setScopeState] = useState<ProviderCatalogScope>(() => initialScope(workspace));
+  // The file as it was read. Its digest travels with every save, so a file that changed on disk
+  // since is a conflict instead of being overwritten.
+  const [loadedFile, setLoadedFile] = useState<ProviderCatalogDocument | null>(null);
   const [catalog, setCatalog] = useState<ProviderCatalog>({ providers: {} });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,8 +78,9 @@ export function useProviderSettingsController({
     bridge.providerCatalogScope(scope)
       .then((next) => {
         if (cancelled) return;
-        setCatalog(next);
-        setAdvancedJSON(JSON.stringify(next, null, 2));
+        setLoadedFile(next);
+        setCatalog(next.catalog);
+        setAdvancedJSON(JSON.stringify(next.catalog, null, 2));
         setAdvancedDirty(false);
         setEditingProvider(null);
         setEditingModel(null);
@@ -100,28 +102,33 @@ export function useProviderSettingsController({
     [catalog],
   );
 
+  function adopt(next: ProviderCatalogDocument) {
+    setLoadedFile(next);
+    setCatalog(next.catalog);
+    setAdvancedJSON(JSON.stringify(next.catalog, null, 2));
+    setAdvancedDirty(false);
+  }
+
   async function saveCatalog(next: ProviderCatalog): Promise<boolean> {
+    if (!loadedFile) return false;
     setSaving(true);
     try {
-      const saved = await bridge.saveProviderCatalogScope(scope, next);
-      setCatalog(saved);
-      setAdvancedJSON(JSON.stringify(saved, null, 2));
-      setAdvancedDirty(false);
-
-      const effective = await bridge.providerCatalog();
-      onEffectiveCatalogChange(effective);
-
-      const availableRefs = Object.entries(effective.providers || {}).flatMap(([providerId, provider]) =>
-        Object.keys(provider.models || {}).map((modelId) => providerId + "/" + modelId),
-      );
-      const nextSelected =
-        selectedModelRef && availableRefs.includes(selectedModelRef)
-          ? selectedModelRef
-          : effective.model || availableRefs[0] || "";
-      onSelectedModelRef(nextSelected);
+      adopt(await bridge.saveProviderCatalogScope(scope, { ...loadedFile, catalog: next }));
+      onConfigChanged();
       return true;
     } catch (err) {
-      onError(String(err));
+      const message = String(err);
+      // The file changed under the editor and Core wrote nothing: show what is on disk now.
+      if (coreErrorKey(message) === "conflict") {
+        try {
+          adopt(await bridge.providerCatalogScope(scope));
+          onConfigChanged();
+        } catch (reloadErr) {
+          onError(String(reloadErr));
+          return false;
+        }
+      }
+      onError(message);
       return false;
     } finally {
       setSaving(false);
@@ -261,8 +268,7 @@ export function useProviderSettingsController({
     const next = cloneCatalog(catalog);
     const ref = providerId + "/" + modelId;
     next.model = next.model === ref ? undefined : ref;
-    if (!(await saveCatalog(next))) return;
-    onSelectedModelRef(ref);
+    await saveCatalog(next);
   }
 
   const {

@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, Ref } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
 import { ArrowUp, Folder, Settings2 } from "lucide-react";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
 import { ContextAttachments } from "./ContextAttachments";
@@ -48,6 +48,7 @@ type Props = {
   runtimeDescriptions: Record<ComposerRuntime, string>;
   hint: string;
   startLabel: string;
+  notice?: ReactNode;
   goal: string;
   busy: boolean;
   textareaRef: Ref<HTMLTextAreaElement>;
@@ -92,6 +93,7 @@ export function NewTaskComposer({
   runtimeDescriptions,
   hint,
   startLabel,
+  notice,
   goal,
   busy,
   textareaRef,
@@ -116,6 +118,8 @@ export function NewTaskComposer({
         <h1>{title}</h1>
         <p>{subtitle}</p>
       </div>
+
+      {notice}
 
       <form className="new-task-composer" onSubmit={onSubmit}>
         <textarea

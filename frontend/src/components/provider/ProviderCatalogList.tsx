@@ -10,7 +10,6 @@ import {
   Trash2,
   Wifi,
 } from "lucide-react";
-import type { ProviderCatalog } from "../../types";
 import { ModelForm, ProviderForm } from "./ProviderForms";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { emptyProvider } from "./provider-settings-model";
@@ -18,11 +17,11 @@ import type { useProviderSettingsController } from "./useProviderSettingsControl
 
 type Props = {
   locale: ProviderLocale;
-  effectiveCatalog: ProviderCatalog;
+  effectiveModel: string;
   controller: ReturnType<typeof useProviderSettingsController>;
 };
 
-export function ProviderCatalogList({ locale, effectiveCatalog, controller }: Props) {
+export function ProviderCatalogList({ locale, effectiveModel, controller }: Props) {
   const t = providerCopy[locale];
   const {
     scope,
@@ -162,7 +161,7 @@ export function ProviderCatalogList({ locale, effectiveCatalog, controller }: Pr
                     {models.map(([modelId, model]) => {
                       const ref = providerId + "/" + modelId;
                       const localDefault = catalog.model === ref;
-                      const effectiveDefault = effectiveCatalog.model === ref;
+                      const effectiveDefault = effectiveModel === ref;
                       const editing =
                         editingModel?.providerId === providerId && editingModel.modelId === modelId;
                       return (
