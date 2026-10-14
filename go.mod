@@ -3,7 +3,7 @@ module github.com/edynasty/LumenCortex-Desktop
 go 1.25.0
 
 require (
-	github.com/edynasty/LumenCortex v0.0.0-20261011044809-33c46439dd48
+	github.com/edynasty/LumenCortex v0.0.0-20261014082642-b4608e5b06d2
 	github.com/wailsapp/wails/v2 v2.16.0
 )
 
@@ -28,6 +28,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.49.1 // indirect
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
