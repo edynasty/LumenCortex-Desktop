@@ -392,6 +392,15 @@
   color: var(--text);
 }
 
+.thread-context-menu button.danger:not(:disabled),
+.thread-context-menu button.danger:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.thread-context-menu button.danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
 .thread-context-menu button:disabled {
   color: var(--faint);
 }

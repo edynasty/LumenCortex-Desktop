@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { bridge } from "../../lib/bridge";
-import type { RuntimeKind, Session, WorkspaceState } from "../../types";
+import type { WorkspaceState } from "../../types";
+import type { WorktreeCleanupTarget } from "../../components/worktree/WorktreeCleanupDialog";
 import type { WorkspaceRoute } from "../workspace-route";
 
 type SessionUIPatch = {
@@ -11,32 +12,26 @@ type SessionUIPatch = {
 
 type Options = {
   selectedSessionId: string;
-  currentSession?: Session;
-  currentRuntimeKind: RuntimeKind;
-  running: boolean;
   busy: boolean;
   command: string;
   setWorkspaceState: Dispatch<SetStateAction<WorkspaceState>>;
   setRoute: Dispatch<SetStateAction<WorkspaceRoute>>;
   setBusy: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
-  setCleanupWorktreeOpen: Dispatch<SetStateAction<boolean>>;
+  setWorktreeCleanupTarget: Dispatch<SetStateAction<WorktreeCleanupTarget | null>>;
   refreshCurrent: (sessionId?: string) => Promise<void>;
   resetSessionRuntime: () => void;
 };
 
 export function useSessionMaintenanceActions({
   selectedSessionId,
-  currentSession,
-  currentRuntimeKind,
-  running,
   busy,
   command,
   setWorkspaceState,
   setRoute,
   setBusy,
   setError,
-  setCleanupWorktreeOpen,
+  setWorktreeCleanupTarget,
   refreshCurrent,
   resetSessionRuntime,
 }: Options) {
@@ -55,18 +50,18 @@ export function useSessionMaintenanceActions({
     }
   }
 
-  async function cleanupCurrentWorktree(force: boolean) {
-    if (!currentSession || currentRuntimeKind !== "worktree" || running || busy) return;
-    setBusy(true);
-    setError("");
+  // Core removed the worktree or deleted the session (and its finished subagents).
+  // The session list and every runtime binding are reloaded from Core.
+  async function completeWorktreeCleanup(deletedSessionIds: string[]) {
+    setWorktreeCleanupTarget(null);
+    if (deletedSessionIds.includes(selectedSessionId)) {
+      setRoute({ kind: "new-task" });
+      resetSessionRuntime();
+    }
     try {
-      await bridge.removeSessionWorktree(currentSession.id, force);
       setWorkspaceState(await bridge.state());
-      setCleanupWorktreeOpen(false);
     } catch (err) {
       setError(String(err));
-    } finally {
-      setBusy(false);
     }
   }
 
@@ -89,7 +84,7 @@ export function useSessionMaintenanceActions({
 
   return {
     runShell,
-    cleanupCurrentWorktree,
+    completeWorktreeCleanup,
     updateSessionUI,
   };
 }

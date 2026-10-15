@@ -155,6 +155,79 @@ export type WorktreeApplyResult = {
   targetHead: string;
 };
 
+// Core's view of what a worktree cleanup would act on (ADR-0005). role is "" for a
+// session without a worktree.
+export type WorktreeRole = "" | "owner" | "borrower" | "uncertain";
+
+export type WorktreeInspection = {
+  sessionId: string;
+  role?: WorktreeRole;
+  owner?: string;
+  path?: string;
+  branch?: string;
+  exists: boolean;
+  registered: boolean;
+  branchExists: boolean;
+  head?: string;
+  targetHead?: string;
+  dirtyFiles?: string[];
+  ignoredFiles?: string[];
+  ignoredTruncated?: boolean;
+  statusDigest?: string;
+  unappliedCommits?: string[];
+  uncertain?: string;
+};
+
+// The default cleanup is {}. keepBranch and discard widen it; Core re-validates a
+// discard against the head and digest the user reviewed.
+export type WorktreeCleanup = {
+  keepBranch?: boolean;
+  discard?: { expectHead: string; expectStatusDigest: string };
+};
+
+export type WorktreeCleanupResult = {
+  action: "none" | "unbound" | "retained" | "removed";
+  path?: string;
+  branch?: string;
+  directoryRemoved?: boolean;
+  branchDeleted?: boolean;
+  branchKept?: boolean;
+  discarded?: boolean;
+  commits?: string[];
+  ignoredFiles?: string[];
+};
+
+export type SessionDependent = {
+  sessionId: string;
+  kind: string;
+  reason: "running" | "owns_worktree" | "uncertain_worktree" | "independent";
+};
+
+export type WorktreeRefusalCode =
+  | "dirty"
+  | "unapplied"
+  | "ignored"
+  | "ownership"
+  | "borrowed"
+  | "stale"
+  | "busy"
+  | "runHeld"
+  | "dependents";
+
+export type WorktreeRefusal = {
+  code: WorktreeRefusalCode;
+  message: string;
+  inspection?: WorktreeInspection;
+  dependents?: SessionDependent[];
+};
+
+export type WorktreeCleanupOutcome = { result?: WorktreeCleanupResult; refusal?: WorktreeRefusal };
+
+export type DeleteSessionOutcome = {
+  result?: { sessionId: string; worktree: WorktreeCleanupResult; deletedChildren?: string[] };
+  refusal?: WorktreeRefusal;
+};
+
 export type SubagentNode = {
   sessionId: string;
   parentSessionId?: string;

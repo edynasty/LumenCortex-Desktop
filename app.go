@@ -112,8 +112,18 @@ func (a *App) GetSessionRuntime(sessionID string) (backend.SessionRuntime, error
 	return a.backend.SessionRuntime(context.Background(), sessionID)
 }
 
-func (a *App) RemoveSessionWorktree(sessionID string, force bool) error {
-	return a.backend.RemoveSessionWorktree(context.Background(), sessionID, force)
+func (a *App) InspectSessionWorktree(sessionID string) (backend.WorktreeInspection, error) {
+	return a.backend.InspectSessionWorktree(context.Background(), sessionID)
+}
+
+// RemoveSessionWorktree unbinds the session from its worktree; the session stays.
+func (a *App) RemoveSessionWorktree(sessionID string, cleanup backend.WorktreeCleanup) (backend.WorktreeCleanupOutcome, error) {
+	return a.backend.RemoveSessionWorktree(context.Background(), sessionID, cleanup)
+}
+
+// DeleteSession deletes the session and, under the same cleanup rules, its worktree.
+func (a *App) DeleteSession(sessionID string, cleanup backend.WorktreeCleanup) (backend.DeleteSessionOutcome, error) {
+	return a.backend.DeleteSession(context.Background(), sessionID, cleanup)
 }
 
 func (a *App) WorktreeConflicts() ([]backend.WorktreeConflict, error) {

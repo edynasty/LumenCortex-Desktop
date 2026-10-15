@@ -25,6 +25,7 @@ type Props = {
   onRenameSession: (sessionId: string, title: string) => void;
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
+  onDeleteSession: (sessionId: string) => void;
   onOpenProviders: () => void;
   onOpenExtensions: () => void;
   onSwitchLocale: () => void;
@@ -56,6 +57,7 @@ export function WorkspaceSidebar({
   onRenameSession,
   onPinSession,
   onArchiveSession,
+  onDeleteSession,
   onOpenProviders,
   onOpenExtensions,
   onSwitchLocale,
@@ -98,6 +100,7 @@ export function WorkspaceSidebar({
         unpinThread: labels.unpinThread,
         archiveThread: labels.archiveThread,
         restoreThread: labels.restoreThread,
+        deleteThread: labels.deleteThread,
         save: labels.save,
         cancel: labels.cancel,
         threadMenu: labels.threadMenu,
@@ -113,6 +116,7 @@ export function WorkspaceSidebar({
       onRenameSession={onRenameSession}
       onPinSession={onPinSession}
       onArchiveSession={onArchiveSession}
+      onDeleteSession={onDeleteSession}
       onOpenProviders={onOpenProviders}
       onOpenExtensions={onOpenExtensions}
       themePreference={themePreference}

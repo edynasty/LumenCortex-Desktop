@@ -8,13 +8,17 @@ import (
 	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
-var ErrWorktreeActive = errors.New("cannot remove worktree for an active agent run")
-
 type SessionRuntime = lcx.SessionRuntime
 type RuntimeOwner = lcx.RuntimeOwner
 type WorktreeConflict = lcx.WorktreeConflict
 type WorktreeHandoffPlan = lcx.WorktreeHandoffPlan
 type WorktreeApplyResult = lcx.WorktreeApplyResult
+type WorktreeInspection = lcx.WorktreeInspection
+type WorktreeCleanup = lcx.WorktreeCleanup
+type WorktreeDiscard = lcx.WorktreeDiscard
+type WorktreeCleanupResult = lcx.WorktreeCleanupResult
+type DeleteSessionResult = lcx.DeleteSessionResult
+type SessionDependent = lcx.SessionDependent
 
 const (
 	RuntimeLocal    = lcx.RuntimeLocal
@@ -60,27 +64,130 @@ func (r *Runtime) SessionRuntime(ctx context.Context, sessionID string) (Session
 	return engine.SessionRuntime(ctx, sessionID)
 }
 
-func (r *Runtime) RemoveSessionWorktree(ctx context.Context, sessionID string, force bool) error {
+// Worktree cleanup and session deletion are enforced by Core (ADR-0005): the run lock,
+// the cross-process worktree lease, ownership and the cleanup matrix. The adapter
+// only classifies Core's typed refusals for the UI; it keeps no guard of its own.
+
+// WorktreeRefusal is a cleanup or deletion Core refused before writing anything.
+// Code is one of the WorktreeRefusal* constants; Inspection is Core's fresh view of
+// what would have been lost, when it has one.
+type WorktreeRefusal struct {
+	Code       string              `json:"code"`
+	Message    string              `json:"message"`
+	Inspection *WorktreeInspection `json:"inspection,omitempty"`
+	Dependents []SessionDependent  `json:"dependents,omitempty"`
+}
+
+const (
+	WorktreeRefusalDirty      = "dirty"
+	WorktreeRefusalUnapplied  = "unapplied"
+	WorktreeRefusalIgnored    = "ignored"
+	WorktreeRefusalOwnership  = "ownership"
+	WorktreeRefusalBorrowed   = "borrowed"
+	WorktreeRefusalStale      = "stale"
+	WorktreeRefusalBusy       = "busy"
+	WorktreeRefusalRunHeld    = "runHeld"
+	WorktreeRefusalDependents = "dependents"
+)
+
+// WorktreeCleanupOutcome holds exactly one of Result and Refusal.
+type WorktreeCleanupOutcome struct {
+	Result  *WorktreeCleanupResult `json:"result,omitempty"`
+	Refusal *WorktreeRefusal       `json:"refusal,omitempty"`
+}
+
+// DeleteSessionOutcome holds exactly one of Result and Refusal.
+type DeleteSessionOutcome struct {
+	Result  *DeleteSessionResult `json:"result,omitempty"`
+	Refusal *WorktreeRefusal     `json:"refusal,omitempty"`
+}
+
+// worktreeRefusal classifies err when it is a refusal the user can act on; other
+// errors stay errors.
+func worktreeRefusal(err error) *WorktreeRefusal {
+	out := &WorktreeRefusal{Message: err.Error()}
+	var refusal *lcx.WorktreeRefusal
+	var dependents *lcx.DependentsError
+	switch {
+	case errors.As(err, &dependents):
+		out.Code, out.Dependents = WorktreeRefusalDependents, dependents.Dependents
+		return out
+	case errors.As(err, &refusal):
+		inspection := refusal.Inspection
+		out.Inspection = &inspection
+	}
+	codes := []struct {
+		err  error
+		code string
+	}{
+		{lcx.ErrWorktreeDirty, WorktreeRefusalDirty},
+		{lcx.ErrWorktreeUnapplied, WorktreeRefusalUnapplied},
+		{lcx.ErrWorktreeIgnored, WorktreeRefusalIgnored},
+		{lcx.ErrWorktreeOwnership, WorktreeRefusalOwnership},
+		{lcx.ErrWorktreeBorrowed, WorktreeRefusalBorrowed},
+		{lcx.ErrDiscardStale, WorktreeRefusalStale},
+		{lcx.ErrWorktreeBusy, WorktreeRefusalBusy},
+		{lcx.ErrRunHeld, WorktreeRefusalRunHeld},
+	}
+	for _, c := range codes {
+		if errors.Is(err, c.err) {
+			out.Code = c.code
+			return out
+		}
+	}
+	return nil
+}
+
+// InspectSessionWorktree is Core's read of what a cleanup of the session's worktree
+// would affect; the UI shows it before offering KeepBranch or Discard.
+func (r *Runtime) InspectSessionWorktree(ctx context.Context, sessionID string) (WorktreeInspection, error) {
 	r.mu.RLock()
 	engine := r.engine
-	supervisor := r.supervisor
 	r.mu.RUnlock()
 	if engine == nil {
-		return ErrNoWorkspace
+		return WorktreeInspection{}, ErrNoWorkspace
 	}
-	if supervisor != nil {
-		if supervisor.Active(sessionID) {
-			return ErrWorktreeActive
-		}
-		activeChildren, err := supervisor.HasActiveSubagents(ctx, sessionID)
-		if err != nil {
-			return err
-		}
-		if activeChildren {
-			return ErrWorktreeActive
-		}
+	return engine.InspectSessionWorktree(ctx, sessionID)
+}
+
+// RemoveSessionWorktree unbinds the session from its worktree under Core's cleanup
+// matrix; the session stays. A Discard is re-validated by Core against the HEAD and
+// status digest it carries.
+func (r *Runtime) RemoveSessionWorktree(ctx context.Context, sessionID string, cleanup WorktreeCleanup) (WorktreeCleanupOutcome, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return WorktreeCleanupOutcome{}, ErrNoWorkspace
 	}
-	return engine.RemoveSessionWorktree(ctx, sessionID, force)
+	result, err := engine.RemoveSessionWorktree(ctx, sessionID, cleanup)
+	if err != nil {
+		if refusal := worktreeRefusal(err); refusal != nil {
+			return WorktreeCleanupOutcome{Refusal: refusal}, nil
+		}
+		return WorktreeCleanupOutcome{}, err
+	}
+	return WorktreeCleanupOutcome{Result: &result}, nil
+}
+
+// DeleteSession deletes the session, its worktree under the same matrix, and its
+// finished temporary subagents. It is a different operation from removing the
+// worktree: the session and its transcript are gone afterwards.
+func (r *Runtime) DeleteSession(ctx context.Context, sessionID string, cleanup WorktreeCleanup) (DeleteSessionOutcome, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return DeleteSessionOutcome{}, ErrNoWorkspace
+	}
+	result, err := engine.DeleteSession(ctx, sessionID, cleanup)
+	if err != nil {
+		if refusal := worktreeRefusal(err); refusal != nil {
+			return DeleteSessionOutcome{Refusal: refusal}, nil
+		}
+		return DeleteSessionOutcome{}, err
+	}
+	return DeleteSessionOutcome{Result: &result}, nil
 }
 
 func (r *Runtime) SessionGitStatus(ctx context.Context, sessionID string) (GitStatus, error) {
@@ -175,25 +282,15 @@ func (r *Runtime) WorktreeHandoffPlan(ctx context.Context, sessionID string) (Wo
 	return engine.WorktreeHandoffPlan(ctx, sessionID)
 }
 
+// ApplySessionWorktree cherry-picks the worktree's commits onto the main checkout.
+// Core refuses while the session or any borrower runs (ErrRunHeld, ErrWorktreeBusy)
+// and serializes Applies on the main checkout.
 func (r *Runtime) ApplySessionWorktree(ctx context.Context, sessionID string) (WorktreeApplyResult, error) {
 	r.mu.RLock()
 	engine := r.engine
-	supervisor := r.supervisor
 	r.mu.RUnlock()
 	if engine == nil {
 		return WorktreeApplyResult{}, ErrNoWorkspace
-	}
-	if supervisor != nil {
-		if supervisor.Active(sessionID) {
-			return WorktreeApplyResult{}, ErrWorktreeActive
-		}
-		activeChildren, err := supervisor.HasActiveSubagents(ctx, sessionID)
-		if err != nil {
-			return WorktreeApplyResult{}, err
-		}
-		if activeChildren {
-			return WorktreeApplyResult{}, ErrWorktreeActive
-		}
 	}
 	return engine.ApplySessionWorktree(ctx, sessionID)
 }

@@ -16,6 +16,7 @@ const order: CoreErrorKey[] = [
   "invalidEffort",
   "unknownModel",
   "runHeld",
+  "worktreeBusy",
 ];
 
 export function coreErrorKey(error: string): CoreErrorKey | null {

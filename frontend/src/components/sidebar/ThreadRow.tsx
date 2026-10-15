@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff } from "lucide-react";
+import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Session, SessionRuntime } from "../../types";
 import { Button } from "../primitives/Button";
@@ -20,6 +20,7 @@ type Props = {
     unpin: string;
     archive: string;
     restore: string;
+    delete: string;
     save: string;
     cancel: string;
     menu: string;
@@ -32,6 +33,7 @@ type Props = {
   onRename: (title: string) => void;
   onPinnedChange: (pinned: boolean) => void;
   onArchivedChange: (archived: boolean) => void;
+  onDelete: () => void;
 };
 
 function formatClock(value: string) {
@@ -59,6 +61,7 @@ export function ThreadRow({
   onRename,
   onPinnedChange,
   onArchivedChange,
+  onDelete,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -129,6 +132,18 @@ export function ThreadRow({
               ? <ArchiveRestore size={13} strokeWidth={1.7} aria-hidden />
               : <Archive size={13} strokeWidth={1.7} aria-hidden />}
             <span>{archived ? labels.restore : labels.archive}</span>
+          </button>
+          <button
+            type="button"
+            className="danger"
+            disabled={active}
+            onClick={() => {
+              setMenuOpen(false);
+              onDelete();
+            }}
+          >
+            <Trash2 size={13} strokeWidth={1.7} aria-hidden />
+            <span>{labels.delete}</span>
           </button>
         </div>
       </Popover>

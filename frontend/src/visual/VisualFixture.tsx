@@ -71,6 +71,7 @@ export function VisualFixture() {
       onRenameSession={noop}
       onPinSession={noop}
       onArchiveSession={noop}
+      onDeleteSession={noop}
       onOpenProviders={noop}
       onOpenExtensions={noop}
       onSwitchLocale={noop}
@@ -201,12 +202,11 @@ export function VisualFixture() {
       )}
 
       <WorkspaceOverlays
-        cleanupOpen={false}
-        busy={false}
+        worktreeCleanupTarget={null}
         error={visualError === "provider" ? "provider model not found" : ""}
         labels={labels}
-        onCleanupOpenChange={noop}
-        onCleanup={noop}
+        onWorktreeCleanupClose={noop}
+        onWorktreeCleanupCompleted={noop}
         errorActionLabel={visualError === "provider" ? labels.providerConfig : undefined}
         onErrorAction={noop}
         onClearError={noop}

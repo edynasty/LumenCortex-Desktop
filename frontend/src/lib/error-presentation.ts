@@ -4,6 +4,7 @@ import { coreErrorKey, type CoreErrorKey } from "./core-errors";
 type ErrorLabels = Pick<
   AppCopy,
   | "runningElsewhereError"
+  | "errWorktreeBusy"
   | "errDatabaseInUse"
   | "errSchemaTooNew"
   | "errLegacyNodeDatabase"
@@ -24,6 +25,7 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   conflict: "errConflict",
   invalidConfig: "errInvalidConfig",
   runHeld: "runningElsewhereError",
+  worktreeBusy: "errWorktreeBusy",
 };
 
 // A Core error the UI knows is shown as actionable localized copy. Any other error keeps its text.

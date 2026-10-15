@@ -24,6 +24,7 @@ import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
 import type { WorkspaceRoute } from "./workspace-route";
+import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
 
 type Policy = "read-only" | "workspace" | "full";
 type RuntimeState = "ready" | "online" | "offline";
@@ -71,7 +72,7 @@ type Props = {
   workflowSummary: WorkflowSummary | null;
   subagents: SubagentNode[];
   checkpoints: SessionCheckpoint[];
-  cleanupWorktreeOpen: boolean;
+  worktreeCleanupTarget: WorktreeCleanupTarget | null;
   error: string;
   textareaRef: Ref<HTMLTextAreaElement>;
   onSetRoute: (route: WorkspaceRoute) => void;
@@ -79,7 +80,8 @@ type Props = {
   onSidebarCollapsedChange: (collapsed: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
-  onCleanupWorktreeOpenChange: (open: boolean) => void;
+  onWorktreeCleanupTargetChange: (target: WorktreeCleanupTarget | null) => void;
+  onWorktreeCleanupCompleted: (deletedSessionIds: string[]) => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -119,7 +121,6 @@ type Props = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendReviewInstruction: (path: string, instruction: string) => Promise<void>;
-  onCleanupWorktree: (force: boolean) => void;
 };
 
 export function WorkspaceView(props: Props) {
@@ -166,7 +167,7 @@ export function WorkspaceView(props: Props) {
     workflowSummary,
     subagents,
     checkpoints,
-    cleanupWorktreeOpen,
+    worktreeCleanupTarget,
     error,
     textareaRef,
   } = props;
@@ -250,6 +251,7 @@ export function WorkspaceView(props: Props) {
         onRenameSession={props.onRenameSession}
         onPinSession={props.onPinSession}
         onArchiveSession={props.onArchiveSession}
+        onDeleteSession={(sessionId) => props.onWorktreeCleanupTargetChange({ mode: "delete", sessionId })}
         onSwitchLocale={props.onSwitchLocale}
         onThemePreferenceChange={props.onThemePreferenceChange}
         onModelChange={props.onModelChange}
@@ -265,7 +267,7 @@ export function WorkspaceView(props: Props) {
         onStopLSP={props.onStopLSP}
         onOpenSubagent={props.onOpenSubagent}
         onRunShell={props.onRunShell}
-        onCleanupWorktree={() => props.onCleanupWorktreeOpenChange(true)}
+        onCleanupWorktree={() => current && props.onWorktreeCleanupTargetChange({ mode: "remove", sessionId: current.id })}
         onCancelAgent={props.onCancelAgent}
         onStartAgent={props.onStartAgent}
       >
@@ -318,12 +320,11 @@ export function WorkspaceView(props: Props) {
       </WorkspaceChrome>
 
       <WorkspaceOverlays
-        cleanupOpen={cleanupWorktreeOpen}
-        busy={busy}
+        worktreeCleanupTarget={worktreeCleanupTarget}
         error={presentError(labels, error)}
         labels={labels}
-        onCleanupOpenChange={props.onCleanupWorktreeOpenChange}
-        onCleanup={props.onCleanupWorktree}
+        onWorktreeCleanupClose={() => props.onWorktreeCleanupTargetChange(null)}
+        onWorktreeCleanupCompleted={props.onWorktreeCleanupCompleted}
         errorActionLabel={recoveryLabel}
         onErrorAction={recoverError}
         onClearError={props.onClearError}

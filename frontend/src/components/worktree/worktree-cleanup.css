@@ -1,0 +1,98 @@
+.worktree-cleanup {
+  display: grid;
+  gap: 10px;
+}
+
+.worktree-cleanup-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.worktree-cleanup-note.safe {
+  color: var(--green);
+}
+
+.worktree-cleanup-note.warning {
+  color: var(--amber);
+}
+
+.worktree-cleanup-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.worktree-cleanup-identity dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.worktree-cleanup-identity code,
+.worktree-cleanup-items code,
+.worktree-cleanup-refusal code {
+  font: 9.5px/1.35 var(--mono);
+}
+
+.worktree-cleanup-identity code {
+  display: block;
+  overflow: hidden;
+  color: var(--text-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worktree-cleanup-risk {
+  display: grid;
+  gap: 5px;
+  padding: 8px 9px;
+  border: 1px solid var(--warning-border);
+  border-radius: 9px;
+  background: var(--warning-bg);
+}
+
+.worktree-cleanup-risk h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.worktree-cleanup-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: var(--muted);
+}
+
+.worktree-cleanup-items code {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worktree-cleanup-refusal {
+  padding: 8px 9px;
+  border: 1px solid var(--danger-border);
+  border-radius: 9px;
+  background: var(--danger-bg);
+  color: var(--red);
+}
+
+.worktree-cleanup-refusal p,
+.worktree-cleanup-refusal ul {
+  margin: 0;
+}
+
+.worktree-cleanup-refusal ul {
+  padding-left: 16px;
+}

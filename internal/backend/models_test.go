@@ -238,6 +238,7 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"conflict":              config.ErrConflict,
 		"invalidConfig":         config.ErrInvalidConfig,
 		"runHeld":               lcx.ErrRunHeld,
+		"worktreeBusy":          lcx.ErrWorktreeBusy,
 	}
 	got := map[string]string{}
 	for key, err := range want {

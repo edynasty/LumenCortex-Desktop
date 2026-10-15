@@ -4,7 +4,6 @@ import { useSessionMaintenanceActions } from "./useSessionMaintenanceActions";
 
 const mocks = vi.hoisted(() => ({
   runShell: vi.fn(),
-  removeSessionWorktree: vi.fn(),
   state: vi.fn(),
   updateSessionUI: vi.fn(),
 }));
@@ -26,22 +25,19 @@ function setup(overrides: Partial<Parameters<typeof useSessionMaintenanceActions
   const setRoute = vi.fn();
   const setBusy = vi.fn();
   const setError = vi.fn();
-  const setCleanupWorktreeOpen = vi.fn();
+  const setWorktreeCleanupTarget = vi.fn();
   const refreshCurrent = vi.fn().mockResolvedValue(undefined);
   const resetSessionRuntime = vi.fn();
 
   const options: Parameters<typeof useSessionMaintenanceActions>[0] = {
     selectedSessionId: "session-1",
-    currentSession: session,
-    currentRuntimeKind: "worktree",
-    running: false,
     busy: false,
     command: " git status --short ",
     setWorkspaceState,
     setRoute,
     setBusy,
     setError,
-    setCleanupWorktreeOpen,
+    setWorktreeCleanupTarget,
     refreshCurrent,
     resetSessionRuntime,
     ...overrides,
@@ -54,7 +50,7 @@ function setup(overrides: Partial<Parameters<typeof useSessionMaintenanceActions
       setRoute,
       setBusy,
       setError,
-      setCleanupWorktreeOpen,
+      setWorktreeCleanupTarget,
       refreshCurrent,
       resetSessionRuntime,
     },
@@ -85,19 +81,29 @@ describe("useSessionMaintenanceActions", () => {
     expect(spies.setBusy).toHaveBeenLastCalledWith(false);
   });
 
-  it("cleans a stopped worktree session and closes the dialog", async () => {
-    mocks.removeSessionWorktree.mockResolvedValue(undefined);
+  it("leaves the thread when its session was deleted, directly or as a subagent", async () => {
     const { result, spies } = setup();
 
     await act(async () => {
-      await result.current.cleanupCurrentWorktree(true);
+      await result.current.completeWorktreeCleanup(["parent-1", "session-1"]);
     });
 
-    expect(mocks.removeSessionWorktree).toHaveBeenCalledWith("session-1", true);
-    expect(spies.setWorkspaceState).toHaveBeenCalledWith(
-      expect.objectContaining({ workspace: "/repo" }),
-    );
-    expect(spies.setCleanupWorktreeOpen).toHaveBeenCalledWith(false);
+    expect(spies.setWorktreeCleanupTarget).toHaveBeenCalledWith(null);
+    expect(spies.setRoute).toHaveBeenCalledWith({ kind: "new-task" });
+    expect(spies.resetSessionRuntime).toHaveBeenCalled();
+    expect(spies.setWorkspaceState).toHaveBeenCalledWith(expect.objectContaining({ workspace: "/repo" }));
+  });
+
+  it("stays on the thread after its worktree was removed", async () => {
+    const { result, spies } = setup();
+
+    await act(async () => {
+      await result.current.completeWorktreeCleanup([]);
+    });
+
+    expect(spies.setRoute).not.toHaveBeenCalled();
+    expect(spies.resetSessionRuntime).not.toHaveBeenCalled();
+    expect(spies.setWorkspaceState).toHaveBeenCalledWith(expect.objectContaining({ workspace: "/repo" }));
   });
 
   it("archives the selected thread and resets thread runtime state", async () => {

@@ -71,6 +71,7 @@ type Props = {
     unpinThread: string;
     archiveThread: string;
     restoreThread: string;
+    deleteThread: string;
     save: string;
     cancel: string;
     threadMenu: string;
@@ -86,6 +87,7 @@ type Props = {
   onRenameSession: (sessionId: string, title: string) => void;
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
+  onDeleteSession: (sessionId: string) => void;
   onOpenProviders: () => void;
   onOpenExtensions: () => void;
   onSwitchLocale: () => void;
@@ -114,6 +116,7 @@ export function Sidebar({
   onRenameSession,
   onPinSession,
   onArchiveSession,
+  onDeleteSession,
   onOpenProviders,
   onOpenExtensions,
   onSwitchLocale,
@@ -239,6 +242,7 @@ export function Sidebar({
                   unpin: labels.unpinThread,
                   archive: labels.archiveThread,
                   restore: labels.restoreThread,
+                  delete: labels.deleteThread,
                   save: labels.save,
                   cancel: labels.cancel,
                   menu: labels.threadMenu,
@@ -249,6 +253,7 @@ export function Sidebar({
                 onRename={(title) => onRenameSession(session.id, title)}
                 onPinnedChange={(value) => onPinSession(session.id, value)}
                 onArchivedChange={(value) => onArchiveSession(session.id, value)}
+                onDelete={() => onDeleteSession(session.id)}
               />
             ))}
           </section>

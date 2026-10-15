@@ -12,12 +12,11 @@ describe("WorkspaceOverlays", () => {
 
     render(
       <WorkspaceOverlays
-        cleanupOpen={false}
-        busy={false}
+        worktreeCleanupTarget={null}
         error="provider model not found"
         labels={copy.en}
-        onCleanupOpenChange={() => undefined}
-        onCleanup={() => undefined}
+        onWorktreeCleanupClose={() => undefined}
+        onWorktreeCleanupCompleted={() => undefined}
         errorActionLabel="Provider configuration"
         onErrorAction={onErrorAction}
         onClearError={onClearError}

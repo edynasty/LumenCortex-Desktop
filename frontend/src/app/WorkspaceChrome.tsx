@@ -68,6 +68,7 @@ type Props = {
   onRenameSession: (sessionId: string, title: string) => void;
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
+  onDeleteSession: (sessionId: string) => void;
   onSwitchLocale: () => void;
   onThemePreferenceChange: (theme: ThemePreference) => void;
   onModelChange: (value: string) => void;
@@ -172,6 +173,7 @@ export function WorkspaceChrome(props: Props) {
       onRenameSession={props.onRenameSession}
       onPinSession={props.onPinSession}
       onArchiveSession={props.onArchiveSession}
+      onDeleteSession={props.onDeleteSession}
       onOpenProviders={openProviders}
       onOpenExtensions={() => {
         props.onSetRoute({ kind: "extensions", sessionId: selectedSessionId || undefined });

@@ -326,6 +326,7 @@ export const sidebarLabels = {
   unpinThread: labels.unpinThread,
   archiveThread: labels.archiveThread,
   restoreThread: labels.restoreThread,
+  deleteThread: labels.deleteThread,
   save: labels.save,
   cancel: labels.cancel,
   threadMenu: labels.threadMenu,

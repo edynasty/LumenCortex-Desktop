@@ -12,6 +12,7 @@ const cases: Array<[string, string, keyof typeof copy.en]> = [
   ["Error: effort must be one of none, low, medium, high, max", "invalidEffort", "errInvalidEffort"],
   ["Error: config file changed since it was read: /home/lumencortex.json", "conflict", "errConflict"],
   ["Error: run is active in another process or engine", "runHeld", "runningElsewhereError"],
+  ["Error: session worktree is in use: /repo/.lumencortex-worktrees/session_1 (wt_session_1)", "worktreeBusy", "errWorktreeBusy"],
 ];
 
 describe("Core error presentation", () => {

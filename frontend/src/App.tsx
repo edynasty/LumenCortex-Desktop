@@ -19,6 +19,7 @@ import { sessionRuntime } from "./lib/session-runtime";
 import { useThemePreference } from "./lib/theme";
 import { useSidebarCollapsedPreference } from "./lib/sidebar-preference";
 import type { RuntimeKind } from "./types";
+import type { WorktreeCleanupTarget } from "./components/worktree/WorktreeCleanupDialog";
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
@@ -111,7 +112,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
-  const [cleanupWorktreeOpen, setCleanupWorktreeOpen] = useState(false);
+  const [worktreeCleanupTarget, setWorktreeCleanupTarget] = useState<WorktreeCleanupTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -187,20 +188,17 @@ export default function App() {
 
   const {
     runShell,
-    cleanupCurrentWorktree,
+    completeWorktreeCleanup,
     updateSessionUI,
   } = useSessionMaintenanceActions({
     selectedSessionId: selected,
-    currentSession: current,
-    currentRuntimeKind: currentRuntime.kind,
-    running,
     busy,
     command,
     setWorkspaceState: setState,
     setRoute,
     setBusy,
     setError,
-    setCleanupWorktreeOpen,
+    setWorktreeCleanupTarget,
     refreshCurrent,
     resetSessionRuntime,
   });
@@ -289,7 +287,7 @@ export default function App() {
       workflowSummary={workflowSummary}
       subagents={subagents}
       checkpoints={checkpoints}
-      cleanupWorktreeOpen={cleanupWorktreeOpen}
+      worktreeCleanupTarget={worktreeCleanupTarget}
       error={error}
       textareaRef={composerRef}
       onSetRoute={setRoute}
@@ -297,7 +295,8 @@ export default function App() {
       onSidebarCollapsedChange={setSidebarCollapsed}
       onInspectorOpenChange={setInspectorOpen}
       onInspectorTabChange={setInspectorTab}
-      onCleanupWorktreeOpenChange={setCleanupWorktreeOpen}
+      onWorktreeCleanupTargetChange={setWorktreeCleanupTarget}
+      onWorktreeCleanupCompleted={(deletedSessionIds) => void completeWorktreeCleanup(deletedSessionIds)}
       onNewTask={newTask}
       onPickWorkspace={pickWorkspace}
       onOpenWorkspace={openWorkspace}
@@ -341,7 +340,6 @@ export default function App() {
       onSubmit={submitTask}
       onKeyDown={onComposerKeyDown}
       onSendReviewInstruction={sendReviewInstruction}
-      onCleanupWorktree={(force) => void cleanupCurrentWorktree(force)}
     />
   );
 

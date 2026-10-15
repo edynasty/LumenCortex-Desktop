@@ -32,8 +32,12 @@ import type {
   WorkspaceState,
   WorkflowSummary,
   WorktreeApplyResult,
+  WorktreeCleanup,
+  WorktreeCleanupOutcome,
   WorktreeConflict,
-  WorktreeHandoffPlan
+  WorktreeHandoffPlan,
+  WorktreeInspection,
+  DeleteSessionOutcome
 } from "../types";
 
 type AppAPI = {
@@ -47,7 +51,9 @@ type AppAPI = {
   CreateSessionWithContext(goal: string, paths: string[]): Promise<Session>;
   CreateSessionWithRuntime(goal: string, paths: string[], runtimeKind: string, base: string): Promise<Session>;
   GetSessionRuntime(sessionId: string): Promise<SessionRuntime>;
-  RemoveSessionWorktree(sessionId: string, force: boolean): Promise<void>;
+  InspectSessionWorktree(sessionId: string): Promise<WorktreeInspection>;
+  RemoveSessionWorktree(sessionId: string, cleanup: WorktreeCleanup): Promise<WorktreeCleanupOutcome>;
+  DeleteSession(sessionId: string, cleanup: WorktreeCleanup): Promise<DeleteSessionOutcome>;
   WorktreeConflicts(): Promise<WorktreeConflict[]>;
   WorktreeHandoffPlan(sessionId: string): Promise<WorktreeHandoffPlan>;
   ApplySessionWorktree(sessionId: string): Promise<WorktreeApplyResult>;
@@ -138,7 +144,9 @@ export const bridge = {
   createSessionWithContext: (goal: string, paths: string[]) => api().CreateSessionWithContext(goal, paths),
   createSessionWithRuntime: (goal: string, paths: string[], runtimeKind: string, base = "HEAD") => api().CreateSessionWithRuntime(goal, paths, runtimeKind, base),
   sessionRuntime: (sessionId: string) => api().GetSessionRuntime(sessionId),
-  removeSessionWorktree: (sessionId: string, force = false) => api().RemoveSessionWorktree(sessionId, force),
+  inspectSessionWorktree: (sessionId: string) => api().InspectSessionWorktree(sessionId),
+  removeSessionWorktree: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().RemoveSessionWorktree(sessionId, cleanup),
+  deleteSession: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().DeleteSession(sessionId, cleanup),
   worktreeConflicts: () => api().WorktreeConflicts(),
   worktreeHandoffPlan: (sessionId: string) => api().WorktreeHandoffPlan(sessionId),
   applySessionWorktree: (sessionId: string) => api().ApplySessionWorktree(sessionId),

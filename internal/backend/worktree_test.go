@@ -81,12 +81,11 @@ func TestDesktopWorktreeRuntimeLifecycle(t *testing.T) {
 		t.Fatalf("main workspace should stay clean: %#v", mainStatus.Files)
 	}
 
-	if err := r.RemoveSessionWorktree(context.Background(), session.ID, false); err == nil {
-		t.Fatal("safe cleanup should reject a dirty worktree")
+	outcome, err := r.RemoveSessionWorktree(context.Background(), session.ID, WorktreeCleanup{})
+	if err != nil || outcome.Refusal == nil || outcome.Refusal.Code != WorktreeRefusalDirty {
+		t.Fatalf("safe cleanup of a dirty worktree: outcome=%+v err=%v", outcome, err)
 	}
-	if err := r.RemoveSessionWorktree(context.Background(), session.ID, true); err != nil {
-		t.Fatal(err)
-	}
+	discardInspected(t, r, session.ID)
 	after, err := r.SessionRuntime(context.Background(), session.ID)
 	if err != nil {
 		t.Fatal(err)
