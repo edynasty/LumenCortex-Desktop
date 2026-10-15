@@ -1,13 +1,13 @@
 # W2 - Desktop session worktree cleanup and session deletion
 
-Status: **implemented, published Core pinned, validated; merge into `main` NOT completed** (blocked by the owner's uncommitted edits in the `main` checkout, section 6). W2 is committed and integration-ready on branch `feat/w2-worktree-integration` (worktree `../LumenCortex-Desktop-W2`): `8537300` (feature) + `39a4813` (pin).
+Status: **implemented, published Core pinned, validated, integrated into local Desktop `main`.** `main` fast-forwarded `12a717b..5e810ab` (`8537300` feature, `39a4813` pin, `5e810ab` report), plus this report update. The owner's uncommitted work was restored exactly (section 6). Desktop `main` is not pushed.
 
 ## 1. Scope and baseline
 
 - Desktop baseline: `12a717b` (M2.4). Core published: `origin/main` fast-forwarded `38387cf..9569e39` (`1d9cc6b` W1, `156fdff` W1 follow-up, `9569e39` report; no other commits, no force push).
 - Pinned module: `github.com/edynasty/LumenCortex v0.0.0-20261015092833-156fdff946e4` (`go get …@156fdff && go mod tidy`; `go.mod` + `go.sum` only, commit `39a4813`). No `go.work`, no `replace`; `go mod verify` passes. `9569e39` is docs-only, so the pin stays on `156fdff`.
 - Contract: Core [ADR-0005](../../../LumenCortex/docs/adr/0005-session-worktree-ownership-and-deletion.md), "Consequences": Desktop builds the remove/delete dialog on `InspectSessionWorktree` and removes its in-process guard. Product review: `../LumenCortex-architecture-audit/design/handoffs/product-architecture-review-2026-10-15.md` (W2 row).
-- The owner's uncommitted work in `../LumenCortex-Desktop` (15 tracked files plus untracked files, including `internal/backend/zz_audit_probe_test.go`) was not modified; its `git diff --binary` SHA-1 `f0798bc…` is identical before and after this work. Files touched by both: `WorkspaceChrome.tsx`, `app-copy.ts`, `VisualFixture.tsx`, all in different hunks.
+- The owner's uncommitted work in `../LumenCortex-Desktop` (16 tracked changes, 20 untracked files including `internal/backend/zz_audit_probe_test.go`, the in-progress M2.4 audit report and `.lumencortex/lumencortex.db`) was preserved and remains uncommitted. Files touched by both: `WorkspaceChrome.tsx`, `app-copy.ts`, `VisualFixture.tsx`, all in different hunks.
 - Not done (out of scope): M3.1 and later, the Demo.
 
 ## 2. Changes
@@ -71,9 +71,41 @@ All smoke artifacts were removed.
 - `gofmt -l` flags `app.go` and `internal/backend/worktree.go` for blank lines that predate W2 (same as M2.4 report); W2 lines are formatted.
 - The thread menu disables Delete only for runs in this process; a run in another process is refused by Core (`runHeld`) and explained in the dialog.
 
-## 6. Integration result and remaining blocker
+## 6. Integration result
 
-- **Merge not completed.** `git merge --ff-only feat/w2-worktree-integration` in `../LumenCortex-Desktop` (branch `main` at `12a717b`) was refused atomically by Git: the owner's uncommitted edits to `WorkspaceChrome.tsx`, `app-copy.ts` and `VisualFixture.tsx` would be overwritten. Completing it requires committing or stashing that work, which this task does not authorize. Nothing was changed.
-- It is not a content conflict: the rehearsal shows the owner's diff applies cleanly on top of W2, and the combined tree passes everything except the owner's own failing test.
-- **To finish (owner):** commit or set aside the in-progress work, then `git merge --ff-only feat/w2-worktree-integration` on `main` (a fast-forward to the branch head: `8537300` feature, `39a4813` pin, and the commit carrying this report), and re-apply the in-progress work if it was set aside. A backup of the exact diff and the probe test is in `/tmp/lcx-w2-owner-backup/` (temporary location).
-- The W2 branch is local (not pushed). Next after the merge: M3.1 per the review roadmap.
+Owner-approved procedure (2026-10-15), run in `../LumenCortex-Desktop`:
+
+1. Persistent backup of the owner's work, verified before any change: `~/.lumencortex-wip-backups/desktop-main-2026-10-15/` (`tracked.patch`, binary diff SHA-1 `f0798bc…` against `12a717b`; `untracked.tar`, 20 files; `files.sha256`, 35 files; `status.txt`). Replaying the patch on `12a717b` reproduced every modified file and the `.keep` deletion; the archive restored all 20 untracked files with matching SHA-256.
+2. Rehearsed the exact procedure in a throwaway clone (a separate `refs/stash`): no conflicts, and the restored content was byte-identical.
+3. `git stash push -m "W2 integration: owner WIP in WorkspaceChrome.tsx, app-copy.ts, VisualFixture.tsx (2026-10-15)" -- <those 3 files>` → stash `e833652`. The older stash `89aed55` ("pre-pull …") was left in place.
+4. `git merge --ff-only feat/w2-worktree-integration`: `12a717b..5e810ab`.
+5. `git stash apply e833652`: all three files merged automatically with no conflicts.
+6. Verified before dropping the stash:
+   - every tracked file equals the backup patch replayed on `5e810ab` (the same result as the rehearsal);
+   - the 13 non-overlapping files and all 20 untracked files match the SHA-256 manifest;
+   - the owner's added and removed lines in the three overlapping files equal the backup's;
+   - every line W2 added to those files is present;
+   - 16 modified, 20 untracked, nothing staged.
+7. Dropped only `e833652` (matched by object ID). The stash list again holds only `89aed55`.
+
+Validation on the integrated checkout (owner WIP + W2):
+
+| Check | Result |
+|---|---|
+| `go test -count=1 ./...` (`-mod=readonly`), `go build ./...`, `go vet ./...` | pass, the owner's probe test included |
+| `go test -race` (worktree, borrower, run-held, continue tests) | pass |
+| `tsc --noEmit` | pass |
+| `npx vitest run` | 135 pass, 1 fail: the owner's known WIP test (section 4), unchanged |
+
+- The owner checkout has no `node_modules`, so `node_modules` from the W2 worktree was borrowed through a temporary symlink (W2 does not change `package.json` or `package-lock.json`). The symlink was removed after the run.
+- Playwright and `npm run build` were not rerun in the owner checkout: they would overwrite the owner's untracked `frontend/test-results/.last-run.json` and the built `frontend/dist`. The identical tree passed both in the rehearsal (section 4).
+- After the tests, the manifest and the three overlapping files were checked again: unchanged.
+
+Cleanup: the W2 worktree and branch `feat/w2-worktree-integration` were removed after verification, and the temporary `/tmp/lcx-w2-owner-backup/` was deleted. The persistent backup is kept until the owner authorizes its removal.
+
+Remaining (not W2):
+
+- The owner's failing test "never lets an older configuration response replace a newer one" belongs to the unfinished M2.4 follow-up WIP; tracked there, not fixed here.
+- Desktop `main` is ahead of `origin/main` (`e1d24bc`) by `12a717b` (M2.4) and the W2 commits; pushing is the owner's decision.
+- Core `docs/reports/W1-worktree-safety-2026-10-15.md` still describes the Desktop pin as pending a push; correcting it needs a Core docs commit.
+- Next: M3.1 per the review roadmap.
