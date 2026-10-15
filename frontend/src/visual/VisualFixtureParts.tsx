@@ -149,6 +149,7 @@ export function VisualInspectorFixture() {
         { value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" },
         { value: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out", badge: "Missing key", badgeTone: "warning" },
       ]}
+      modelPlaceholder={labels.noModels}
       policy="workspace"
       maxSteps={24}
       health={health}

@@ -265,6 +265,31 @@ test("review keeps split diff unavailable at the 820px compact breakpoint", asyn
   await expect(page.locator(".review-split")).toHaveCount(0);
 });
 
+// toBeVisible ignores clipping by an ancestor with overflow: hidden, so the picker is hit-tested:
+// the search field and every option must be the topmost element where the user clicks.
+for (const width of [1440, 1180, 820, 560] as const) {
+  for (const [scene, trigger] of [["new-task", "Model"], ["thread", "Model"]] as const) {
+    test(`${scene} model picker receives clicks at ${width}px`, async ({ page }) => {
+      await openScene(page, scene, width);
+      await page.getByRole("button", { name: trigger, exact: true }).click();
+      await expect(page.getByRole("textbox", { name: "Search models" })).toBeFocused();
+      const misses = await page.evaluate(() => {
+        const popover = document.querySelector(".desktop-select-popover");
+        const targets = [
+          ...Array.from(popover?.querySelectorAll("input") || []),
+          ...Array.from(popover?.querySelectorAll("[role=option]") || []),
+        ];
+        if (!targets.length) return ["no picker targets"];
+        return targets.flatMap((element) => {
+          const rect = element.getBoundingClientRect();
+          const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+          return hit && element.contains(hit) ? [] : [`${element.textContent || element.tagName} covered by ${hit?.className || "nothing"}`];
+        });
+      });
+      expect(misses).toEqual([]);
+    });
+  }
+}
 
 for (const width of [820, 560] as const) {
   test(`new-task configuration controls stay legible at ${width}px`, async ({ page }, testInfo) => {

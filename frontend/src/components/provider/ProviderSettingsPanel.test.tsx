@@ -131,6 +131,37 @@ describe("ProviderSettingsPanel", () => {
     expect(await screen.findByText("External")).toBeInTheDocument();
   });
 
+  // The backend keeps fields the panel does not show (headers, timeouts, toolCalling) only if a
+  // rename says which entry the new key replaces.
+  it("marks a provider rename and a model rename with the key they replace", async () => {
+    const user = userEvent.setup();
+    mocks.providerCatalogScope.mockResolvedValue(fileDoc("sha256:one", { old: { name: "Old", models: { m: { name: "M" } } } }));
+    mocks.saveProviderCatalogScope.mockImplementation(async (_scope, sent: ProviderCatalogDocument) => ({ ...sent, digest: "sha256:next" }));
+    renderPanel();
+
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    const providerId = screen.getByLabelText("Provider ID");
+    await user.clear(providerId);
+    await user.type(providerId, "new");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
+    const renamedProvider = mocks.saveProviderCatalogScope.mock.calls[0][1].catalog.providers;
+    expect(Object.keys(renamedProvider)).toEqual(["new"]);
+    expect(renamedProvider.new.renamedFrom).toBe("old");
+
+    // The renamed provider is listed with its model; rename that model.
+    const [, modelEdit] = await screen.findAllByRole("button", { name: "Edit" });
+    await user.click(modelEdit);
+    const modelId = screen.getByLabelText("Model ID");
+    await user.clear(modelId);
+    await user.type(modelId, "m2");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(2));
+    const models = mocks.saveProviderCatalogScope.mock.calls[1][1].catalog.providers.new.models;
+    expect(Object.keys(models)).toEqual(["m2"]);
+    expect(models.m2.renamedFrom).toBe("m");
+  });
+
   it("shows Core's configuration warnings and offers trust only when Core names the entry", async () => {
     const onTrust = vi.fn();
     const user = userEvent.setup();

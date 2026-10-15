@@ -12,7 +12,7 @@ type RunSettingsLabels = LSPSettingsLabels & {
   noModelMatches: string;
   noModels: string;
   providerConfig: string;
-  envFallback: string;
+  runSettingsNote: string;
   run: string;
   policy: string;
   readOnly: string;
@@ -131,7 +131,7 @@ export function RunSettingsPanel({
         <button className="provider-link-button" type="button" onClick={onOpenProviders}>
           {labels.providerConfig}
         </button>
-        <p className="settings-note">{labels.envFallback}</p>
+        <p className="settings-note">{labels.runSettingsNote}</p>
       </div>
 
       <div className="settings-group">

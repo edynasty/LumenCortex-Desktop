@@ -12,7 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -253,6 +255,102 @@ func TestSaveProviderCatalogScopeDeletesOmittedProvidersAndModels(t *testing.T) 
 	}
 }
 
+// The provider panel saves a rename as "remove the old key, add the new one". Fields the DTO does
+// not carry (headers, timeouts, toolCalling, reasoning) must move with the entry: dropping
+// toolCalling:false would offer a model that cannot call tools to the agent loop.
+func TestSaveProviderCatalogScopeRenameKeepsUnmanagedFields(t *testing.T) {
+	const file = `{"model": "old/m", "providers": {"old": {"name": "Old",
+  "settings": {"baseURL": "http://127.0.0.1:1/v1", "headers": {"X-Org": "org"}, "timeoutSeconds": 30},
+  "models": {"m": {"toolCalling": false, "reasoning": {"format": "deepseek"}}, "n": {}}}}}`
+	move := func(m map[string]any, from, to string) {
+		m[to] = m[from]
+		delete(m, from)
+	}
+	cases := map[string]struct {
+		edit func(*ProviderCatalog)
+		want func(providers map[string]any, root map[string]any)
+	}{
+		"provider": {
+			edit: func(c *ProviderCatalog) {
+				p := c.Providers["old"]
+				p.RenamedFrom = "old"
+				delete(c.Providers, "old")
+				c.Providers["new"] = p
+				c.Model = "new/m"
+			},
+			want: func(providers, root map[string]any) {
+				move(providers, "old", "new")
+				root["model"] = "new/m"
+			},
+		},
+		"model": {
+			edit: func(c *ProviderCatalog) {
+				models := c.Providers["old"].Models
+				m := models["m"]
+				m.RenamedFrom = "m"
+				delete(models, "m")
+				models["m2"] = m
+				c.Model = "old/m2"
+			},
+			want: func(providers, root map[string]any) {
+				move(providers["old"].(map[string]any)["models"].(map[string]any), "m", "m2")
+				root["model"] = "old/m2"
+			},
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			configPath := useConfigDir(t)
+			writeFile(t, configPath, file)
+			var want map[string]any
+			if err := json.Unmarshal([]byte(file), &want); err != nil {
+				t.Fatal(err)
+			}
+			r := New()
+			doc, err := r.ProviderCatalogScope("global")
+			if err != nil {
+				t.Fatal(err)
+			}
+			tc.edit(&doc.Catalog)
+			if _, err := r.SaveProviderCatalogScope("global", doc); err != nil {
+				t.Fatal(err)
+			}
+			var after map[string]any
+			if err := json.Unmarshal([]byte(readFile(t, configPath)), &after); err != nil {
+				t.Fatal(err)
+			}
+			tc.want(want["providers"].(map[string]any), want)
+			want["$schema"] = after["$schema"]
+			if !reflect.DeepEqual(after, want) {
+				t.Fatalf("rename lost or changed fields\nwant %#v\n got %#v", want, after)
+			}
+		})
+	}
+}
+
+// Without renamedFrom a new key is a new entry: nothing is inherited from a removed one.
+func TestSaveProviderCatalogScopeNewProviderInheritsNothing(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeFile(t, configPath, `{"model": "old/m", "providers": {"old": {
+  "settings": {"baseURL": "http://127.0.0.1:1/v1", "headers": {"X-Org": "org"}}, "models": {"m": {"toolCalling": false}}}}}`)
+	r := New()
+	doc, err := r.ProviderCatalogScope("global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := doc.Catalog.Providers["old"]
+	delete(doc.Catalog.Providers, "old")
+	doc.Catalog.Providers["new"] = p
+	doc.Catalog.Model = "new/m"
+	if _, err := r.SaveProviderCatalogScope("global", doc); err != nil {
+		t.Fatal(err)
+	}
+	got := readFile(t, configPath)
+	if strings.Contains(got, "X-Org") || strings.Contains(got, "toolCalling") {
+		t.Fatalf("a new provider inherited a removed provider's fields: %s", got)
+	}
+}
+
 func TestSaveProviderCatalogScopeConflictLeavesFileUnchanged(t *testing.T) {
 	configPath := useConfigDir(t)
 	writeTestCatalog(t, configPath, "http://127.0.0.1:1/v1", "test/a")
@@ -284,6 +382,10 @@ func TestSaveProviderCatalogScopeCreatesMissingFile(t *testing.T) {
 	}
 	if doc.Digest != "" || len(doc.Catalog.Providers) != 0 {
 		t.Fatalf("missing file must read as an empty document with an empty digest: %#v", doc)
+	}
+	// The panel indexes catalog.providers directly; an omitted field broke adding a first provider.
+	if raw, _ := json.Marshal(doc); !strings.Contains(string(raw), `"providers":{}`) {
+		t.Fatalf("an empty catalog must send providers as {}: %s", raw)
 	}
 	doc.Catalog.Providers = map[string]ProviderDefinition{"p": {Settings: ProviderSettings{BaseURL: "http://127.0.0.1:1/v1"}, Models: map[string]ProviderModel{"m": {}}}}
 	doc.Catalog.Model = "p/m"
@@ -658,5 +760,105 @@ func TestBridgeResultsCarryNoCredentialsAcrossARun(t *testing.T) {
 				t.Fatalf("%s JSON contains %s", name, secret)
 			}
 		}
+	}
+}
+
+// A file Core refuses must not have its secret material echoed back into the bridge error that
+// the UI displays: a literal key, and header values in a schema-invalid or truncated file.
+func TestConfigErrorsDoNotEchoSecrets(t *testing.T) {
+	for name, content := range map[string]string{
+		"literal key":    `{"model":"p/m","providers":{"p":{"settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"sk-SECRETSENTINEL123"},"models":{"m":{}}}}}`,
+		"invalid header": `{"providers":{"p":{"settings":{"baseURL":"http://x/v1","headers":{"Authorization":"Bearer SECRETSENTINEL"}},"models":{"m":{"bogus":1}}}}}`,
+		"truncated":      `{"providers":{"p":{"settings":{"headers":{"X":"SECRETSENTINEL"`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			writeFile(t, useConfigDir(t), content)
+			r := New()
+			_, stateErr := r.ConfigState()
+			_, docErr := r.ProviderCatalogScope("global")
+			for _, err := range []error{stateErr, docErr} {
+				if err == nil {
+					t.Fatal("Core accepted a file it must refuse")
+				}
+				if strings.Contains(err.Error(), "SECRETSENTINEL") {
+					t.Fatalf("error echoes secret material: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// Concurrent saves from the same read race on the digest: exactly one writes, every other one is a
+// conflict, and the file holds the winner's change only.
+func TestConcurrentSavesFromOneReadHaveExactlyOneWinner(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeTestCatalog(t, configPath, "http://127.0.0.1:1/v1", "test/a")
+	r := New()
+	doc, err := r.ProviderCatalogScope("global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const writers = 8
+	var wg sync.WaitGroup
+	errs := make([]error, writers)
+	for i := range writers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			d := doc
+			d.Catalog.Providers = map[string]ProviderDefinition{}
+			for id, p := range doc.Catalog.Providers {
+				d.Catalog.Providers[id] = p
+			}
+			p := d.Catalog.Providers["test"]
+			p.Name = fmt.Sprintf("writer-%d", i)
+			d.Catalog.Providers["test"] = p
+			_, errs[i] = r.SaveProviderCatalogScope("global", d)
+		}()
+	}
+	wg.Wait()
+	winner := -1
+	for i, err := range errs {
+		switch {
+		case err == nil && winner < 0:
+			winner = i
+		case err == nil:
+			t.Fatalf("writers %d and %d both saved", winner, i)
+		case !errors.Is(err, config.ErrConflict):
+			t.Fatalf("writer %d: %v, want ErrConflict", i, err)
+		}
+	}
+	if winner < 0 {
+		t.Fatal("no writer saved")
+	}
+	if got := readFile(t, configPath); !strings.Contains(got, fmt.Sprintf(`"writer-%d"`, winner)) || strings.Count(got, "writer-") != 1 {
+		t.Fatalf("file does not hold exactly the winner's change (writer-%d):\n%s", winner, got)
+	}
+}
+
+// A workspace opened through a symlink is trusted under its canonical path only.
+func TestTrustThroughSymlinkStoresCanonicalPath(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeTestCatalog(t, configPath, "http://127.0.0.1:1/v1", "test/a")
+	real := canonicalDir(t)
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(real, config.FileName), `{"providers":{"ws":{"settings":{"baseURL":"http://127.0.0.1:1/v1"},"models":{"x":{}}}}}`)
+	r := openRuntime(t, link)
+	state, err := r.ConfigState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Trusted {
+		t.Fatal("trusted before trust")
+	}
+	if state, err = r.TrustWorkspace(state.GlobalDigest); err != nil {
+		t.Fatal(err)
+	}
+	global := readFile(t, configPath)
+	if !state.Trusted || !strings.Contains(global, strconv.Quote(real)) || strings.Contains(global, link) {
+		t.Fatalf("trusted=%v; want only the canonical entry %q:\n%s", state.Trusted, real, global)
 	}
 }

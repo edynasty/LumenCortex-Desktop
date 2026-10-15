@@ -41,7 +41,7 @@ type Props = {
     noModelMatches: string;
     noModels: string;
     providerConfig: string;
-    envFallback: string;
+    runSettingsNote: string;
     policy: string;
     readOnly: string;
     readOnlyDescription: string;

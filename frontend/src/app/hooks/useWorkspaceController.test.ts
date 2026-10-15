@@ -124,4 +124,54 @@ describe("useWorkspaceController", () => {
     expect(setError).toHaveBeenLastCalledWith(expect.stringContaining("config file changed since it was read"));
     expect(result.current.trusting).toBe(false);
   });
+
+  // The file can change in an editor or the CLI while the app is in the background; the picker
+  // must not keep showing a default Core no longer uses for a new task.
+  it("reloads Core's configuration when the window regains focus", async () => {
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo" });
+    mocks.configState.mockResolvedValue(configFor("/repo", "alpha/main"));
+    const setError = vi.fn();
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(result.current.config.model).toBe("alpha/main"));
+
+    mocks.configState.mockResolvedValue(configFor("/repo", "beta/code"));
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(result.current.config.model).toBe("beta/code"));
+  });
+
+  it("never lets an older configuration response replace a newer one", async () => {
+    // Core answers with whatever is current; only the focus read below is held back. Mount reads
+    // twice (before and after the workspace is known), so a one-shot mock would run dry. setError
+    // must be stable, as React's setter is in the app; a new function per render would re-read on
+    // every render and hide a stale response.
+    let current = configFor("/repo-a", "alpha/main");
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo-a" });
+    mocks.configState.mockImplementation(async () => current);
+    const setError = vi.fn();
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(result.current.recentProjects[0]).toBe("/repo-a"));
+    await waitFor(() => expect(result.current.config.model).toBe("alpha/main"));
+
+    // A focus refresh still reads project A when project B opens and is read.
+    const slow = Promise.withResolvers<ConfigState>();
+    mocks.configState.mockImplementationOnce(() => slow.promise);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    current = configFor("/repo-b", "beta/code");
+    mocks.openWorkspace.mockResolvedValue({ ...emptyState, workspace: "/repo-b" });
+    await act(async () => {
+      await result.current.openWorkspace("/repo-b");
+    });
+    await waitFor(() => expect(result.current.config.model).toBe("beta/code"));
+
+    await act(async () => {
+      slow.resolve(configFor("/repo-a", "alpha/main"));
+      await slow.promise;
+    });
+    expect(result.current.config.workspace).toBe("/repo-b");
+    expect(result.current.config.model).toBe("beta/code");
+  });
 });

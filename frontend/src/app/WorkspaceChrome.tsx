@@ -17,7 +17,7 @@ import type {
   SessionRuntime,
   SubagentNode,
 } from "../types";
-import type { ConfiguredModelOption } from "./model-selection";
+import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
 import type { WorkspaceRoute } from "./workspace-route";
 
 type Policy = "read-only" | "workspace" | "full";
@@ -191,6 +191,7 @@ export function WorkspaceChrome(props: Props) {
       events={events}
       modelRef={modelRef}
       models={models}
+      modelPlaceholder={pickerPlaceholder(modelRef, configuredModels, labels)}
       policy={policy}
       maxSteps={maxSteps}
       health={health}

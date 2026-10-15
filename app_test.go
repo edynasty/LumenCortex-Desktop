@@ -156,6 +156,9 @@ func TestWireTypesMatchGoDTOs(t *testing.T) {
 		"ModelInfo":               reflect.TypeOf(backend.ModelInfo{}),
 		"ConfigWarning":           reflect.TypeOf(backend.ConfigWarning{}),
 		"ProviderCatalogDocument": reflect.TypeOf(backend.ProviderCatalogDocument{}),
+		"ProviderCatalog":         reflect.TypeOf(backend.ProviderCatalog{}),
+		"ProviderDefinition":      reflect.TypeOf(backend.ProviderDefinition{}),
+		"ProviderModel":           reflect.TypeOf(backend.ProviderModel{}),
 		"AgentConfig":             reflect.TypeOf(backend.AgentConfig{}),
 	} {
 		ts, goSide := tsFields(t, src, name), goFields(typ)

@@ -17,6 +17,8 @@ type Props = {
   events: RuntimeEvent[];
   modelRef: string;
   models: SelectOption[];
+  // Shown when modelRef is not one of models (none configured, or a pinned model that is unavailable).
+  modelPlaceholder: string;
   policy: InspectorPolicy;
   maxSteps: number;
   health?: Health;
@@ -58,6 +60,7 @@ export function WorkspaceInspector({
   events,
   modelRef,
   models,
+  modelPlaceholder,
   policy,
   maxSteps,
   health,
@@ -126,9 +129,9 @@ export function WorkspaceInspector({
         modelSelect: labels.modelSelect,
         modelSearch: labels.modelSearch,
         noModelMatches: labels.noModelMatches,
-        noModels: labels.noModels,
+        noModels: modelPlaceholder,
         providerConfig: labels.providerConfig,
-        envFallback: labels.envFallback,
+        runSettingsNote: labels.runSettingsNote,
         policy: labels.policy,
         readOnly: labels.readOnly,
         readOnlyDescription: labels.readOnlyDescription,

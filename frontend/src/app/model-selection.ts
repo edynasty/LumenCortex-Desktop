@@ -37,6 +37,18 @@ export function modelOptions(config: Pick<ConfigState, "models" | "model">): Con
   });
 }
 
+// What the picker shows when the displayed ref is not one of its options: a session pinned to a
+// model that was removed or cannot call tools keeps its ref visible, so the user sees what Continue
+// would use and why it is refused.
+export function pickerPlaceholder(
+  modelRef: string,
+  options: Pick<ConfiguredModelOption, "ref">[],
+  labels: { noModels: string; modelUnavailable: string },
+): string {
+  if (!modelRef || options.some((option) => option.ref === modelRef)) return labels.noModels;
+  return labels.modelUnavailable.replace("{ref}", modelRef);
+}
+
 // The user's intentional choice, valid for one route (a session id, or "" for a new task).
 export type ExplicitModel = { scope: string; ref: string };
 

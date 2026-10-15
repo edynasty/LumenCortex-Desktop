@@ -66,18 +66,22 @@ type ProviderCatalogDocument struct {
 
 // ProviderCatalog is the editable subset of a configuration file. Fields outside it (failover,
 // subagentModel, effort, checks, trustedWorkspaces, headers, timeouts, reasoning, toolCalling,
-// modalities) are never part of the DTO and survive every save.
+// modalities) are never part of the DTO and survive every save. Providers is always sent, as {}
+// for a file without providers: the panel indexes it directly.
 type ProviderCatalog struct {
 	Schema    string                        `json:"$schema,omitempty"`
 	Model     string                        `json:"model,omitempty"`
-	Providers map[string]ProviderDefinition `json:"providers,omitempty"`
+	Providers map[string]ProviderDefinition `json:"providers"`
 }
 
+// RenamedFrom, set only by a rename, names the provider id this entry had in the file that was
+// read; the fields outside the DTO are then carried over from that entry instead of dropped.
 type ProviderDefinition struct {
-	Name     string                   `json:"name,omitempty"`
-	Package  string                   `json:"package,omitempty"`
-	Settings ProviderSettings         `json:"settings,omitempty"`
-	Models   map[string]ProviderModel `json:"models,omitempty"`
+	Name        string                   `json:"name,omitempty"`
+	Package     string                   `json:"package,omitempty"`
+	Settings    ProviderSettings         `json:"settings,omitempty"`
+	Models      map[string]ProviderModel `json:"models,omitempty"`
+	RenamedFrom string                   `json:"renamedFrom,omitempty"`
 }
 
 // ProviderSettings holds the editable connection fields. APIKey is an {env:NAME} reference, never a key.
@@ -87,10 +91,12 @@ type ProviderSettings struct {
 	APIKey   string `json:"apiKey,omitempty"`
 }
 
+// RenamedFrom, set only by a rename, names the model key this entry had in the file that was read.
 type ProviderModel struct {
-	Name    string      `json:"name,omitempty"`
-	ModelID string      `json:"modelID,omitempty"`
-	Limit   *ModelLimit `json:"limit,omitempty"`
+	Name        string      `json:"name,omitempty"`
+	ModelID     string      `json:"modelID,omitempty"`
+	Limit       *ModelLimit `json:"limit,omitempty"`
+	RenamedFrom string      `json:"renamedFrom,omitempty"`
 }
 
 type ModelLimit struct {
@@ -301,7 +307,8 @@ func catalogFromFile(f config.File) ProviderCatalog {
 
 // applyCatalog overlays the DTO on the file it was read from. Only the DTO's fields change: the
 // model, each provider's name, package, baseURL, endpoint and apiKey, and each model's name,
-// modelID and limit. Providers and models the DTO omits are removed.
+// modelID and limit. Providers and models the DTO omits are removed. A renamed provider or model
+// starts from the entry it was renamed from, so its other fields move with it.
 func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
 	out := existing
 	out.Model = config.ModelRef(strings.TrimSpace(dto.Model))
@@ -313,7 +320,10 @@ func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
 		providers = make(map[string]config.Provider, len(dto.Providers))
 	}
 	for id, def := range dto.Providers {
-		next := existing.Providers[id]
+		next, ok := existing.Providers[id]
+		if !ok && def.RenamedFrom != "" {
+			next = existing.Providers[def.RenamedFrom]
+		}
 		next.Name = def.Name
 		next.Package = def.Package
 		next.Settings = overlaySettings(next.Settings, def.Settings)
@@ -322,7 +332,10 @@ func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
 			models = make(map[string]config.Model, len(def.Models))
 		}
 		for key, dm := range def.Models {
-			model := next.Models[key]
+			model, ok := next.Models[key]
+			if !ok && dm.RenamedFrom != "" {
+				model = next.Models[dm.RenamedFrom]
+			}
 			model.Name = dm.Name
 			model.ModelID = dm.ModelID
 			model.Limit = nil

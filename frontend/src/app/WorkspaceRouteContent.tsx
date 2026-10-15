@@ -14,7 +14,7 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import type { ConfiguredModelOption } from "./model-selection";
+import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel } from "./presentation-model";
 import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
@@ -137,6 +137,7 @@ export function WorkspaceRouteContent({
     badge: item.badge,
     badgeTone: item.badgeTone,
   }));
+  const modelPlaceholder = pickerPlaceholder(modelRef, configuredModels, labels);
 
   const configNotice = <ConfigWarnings labels={labels} warnings={config.warnings} trusting={trusting} hideDefaultLimit onTrust={onTrustWorkspace} />;
 
@@ -212,7 +213,7 @@ export function WorkspaceRouteContent({
         noModelMatchesLabel={labels.noModelMatches}
         modelRef={modelRef}
         models={composerModels}
-        noModelsLabel={labels.modelFallback}
+        noModelsLabel={modelPlaceholder}
         contextPaths={contextPaths}
         contextLabels={{
           context: labels.context,
@@ -301,7 +302,7 @@ export function WorkspaceRouteContent({
         startAnother: labels.startAnother,
         composerPlaceholder: labels.composerPlaceholder,
         composerHint: labels.composerHint,
-        noModels: labels.noModels,
+        noModels: modelPlaceholder,
         modelSearch: labels.modelSearch,
         noModelMatches: labels.noModelMatches,
         start: labels.start,

@@ -130,7 +130,7 @@ export function VisualFixture() {
             { ref: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: labels.defaultModel },
             { ref: "deepseek/coder", label: "DeepSeek Coder", group: "DeepSeek", description: "64K ctx · 8K out", badge: labels.missingProviderKey, badgeTone: "warning" },
           ]}
-          noModelsLabel={labels.modelFallback}
+          noModelsLabel={labels.noModels}
           contextPaths={["frontend/src/App.tsx", "internal/backend"]}
           contextLabels={{ context: labels.context, files: labels.attachFiles, folder: labels.attachFolder, remove: labels.removeContext }}
           policyLabel={labels.policy}

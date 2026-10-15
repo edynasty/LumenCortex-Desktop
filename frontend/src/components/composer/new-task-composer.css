@@ -32,7 +32,6 @@
 .new-task-composer {
   width: min(760px, 100%);
   margin-top: 30px;
-  overflow: hidden;
   border: 1px solid var(--border-strong);
   border-radius: 18px;
   background: var(--surface);

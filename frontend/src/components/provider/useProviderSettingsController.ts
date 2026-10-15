@@ -190,6 +190,9 @@ export function useProviderSettingsController({
         apiKey: envReference(providerDraft.apiKey),
       },
       models: previous?.models || {},
+      // The backend keeps the fields the panel does not edit (headers, timeouts, ...) only if it
+      // knows which entry they belong to.
+      renamedFrom: previousId && previousId !== id ? previousId : undefined,
     };
 
     if (!(await saveCatalog(next))) return;
@@ -247,7 +250,10 @@ export function useProviderSettingsController({
       }
     }
 
-    provider.models[modelId] = modelFromDraft(modelDraft);
+    provider.models[modelId] = {
+      ...modelFromDraft(modelDraft),
+      renamedFrom: oldModelId && oldModelId !== modelId ? oldModelId : undefined,
+    };
     if (!(await saveCatalog(next))) return;
     setEditingModel(null);
     setModelDraft(emptyModel);

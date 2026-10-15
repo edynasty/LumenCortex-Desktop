@@ -7,6 +7,7 @@ import {
   explicitModelRef,
   modelOptions,
   noExplicitModel,
+  pickerPlaceholder,
 } from "./model-selection";
 import { buildAgentConfig } from "./agent-config";
 import type { ModelInfo } from "../types";
@@ -103,5 +104,19 @@ describe("model selection and session pinning", () => {
     const keys = Object.keys(JSON.parse(JSON.stringify(buildAgentConfig(undefined, "read-only", 3))));
     expect(keys).not.toContain("modelRef");
     expect(keys).not.toContain("provider");
+  });
+});
+
+describe("picker placeholder", () => {
+  const labels = { noModels: "No model configured", modelUnavailable: "{ref} (unavailable)" };
+  const options = modelOptions({ model: "test/a", models: [model("test/a"), model("test/notools", { toolCalling: false })] });
+
+  it("names a pinned model the picker does not offer instead of a generic placeholder", () => {
+    expect(pickerPlaceholder("test/removed", options, labels)).toBe("test/removed (unavailable)");
+    expect(pickerPlaceholder("test/notools", options, labels)).toBe("test/notools (unavailable)");
+  });
+
+  it("falls back to the no-model copy only when nothing is selected", () => {
+    expect(pickerPlaceholder("", options, labels)).toBe("No model configured");
   });
 });

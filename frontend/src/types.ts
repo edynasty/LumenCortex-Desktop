@@ -345,6 +345,8 @@ export type ProviderModel = {
   name?: string;
   modelID?: string;
   limit?: { context?: number; output?: number };
+  // Set only when saving a rename: the key this model had in the file that was read.
+  renamedFrom?: string;
 };
 
 export type ProviderDefinition = {
@@ -356,6 +358,8 @@ export type ProviderDefinition = {
     apiKey?: string;
   };
   models?: Record<string, ProviderModel>;
+  // Set only when saving a rename: the id this provider had in the file that was read.
+  renamedFrom?: string;
 };
 
 export type ProviderCatalog = {
