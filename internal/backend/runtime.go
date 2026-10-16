@@ -404,6 +404,17 @@ func (r *Runtime) Events(buffer int) (<-chan Event, func(), bool) {
 	return ch, stop, true
 }
 
+// GetTaskState returns the current Task State for a session.
+func (r *Runtime) GetTaskState(ctx context.Context, sessionID string) (map[string]any, error) {
+	r.mu.RLock()
+	engine := r.engine
+	r.mu.RUnlock()
+	if engine == nil {
+		return nil, ErrNoWorkspace
+	}
+	return engine.TaskStateSnapshot(ctx, sessionID)
+}
+
 func normalizedPolicy(policy string) string {
 	if strings.TrimSpace(policy) == "" {
 		return "read-only"
