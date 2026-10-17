@@ -10,6 +10,9 @@ import type {
   LSPStatus,
   MCPAgentTool,
   MCPConfig,
+  CheckArtifact,
+  CheckResult,
+  ChecksInfo,
   MCPConfigScope,
   MCPStatus,
   Message,
@@ -80,6 +83,10 @@ type AppAPI = {
   EditTaskReference(sessionId: string, edit: TaskReferenceEdit): Promise<TaskStateInfo>;
   ResolveThread(sessionId: string, state: TaskResolutionState): Promise<TaskStateInfo>;
   ResetContext(sessionId: string): Promise<TaskStateInfo>;
+  GetSessionChecks(sessionId: string): Promise<ChecksInfo>;
+  GetCheckResults(sessionId: string, beforeSeq: number, limit: number): Promise<CheckResult[] | null>;
+  GetCheckArtifact(sessionId: string, hash: string): Promise<CheckArtifact>;
+  AcceptCheck(sessionId: string, checkId: string): Promise<CheckResult>;
   SearchText(query: string, path: string, limit: number): Promise<SearchResult>;
   FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
   GitStatus(): Promise<GitStatus>;
@@ -178,6 +185,10 @@ export const bridge = {
   editTaskReference: (sessionId: string, edit: TaskReferenceEdit) => api().EditTaskReference(sessionId, edit),
   resolveThread: (sessionId: string, state: TaskResolutionState) => api().ResolveThread(sessionId, state),
   resetContext: (sessionId: string) => api().ResetContext(sessionId),
+  sessionChecks: (sessionId: string) => api().GetSessionChecks(sessionId),
+  checkResults: (sessionId: string, beforeSeq = -1, limit = 20) => api().GetCheckResults(sessionId, beforeSeq, limit),
+  checkArtifact: (sessionId: string, hash: string) => api().GetCheckArtifact(sessionId, hash),
+  acceptCheck: (sessionId: string, checkId: string) => api().AcceptCheck(sessionId, checkId),
   searchText: (query: string, path = "", limit = 200) => api().SearchText(query, path, limit),
   findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
   gitStatus: () => api().GitStatus(),

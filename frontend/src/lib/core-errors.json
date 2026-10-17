@@ -8,5 +8,7 @@
   "conflict": "config file changed since it was read",
   "invalidConfig": "invalid configuration",
   "runHeld": "run is active in another process or engine",
-  "worktreeBusy": "session worktree is in use"
+  "worktreeBusy": "session worktree is in use",
+  "noFingerprint": "workspace has no fingerprint (not a git repository with a commit)",
+  "unknownCheck": "check is not configured"
 }

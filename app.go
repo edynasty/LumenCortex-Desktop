@@ -246,6 +246,22 @@ func (a *App) ResetContext(sessionID string) (backend.TaskStateInfo, error) {
 	return a.backend.ResetContext(context.Background(), sessionID)
 }
 
+func (a *App) GetSessionChecks(sessionID string) (backend.ChecksInfo, error) {
+	return a.backend.SessionChecks(context.Background(), sessionID)
+}
+
+func (a *App) GetCheckResults(sessionID string, beforeSeq int64, limit int) ([]backend.CheckResult, error) {
+	return a.backend.CheckResults(context.Background(), sessionID, beforeSeq, limit)
+}
+
+func (a *App) GetCheckArtifact(sessionID, hash string) (backend.CheckArtifact, error) {
+	return a.backend.CheckArtifact(context.Background(), sessionID, hash)
+}
+
+func (a *App) AcceptCheck(sessionID, checkID string) (backend.CheckResult, error) {
+	return a.backend.AcceptCheck(context.Background(), sessionID, checkID, "desktop-user")
+}
+
 func (a *App) SearchText(query, path string, limit int) (backend.SearchResult, error) {
 	return a.backend.SearchText(context.Background(), query, path, limit)
 }

@@ -188,7 +188,6 @@ export function WorkspaceRouteContent({
       <WorkspaceReviewRoute
         session={current}
         runtime={runtime}
-        messages={messages}
         busy={busy}
         running={running}
         labels={labels}

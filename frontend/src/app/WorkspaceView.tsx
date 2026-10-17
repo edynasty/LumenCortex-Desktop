@@ -240,6 +240,8 @@ export function WorkspaceView(props: Props) {
         checkpoints={checkpoints}
         running={running}
         busy={busy}
+        configKey={config.globalDigest}
+        trusting={trusting}
         onSetRoute={props.onSetRoute}
         onSidebarOpenChange={props.onSidebarOpenChange}
         onSidebarCollapsedChange={props.onSidebarCollapsedChange}
@@ -267,6 +269,7 @@ export function WorkspaceView(props: Props) {
         onStopLSP={props.onStopLSP}
         onOpenSubagent={props.onOpenSubagent}
         onRunShell={props.onRunShell}
+        onTrustWorkspace={props.onTrustWorkspace}
         onCleanupWorktree={() => current && props.onWorktreeCleanupTargetChange({ mode: "remove", sessionId: current.id })}
         onCancelAgent={props.onCancelAgent}
         onStartAgent={props.onStartAgent}

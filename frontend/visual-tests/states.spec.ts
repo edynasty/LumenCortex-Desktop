@@ -261,6 +261,31 @@ for (const width of widths) {
     await capture(page, testInfo, "inspector-task", width);
   });
 
+  test(`inspector checks show artifacts in the panel and accept a failing check at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "inspector", width);
+    await page.locator(".inspector-tabs").getByRole("button", { name: "Checks", exact: true }).click();
+
+    const cards = page.locator(".check-card");
+    await expect(cards).toHaveCount(3);
+    await expect(page.locator(".checks-panel .config-warnings")).toContainText("checks.e2e");
+    const failing = cards.filter({ hasText: "go-test" });
+    await failing.getByRole("button", { name: "Diff" }).click();
+    const viewer = page.locator(".check-artifact");
+    await expect(viewer.locator("pre")).toContainText("out.Headers = workspace.Headers");
+    const bounds = await page.locator(".checks-panel").evaluate((panel) => ({
+      panel: panel.getBoundingClientRect().width,
+      viewer: panel.querySelector(".check-artifact")!.getBoundingClientRect().width,
+      cards: Array.from(panel.querySelectorAll(".check-card")).map((card) => card.getBoundingClientRect().width),
+    }));
+    expect(bounds.viewer).toBeLessThanOrEqual(bounds.panel + 0.5);
+    for (const card of bounds.cards) expect(card).toBeLessThanOrEqual(bounds.panel + 0.5);
+    await capture(page, testInfo, "inspector-checks", width);
+
+    await failing.getByRole("button", { name: "Accept current state" }).click();
+    await expect(failing).toContainText("Satisfied for the current state · Accepted by desktop-user");
+    await expect(page.locator(".check-row").first()).toContainText("Accepted by desktop-user");
+  });
+
   test(`inspector terminal state is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "inspector", width);
     await page.locator(".inspector-tabs").getByRole("button", { name: "Terminal" }).click();

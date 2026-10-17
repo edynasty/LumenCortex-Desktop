@@ -1,6 +1,9 @@
 import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { copy, type Locale } from "../lib/i18n/app-copy";
 import type {
+  CheckArtifact,
+  CheckResult,
+  ChecksInfo,
   Health,
   LSPStatus,
   Message,
@@ -54,40 +57,6 @@ export const threadMessages: Message[] = [
   ...messages,
   { sessionId: session.id, seq: 4, role: "tool", json: { tool_call_id: "call_1", origin: "tool_interrupted", content: "run ended before the tool result was saved; re-check workspace state before repeating side effects" } },
   { sessionId: session.id, seq: 5, role: "user", json: { origin: "completion_blocked", content: "Workflow contract rejected completion: the verify action has not passed. Continue the current action and obtain the required evidence." } },
-];
-
-export const reviewMessages: Message[] = [
-  ...messages,
-  {
-    sessionId: session.id,
-    seq: 4,
-    role: "tool",
-    json: {
-      name: "shell",
-      content: JSON.stringify({
-        command: "npm test",
-        exitCode: 0,
-        cancelled: false,
-        stdout: { total: 4821, truncated: false },
-        stderr: { total: 0, truncated: false },
-      }),
-    },
-  },
-  {
-    sessionId: session.id,
-    seq: 5,
-    role: "tool",
-    json: {
-      name: "shell",
-      content: JSON.stringify({
-        command: "npm run build",
-        exitCode: 0,
-        cancelled: false,
-        stdout: { total: 2140, truncated: false },
-        stderr: { total: 0, truncated: false },
-      }),
-    },
-  },
 ];
 
 export const visualConfigState: ConfigState = {
@@ -363,6 +332,61 @@ function editVisualTaskState(change: (state: TaskStateInfo["state"]) => void): T
   return structuredClone(next);
 }
 
+const logHash = `sha256:${"1a".repeat(32)}`;
+const diffHash = `sha256:${"2b".repeat(32)}`;
+const earlierLogHash = `sha256:${"3c".repeat(32)}`;
+const failedTest: CheckResult = { seq: 2, check: "go-test", kind: "test", status: "failed", provenance: "runtime", fingerprint: "sha256:current", artifacts: [logHash, diffHash], at: "2026-09-22T01:12:00Z" };
+const acceptedBuild: CheckResult = { seq: 3, check: "frontend-build", kind: "build", status: "passed", provenance: "human:desktop-user", fingerprint: "sha256:current", artifacts: [], at: "2026-09-22T01:14:00Z" };
+
+// The Checks tab's view: one failing required test with its log and diff, one build the user accepted,
+// one optional check never run, and a project check dropped because the project is not trusted.
+let visualChecks: ChecksInfo = {
+  sessionId: session.id,
+  env: { head: "5f3c2a9e1b7d4c60a8e2f91b3d5c7a9e0f1b2c3d", dirtyHash: "sha256:dirty", worktreeId: "" },
+  checks: [
+    { spec: { id: "go-test", kind: "test", command: "go test -count=1 ./internal/backend/...", timeout: 600e9, required: true, source: "global" }, satisfied: false, newest: failedTest },
+    { spec: { id: "frontend-build", kind: "build", command: "npm --prefix frontend run build", timeout: 300e9, required: true, source: "global" }, satisfied: true, deciding: acceptedBuild, newest: acceptedBuild },
+    { spec: { id: "lint", kind: "test", command: "npx eslint frontend/src", timeout: 120e9, required: false, source: "global" }, satisfied: false },
+  ],
+  warnings: [
+    { code: "untrusted_override", path: "/repo/lumencortex.json", key: "checks.e2e", trustEntry: "/repo/lumencortex", trustFile: "/home/.config/lumencortex/lumencortex.json", message: "ignored checks.e2e" },
+  ],
+};
+let visualCheckResults: CheckResult[] = [
+  acceptedBuild,
+  failedTest,
+  { seq: 1, check: "go-test", kind: "test", status: "passed", provenance: "runtime", fingerprint: "sha256:earlier", artifacts: [earlierLogHash], at: "2026-09-22T00:58:00Z" },
+];
+const visualArtifacts: Record<string, CheckArtifact> = {
+  [logHash]: {
+    hash: logHash,
+    kind: "log",
+    size: 412,
+    truncated: false,
+    text: "--- FAIL: TestProviderScopeMerge (0.02s)\n    provider_config_test.go:88: headers = map[], want map[X-Org:acme]\nFAIL\nFAIL\tgithub.com/edynasty/LumenCortex-Desktop/internal/backend\t1.204s\n",
+  },
+  [diffHash]: {
+    hash: diffHash,
+    kind: "diff",
+    size: 318,
+    truncated: false,
+    text: "diff --git a/internal/backend/provider_config.go b/internal/backend/provider_config.go\n@@ -112,7 +112,6 @@ func mergeScope(global, workspace Catalog) Catalog {\n-\tout.Headers = maps.Clone(workspace.Headers)\n+\tout.Headers = workspace.Headers\n",
+  },
+  [earlierLogHash]: { hash: earlierLogHash, kind: "log", size: 64, truncated: false, text: "ok  \tgithub.com/edynasty/LumenCortex-Desktop/internal/backend\t1.118s\n" },
+};
+
+function acceptVisualCheck(checkId: string): CheckResult {
+  const check = visualChecks.checks?.find((item) => item.spec.id === checkId);
+  if (!check) throw "check is not configured";
+  const result: CheckResult = { seq: visualCheckResults[0].seq! + 1, check: checkId, kind: check.spec.kind, status: "passed", provenance: "human:desktop-user", fingerprint: "sha256:current", artifacts: [], at: new Date().toISOString() };
+  visualCheckResults = [result, ...visualCheckResults];
+  visualChecks = {
+    ...visualChecks,
+    checks: (visualChecks.checks ?? []).map((item) => (item.spec.id === checkId ? { ...item, satisfied: true, deciding: result, newest: result } : item)),
+  };
+  return result;
+}
+
 export function installVisualAppStub() {
   const visualApp = {
     GetConfigState: async () => visualConfigState,
@@ -467,6 +491,15 @@ export function installVisualAppStub() {
     ResolveThread: async (_id: string, resolution: string) =>
       editVisualTaskState((state) => { state.resolution = { state: resolution, by: "user", actor: "desktop-user" }; }),
     ResetContext: async () => { throw "run is active in another process or engine"; },
+    GetSessionChecks: async () => structuredClone(visualChecks),
+    GetCheckResults: async (_id: string, beforeSeq: number, limit: number) =>
+      structuredClone(visualCheckResults.filter((row) => beforeSeq <= 0 || row.seq! < beforeSeq).slice(0, limit)),
+    GetCheckArtifact: async (_id: string, hash: string) => {
+      const artifact = visualArtifacts[hash];
+      if (!artifact) throw "artifact not found";
+      return structuredClone(artifact);
+    },
+    AcceptCheck: async (_id: string, checkId: string) => acceptVisualCheck(checkId),
   };
 
   Object.defineProperty(window, "go", {

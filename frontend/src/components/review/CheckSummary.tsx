@@ -1,18 +1,42 @@
-import { CheckCircle2, CircleX, FlaskConical } from "lucide-react";
-import type { CheckResult } from "./checks";
+import { useEffect, useState } from "react";
+import { CheckCircle2, CircleDashed, CircleX, FlaskConical } from "lucide-react";
+import { bridge } from "../../lib/bridge";
+import type { ChecksInfo } from "../../types";
 
 type Props = {
-  results: CheckResult[];
+  sessionId: string;
+  // The review's reload counter and the run state: Core's view is re-read when either changes (the
+  // completion gate runs checks at the end of a run).
+  revision: number;
+  running: boolean;
   labels: {
     checks: string;
-    passed: string;
-    failed: string;
-    truncated: string;
+    checksSatisfied: string;
+    checksStatusFailed: string;
+    checksStatusError: string;
+    checksNeverRun: string;
+    checksStale: string;
   };
 };
 
-export function CheckSummary({ results, labels }: Props) {
-  if (!results.length) return null;
+// CheckSummary shows Core's verdict for each configured check at the reviewed state (design §4.7): a
+// check passes only through a runtime or human result at the current fingerprint, never because a
+// command the agent ran exited 0. The Checks tab of the inspector has the history and artifacts.
+export function CheckSummary({ sessionId, revision, running, labels }: Props) {
+  const [info, setInfo] = useState<ChecksInfo | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    bridge
+      .sessionChecks(sessionId)
+      .then((next) => !cancelled && setInfo(next))
+      .catch(() => !cancelled && setInfo(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, revision, running]);
+
+  const checks = info?.checks ?? [];
+  if (!checks.length) return null;
 
   return (
     <section className="review-checks" aria-label={labels.checks}>
@@ -21,16 +45,26 @@ export function CheckSummary({ results, labels }: Props) {
         <strong>{labels.checks}</strong>
       </div>
       <div className="review-check-list">
-        {results.map((result) => (
-          <div className={`review-check ${result.ok ? "passed" : "failed"}`} key={result.seq}>
-            {result.ok
-              ? <CheckCircle2 size={13} strokeWidth={1.8} aria-hidden />
-              : <CircleX size={13} strokeWidth={1.8} aria-hidden />}
-            <code>{result.command}</code>
-            <span>{result.ok ? labels.passed : labels.failed}</span>
-            {result.truncated && <small>{labels.truncated}</small>}
-          </div>
-        ))}
+        {checks.map(({ spec, satisfied, newest }) => {
+          const failed = !satisfied && newest && newest.status !== "passed";
+          let state = labels.checksNeverRun;
+          if (satisfied) state = labels.checksSatisfied;
+          else if (failed) state = newest.status === "error" ? labels.checksStatusError : labels.checksStatusFailed;
+          else if (newest) state = labels.checksStale;
+          return (
+            <div className={`review-check ${satisfied ? "passed" : failed ? "failed" : "pending"}`} key={spec.id}>
+              {satisfied ? (
+                <CheckCircle2 size={13} strokeWidth={1.8} aria-hidden />
+              ) : failed ? (
+                <CircleX size={13} strokeWidth={1.8} aria-hidden />
+              ) : (
+                <CircleDashed size={13} strokeWidth={1.8} aria-hidden />
+              )}
+              <code>{spec.id}</code>
+              <span>{state}</span>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

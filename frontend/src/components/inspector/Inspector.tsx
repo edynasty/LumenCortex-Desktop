@@ -29,11 +29,13 @@ type Props = {
   selectedSessionId: string;
   running: boolean;
   busy: boolean;
-  // The Task State panel; it loads and edits its own data.
+  // The Task State and Checks panels; each loads and edits its own data.
   taskPanel: ReactNode;
+  checksPanel: ReactNode;
   labels: {
     activity: string;
     task: string;
+    checks: string;
     run: string;
     terminal: string;
     close: string;
@@ -140,6 +142,7 @@ export function Inspector({
   running,
   busy,
   taskPanel,
+  checksPanel,
   labels,
   onTabChange,
   onClose,
@@ -164,6 +167,7 @@ export function Inspector({
         <div className="inspector-tabs">
           <button className={tab === "activity" ? "active" : ""} onClick={() => onTabChange("activity")}>{labels.activity}</button>
           <button className={tab === "task" ? "active" : ""} onClick={() => onTabChange("task")}>{labels.task}</button>
+          <button className={tab === "checks" ? "active" : ""} onClick={() => onTabChange("checks")}>{labels.checks}</button>
           <button className={tab === "run" ? "active" : ""} onClick={() => onTabChange("run")}>{labels.run}</button>
           <button className={tab === "terminal" ? "active" : ""} onClick={() => onTabChange("terminal")}>{labels.terminal}</button>
         </div>
@@ -195,6 +199,8 @@ export function Inspector({
         )}
 
         {tab === "task" && taskPanel}
+
+        {tab === "checks" && checksPanel}
 
         {tab === "run" && (
           <RunSettingsPanel

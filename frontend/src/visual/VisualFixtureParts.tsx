@@ -12,6 +12,7 @@ import {
   runtime,
   session,
   subagents,
+  visualConfigState,
   visualEvents,
 } from "./fixture-data";
 
@@ -168,6 +169,8 @@ export function VisualInspectorFixture() {
       selectedSessionId={session.id}
       running
       busy={false}
+      configKey={visualConfigState.globalDigest}
+      trusting={false}
       labels={labels}
       onTabChange={setTab}
       onClose={noop}
@@ -185,6 +188,7 @@ export function VisualInspectorFixture() {
       onStopLSP={noop}
       onOpenSubagent={noop}
       onRunShell={(event) => event.preventDefault()}
+      onTrustWorkspace={noop}
     />
   );
 }

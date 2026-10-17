@@ -1,11 +1,10 @@
 import { ReviewWorkspace } from "../components/review/ReviewWorkspace";
 import type { AppCopy } from "../lib/i18n/app-copy";
-import type { Message, Session, SessionRuntime } from "../types";
+import type { Session, SessionRuntime } from "../types";
 
 type Props = {
   session: Session;
   runtime: SessionRuntime;
-  messages: Message[];
   busy: boolean;
   running: boolean;
   labels: AppCopy;
@@ -15,7 +14,6 @@ type Props = {
 export function WorkspaceReviewRoute({
   session,
   runtime,
-  messages,
   busy,
   running,
   labels,
@@ -25,7 +23,6 @@ export function WorkspaceReviewRoute({
     <ReviewWorkspace
       sessionId={session.id}
       runtime={runtime}
-      messages={messages}
       agentBusy={busy}
       agentRunning={running}
       onSendInstruction={onSendInstruction}
@@ -55,9 +52,11 @@ export function WorkspaceReviewRoute({
         sendToAgent: labels.sendToAgent,
         agentRunning: labels.agentRunning,
         checks: labels.checks,
-        checkPassed: labels.checkPassed,
-        checkFailed: labels.checkFailed,
-        checkTruncated: labels.checkTruncated,
+        checksSatisfied: labels.checksSatisfied,
+        checksStatusFailed: labels.checksStatusFailed,
+        checksStatusError: labels.checksStatusError,
+        checksNeverRun: labels.checksNeverRun,
+        checksStale: labels.checksStale,
         localRuntime: labels.localRuntime,
         worktreeRuntime: labels.worktreeRuntime,
         conflictTitle: labels.worktreeConflictTitle,

@@ -453,7 +453,7 @@ export type TaskResolution = {
   cancelledUnits?: string[];
 };
 
-export type TaskObligation = "work_units" | "gate" | "workflow" | "pending_application" | string;
+export type TaskObligation = "work_units" | "gate" | "workflow" | "pending_application" | "checks" | string;
 
 export type TaskStateInfo = {
   sessionId: string;
@@ -475,6 +475,54 @@ export type TaskReferenceEdit = {
   target: string;
   note?: string;
   state: "included" | "excluded" | "removed";
+};
+
+// Checks (design §4.7, M4.1): configured checks, results with provenance "runtime" or "human:<id>",
+// and content-addressed artifacts. Core decides; the UI shows its view.
+export type CheckSpec = {
+  id: string;
+  kind: "test" | "build" | "schema" | string;
+  command?: string;
+  schema?: string;
+  files?: string[];
+  timeout: number; // nanoseconds
+  required: boolean;
+  source: "global" | "workspace" | string;
+};
+
+export type CheckResult = {
+  seq?: number;
+  workUnitId?: string;
+  check: string;
+  kind: string;
+  status: "passed" | "failed" | "error" | string;
+  provenance: string;
+  fingerprint: string;
+  artifacts: string[] | null;
+  at: string;
+};
+
+export type CheckInfo = {
+  spec: CheckSpec;
+  satisfied: boolean;
+  deciding?: CheckResult;
+  newest?: CheckResult;
+};
+
+export type ChecksInfo = {
+  sessionId: string;
+  // head is "" outside git: no result is reused there and nothing can be accepted.
+  env: { head: string; dirtyHash: string; worktreeId: string };
+  checks: CheckInfo[] | null;
+  warnings?: ConfigWarning[];
+};
+
+export type CheckArtifact = {
+  hash: string;
+  kind: "log" | "diff" | string;
+  size: number;
+  truncated: boolean;
+  text: string;
 };
 
 export type SearchMatch = {

@@ -57,6 +57,8 @@ type Props = {
   checkpoints: SessionCheckpoint[];
   running: boolean;
   busy: boolean;
+  configKey: string;
+  trusting: boolean;
   onSetRoute: (route: WorkspaceRoute) => void;
   onSidebarOpenChange: (open: boolean) => void;
   onSidebarCollapsedChange: (collapsed: boolean) => void;
@@ -84,6 +86,7 @@ type Props = {
   onStopLSP: () => void;
   onOpenSubagent: (sessionId: string) => void;
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
+  onTrustWorkspace: () => void;
   onCleanupWorktree: () => void;
   onCancelAgent: () => void;
   onStartAgent: () => void;
@@ -209,6 +212,8 @@ export function WorkspaceChrome(props: Props) {
       selectedSessionId={selectedSessionId}
       running={running}
       busy={busy}
+      configKey={props.configKey}
+      trusting={props.trusting}
       labels={labels}
       onTabChange={props.onInspectorTabChange}
       onClose={() => props.onInspectorOpenChange(false)}
@@ -226,6 +231,7 @@ export function WorkspaceChrome(props: Props) {
       onStopLSP={props.onStopLSP}
       onOpenSubagent={props.onOpenSubagent}
       onRunShell={props.onRunShell}
+      onTrustWorkspace={props.onTrustWorkspace}
     />
   ) : undefined;
 

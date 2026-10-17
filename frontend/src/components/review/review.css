@@ -369,7 +369,7 @@
 .review-check {
   min-height: 27px;
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
   padding: 3px 6px;
@@ -380,6 +380,7 @@
 
 .review-check.passed { color: var(--green); }
 .review-check.failed { color: var(--red); }
+.review-check.pending { color: var(--muted); }
 
 .review-check code {
   overflow: hidden;
@@ -389,13 +390,10 @@
   white-space: nowrap;
 }
 
-.review-check span,
-.review-check small {
+.review-check span {
   font-size: 8px;
   white-space: nowrap;
 }
-
-.review-check small { color: var(--amber); }
 
 
 .review-conflicts {

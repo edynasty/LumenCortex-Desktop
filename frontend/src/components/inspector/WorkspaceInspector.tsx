@@ -9,6 +9,7 @@ import type {
   SubagentNode,
 } from "../../types";
 import type { SelectOption } from "../primitives/Select";
+import { ChecksPanel } from "./ChecksPanel";
 import { Inspector } from "./Inspector";
 import { TaskStatePanel } from "./TaskStatePanel";
 import type { InspectorPolicy, InspectorTab } from "./inspector-types";
@@ -37,6 +38,9 @@ type Props = {
   selectedSessionId: string;
   running: boolean;
   busy: boolean;
+  // The global configuration digest: the Checks panel re-reads when it changes (trust adds checks).
+  configKey: string;
+  trusting: boolean;
   labels: AppCopy;
   onTabChange: (tab: InspectorTab) => void;
   onClose: () => void;
@@ -54,6 +58,7 @@ type Props = {
   onStopLSP: () => void;
   onOpenSubagent: (sessionId: string) => void;
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
+  onTrustWorkspace: () => void;
 };
 
 export function WorkspaceInspector({
@@ -79,6 +84,8 @@ export function WorkspaceInspector({
   selectedSessionId,
   running,
   busy,
+  configKey,
+  trusting,
   labels,
   onTabChange,
   onClose,
@@ -96,6 +103,7 @@ export function WorkspaceInspector({
   onStopLSP,
   onOpenSubagent,
   onRunShell,
+  onTrustWorkspace,
 }: Props) {
   return (
     <Inspector
@@ -121,9 +129,20 @@ export function WorkspaceInspector({
       running={running}
       busy={busy}
       taskPanel={<TaskStatePanel sessionId={selectedSessionId} running={running} events={events} labels={labels} />}
+      checksPanel={
+        <ChecksPanel
+          sessionId={selectedSessionId}
+          events={events}
+          configKey={configKey}
+          trusting={trusting}
+          labels={labels}
+          onTrust={onTrustWorkspace}
+        />
+      }
       labels={{
         activity: labels.activity,
         task: labels.task,
+        checks: labels.checks,
         run: labels.run,
         terminal: labels.terminal,
         close: labels.close,

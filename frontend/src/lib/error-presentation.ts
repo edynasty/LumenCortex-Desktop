@@ -13,6 +13,8 @@ type ErrorLabels = Pick<
   | "errInvalidEffort"
   | "errConflict"
   | "errInvalidConfig"
+  | "errNoFingerprint"
+  | "errUnknownCheck"
 >;
 
 const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
@@ -26,6 +28,8 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   invalidConfig: "errInvalidConfig",
   runHeld: "runningElsewhereError",
   worktreeBusy: "errWorktreeBusy",
+  noFingerprint: "errNoFingerprint",
+  unknownCheck: "errUnknownCheck",
 };
 
 // A Core error the UI knows is shown as actionable localized copy. Any other error keeps its text.

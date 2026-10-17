@@ -12,7 +12,6 @@ import {
   labels,
   localRuntime,
   visualConfigState,
-  reviewMessages,
   session,
   sidebarLabels,
   workspace,
@@ -183,7 +182,6 @@ export function VisualFixture() {
         <WorkspaceReviewRoute
           session={session}
           runtime={localRuntime}
-          messages={reviewMessages}
           busy={false}
           running={false}
           labels={labels}

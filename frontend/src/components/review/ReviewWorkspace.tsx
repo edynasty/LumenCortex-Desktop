@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Message, SessionRuntime } from "../../types";
+import type { SessionRuntime } from "../../types";
 import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
@@ -8,7 +8,6 @@ import { Dialog } from "../primitives/Dialog";
 import { EmptyState } from "../primitives/EmptyState";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { CheckSummary } from "./CheckSummary";
-import { extractCheckResults } from "./checks";
 import { diffStats, parseUnifiedDiff, splitDiffRows } from "./diff";
 import { ReviewDiffViewer } from "./ReviewDiffViewer";
 import { useReviewState, type DiffScope } from "./useReviewState";
@@ -19,7 +18,6 @@ import "./review.css";
 type Props = {
   sessionId: string;
   runtime: SessionRuntime;
-  messages: Message[];
   agentBusy: boolean;
   agentRunning: boolean;
   onSendInstruction: (path: string, instruction: string) => Promise<void> | void;
@@ -49,9 +47,11 @@ type Props = {
     sendToAgent: string;
     agentRunning: string;
     checks: string;
-    checkPassed: string;
-    checkFailed: string;
-    checkTruncated: string;
+    checksSatisfied: string;
+    checksStatusFailed: string;
+    checksStatusError: string;
+    checksNeverRun: string;
+    checksStale: string;
     localRuntime: string;
     worktreeRuntime: string;
     conflictTitle: string;
@@ -99,7 +99,7 @@ function useSplitDiffAvailable() {
   return available;
 }
 
-export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
+export function ReviewWorkspace({ sessionId, runtime, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
   const review = useReviewState(sessionId);
   const [mode, setMode] = useState<"unified" | "split">("unified");
   const splitDiffAvailable = useSplitDiffAvailable();
@@ -109,7 +109,6 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
   const lines = useMemo(() => parseUnifiedDiff(review.diff.content), [review.diff.content]);
   const rows = useMemo(() => splitDiffRows(lines), [lines]);
   const stats = useMemo(() => diffStats(lines), [lines]);
-  const checks = useMemo(() => extractCheckResults(messages), [messages]);
   const language = useMemo(() => languageFromPath(review.selectedPath), [review.selectedPath]);
   const binaryDiff = /(^|\n)(Binary files .* differ|GIT binary patch)(\n|$)/.test(review.diff.content);
   useEffect(() => {
@@ -247,15 +246,7 @@ export function ReviewWorkspace({ sessionId, runtime, messages, agentBusy, agent
               </div>
             )}
 
-            <CheckSummary
-              results={checks}
-              labels={{
-                checks: labels.checks,
-                passed: labels.checkPassed,
-                failed: labels.checkFailed,
-                truncated: labels.checkTruncated,
-              }}
-            />
+            <CheckSummary sessionId={sessionId} revision={review.revision} running={agentRunning} labels={labels} />
 
             <ReviewDiffViewer
               loading={review.loading}

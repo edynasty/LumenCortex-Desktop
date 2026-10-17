@@ -33,6 +33,7 @@ export type TaskStateLabels = Pick<
   | "taskObligationGate"
   | "taskObligationWorkflow"
   | "taskObligationPendingApplication"
+  | "taskObligationChecks"
   | "taskPendingEdits"
   | "taskEvidenceError"
   | "taskContext"
@@ -50,6 +51,8 @@ export type TaskStateLabels = Pick<
   | "errInvalidEffort"
   | "errConflict"
   | "errInvalidConfig"
+  | "errNoFingerprint"
+  | "errUnknownCheck"
 >;
 
 type Props = {
@@ -84,6 +87,8 @@ function obligationLabel(labels: TaskStateLabels, obligation: TaskObligation): s
       return labels.taskObligationWorkflow;
     case "pending_application":
       return labels.taskObligationPendingApplication;
+    case "checks":
+      return labels.taskObligationChecks;
     default:
       return obligation;
   }

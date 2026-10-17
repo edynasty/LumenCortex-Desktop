@@ -340,3 +340,64 @@
   font: 10px var(--mono);
 }
 .task-error { margin: 0; padding: 0 0 4px; color: var(--red); font-size: 9.5px; line-height: 1.6; }
+
+/* Checks panel: Core's view of configured checks, results and artifacts. */
+.checks-env { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; color: var(--muted); font-size: 9.5px; }
+.checks-env span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.checks-refresh {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.checks-refresh:hover { background: var(--surface-soft); }
+.checks-panel .config-warnings { margin-bottom: 14px; }
+.check-list, .check-history { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.check-card { min-width: 0; padding: 8px 9px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+.check-card-head, .check-row > div:first-child { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.check-card-head strong, .check-row strong { min-width: 0; overflow: hidden; color: var(--text); font-size: 10px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.check-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.check-card.passed .check-dot, .check-row.passed .check-dot { background: var(--green); }
+.check-card.failed .check-dot, .check-row.failed .check-dot { background: var(--red); }
+.check-card.error .check-dot, .check-row.error .check-dot { background: var(--amber); }
+.check-chip { flex: 0 0 auto; padding: 1px 6px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-soft); font-size: 8.5px; }
+.check-source { margin-left: auto; flex: 0 0 auto; color: var(--muted); font-size: 9px; }
+.check-command { display: block; margin-top: 6px; overflow: hidden; color: var(--tool-text); white-space: nowrap; text-overflow: ellipsis; font: 9.5px var(--mono); }
+.check-detail { margin: 5px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.5; }
+.check-card.passed .check-detail { color: var(--green); }
+.check-card.failed .check-detail { color: var(--red); }
+.check-actions, .check-artifacts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.check-actions { margin-top: 7px; }
+.check-actions:empty { display: none; }
+.check-artifacts button, .check-accept, .check-artifact header button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 9.5px;
+  cursor: pointer;
+}
+.check-artifacts button.active { background: var(--surface-active); color: var(--text); }
+.check-artifacts button:hover:not(.active), .check-accept:hover:not(:disabled), .check-artifact header button:hover { background: var(--surface-soft); }
+.check-accept { margin-left: auto; color: var(--text); font-weight: 560; }
+.check-accept:disabled { opacity: 0.5; cursor: default; }
+.check-artifact { margin: 0 0 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); overflow: hidden; }
+.check-artifact header { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 9px; border-bottom: 1px solid var(--border); color: var(--text-soft); font-size: 9.5px; }
+.check-artifact header code { min-width: 0; overflow: hidden; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; font: 9px var(--mono); }
+.check-artifact header button { margin-left: auto; height: 22px; }
+.check-artifact .settings-note { margin: 6px 9px 0; }
+.check-artifact pre { max-height: 260px; margin: 0; padding: 8px 9px; overflow: auto; color: var(--tool-text); font: 9.5px/1.55 var(--mono); white-space: pre; }
+.check-row { min-width: 0; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; }
+.check-status { flex: 0 0 auto; color: var(--text-soft); font-size: 9px; }
+.check-row.failed .check-status { color: var(--red); }
+.check-row.passed .check-status { color: var(--green); }
+.check-row-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; color: var(--muted); font-size: 9px; }
+.check-row-meta .check-artifacts button { height: 20px; padding: 0 6px; font-size: 9px; }
