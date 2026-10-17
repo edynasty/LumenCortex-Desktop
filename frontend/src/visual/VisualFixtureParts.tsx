@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Menu, PanelLeftOpen, PanelRight } from "lucide-react";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
+import type { InspectorTab } from "../components/inspector/inspector-types";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import {
   checkpoints,
@@ -139,7 +140,7 @@ export function VisualThreadScene({
 }
 
 export function VisualInspectorFixture() {
-  const [tab, setTab] = useState<"activity" | "run" | "terminal">("activity");
+  const [tab, setTab] = useState<InspectorTab>("activity");
   return (
     <WorkspaceInspector
       tab={tab}

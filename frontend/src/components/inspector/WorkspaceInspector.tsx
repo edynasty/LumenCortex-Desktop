@@ -10,6 +10,7 @@ import type {
 } from "../../types";
 import type { SelectOption } from "../primitives/Select";
 import { Inspector } from "./Inspector";
+import { TaskStatePanel } from "./TaskStatePanel";
 import type { InspectorPolicy, InspectorTab } from "./inspector-types";
 
 type Props = {
@@ -119,8 +120,10 @@ export function WorkspaceInspector({
       selectedSessionId={selectedSessionId}
       running={running}
       busy={busy}
+      taskPanel={<TaskStatePanel sessionId={selectedSessionId} running={running} events={events} labels={labels} />}
       labels={{
         activity: labels.activity,
+        task: labels.task,
         run: labels.run,
         terminal: labels.terminal,
         close: labels.close,

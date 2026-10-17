@@ -425,11 +425,56 @@ export type AgentConfig = {
   effort?: AgentEffort;
   policy?: "read-only" | "workspace" | "full";
   maxSteps?: number;
-  recentMessages?: number;
   maxToolCallsPerStep?: number;
   toolDenylist?: string[];
   maxTokens?: number;
   temperature?: number;
+};
+
+// Task State (Core runtime.TaskStateInfo, ADR-0006). The host view already includes queued edits.
+export type TaskReference = {
+  id: string;
+  kind: "path" | "thread" | string;
+  target: string;
+  note?: string;
+  state: "included" | "excluded" | "suggested" | string;
+  by: string;
+  at: string;
+};
+
+export type TaskResolutionState = "open" | "done" | "dropped";
+
+export type TaskResolution = {
+  state: TaskResolutionState | string;
+  by?: "user" | "evidence" | "reopen" | string;
+  actor?: string;
+  at?: string;
+  refs?: string[];
+  cancelledUnits?: string[];
+};
+
+export type TaskObligation = "work_units" | "gate" | "workflow" | "pending_application" | string;
+
+export type TaskStateInfo = {
+  sessionId: string;
+  version: number;
+  pendingEdits: number;
+  state: {
+    brief?: string;
+    references?: TaskReference[];
+    resolution: TaskResolution;
+    windowStartSeq: number;
+  };
+  obligations: TaskObligation[] | null;
+  readyForReview: boolean;
+  evidenceError?: string;
+};
+
+export type TaskReferenceEdit = {
+  kind: "path" | "thread";
+  target: string;
+  note?: string;
+  state: "included" | "excluded" | "removed";
 };
 
 export type SearchMatch = {

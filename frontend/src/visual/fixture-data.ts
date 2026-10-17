@@ -11,6 +11,8 @@ import type {
   SessionCheckpoint,
   SessionRuntime,
   SubagentNode,
+  TaskReferenceEdit,
+  TaskStateInfo,
 } from "../types";
 
 export type VisualScene = "new-task" | "thread" | "providers" | "review" | "extensions" | "inspector";
@@ -334,6 +336,33 @@ export const sidebarLabels = {
   worktreeRuntime: labels.worktreeRuntime,
 };
 
+// The Task State the inspector's Task tab shows; edits change this copy, as Core's host view would.
+let visualTaskState: TaskStateInfo = {
+  sessionId: session.id,
+  version: 4,
+  pendingEdits: 0,
+  state: {
+    brief: "Refactor provider settings without changing the saved file format.",
+    references: [
+      { id: "ref_a", kind: "path", target: "internal/backend/provider_config.go", note: "scope merge lives here", state: "included", by: "user", at: "2026-09-22T01:04:00Z" },
+      { id: "ref_b", kind: "path", target: "frontend/src/components/provider/ProvidersPane.tsx", state: "suggested", by: "agent", at: "2026-09-22T01:09:00Z" },
+      { id: "ref_c", kind: "path", target: "docs/legacy-provider-notes.md", state: "excluded", by: "user", at: "2026-09-22T01:10:00Z" },
+    ],
+    resolution: { state: "open", by: "reopen", actor: "runtime" },
+    windowStartSeq: 0,
+  },
+  obligations: ["work_units", "pending_application"],
+  readyForReview: false,
+};
+
+function editVisualTaskState(change: (state: TaskStateInfo["state"]) => void): TaskStateInfo {
+  const next: TaskStateInfo = structuredClone(visualTaskState);
+  change(next.state);
+  next.pendingEdits += 1;
+  visualTaskState = next;
+  return structuredClone(next);
+}
+
 export function installVisualAppStub() {
   const visualApp = {
     GetConfigState: async () => visualConfigState,
@@ -424,6 +453,20 @@ export function installVisualAppStub() {
     SetSkillEnabled: async () => undefined,
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value: { disabled: string[] }) => value,
+
+    GetTaskState: async () => structuredClone(visualTaskState),
+    SetTaskBrief: async (_id: string, brief: string) => editVisualTaskState((state) => { state.brief = brief; }),
+    EditTaskReference: async (_id: string, edit: TaskReferenceEdit) =>
+      editVisualTaskState((state) => {
+        const kept = (state.references ?? []).filter((ref) => ref.target !== edit.target);
+        if (edit.state !== "removed") {
+          kept.push({ id: `ref_${edit.target}`, kind: edit.kind, target: edit.target, note: edit.note, state: edit.state, by: "user", at: new Date().toISOString() });
+        }
+        state.references = kept;
+      }),
+    ResolveThread: async (_id: string, resolution: string) =>
+      editVisualTaskState((state) => { state.resolution = { state: resolution, by: "user", actor: "desktop-user" }; }),
+    ResetContext: async () => { throw "run is active in another process or engine"; },
   };
 
   Object.defineProperty(window, "go", {

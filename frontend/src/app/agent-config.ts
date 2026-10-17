@@ -13,7 +13,6 @@ export function buildAgentConfig(
     modelRef,
     policy,
     maxSteps,
-    recentMessages: 12,
     maxToolCallsPerStep: 8,
   };
 }

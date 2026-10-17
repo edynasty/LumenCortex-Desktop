@@ -46,7 +46,6 @@ type AgentConfig struct {
 	Effort              string   `json:"effort,omitempty"`
 	Policy              string   `json:"policy,omitempty"`
 	MaxSteps            int      `json:"maxSteps,omitempty"`
-	RecentMessages      int      `json:"recentMessages,omitempty"`
 	MaxToolCallsPerStep int      `json:"maxToolCallsPerStep,omitempty"`
 	ToolDenylist        []string `json:"toolDenylist,omitempty"`
 	MaxTokens           int      `json:"maxTokens,omitempty"`
@@ -348,7 +347,6 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 		Input:               input,
 		Policy:              normalizedPolicy(cfg.Policy),
 		MaxSteps:            cfg.MaxSteps,
-		RecentMessages:      cfg.RecentMessages,
 		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
 		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,

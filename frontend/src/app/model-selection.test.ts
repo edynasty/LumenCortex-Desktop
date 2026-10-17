@@ -98,12 +98,13 @@ describe("model selection and session pinning", () => {
       modelRef: "test/a",
       policy: "workspace",
       maxSteps: 24,
-      recentMessages: 12,
       maxToolCallsPerStep: 8,
     });
     const keys = Object.keys(JSON.parse(JSON.stringify(buildAgentConfig(undefined, "read-only", 3))));
     expect(keys).not.toContain("modelRef");
     expect(keys).not.toContain("provider");
+    // The request window is Core's (design §5); Desktop sends no row count.
+    expect(keys).not.toContain("recentMessages");
   });
 });
 

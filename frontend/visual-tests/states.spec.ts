@@ -247,6 +247,20 @@ for (const width of widths) {
     await capture(page, testInfo, "inspector-run", width);
   });
 
+  test(`inspector task state keeps long references inside the panel at ${width}px`, async ({ page }, testInfo) => {
+    await openScene(page, "inspector", width);
+    await page.locator(".inspector-tabs").getByRole("button", { name: "Task", exact: true }).click();
+
+    const references = page.locator(".task-reference");
+    await expect(references).toHaveCount(3);
+    const widths = await page.locator(".task-references").evaluate((list) => ({
+      list: list.getBoundingClientRect().width,
+      items: Array.from(list.children).map((item) => item.getBoundingClientRect().width),
+    }));
+    for (const item of widths.items) expect(item).toBeLessThanOrEqual(widths.list + 0.5);
+    await capture(page, testInfo, "inspector-task", width);
+  });
+
   test(`inspector terminal state is usable at ${width}px`, async ({ page }, testInfo) => {
     await openScene(page, "inspector", width);
     await page.locator(".inspector-tabs").getByRole("button", { name: "Terminal" }).click();

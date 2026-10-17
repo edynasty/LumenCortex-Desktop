@@ -27,6 +27,9 @@ import type {
   SessionUIPatch,
   ShellResult,
   SubagentNode,
+  TaskReferenceEdit,
+  TaskResolutionState,
+  TaskStateInfo,
   ToolPermissions,
   SessionCheckpoint,
   WorkspaceState,
@@ -72,6 +75,11 @@ type AppAPI = {
   CancelAgent(sessionId: string): Promise<boolean>;
   GetWorkflowSummary(sessionId: string): Promise<WorkflowSummary | null>;
   ApproveWorkflowGate(sessionId: string, gateId: string): Promise<WorkflowSummary>;
+  GetTaskState(sessionId: string): Promise<TaskStateInfo>;
+  SetTaskBrief(sessionId: string, brief: string): Promise<TaskStateInfo>;
+  EditTaskReference(sessionId: string, edit: TaskReferenceEdit): Promise<TaskStateInfo>;
+  ResolveThread(sessionId: string, state: TaskResolutionState): Promise<TaskStateInfo>;
+  ResetContext(sessionId: string): Promise<TaskStateInfo>;
   SearchText(query: string, path: string, limit: number): Promise<SearchResult>;
   FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
   GitStatus(): Promise<GitStatus>;
@@ -165,6 +173,11 @@ export const bridge = {
   cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
   workflowSummary: (sessionId: string) => api().GetWorkflowSummary(sessionId),
   approveWorkflowGate: (sessionId: string, gateId: string) => api().ApproveWorkflowGate(sessionId, gateId),
+  taskState: (sessionId: string) => api().GetTaskState(sessionId),
+  setTaskBrief: (sessionId: string, brief: string) => api().SetTaskBrief(sessionId, brief),
+  editTaskReference: (sessionId: string, edit: TaskReferenceEdit) => api().EditTaskReference(sessionId, edit),
+  resolveThread: (sessionId: string, state: TaskResolutionState) => api().ResolveThread(sessionId, state),
+  resetContext: (sessionId: string) => api().ResetContext(sessionId),
   searchText: (query: string, path = "", limit = 200) => api().SearchText(query, path, limit),
   findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
   gitStatus: () => api().GitStatus(),

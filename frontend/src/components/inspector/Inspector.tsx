@@ -1,4 +1,4 @@
-import type { ChangeEvent, FormEvent } from "react";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { SquareTerminal, X } from "lucide-react";
 import type { Health, LSPDiagnostic, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
 import type { SelectOption } from "../primitives/Select";
@@ -29,8 +29,11 @@ type Props = {
   selectedSessionId: string;
   running: boolean;
   busy: boolean;
+  // The Task State panel; it loads and edits its own data.
+  taskPanel: ReactNode;
   labels: {
     activity: string;
+    task: string;
     run: string;
     terminal: string;
     close: string;
@@ -136,6 +139,7 @@ export function Inspector({
   selectedSessionId,
   running,
   busy,
+  taskPanel,
   labels,
   onTabChange,
   onClose,
@@ -159,6 +163,7 @@ export function Inspector({
       <div className="inspector-head">
         <div className="inspector-tabs">
           <button className={tab === "activity" ? "active" : ""} onClick={() => onTabChange("activity")}>{labels.activity}</button>
+          <button className={tab === "task" ? "active" : ""} onClick={() => onTabChange("task")}>{labels.task}</button>
           <button className={tab === "run" ? "active" : ""} onClick={() => onTabChange("run")}>{labels.run}</button>
           <button className={tab === "terminal" ? "active" : ""} onClick={() => onTabChange("terminal")}>{labels.terminal}</button>
         </div>
@@ -188,6 +193,8 @@ export function Inspector({
             }}
           />
         )}
+
+        {tab === "task" && taskPanel}
 
         {tab === "run" && (
           <RunSettingsPanel

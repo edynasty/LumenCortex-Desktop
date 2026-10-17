@@ -226,6 +226,26 @@ func (a *App) ApproveWorkflowGate(sessionID, gateID string) (any, error) {
 	return a.backend.ApproveWorkflowGate(context.Background(), sessionID, gateID, "desktop-user")
 }
 
+func (a *App) GetTaskState(sessionID string) (backend.TaskStateInfo, error) {
+	return a.backend.TaskState(context.Background(), sessionID)
+}
+
+func (a *App) SetTaskBrief(sessionID, brief string) (backend.TaskStateInfo, error) {
+	return a.backend.SetTaskBrief(context.Background(), sessionID, brief)
+}
+
+func (a *App) EditTaskReference(sessionID string, edit backend.TaskReferenceEdit) (backend.TaskStateInfo, error) {
+	return a.backend.EditTaskReference(context.Background(), sessionID, edit)
+}
+
+func (a *App) ResolveThread(sessionID, state string) (backend.TaskStateInfo, error) {
+	return a.backend.ResolveThread(context.Background(), sessionID, state, "desktop-user")
+}
+
+func (a *App) ResetContext(sessionID string) (backend.TaskStateInfo, error) {
+	return a.backend.ResetContext(context.Background(), sessionID)
+}
+
 func (a *App) SearchText(query, path string, limit int) (backend.SearchResult, error) {
 	return a.backend.SearchText(context.Background(), query, path, limit)
 }
