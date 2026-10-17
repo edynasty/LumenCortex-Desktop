@@ -112,10 +112,6 @@ func (a *App) GetSessionRuntime(sessionID string) (backend.SessionRuntime, error
 	return a.backend.SessionRuntime(context.Background(), sessionID)
 }
 
-func (a *App) GetTaskState(sessionID string) (map[string]any, error) {
-	return a.backend.GetTaskState(context.Background(), sessionID)
-}
-
 func (a *App) InspectSessionWorktree(sessionID string) (backend.WorktreeInspection, error) {
 	return a.backend.InspectSessionWorktree(context.Background(), sessionID)
 }

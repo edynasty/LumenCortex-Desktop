@@ -51,7 +51,6 @@ type AppAPI = {
   CreateSessionWithContext(goal: string, paths: string[]): Promise<Session>;
   CreateSessionWithRuntime(goal: string, paths: string[], runtimeKind: string, base: string): Promise<Session>;
   GetSessionRuntime(sessionId: string): Promise<SessionRuntime>;
-  GetTaskState(sessionId: string): Promise<Record<string, any>>;
   InspectSessionWorktree(sessionId: string): Promise<WorktreeInspection>;
   RemoveSessionWorktree(sessionId: string, cleanup: WorktreeCleanup): Promise<WorktreeCleanupOutcome>;
   DeleteSession(sessionId: string, cleanup: WorktreeCleanup): Promise<DeleteSessionOutcome>;
