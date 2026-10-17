@@ -351,6 +351,9 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,
 		Temperature:         cfg.Temperature,
+		// Every Desktop thread is a conversation (ADR-0006 D3): an answer ends the turn, and the thread's
+		// resolution, not the run status, says whether the task is done.
+		Interactive: true,
 	})
 }
 

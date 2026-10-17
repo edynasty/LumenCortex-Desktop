@@ -9,16 +9,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
-// openChecksWorkspace serves "done" to every request, configures the global check "status" (passes only
-// when ok.txt exists) and opens workspace.
-func openChecksWorkspace(t *testing.T, workspace string) *Runtime {
+// openChecksWorkspace configures the global check "status" (passes only when ok.txt exists) and opens
+// workspace; reply answers each provider request (nil: every request is answered "done").
+func openChecksWorkspace(t *testing.T, workspace string, reply http.HandlerFunc) *Runtime {
 	t.Helper()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { replyText(w, "done") }))
+	if reply == nil {
+		reply = func(w http.ResponseWriter, _ *http.Request) { replyText(w, "done") }
+	}
+	server := httptest.NewServer(reply)
 	t.Cleanup(server.Close)
 	writeFile(t, useConfigDir(t), fmt.Sprintf(`{
   "model": "test/a",
@@ -50,7 +54,7 @@ func statusCheck(t *testing.T, r *Runtime, sessionID string) lcx.CheckInfo {
 // changes.
 func TestAcceptRecordsAHumanResultAtTheCurrentFingerprint(t *testing.T) {
 	workspace := setupGitWorkspace(t)
-	r := openChecksWorkspace(t, workspace)
+	r := openChecksWorkspace(t, workspace, nil)
 	ctx := context.Background()
 	session, err := r.CreateSession(ctx, "accept the status check")
 	if err != nil {
@@ -96,25 +100,35 @@ func TestAcceptRecordsAHumanResultAtTheCurrentFingerprint(t *testing.T) {
 	}
 }
 
-// A failing required check leaves results and artifacts the UI pages through and reads as text.
+// A failing required check leaves results and artifacts the UI pages through and reads as text. Each of
+// the two conversation turns edits the workspace, so its end decides the check (ADR-0006 D3).
 func TestCheckResultsPageAndArtifactsReadAsText(t *testing.T) {
 	workspace := setupGitWorkspace(t)
-	r := openChecksWorkspace(t, workspace)
+	var requests atomic.Int32
+	r := openChecksWorkspace(t, workspace, func(w http.ResponseWriter, _ *http.Request) {
+		if requests.Add(1)%2 == 1 {
+			replyToolCall(w, "w", "write_file", `{"path":"README.md","content":"edited by the run\n"}`)
+			return
+		}
+		replyText(w, "done")
+	})
 	ctx := context.Background()
 	session, err := r.CreateSession(ctx, "fail the status check")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(workspace, "README.md"), []byte("edited by the run\n"), 0o644); err != nil {
+	cfg := AgentConfig{Policy: "workspace", MaxSteps: 3}
+	if _, err := r.StartAgent(ctx, session.ID, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{Policy: "read-only", MaxSteps: 2}); err != nil {
+	waitIdle(t, r, ctx)
+	if _, err := r.ContinueAgent(ctx, session.ID, "again", cfg); err != nil {
 		t.Fatal(err)
 	}
 	waitIdle(t, r, ctx)
 	all, err := r.CheckResults(ctx, session.ID, -1, 0)
 	if err != nil || len(all) != 2 {
-		t.Fatalf("results=%+v err=%v (the gate decides the check at each of the 2 final answers)", all, err)
+		t.Fatalf("results=%+v err=%v (each editing turn decides the check once)", all, err)
 	}
 	first, err := r.CheckResults(ctx, session.ID, -1, 1)
 	if err != nil || len(first) != 1 || first[0].Seq != all[0].Seq {
@@ -151,7 +165,7 @@ func TestCheckResultsPageAndArtifactsReadAsText(t *testing.T) {
 // Outside git there is no fingerprint to accept: Core refuses, and the refusal carries the sentinel the
 // frontend recognises. An unknown check is refused the same way.
 func TestAcceptOutsideGitIsRefused(t *testing.T) {
-	r := openChecksWorkspace(t, t.TempDir())
+	r := openChecksWorkspace(t, t.TempDir(), nil)
 	ctx := context.Background()
 	session, err := r.CreateSession(ctx, "no git")
 	if err != nil {
