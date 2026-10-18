@@ -1,14 +1,19 @@
+// Top-level pages of the global rail. Settings is a sheet over any page, not a route.
+export type WorkspacePage = "threads" | "scm" | "context";
+
 export type WorkspaceRoute =
   | { kind: "new-task" }
   | { kind: "thread"; sessionId: string }
-  | { kind: "providers" }
+  // The thread's Changes view (toolbar segmented control), reviewing its runtime's diff.
   | { kind: "review"; sessionId: string }
-  | { kind: "extensions"; sessionId?: string };
+  // Source Control: the project checkout ("main") or one session's worktree.
+  | { kind: "scm"; checkout: "main" | string }
+  | { kind: "context" };
 
 export function routeSessionId(route: WorkspaceRoute): string {
-  return route.kind === "thread" || route.kind === "review" || route.kind === "extensions" ? (route.sessionId || "") : "";
+  return route.kind === "thread" || route.kind === "review" ? route.sessionId : "";
 }
 
-export function isWorkspaceRoute(route: WorkspaceRoute): boolean {
-  return route.kind !== "providers" && route.kind !== "extensions";
+export function routePage(route: WorkspaceRoute): WorkspacePage {
+  return route.kind === "scm" ? "scm" : route.kind === "context" ? "context" : "threads";
 }

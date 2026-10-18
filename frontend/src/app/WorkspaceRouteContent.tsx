@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
 import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
-import { ProviderSettingsPanel } from "../components/provider/ProviderSettingsPanel";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
-import type { AppCopy, Locale } from "../lib/i18n/app-copy";
+import type { AppCopy } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
 import type {
   ConfigState,
@@ -19,7 +17,6 @@ import type {
 import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel, threadWorkspaceLabels } from "./presentation-model";
-import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
 import { WorkspaceReviewRoute } from "./WorkspaceReviewRoute";
 import { ThreadTasksLayer } from "./ThreadTasksLayer";
 import type { WorkspaceRoute } from "./workspace-route";
@@ -28,9 +25,10 @@ type Policy = "read-only" | "workspace" | "full";
 
 type Props = {
   route: WorkspaceRoute;
+  /** Source Control / Context page bodies, built by WorkspaceView. */
+  pageContent?: ReactNode;
   current?: Session;
   runtime: SessionRuntime;
-  locale: Locale;
   labels: AppCopy;
   workspace: string;
   recentProjects: string[];
@@ -50,10 +48,8 @@ type Props = {
   workflowSummary: WorkflowSummary | null;
   subagents: SubagentNode[];
   textareaRef: Ref<HTMLTextAreaElement>;
-  onConfigChanged: () => void;
   onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
-  onError: (message: string) => void;
   onGoalChange: (value: string) => void;
   onPickContextFiles: () => void;
   onPickContextFolder: () => void;
@@ -85,9 +81,9 @@ function basename(path: string) {
 
 export function WorkspaceRouteContent({
   route,
+  pageContent,
   current,
   runtime,
-  locale,
   labels,
   workspace,
   recentProjects,
@@ -107,10 +103,8 @@ export function WorkspaceRouteContent({
   workflowSummary,
   subagents,
   textareaRef,
-  onConfigChanged,
   onTrustWorkspace,
   onModelChange,
-  onError,
   onGoalChange,
   onPickContextFiles,
   onPickContextFolder,
@@ -154,50 +148,10 @@ export function WorkspaceRouteContent({
 
   const configNotice = <ConfigWarnings labels={labels} warnings={config.warnings} trusting={trusting} hideDefaultLimit onTrust={onTrustWorkspace} />;
 
-  const providerActive = route.kind === "providers";
-  const [providerMounted, setProviderMounted] = useState(providerActive);
-
-  useEffect(() => {
-    if (providerActive) setProviderMounted(true);
-  }, [providerActive]);
-
-  const providerLayer = providerMounted || providerActive ? (
-    <div className="workspace-route-keepalive" hidden={!providerActive}>
-      <ProviderSettingsPanel
-        locale={locale}
-        workspace={workspace}
-        config={config}
-        trusting={trusting}
-        onTrust={onTrustWorkspace}
-        onConfigChanged={onConfigChanged}
-        onError={onError}
-      />
-    </div>
-  ) : null;
-
-  const withProviderLayer = (content: ReactNode) => (
-    <>
-      {providerLayer}
-      {content}
-    </>
-  );
-
-  if (providerActive) return providerLayer;
-
-  if (route.kind === "extensions") {
-    return withProviderLayer(
-      <WorkspaceExtensionsRoute
-        workspace={workspace}
-        sessionId={current?.id || route.sessionId || ""}
-        runtime={runtime}
-        labels={labels}
-        onError={onError}
-      />
-    );
-  }
+  if (route.kind === "scm" || route.kind === "context") return <>{pageContent}</>;
 
   if (route.kind === "review" && current) {
-    return withProviderLayer(
+    return (
       <WorkspaceReviewRoute
         session={current}
         runtime={runtime}
@@ -210,7 +164,7 @@ export function WorkspaceRouteContent({
   }
 
   if (!current) {
-    return withProviderLayer(
+    return (
       <NewTaskComposer
         title={labels.buildTitle}
         subtitle={labels.newTaskSubtitle}
@@ -284,7 +238,7 @@ export function WorkspaceRouteContent({
       ? kindLabel(labels, cause.kind)
       : "";
 
-  return withProviderLayer(
+  return (
     <ThreadTasksLayer
       key={current.id}
       session={current}

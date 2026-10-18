@@ -47,7 +47,7 @@ import type {
   DeleteSessionOutcome
 } from "../types";
 
-type AppAPI = {
+export type AppAPI = {
   PickWorkspace(): Promise<WorkspaceState>;
   OpenWorkspace(path: string): Promise<WorkspaceState>;
   GetState(): Promise<WorkspaceState>;
@@ -248,4 +248,13 @@ export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => v
     return maybeCancel as () => void;
   }
   return () => window.runtime?.EventsOff?.("runtime:event");
+}
+
+/**
+ * True inside the macOS Wails window, whose native traffic lights float over the web toolbar
+ * (main.go TitleBarHiddenInset). Wails loads its runtime script before the app module, so this
+ * is synchronous; a plain browser has no `window.runtime`.
+ */
+export function isNativeMacWindow(): boolean {
+  return typeof window !== "undefined" && Boolean(window.runtime) && /^Mac/.test(navigator.platform);
 }

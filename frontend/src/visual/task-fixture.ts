@@ -8,7 +8,7 @@ const header = "[runtime] An execution task of this thread reached a terminal st
 const worktrees = "/Users/demo/Projects/.lumencortex-worktrees";
 
 export const taskSession: Session = {
-  id: "session-demo",
+  id: "session-tasks",
   createdAt: "2026-09-22T01:00:00Z",
   updatedAt: "2026-09-22T02:00:00Z",
   status: "completed",

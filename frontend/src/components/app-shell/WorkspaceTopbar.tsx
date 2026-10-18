@@ -1,162 +1,171 @@
-import { ArrowUp, Code2, FileDiff, Menu, PanelLeftOpen, PanelRight, Square, Trash2 } from "lucide-react";
-import { sessionStatusLabel } from "../../app/presentation-model";
+/* Title and page actions in the toolbar's main segment (right of the rail + sidebar lead). */
+import { useState } from "react";
 import type { WorkspaceRoute } from "../../app/workspace-route";
 import type { AppCopy } from "../../lib/i18n/app-copy";
+import { sessionUI } from "../../lib/session-ui";
 import type { Session, SessionRuntime } from "../../types";
+import { AnchoredPopover } from "../primitives/AnchoredPopover";
+import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
+import { IconButton } from "../primitives/IconButton";
+import { SegmentedControl } from "../primitives/SegmentedControl";
+import type { ShellSize } from "./AppShell";
 
 type Props = {
   route: WorkspaceRoute;
+  size: ShellSize;
   current?: Session;
-  workspace: string;
+  parent?: Session;
   runtime: SessionRuntime;
   running: boolean;
   busy: boolean;
+  inspectorAvailable: boolean;
   inspectorOpen: boolean;
-  sidebarCollapsed: boolean;
   labels: AppCopy;
-  onOpenSidebar: () => void;
-  onExpandSidebar: () => void;
-  onBackToWorkspace: () => void;
-  onOpenReview: () => void;
-  onOpenThread: () => void;
+  onSetRoute: (route: WorkspaceRoute) => void;
   onCleanupWorktree: () => void;
   onCancelAgent: () => void;
   onStartAgent: () => void;
+  onOpenPalette: () => void;
   onToggleInspector: () => void;
 };
 
-function basename(path: string) {
-  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
+function WorktreePill({ runtime, running, busy, labels, onOpenScm, onCleanup }: {
+  runtime: SessionRuntime;
+  running: boolean;
+  busy: boolean;
+  labels: AppCopy;
+  onOpenScm: () => void;
+  onCleanup: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (runtime.kind !== "worktree") {
+    return (
+      <span className="wt-pill is-static" title={runtime.path}>
+        <Icon name="local" size={13} />
+        <span className="wt-branch">{labels.localRuntime}</span>
+      </span>
+    );
+  }
+  return (
+    <div className="wt-pill-wrap is-chip popover-anchor no-drag">
+      <button type="button" className="wt-pill" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)} title={runtime.path}>
+        <Icon name="worktree" size={13} />
+        <span className="wt-branch">{runtime.branch || labels.worktreeRuntime}</span>
+      </button>
+      <AnchoredPopover open={open} onClose={() => setOpen(false)} label={labels.worktreeRuntime} className="wt-pop">
+        <div className="wt-pop-head">
+          <Icon name="worktree" size={16} />
+          <div>
+            <strong>{runtime.branch || labels.worktreeRuntime}</strong>
+            <span>{runtime.base ? `${labels.worktreeBase} ${runtime.base} · ` : ""}{runtime.path}</span>
+          </div>
+        </div>
+        <p className="wt-pop-note">{labels.worktreeRuntimeDescription}</p>
+        <div className="wt-pop-actions">
+          <Button size="sm" icon={<Icon name="changes" size={14} />} onClick={() => { setOpen(false); onOpenScm(); }}>{labels.openInSourceControl}</Button>
+          {!running && (
+            <Button size="sm" variant="ghost" icon={<Icon name="delete" size={14} />} disabled={busy} onClick={() => { setOpen(false); onCleanup(); }}>
+              {labels.cleanupWorktree}
+            </Button>
+          )}
+          {running && <p className="wt-pop-hint">{labels.worktreeBusyHint}</p>}
+        </div>
+      </AnchoredPopover>
+    </div>
+  );
 }
 
 export function WorkspaceTopbar({
   route,
+  size,
   current,
-  workspace,
+  parent,
   runtime,
   running,
   busy,
+  inspectorAvailable,
   inspectorOpen,
-  sidebarCollapsed,
   labels,
-  onOpenSidebar,
-  onExpandSidebar,
-  onBackToWorkspace,
-  onOpenReview,
-  onOpenThread,
+  onSetRoute,
   onCleanupWorktree,
   onCancelAgent,
   onStartAgent,
+  onOpenPalette,
   onToggleInspector,
 }: Props) {
-  const title =
-    route.kind === "providers" ? labels.providerSettings :
-    route.kind === "extensions" ? labels.extensions :
-    route.kind === "review" ? labels.review :
-    current?.goal || (workspace ? basename(workspace) : "LumenCortex");
+  const { compact, narrow } = size;
+  const threadRoute = (route.kind === "thread" || route.kind === "review") && current;
 
-  const runtimeLabel = runtime.kind === "worktree"
-    ? (runtime.branch || labels.worktreeRuntime)
-    : labels.localRuntime;
+  let title;
+  if (route.kind === "context") {
+    title = <h1>{labels.contextPage}</h1>;
+  } else if (route.kind === "scm") {
+    title = <h1>{labels.sourceControl}</h1>;
+  } else if (threadRoute) {
+    const threadTitle = sessionUI(current).title;
+    title = (
+      <>
+        {parent && (
+          <>
+            <button type="button" className="toolbar-crumb no-drag" title={labels.backToParent} onClick={() => onSetRoute({ kind: "thread", sessionId: parent.id })}>
+              {compact ? <Icon name="back" size={14} /> : <span>{sessionUI(parent).title}</span>}
+            </button>
+            {!compact && <Icon name="expand" size={13} className="toolbar-crumb-sep" />}
+          </>
+        )}
+        <h1 title={threadTitle}>{threadTitle}</h1>
+        {!compact && (
+          <WorktreePill
+            runtime={runtime}
+            running={running}
+            busy={busy}
+            labels={labels}
+            onOpenScm={() => onSetRoute({ kind: "scm", checkout: current.id })}
+            onCleanup={onCleanupWorktree}
+          />
+        )}
+      </>
+    );
+  } else {
+    title = <h1 className="is-quiet">{labels.newTask}</h1>;
+  }
 
-  const subtitle =
-    route.kind === "providers"
-      ? (workspace ? `${labels.project} · ${basename(workspace)}` : labels.providerConfig)
-      : route.kind === "extensions"
-        ? (workspace ? `${labels.project} · ${basename(workspace)} · ${runtimeLabel}` : labels.extensions)
-        : route.kind === "review"
-          ? (current?.goal || labels.review)
-          : workspace
-            ? `${runtimeLabel}${current?.model ? ` · ${current.model}` : ""}${current ? ` · ${sessionStatusLabel(labels, current.status, running)}` : ""}`
-            : labels.runtimeReady;
-
-  const inspectorAvailable = route.kind !== "providers" && route.kind !== "extensions";
+  const startable = threadRoute && !running && (current.status === "created" || current.status === "interrupted");
 
   return (
-    <header className="topbar">
-      <div className="topbar-left">
-        <button
-          className="icon-button sidebar-toggle"
-          onClick={onOpenSidebar}
-          aria-label={labels.expandSidebar}
-        >
-          <Menu size={16} strokeWidth={1.7} aria-hidden />
-        </button>
-        {sidebarCollapsed && (
-          <button
-            className="icon-button sidebar-expand-toggle"
-            onClick={onExpandSidebar}
-            aria-label={labels.expandSidebar}
-            aria-keyshortcuts="Meta+B Control+B"
-          >
-            <PanelLeftOpen size={16} strokeWidth={1.7} aria-hidden />
-          </button>
-        )}
-        <div className="title-stack">
-          <strong>{title}</strong>
-          <span>{subtitle}</span>
+    <div className="toolbar-main">
+      <div className="toolbar-title">{title}</div>
+      {threadRoute && (
+        <div className="toolbar-actions no-drag">
+          {running && (
+            <Button size="sm" variant="secondary" icon={<Icon name="stop" size={13} />} disabled={busy} onClick={onCancelAgent} aria-keyshortcuts="Meta+.">
+              {!narrow && labels.stop}
+            </Button>
+          )}
+          {startable && (
+            <Button size="sm" variant="secondary" icon={<Icon name="send" size={13} />} disabled={busy} onClick={onStartAgent}>
+              {!narrow && (current.status === "interrupted" ? labels.resume : labels.start)}
+            </Button>
+          )}
+          <SegmentedControl
+            size="sm"
+            ariaLabel={labels.threadView}
+            value={route.kind === "review" ? "changes" : "conversation"}
+            onChange={(view) => onSetRoute(view === "changes" ? { kind: "review", sessionId: current.id } : { kind: "thread", sessionId: current.id })}
+            options={[
+              { value: "conversation", title: labels.conversationView, label: narrow ? <Icon name="discussion" size={14} /> : labels.conversationView },
+              { value: "changes", title: labels.changesView, label: narrow ? <Icon name="changes" size={14} /> : labels.changesView },
+            ]}
+          />
         </div>
-      </div>
-
-      <div className="topbar-actions">
-        {(route.kind === "providers" || route.kind === "extensions") && (
-          <button className="toolbar-button" onClick={onBackToWorkspace}>
-            <Code2 size={14} strokeWidth={1.7} aria-hidden />
-            <span>{labels.backToWorkspace}</span>
-          </button>
-        )}
-
-        {route.kind === "thread" && current && (
-          <button className="toolbar-button" onClick={onOpenReview}>
-            <FileDiff size={14} strokeWidth={1.7} aria-hidden />
-            <span>{labels.review}</span>
-          </button>
-        )}
-
-        {route.kind === "review" && current && (
-          <button className="toolbar-button" onClick={onOpenThread}>
-            <Code2 size={14} strokeWidth={1.7} aria-hidden />
-            <span>{labels.thread}</span>
-          </button>
-        )}
-
-        {(route.kind === "thread" || route.kind === "review") &&
-          current &&
-          runtime.kind === "worktree" &&
-          !running && (
-            <button className="toolbar-button" onClick={onCleanupWorktree} disabled={busy}>
-              <Trash2 size={14} strokeWidth={1.7} aria-hidden />
-              <span>{labels.cleanupWorktree}</span>
-            </button>
-          )}
-
-        {route.kind === "thread" && current && running && (
-          <button className="toolbar-button stop" onClick={onCancelAgent} disabled={busy}>
-            <Square size={14} strokeWidth={1.9} aria-hidden />
-            <span>{labels.stop}</span>
-          </button>
-        )}
-
-        {route.kind === "thread" &&
-          current &&
-          !running &&
-          (current.status === "created" || current.status === "interrupted") && (
-            <button className="toolbar-button" onClick={onStartAgent} disabled={busy}>
-              <ArrowUp size={14} strokeWidth={1.7} aria-hidden />
-              <span>{current.status === "interrupted" ? labels.resume : labels.start}</span>
-            </button>
-          )}
-
+      )}
+      <div className="toolbar-actions no-drag">
+        <IconButton icon={<Icon name="search" />} label={`${labels.commandPalette} ⌘K`} aria-keyshortcuts="Meta+K Control+K" onClick={onOpenPalette} />
         {inspectorAvailable && (
-          <button
-            className={`icon-button ${inspectorOpen ? "active" : ""}`}
-            onClick={onToggleInspector}
-            aria-label={labels.inspector}
-          >
-            <PanelRight size={16} strokeWidth={1.7} aria-hidden />
-          </button>
+          <IconButton icon={<Icon name="panel" />} label={`${labels.inspector} ⌘I`} active={inspectorOpen} aria-keyshortcuts="Meta+I Control+I" onClick={onToggleInspector} />
         )}
       </div>
-    </header>
+    </div>
   );
 }

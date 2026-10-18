@@ -1,12 +1,13 @@
 import type { FormEvent, ReactNode } from "react";
 import { AppShell } from "../components/app-shell/AppShell";
+import { Rail } from "../components/app-shell/Rail";
 import { WorkspaceTopbar } from "../components/app-shell/WorkspaceTopbar";
 import type { InspectorTab } from "../components/inspector/inspector-types";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
-import type { SidebarGroup } from "../components/sidebar/Sidebar";
-import { WorkspaceSidebar } from "../components/sidebar/WorkspaceSidebar";
-import type { AppCopy } from "../lib/i18n/app-copy";
-import type { ThemePreference } from "../lib/theme";
+import { Sidebar, type RuntimeState, type SidebarGroup } from "../components/sidebar/Sidebar";
+import { ThreadsSidebar } from "../components/sidebar/ThreadsSidebar";
+import type { AppCopy, Locale } from "../lib/i18n/app-copy";
+import type { LayoutPreference } from "../lib/layout-preference";
 import type {
   Health,
   LSPDiagnostic,
@@ -18,29 +19,37 @@ import type {
   SubagentNode,
 } from "../types";
 import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
-import type { WorkspaceRoute } from "./workspace-route";
+import { routePage, type WorkspacePage, type WorkspaceRoute } from "./workspace-route";
 
 type Policy = "read-only" | "workspace" | "full";
-type RuntimeState = "ready" | "online" | "offline";
 
 type Props = {
   children: ReactNode;
+  /** The Source Control / Context sidebar bodies; the Threads body is built here. */
+  pageSidebar?: ReactNode;
+  /** Window-level layers (settings sheet, palette, dialogs) rendered inside the window container. */
+  overlays: ReactNode;
   route: WorkspaceRoute;
   current?: Session;
+  parent?: Session;
   runtime: SessionRuntime;
+  locale: Locale;
   labels: AppCopy;
-  themePreference: ThemePreference;
   workspace: string;
   groups: SidebarGroup[];
   recentProjects: string[];
   selectedSessionId: string;
   runtimeState: RuntimeState;
+  activeRuns: number;
+  attention: number;
+  worktrees: number;
   health?: Health;
   pressure: number;
-  sidebarOpen: boolean;
-  sidebarCollapsed: boolean;
+  layout: LayoutPreference;
+  sidebarDrawerOpen: boolean;
   inspectorOpen: boolean;
   inspectorTab: InspectorTab;
+  settingsOpen: boolean;
   events: RuntimeEvent[];
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
@@ -60,10 +69,14 @@ type Props = {
   configKey: string;
   trusting: boolean;
   onSetRoute: (route: WorkspaceRoute) => void;
-  onSidebarOpenChange: (open: boolean) => void;
-  onSidebarCollapsedChange: (collapsed: boolean) => void;
+  onNavigate: (page: WorkspacePage) => void;
+  onLayoutChange: (layout: LayoutPreference) => void;
+  onSidebarDrawerOpenChange: (open: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
+  onOpenSettings: () => void;
+  onOpenProviders: () => void;
+  onOpenPalette: () => void;
   onNewTask: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -71,8 +84,6 @@ type Props = {
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
   onDeleteSession: (sessionId: string) => void;
-  onSwitchLocale: () => void;
-  onThemePreferenceChange: (theme: ThemePreference) => void;
   onModelChange: (value: string) => void;
   onPolicyChange: (value: Policy) => void;
   onMaxStepsChange: (value: number) => void;
@@ -93,132 +104,105 @@ type Props = {
 };
 
 export function WorkspaceChrome(props: Props) {
-  const {
-    route,
-    current,
-    runtime,
-    labels,
-    themePreference,
-    workspace,
-    groups,
-    recentProjects,
-    selectedSessionId,
-    runtimeState,
-    health,
-    pressure,
-    sidebarOpen,
-    sidebarCollapsed,
-    inspectorOpen,
-    inspectorTab,
-    events,
-    modelRef,
-    configuredModels,
-    policy,
-    maxSteps,
-    command,
-    lspCommand,
-    lspArgs,
-    lspLanguage,
-    lspStatus,
-    lspDiagnosticPath,
-    lspDiagnostics,
-    subagents,
-    checkpoints,
-    running,
-    busy,
-  } = props;
+  const { route, current, labels, configuredModels } = props;
+  const page = routePage(route);
+  const inspectorAvailable = route.kind === "thread" || route.kind === "new-task";
+  const closeDrawer = () => props.onSidebarDrawerOpenChange(false);
 
   const models = configuredModels.map((item) => ({
     value: item.ref,
     label: item.label,
     description: item.description,
     group: item.group,
-    badge: item.missingSecret
-      ? labels.missingProviderKey
-      : item.isDefault
-        ? labels.defaultModel
-        : undefined,
+    badge: item.missingSecret ? labels.missingProviderKey : item.isDefault ? labels.defaultModel : undefined,
     badgeTone: item.missingSecret ? "warning" as const : "default" as const,
   }));
 
-  const openProviders = () => {
-    props.onSetRoute({ kind: "providers" });
-    props.onInspectorOpenChange(false);
-    props.onSidebarOpenChange(false);
-  };
-
-  const sidebar = (
-    <WorkspaceSidebar
-      open={sidebarOpen}
-      workspace={workspace}
-      groups={groups}
-      recentProjects={recentProjects}
-      selectedSessionId={
-        route.kind === "thread" || route.kind === "review" || route.kind === "extensions"
-          ? selectedSessionId
-          : ""
-      }
-      providerActive={route.kind === "providers"}
-      extensionsActive={route.kind === "extensions"}
-      runtimeState={runtimeState}
-      runtimeVersion={health?.version}
+  const rail = (
+    <Rail
+      page={page}
+      settingsOpen={props.settingsOpen}
+      attention={props.attention}
+      worktrees={props.worktrees}
       labels={labels}
-      themePreference={themePreference}
-      onClose={() => props.onSidebarOpenChange(false)}
-      onCollapse={() => props.onSidebarCollapsedChange(true)}
-      onNewTask={props.onNewTask}
-      onPickWorkspace={props.onPickWorkspace}
-      onOpenWorkspace={props.onOpenWorkspace}
-      onSelectSession={(sessionId) => {
-        props.onSetRoute({ kind: "thread", sessionId });
-        props.onSidebarOpenChange(false);
+      onNavigate={(next) => {
+        closeDrawer();
+        props.onNavigate(next);
       }}
-      onRenameSession={props.onRenameSession}
-      onPinSession={props.onPinSession}
-      onArchiveSession={props.onArchiveSession}
-      onDeleteSession={props.onDeleteSession}
-      onOpenProviders={openProviders}
-      onOpenExtensions={() => {
-        props.onSetRoute({ kind: "extensions", sessionId: selectedSessionId || undefined });
-        props.onInspectorOpenChange(false);
-        props.onSidebarOpenChange(false);
+      onOpenSettings={() => {
+        closeDrawer();
+        props.onOpenSettings();
       }}
-      onSwitchLocale={props.onSwitchLocale}
-      onThemePreferenceChange={props.onThemePreferenceChange}
     />
   );
 
-  const inspector = route.kind === "thread" || route.kind === "new-task" ? (
+  const sidebar = (
+    <Sidebar
+      label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : labels.contextPage}
+      workspace={props.workspace}
+      recentProjects={props.recentProjects}
+      runtimeState={props.runtimeState}
+      runtimeVersion={props.health?.version}
+      activeRuns={props.activeRuns}
+      labels={labels}
+      onPickWorkspace={props.onPickWorkspace}
+      onOpenWorkspace={props.onOpenWorkspace}
+    >
+      {page === "threads" ? (
+        <ThreadsSidebar
+          groups={props.groups}
+          selectedSessionId={route.kind === "thread" || route.kind === "review" ? props.selectedSessionId : ""}
+          composing={route.kind === "new-task"}
+          locale={props.locale}
+          labels={labels}
+          onNewTask={() => {
+            closeDrawer();
+            props.onNewTask();
+          }}
+          onSelectSession={(sessionId) => {
+            closeDrawer();
+            props.onSetRoute({ kind: "thread", sessionId });
+          }}
+          onRenameSession={props.onRenameSession}
+          onPinSession={props.onPinSession}
+          onArchiveSession={props.onArchiveSession}
+          onDeleteSession={props.onDeleteSession}
+        />
+      ) : props.pageSidebar}
+    </Sidebar>
+  );
+
+  const inspector = inspectorAvailable ? (
     <WorkspaceInspector
-      tab={inspectorTab}
-      events={events}
-      modelRef={modelRef}
+      tab={props.inspectorTab}
+      events={props.events}
+      modelRef={props.modelRef}
       models={models}
-      modelPlaceholder={pickerPlaceholder(modelRef, configuredModels, labels)}
-      policy={policy}
-      maxSteps={maxSteps}
-      health={health}
-      pressure={pressure}
-      command={command}
-      lspCommand={lspCommand}
-      lspArgs={lspArgs}
-      lspLanguage={lspLanguage}
-      lspStatus={lspStatus}
-      lspDiagnosticPath={lspDiagnosticPath}
-      lspDiagnostics={lspDiagnostics}
-      subagents={subagents}
-      checkpoints={checkpoints}
-      workspaceOpen={Boolean(workspace)}
-      selectedSessionId={selectedSessionId}
-      running={running}
-      busy={busy}
+      modelPlaceholder={pickerPlaceholder(props.modelRef, configuredModels, labels)}
+      policy={props.policy}
+      maxSteps={props.maxSteps}
+      health={props.health}
+      pressure={props.pressure}
+      command={props.command}
+      lspCommand={props.lspCommand}
+      lspArgs={props.lspArgs}
+      lspLanguage={props.lspLanguage}
+      lspStatus={props.lspStatus}
+      lspDiagnosticPath={props.lspDiagnosticPath}
+      lspDiagnostics={props.lspDiagnostics}
+      subagents={props.subagents}
+      checkpoints={props.checkpoints}
+      workspaceOpen={Boolean(props.workspace)}
+      selectedSessionId={props.selectedSessionId}
+      running={props.running}
+      busy={props.busy}
       configKey={props.configKey}
       trusting={props.trusting}
       labels={labels}
       onTabChange={props.onInspectorTabChange}
       onClose={() => props.onInspectorOpenChange(false)}
       onModelChange={props.onModelChange}
-      onOpenProviders={openProviders}
+      onOpenProviders={props.onOpenProviders}
       onPolicyChange={props.onPolicyChange}
       onMaxStepsChange={props.onMaxStepsChange}
       onCommandChange={props.onCommandChange}
@@ -237,46 +221,39 @@ export function WorkspaceChrome(props: Props) {
 
   return (
     <AppShell
+      overlays={props.overlays}
+      labels={labels}
+      layout={props.layout}
+      onLayoutChange={props.onLayoutChange}
+      rail={rail}
       sidebar={sidebar}
-      sidebarOpen={sidebarOpen}
-      sidebarCollapsed={sidebarCollapsed}
-      inspectorOpen={inspectorOpen && (route.kind === "thread" || route.kind === "new-task")}
       inspector={inspector}
-      closeLabel={labels.close}
-      onCloseSidebar={() => props.onSidebarOpenChange(false)}
+      inspectorOpen={props.inspectorOpen}
+      onInspectorOpenChange={props.onInspectorOpenChange}
+      sidebarDrawerOpen={props.sidebarDrawerOpen}
+      onSidebarDrawerOpenChange={props.onSidebarDrawerOpenChange}
+      onNewThread={page === "threads" ? props.onNewTask : undefined}
+      toolbar={(size) => (
+        <WorkspaceTopbar
+          route={route}
+          size={size}
+          current={current}
+          parent={props.parent}
+          runtime={props.runtime}
+          running={props.running}
+          busy={props.busy}
+          inspectorAvailable={inspectorAvailable}
+          inspectorOpen={props.inspectorOpen}
+          labels={labels}
+          onSetRoute={props.onSetRoute}
+          onCleanupWorktree={props.onCleanupWorktree}
+          onCancelAgent={props.onCancelAgent}
+          onStartAgent={props.onStartAgent}
+          onOpenPalette={props.onOpenPalette}
+          onToggleInspector={() => props.onInspectorOpenChange(!props.inspectorOpen)}
+        />
+      )}
     >
-      <WorkspaceTopbar
-        route={route}
-        current={current}
-        workspace={workspace}
-        runtime={runtime}
-        running={running}
-        busy={busy}
-        inspectorOpen={inspectorOpen}
-        labels={labels}
-        sidebarCollapsed={sidebarCollapsed}
-        onOpenSidebar={() => props.onSidebarOpenChange(true)}
-        onExpandSidebar={() => props.onSidebarCollapsedChange(false)}
-        onBackToWorkspace={() => {
-          props.onSetRoute(
-            route.kind === "extensions" && current
-              ? { kind: "thread", sessionId: current.id }
-              : { kind: "new-task" },
-          );
-        }}
-        onOpenReview={() => {
-          if (!current) return;
-          props.onSetRoute({ kind: "review", sessionId: current.id });
-          props.onInspectorOpenChange(false);
-        }}
-        onOpenThread={() => {
-          if (current) props.onSetRoute({ kind: "thread", sessionId: current.id });
-        }}
-        onCleanupWorktree={props.onCleanupWorktree}
-        onCancelAgent={props.onCancelAgent}
-        onStartAgent={props.onStartAgent}
-        onToggleInspector={() => props.onInspectorOpenChange(!inspectorOpen)}
-      />
       {props.children}
     </AppShell>
   );

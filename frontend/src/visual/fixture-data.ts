@@ -1,5 +1,4 @@
-import type { SidebarGroup } from "../components/sidebar/Sidebar";
-import { copy, type Locale } from "../lib/i18n/app-copy";
+import type { AppAPI } from "../lib/bridge";
 import type {
   CheckArtifact,
   CheckResult,
@@ -14,21 +13,10 @@ import type {
   SessionCheckpoint,
   SessionRuntime,
   SubagentNode,
-  TaskReferenceEdit,
   TaskStateInfo,
 } from "../types";
-import { cancelVisualSubtree, startVisualTask, visualTaskList } from "./task-fixture";
+import { cancelVisualSubtree, startVisualTask } from "./task-fixture";
 
-export type VisualScene = "new-task" | "thread" | "tasks" | "providers" | "review" | "extensions" | "inspector";
-
-// The tasks scene reads Task State with the thread's execution tasks and their obligation.
-const tasksScene = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("scene") === "tasks";
-
-const localeParam = typeof window === "undefined"
-  ? null
-  : new URLSearchParams(window.location.search).get("locale");
-export const visualLocale: Locale = localeParam === "zh-CN" ? "zh-CN" : "en";
-export const labels = copy[visualLocale];
 export const workspace = "/Users/demo/Projects/lumencortex";
 export const localRuntime: SessionRuntime = { kind: "local", path: workspace, branch: "main", head: "0f6c33a" };
 export const runtime: SessionRuntime = {
@@ -47,6 +35,8 @@ export const session: Session = {
   provider: "openai",
   model: "gpt-5.6",
   goal: "Refactor provider settings and add tests without changing public behavior",
+  modelRef: "openai/gpt-5.6",
+  metadata: { runtime, ui: { title: "Provider settings refactor" } },
 };
 
 export const messages: Message[] = [
@@ -229,87 +219,6 @@ export const checkpoints: SessionCheckpoint[] = [{
   json: { action: "refactor-provider" },
 }];
 
-export const groups: SidebarGroup[] = [
-  {
-    key: "running",
-    label: labels.runningThreads,
-    sessions: [{
-      session,
-      runtime,
-      title: "Provider settings refactor",
-      active: true,
-      pinned: false,
-      archived: false,
-      statusLabel: labels.running,
-    }],
-  },
-  {
-    key: "attention",
-    label: labels.attentionThreads,
-    sessions: [{
-      session: {
-        ...session,
-        id: "session-attention",
-        status: "waiting_gate",
-        goal: "Approve database migration before continuing",
-      },
-      runtime: localRuntime,
-      title: "Approve database migration",
-      active: false,
-      pinned: false,
-      archived: false,
-      attentionTone: "warning",
-      statusLabel: "Waiting for approval",
-    }],
-  },
-  {
-    key: "recent",
-    label: labels.recentThreads,
-    sessions: [{
-      session: { ...session, id: "session-recent", status: "completed", goal: "Improve review diff rendering" },
-      runtime: localRuntime,
-      title: "Improve review diff rendering",
-      active: false,
-      pinned: false,
-      archived: false,
-      statusLabel: "Completed",
-    }],
-  },
-];
-
-export const sidebarLabels = {
-  close: labels.close,
-  collapse: labels.collapseSidebar,
-  newTask: labels.newTask,
-  project: labels.project,
-  openProject: labels.openProject,
-  sessions: labels.sessions,
-  noSessions: labels.noSessions,
-  threadSearch: labels.threadSearch,
-  recentProjects: labels.recentProjects,
-  providerSettings: labels.providerSettings,
-  extensions: labels.extensions,
-  language: labels.language,
-  theme: labels.theme,
-  themeSystem: labels.themeSystem,
-  themeLight: labels.themeLight,
-  themeDark: labels.themeDark,
-  runtimeReady: labels.runtimeReady,
-  runtimeOnline: labels.runtimeOnline,
-  runtimeOffline: labels.runtimeOffline,
-  renameThread: labels.renameThread,
-  pinThread: labels.pinThread,
-  unpinThread: labels.unpinThread,
-  archiveThread: labels.archiveThread,
-  restoreThread: labels.restoreThread,
-  deleteThread: labels.deleteThread,
-  save: labels.save,
-  cancel: labels.cancel,
-  threadMenu: labels.threadMenu,
-  localRuntime: labels.localRuntime,
-  worktreeRuntime: labels.worktreeRuntime,
-};
-
 // The Task State the inspector's Task tab shows; edits change this copy, as Core's host view would.
 let visualTaskState: TaskStateInfo = {
   sessionId: session.id,
@@ -392,16 +301,17 @@ function acceptVisualCheck(checkId: string): CheckResult {
   return result;
 }
 
-export function installVisualAppStub() {
-  const visualApp = {
+/** Core answers for the configuration, Git, MCP, skills, Task State and checks surfaces. */
+export function visualAppStub() {
+  return {
     GetConfigState: async () => visualConfigState,
-    GetProviderCatalogScope: async (scope: string) => ({
+    GetProviderCatalogScope: async (scope) => ({
       scope,
       path: visualConfigState.globalPath,
       digest: visualConfigState.globalDigest,
       catalog: providerCatalog,
     }),
-    SaveProviderCatalogScope: async (_scope: string, doc: unknown) => doc,
+    SaveProviderCatalogScope: async (_scope, doc) => doc,
     TestProviderConnection: async () => ({ ok: true, models: 2, message: "Connected" }),
     DiscoverProviderModels: async () => [{ id: "gpt-5.6" }, { id: "gpt-5.6-mini" }],
 
@@ -413,7 +323,7 @@ export function installVisualAppStub() {
       ],
     }),
     WorktreeConflicts: async () => [],
-    SessionGitDiff: async (_sessionId: string, path: string, staged: boolean) => ({
+    SessionGitDiff: async (_sessionId, path, staged) => ({
       path,
       content: reviewDiff,
       bytes: reviewDiff.length,
@@ -426,7 +336,7 @@ export function installVisualAppStub() {
     SessionGitCommit: async () => ({ output: "[main 98ab42f] UI refinement", truncated: false }),
     SessionGitPush: async () => ({ output: "Everything up-to-date", truncated: false }),
 
-    GetMCPConfigsScope: async (scope: string) =>
+    GetMCPConfigsScope: async (scope) =>
       scope === "project" ? [] : [visualMCPConfig],
     GetMCPStatuses: async () => [{
       id: visualMCPConfig.id,
@@ -470,7 +380,7 @@ export function installVisualAppStub() {
     StopMCP: async () => undefined,
     RefreshMCPTools: async () => undefined,
 
-    GetSkills: async (scope: string) =>
+    GetSkills: async (scope) =>
       scope === "global"
         ? visualSkills.filter((skill) => skill.scope === "global")
         : scope === "project"
@@ -481,20 +391,13 @@ export function installVisualAppStub() {
     DeleteSkill: async () => undefined,
     SetSkillEnabled: async () => undefined,
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
-    SaveToolPermissions: async (value: { disabled: string[] }) => value,
+    SaveToolPermissions: async (value) => value,
 
-    GetTaskState: async () => {
-      const info = structuredClone(visualTaskState);
-      if (tasksScene) {
-        info.state.tasks = visualTaskList();
-        info.obligations = [...(info.obligations ?? []), "tasks"];
-      }
-      return info;
-    },
-    StartProposedTask: async (_parentId: string, taskId: string) => startVisualTask(taskId),
-    CancelSubtree: async (sessionId: string) => cancelVisualSubtree(sessionId),
-    SetTaskBrief: async (_id: string, brief: string) => editVisualTaskState((state) => { state.brief = brief; }),
-    EditTaskReference: async (_id: string, edit: TaskReferenceEdit) =>
+    GetTaskState: async (sessionId) => ({ ...structuredClone(visualTaskState), sessionId }),
+    StartProposedTask: async (_parentId, taskId) => startVisualTask(taskId),
+    CancelSubtree: async (sessionId) => cancelVisualSubtree(sessionId),
+    SetTaskBrief: async (_id, brief) => editVisualTaskState((state) => { state.brief = brief; }),
+    EditTaskReference: async (_id, edit) =>
       editVisualTaskState((state) => {
         const kept = (state.references ?? []).filter((ref) => ref.target !== edit.target);
         if (edit.state !== "removed") {
@@ -502,22 +405,17 @@ export function installVisualAppStub() {
         }
         state.references = kept;
       }),
-    ResolveThread: async (_id: string, resolution: string) =>
+    ResolveThread: async (_id, resolution) =>
       editVisualTaskState((state) => { state.resolution = { state: resolution, by: "user", actor: "desktop-user" }; }),
     ResetContext: async () => { throw "run is active in another process or engine"; },
     GetSessionChecks: async () => structuredClone(visualChecks),
-    GetCheckResults: async (_id: string, beforeSeq: number, limit: number) =>
+    GetCheckResults: async (_id, beforeSeq, limit) =>
       structuredClone(visualCheckResults.filter((row) => beforeSeq <= 0 || row.seq! < beforeSeq).slice(0, limit)),
-    GetCheckArtifact: async (_id: string, hash: string) => {
+    GetCheckArtifact: async (_id, hash) => {
       const artifact = visualArtifacts[hash];
       if (!artifact) throw "artifact not found";
       return structuredClone(artifact);
     },
-    AcceptCheck: async (_id: string, checkId: string) => acceptVisualCheck(checkId),
-  };
-
-  Object.defineProperty(window, "go", {
-    configurable: true,
-    value: { main: { App: visualApp } },
-  });
+    AcceptCheck: async (_id, checkId) => acceptVisualCheck(checkId),
+  } satisfies Partial<AppAPI>;
 }

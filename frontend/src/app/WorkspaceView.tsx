@@ -1,15 +1,22 @@
-import type { FormEvent, KeyboardEvent, Ref } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
+import { CommandPalette } from "../components/app-shell/CommandPalette";
+import { Welcome } from "../components/app-shell/Welcome";
 import type { InspectorTab } from "../components/inspector/inspector-types";
-import type { SidebarGroup } from "../components/sidebar/Sidebar";
+import { SettingsSheet } from "../components/settings/SettingsSheet";
+import type { RuntimeState, SidebarGroup } from "../components/sidebar/Sidebar";
+import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
+import { presentError } from "../lib/error-presentation";
+import { sessionRuntime } from "../lib/session-runtime";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
+import type { LayoutPreference } from "../lib/layout-preference";
 import type { ThemePreference } from "../lib/theme";
 import type {
+  ConfigState,
   Delegation,
   Health,
   LSPDiagnostic,
   LSPStatus,
   Message,
-  ConfigState,
   RuntimeEvent,
   RuntimeKind,
   Session,
@@ -18,36 +25,38 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import { presentError } from "../lib/error-presentation";
-import { errorRecoveryKind } from "./error-recovery";
 import type { ConfiguredModelOption } from "./model-selection";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
+import { useWorkspaceCommands, type SettingsState } from "./useWorkspaceCommands";
 import type { WorkspaceRoute } from "./workspace-route";
-import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
 
 type Policy = "read-only" | "workspace" | "full";
-type RuntimeState = "ready" | "online" | "offline";
 
 type Props = {
   route: WorkspaceRoute;
   current?: Session;
+  parent?: Session;
   runtime: SessionRuntime;
   locale: Locale;
   labels: AppCopy;
   themePreference: ThemePreference;
   workspace: string;
+  sessions: Session[];
   groups: SidebarGroup[];
   recentProjects: string[];
   selectedSessionId: string;
   runtimeState: RuntimeState;
+  activeRuns: number;
   health?: Health;
   pressure: number;
-  sidebarOpen: boolean;
-  sidebarCollapsed: boolean;
+  layout: LayoutPreference;
+  sidebarDrawerOpen: boolean;
   inspectorOpen: boolean;
   inspectorTab: InspectorTab;
+  settings: SettingsState;
+  paletteOpen: boolean;
   events: RuntimeEvent[];
   config: ConfigState;
   trusting: boolean;
@@ -77,10 +86,12 @@ type Props = {
   error: string;
   textareaRef: Ref<HTMLTextAreaElement>;
   onSetRoute: (route: WorkspaceRoute) => void;
-  onSidebarOpenChange: (open: boolean) => void;
-  onSidebarCollapsedChange: (collapsed: boolean) => void;
+  onLayoutChange: (layout: LayoutPreference) => void;
+  onSidebarDrawerOpenChange: (open: boolean) => void;
   onInspectorOpenChange: (open: boolean) => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
+  onSettingsChange: (settings: SettingsState) => void;
+  onPaletteOpenChange: (open: boolean) => void;
   onWorktreeCleanupTargetChange: (target: WorktreeCleanupTarget | null) => void;
   onWorktreeCleanupCompleted: (deletedSessionIds: string[]) => void;
   onNewTask: () => void;
@@ -89,7 +100,7 @@ type Props = {
   onRenameSession: (sessionId: string, title: string) => void;
   onPinSession: (sessionId: string, pinned: boolean) => void;
   onArchiveSession: (sessionId: string, archived: boolean) => void;
-  onSwitchLocale: () => void;
+  onLocaleChange: (locale: Locale) => void;
   onThemePreferenceChange: (theme: ThemePreference) => void;
   onConfigChanged: () => void;
   onTrustWorkspace: () => void;
@@ -127,219 +138,199 @@ type Props = {
 };
 
 export function WorkspaceView(props: Props) {
-  const {
-    route,
-    current,
-    runtime,
-    locale,
-    labels,
-    themePreference,
-    workspace,
-    groups,
-    recentProjects,
-    selectedSessionId,
-    runtimeState,
-    health,
-    pressure,
-    sidebarOpen,
-    sidebarCollapsed,
-    inspectorOpen,
-    inspectorTab,
-    events,
-    config,
-    trusting,
-    modelRef,
-    configuredModels,
-    contextPaths,
-    policy,
-    runtimeKind,
-    maxSteps,
-    command,
-    lspCommand,
-    lspArgs,
-    lspLanguage,
-    lspStatus,
-    lspDiagnosticPath,
-    lspDiagnostics,
-    messages,
-    messageAtLatest,
-    messageLoadingOlder,
-    running,
-    busy,
-    goal,
-    workflowSummary,
-    subagents,
-    checkpoints,
-    worktreeCleanupTarget,
-    error,
-    textareaRef,
-  } = props;
+  const { route, current, labels, workspace, groups, settings, error } = props;
 
-  const openProviders = () => {
-    props.onSetRoute({ kind: "providers" });
-    props.onInspectorOpenChange(false);
-    props.onSidebarOpenChange(false);
-  };
+  const { navigate, openSettings, closeSettings, paletteActions, recovery } = useWorkspaceCommands(props);
 
-  const recoveryKind = errorRecoveryKind(error);
-  const recoveryLabel =
-    recoveryKind === "provider"
-      ? labels.providerConfig
-      : recoveryKind === "permissions"
-        ? labels.permissions
-        : recoveryKind === "workspace"
-          ? (workspace ? labels.reopenProject : labels.openProject)
-          : undefined;
-
-  const recoverError = recoveryKind ? () => {
-    props.onClearError();
-    if (recoveryKind === "provider") {
-      openProviders();
-    } else if (recoveryKind === "permissions") {
-      if (route.kind !== "new-task" && route.kind !== "thread") {
-        props.onSetRoute(current ? { kind: "thread", sessionId: current.id } : { kind: "new-task" });
-      }
-      props.onInspectorTabChange("run");
-      props.onInspectorOpenChange(true);
-    } else if (workspace) {
-      props.onOpenWorkspace(workspace);
-    } else {
-      props.onPickWorkspace();
-    }
-  } : undefined;
-
-  return (
+  const overlays: ReactNode = (
     <>
-      <WorkspaceChrome
-        route={route}
-        current={current}
-        runtime={runtime}
-        labels={labels}
-        themePreference={themePreference}
-        workspace={workspace}
-        groups={groups}
-        recentProjects={recentProjects}
-        selectedSessionId={selectedSessionId}
-        runtimeState={runtimeState}
-        health={health}
-        pressure={pressure}
-        sidebarOpen={sidebarOpen}
-        sidebarCollapsed={sidebarCollapsed}
-        inspectorOpen={inspectorOpen}
-        inspectorTab={inspectorTab}
-        events={events}
-        modelRef={modelRef}
-        configuredModels={configuredModels}
-        policy={policy}
-        maxSteps={maxSteps}
-        command={command}
-        lspCommand={lspCommand}
-        lspArgs={lspArgs}
-        lspLanguage={lspLanguage}
-        lspStatus={lspStatus}
-        lspDiagnosticPath={lspDiagnosticPath}
-        lspDiagnostics={lspDiagnostics}
-        subagents={subagents}
-        checkpoints={checkpoints}
-        running={running}
-        busy={busy}
-        configKey={config.globalDigest}
-        trusting={trusting}
-        onSetRoute={props.onSetRoute}
-        onSidebarOpenChange={props.onSidebarOpenChange}
-        onSidebarCollapsedChange={props.onSidebarCollapsedChange}
-        onInspectorOpenChange={props.onInspectorOpenChange}
-        onInspectorTabChange={props.onInspectorTabChange}
-        onNewTask={props.onNewTask}
-        onPickWorkspace={props.onPickWorkspace}
-        onOpenWorkspace={props.onOpenWorkspace}
-        onRenameSession={props.onRenameSession}
-        onPinSession={props.onPinSession}
-        onArchiveSession={props.onArchiveSession}
-        onDeleteSession={(sessionId) => props.onWorktreeCleanupTargetChange({ mode: "delete", sessionId })}
-        onSwitchLocale={props.onSwitchLocale}
-        onThemePreferenceChange={props.onThemePreferenceChange}
-        onModelChange={props.onModelChange}
-        onPolicyChange={props.onPolicyChange}
-        onMaxStepsChange={props.onMaxStepsChange}
-        onCommandChange={props.onCommandChange}
-        onLSPCommandChange={props.onLSPCommandChange}
-        onLSPArgsChange={props.onLSPArgsChange}
-        onLSPLanguageChange={props.onLSPLanguageChange}
-        onLSPDiagnosticPathChange={props.onLSPDiagnosticPathChange}
-        onRefreshLSPDiagnostics={props.onRefreshLSPDiagnostics}
-        onStartLSP={props.onStartLSP}
-        onStopLSP={props.onStopLSP}
-        onOpenSubagent={props.onOpenSubagent}
-        onRunShell={props.onRunShell}
-        onTrustWorkspace={props.onTrustWorkspace}
-        onCleanupWorktree={() => current && props.onWorktreeCleanupTargetChange({ mode: "remove", sessionId: current.id })}
-        onCancelAgent={props.onCancelAgent}
-        onStartAgent={props.onStartAgent}
-      >
-        <WorkspaceRouteContent
-          route={route}
-          current={current}
-          runtime={runtime}
-          locale={locale}
+      {settings.mounted && (
+        <SettingsSheet
+          open={settings.open}
+          pane={settings.pane}
+          locale={props.locale}
           labels={labels}
+          themePreference={props.themePreference}
           workspace={workspace}
-          recentProjects={recentProjects}
-          config={config}
-          trusting={trusting}
-          modelRef={modelRef}
-          configuredModels={configuredModels}
-          contextPaths={contextPaths}
-          policy={policy}
-          runtimeKind={runtimeKind}
-          goal={goal}
-          busy={busy}
-          messages={messages}
-          messageAtLatest={messageAtLatest}
-          messageLoadingOlder={messageLoadingOlder}
-          running={running}
-          workflowSummary={workflowSummary}
-          subagents={subagents}
-          textareaRef={textareaRef}
+          config={props.config}
+          trusting={props.trusting}
+          health={props.health}
+          sessionId={current?.id || ""}
+          runtime={props.runtime}
+          onPaneChange={(pane) => props.onSettingsChange({ ...settings, pane })}
+          onClose={closeSettings}
+          onLocaleChange={props.onLocaleChange}
+          onThemePreferenceChange={props.onThemePreferenceChange}
+          onTrust={props.onTrustWorkspace}
           onConfigChanged={props.onConfigChanged}
-          onTrustWorkspace={props.onTrustWorkspace}
-          onModelChange={props.onModelChange}
           onError={props.onError}
-          onGoalChange={props.onGoalChange}
-          onPickContextFiles={props.onPickContextFiles}
-          onPickContextFolder={props.onPickContextFolder}
-          onRemoveContextPath={props.onRemoveContextPath}
-          onPolicyChange={props.onPolicyChange}
-          onRuntimeChange={props.onRuntimeChange}
-          onPickWorkspace={props.onPickWorkspace}
-          onOpenWorkspace={props.onOpenWorkspace}
-          onOpenProviders={openProviders}
-          onApproveGate={props.onApproveGate}
-          onLoadOlderMessages={props.onLoadOlderMessages}
-          onJumpToLatest={props.onJumpToLatest}
-          onCancel={props.onCancelAgent}
-          onRetry={props.onRetry}
-          onSubmit={props.onSubmit}
-          onKeyDown={props.onKeyDown}
-          onSendReviewInstruction={props.onSendReviewInstruction}
-          events={events}
-          onRefreshThread={props.onRefreshThread}
-          onOpenSession={(sessionId) => props.onSetRoute({ kind: "thread", sessionId })}
-          onDelegationChange={props.onDelegationChange}
         />
-      </WorkspaceChrome>
-
+      )}
+      {props.paletteOpen && (
+        <CommandPalette
+          labels={labels}
+          groups={groups}
+          actions={paletteActions}
+          onOpenThread={(sessionId) => props.onSetRoute({ kind: "thread", sessionId })}
+          onClose={() => props.onPaletteOpenChange(false)}
+        />
+      )}
       <WorkspaceOverlays
-        worktreeCleanupTarget={worktreeCleanupTarget}
+        worktreeCleanupTarget={props.worktreeCleanupTarget}
         error={presentError(labels, error)}
         labels={labels}
         onWorktreeCleanupClose={() => props.onWorktreeCleanupTargetChange(null)}
         onWorktreeCleanupCompleted={props.onWorktreeCleanupCompleted}
-        errorActionLabel={recoveryLabel}
-        onErrorAction={recoverError}
+        errorActionLabel={recovery?.label}
+        onErrorAction={recovery?.run}
         onClearError={props.onClearError}
       />
     </>
   );
 
+  if (!workspace) {
+    return (
+      <div className="lc-window is-welcome">
+        <header className="toolbar drag-region"><div className="toolbar-lead" /></header>
+        <Welcome
+          labels={labels}
+          recentProjects={props.recentProjects}
+          busy={props.busy}
+          online={props.runtimeState !== "offline"}
+          onPickWorkspace={props.onPickWorkspace}
+          onOpenWorkspace={props.onOpenWorkspace}
+        />
+        {overlays}
+      </div>
+    );
+  }
+
+  const attention = groups.find((group) => group.key === "attention")?.sessions.length ?? 0;
+  const worktrees = props.sessions.filter((session) => sessionRuntime(session, workspace).kind === "worktree").length;
+
+  return (
+    <WorkspaceChrome
+      route={route}
+      current={current}
+      parent={props.parent}
+      runtime={props.runtime}
+      locale={props.locale}
+      labels={labels}
+      workspace={workspace}
+      groups={groups}
+      recentProjects={props.recentProjects}
+      selectedSessionId={props.selectedSessionId}
+      runtimeState={props.runtimeState}
+      activeRuns={props.activeRuns}
+      attention={attention}
+      worktrees={worktrees}
+      health={props.health}
+      pressure={props.pressure}
+      layout={props.layout}
+      sidebarDrawerOpen={props.sidebarDrawerOpen}
+      inspectorOpen={props.inspectorOpen}
+      inspectorTab={props.inspectorTab}
+      settingsOpen={settings.open}
+      events={props.events}
+      modelRef={props.modelRef}
+      configuredModels={props.configuredModels}
+      policy={props.policy}
+      maxSteps={props.maxSteps}
+      command={props.command}
+      lspCommand={props.lspCommand}
+      lspArgs={props.lspArgs}
+      lspLanguage={props.lspLanguage}
+      lspStatus={props.lspStatus}
+      lspDiagnosticPath={props.lspDiagnosticPath}
+      lspDiagnostics={props.lspDiagnostics}
+      subagents={props.subagents}
+      checkpoints={props.checkpoints}
+      running={props.running}
+      busy={props.busy}
+      configKey={props.config.globalDigest}
+      trusting={props.trusting}
+      overlays={overlays}
+      onSetRoute={props.onSetRoute}
+      onNavigate={navigate}
+      onLayoutChange={props.onLayoutChange}
+      onSidebarDrawerOpenChange={props.onSidebarDrawerOpenChange}
+      onInspectorOpenChange={props.onInspectorOpenChange}
+      onInspectorTabChange={props.onInspectorTabChange}
+      onOpenSettings={() => openSettings(settings.pane)}
+      onOpenProviders={() => openSettings("models")}
+      onOpenPalette={() => props.onPaletteOpenChange(true)}
+      onNewTask={props.onNewTask}
+      onPickWorkspace={props.onPickWorkspace}
+      onOpenWorkspace={props.onOpenWorkspace}
+      onRenameSession={props.onRenameSession}
+      onPinSession={props.onPinSession}
+      onArchiveSession={props.onArchiveSession}
+      onDeleteSession={(sessionId) => props.onWorktreeCleanupTargetChange({ mode: "delete", sessionId })}
+      onModelChange={props.onModelChange}
+      onPolicyChange={props.onPolicyChange}
+      onMaxStepsChange={props.onMaxStepsChange}
+      onCommandChange={props.onCommandChange}
+      onLSPCommandChange={props.onLSPCommandChange}
+      onLSPArgsChange={props.onLSPArgsChange}
+      onLSPLanguageChange={props.onLSPLanguageChange}
+      onLSPDiagnosticPathChange={props.onLSPDiagnosticPathChange}
+      onRefreshLSPDiagnostics={props.onRefreshLSPDiagnostics}
+      onStartLSP={props.onStartLSP}
+      onStopLSP={props.onStopLSP}
+      onOpenSubagent={props.onOpenSubagent}
+      onRunShell={props.onRunShell}
+      onTrustWorkspace={props.onTrustWorkspace}
+      onCleanupWorktree={() => current && props.onWorktreeCleanupTargetChange({ mode: "remove", sessionId: current.id })}
+      onCancelAgent={props.onCancelAgent}
+      onStartAgent={props.onStartAgent}
+    >
+      <WorkspaceRouteContent
+        route={route}
+        current={current}
+        runtime={props.runtime}
+        labels={labels}
+        workspace={workspace}
+        recentProjects={props.recentProjects}
+        config={props.config}
+        trusting={props.trusting}
+        modelRef={props.modelRef}
+        configuredModels={props.configuredModels}
+        contextPaths={props.contextPaths}
+        policy={props.policy}
+        runtimeKind={props.runtimeKind}
+        goal={props.goal}
+        busy={props.busy}
+        messages={props.messages}
+        messageAtLatest={props.messageAtLatest}
+        messageLoadingOlder={props.messageLoadingOlder}
+        running={props.running}
+        workflowSummary={props.workflowSummary}
+        subagents={props.subagents}
+        textareaRef={props.textareaRef}
+        onTrustWorkspace={props.onTrustWorkspace}
+        onModelChange={props.onModelChange}
+        onGoalChange={props.onGoalChange}
+        onPickContextFiles={props.onPickContextFiles}
+        onPickContextFolder={props.onPickContextFolder}
+        onRemoveContextPath={props.onRemoveContextPath}
+        onPolicyChange={props.onPolicyChange}
+        onRuntimeChange={props.onRuntimeChange}
+        onPickWorkspace={props.onPickWorkspace}
+        onOpenWorkspace={props.onOpenWorkspace}
+        onOpenProviders={() => openSettings("models")}
+        onApproveGate={props.onApproveGate}
+        onLoadOlderMessages={props.onLoadOlderMessages}
+        onJumpToLatest={props.onJumpToLatest}
+        onCancel={props.onCancelAgent}
+        onRetry={props.onRetry}
+        onSubmit={props.onSubmit}
+        onKeyDown={props.onKeyDown}
+        onSendReviewInstruction={props.onSendReviewInstruction}
+        events={props.events}
+        onRefreshThread={props.onRefreshThread}
+        onOpenSession={(sessionId) => props.onSetRoute({ kind: "thread", sessionId })}
+        onDelegationChange={props.onDelegationChange}
+      />
+    </WorkspaceChrome>
+  );
 }

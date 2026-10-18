@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ExtensionsWorkspace } from "./ExtensionsWorkspace";
+import { ExtensionsWorkspace, type ExtensionsTab } from "./ExtensionsWorkspace";
 
 const mocks = vi.hoisted(() => ({
   mcpConfigsScope: vi.fn(),
@@ -113,9 +113,10 @@ function configureScopes(options?: {
   });
 }
 
-function renderWorkspace(sessionId = "session-1") {
+function renderWorkspace(sessionId = "session-1", tab: ExtensionsTab = "mcp") {
   return render(
     <ExtensionsWorkspace
+      tab={tab}
       workspace="/repo"
       sessionId={sessionId}
       runtime={{ kind: "local", path: "/repo" }}
@@ -190,9 +191,8 @@ describe("ExtensionsWorkspace", () => {
 
   it("persists disabled tool permissions from the permissions tab", async () => {
     const user = userEvent.setup();
-    renderWorkspace();
+    renderWorkspace("session-1", "permissions");
 
-    await user.click(screen.getByRole("tab", { name: "Permissions" }));
     const shellRow = await screen.findByRole("button", { name: /shell/i });
     await user.click(shellRow);
     await user.click(screen.getByRole("button", { name: "Save" }));

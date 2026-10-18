@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useId, useRef } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Icon } from "./Icon";
+import { useFocusTrap } from "./useFocusTrap";
 
 type Props = {
   open: boolean;
@@ -12,89 +13,34 @@ type Props = {
   closeLabel?: string;
 };
 
+/** Confirmation / small form dialog on float glass, centred over the window. */
 export function Dialog({ open, title, description, children, onOpenChange, footer, closeLabel = "Close" }: Props) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const previous = document.activeElement as HTMLElement | null;
-    const dialog = dialogRef.current;
-    const focusable = () =>
-      Array.from(
-        dialog?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        ) || []
-      );
-
-    focusable()[0]?.focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onOpenChange(false);
-        return;
-      }
-      if (event.key !== "Tab") return;
-
-      const items = focusable();
-      if (!items.length) {
-        event.preventDefault();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      previous?.focus();
-    };
-  }, [open, onOpenChange]);
+  useFocusTrap(dialogRef, open, () => onOpenChange(false));
 
   if (!open) return null;
 
   return createPortal(
-    <div
-      className="desktop-dialog-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onOpenChange(false);
-      }}
-    >
+    <div className="modal-layer is-fixed" onMouseDown={(event) => event.target === event.currentTarget && onOpenChange(false)}>
       <div
         ref={dialogRef}
-        className="desktop-dialog"
+        className="modal dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
       >
-        <div className="desktop-dialog-head">
-          <div>
-            <h2 id={titleId}>{title}</h2>
-            {description && <p id={descriptionId}>{description}</p>}
-          </div>
-          <button
-            type="button"
-            className="desktop-dialog-close"
-            aria-label={closeLabel}
-            onClick={() => onOpenChange(false)}
-          >
-            <X size={15} strokeWidth={1.8} aria-hidden />
+        <div className="dialog-head">
+          <h2 id={titleId} className="dialog-title">{title}</h2>
+          <button type="button" className="icon-btn is-sm" aria-label={closeLabel} title={closeLabel} onClick={() => onOpenChange(false)}>
+            <Icon name="close" size={14} />
           </button>
         </div>
-        {children && <div className="desktop-dialog-body">{children}</div>}
-        {footer && <div className="desktop-dialog-footer">{footer}</div>}
+        {description && <p id={descriptionId} className="dialog-lede">{description}</p>}
+        {children && <div className="dialog-body">{children}</div>}
+        {footer && <div className="dialog-actions">{footer}</div>}
       </div>
     </div>,
     document.body

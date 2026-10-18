@@ -96,8 +96,8 @@ export function buildSidebarGroups({
   }
 
   return [
-    { key: "running", label: labels.runningThreads, sessions: runningThreads },
     { key: "attention", label: labels.attentionThreads, sessions: attentionThreads },
+    { key: "running", label: labels.runningThreads, sessions: runningThreads },
     { key: "pinned", label: labels.pinnedThreads, sessions: pinnedThreads },
     { key: "recent", label: labels.recentThreads, sessions: recentThreads },
     { key: "archived", label: labels.archivedThreads, sessions: archivedThreads },

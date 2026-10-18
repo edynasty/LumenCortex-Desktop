@@ -26,9 +26,10 @@ func main() {
 		OnShutdown:  app.shutdown,
 		Bind:         []interface{}{app},
 		BackgroundColour: &options.RGBA{R: 247, G: 247, B: 245, A: 255},
+		// The unified toolbar is web content (frontend shell.css): the title bar is hidden and the
+		// native traffic lights sit inset over the toolbar lead, which reserves their space.
 		Mac: &mac.Options{
-			Appearance: mac.NSAppearanceNameAqua,
-			TitleBar:   mac.TitleBarDefault(),
+			TitleBar: mac.TitleBarHiddenInset(),
 		},
 	}); err != nil {
 		log.Fatal(err)

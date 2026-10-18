@@ -1,16 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { isNativeMacWindow } from "./lib/bridge";
 import { applyThemePreference, initialThemePreference } from "./lib/theme";
-import "./styles/tokens.css";
-import "./styles/global.css";
-import "./components/primitives/primitives.css";
-import "./styles.css";
-import "./components/inspector/inspector.css";
-import "./components/sidebar/sidebar.css";
-import "./components/thread/tasks.css";
+import "./app-styles";
 
 applyThemePreference(initialThemePreference());
+if (isNativeMacWindow()) document.documentElement.dataset.chrome = "mac-inset";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

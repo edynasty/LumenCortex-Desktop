@@ -52,18 +52,19 @@ describe("presentation model", () => {
     });
 
     expect(groups.map((group) => [group.key, group.sessions.map((item) => item.session.id)])).toEqual([
-      ["running", ["active", "orphan-running"]],
+      // The threads that need the user lead the list (Lumen Glass sidebar order).
       ["attention", ["waiting", "failed", "interrupted"]],
+      ["running", ["active", "orphan-running"]],
       ["pinned", ["pinned"]],
       ["recent", ["stale-error", "recent"]],
       ["archived", ["archived"]],
     ]);
 
-    const [running, elsewhere] = groups[0].sessions;
+    const [running, elsewhere] = groups[1].sessions;
     expect(running.statusLabel).toBe("Active");
     // Durably running but not run by this process: shown as such, never rewritten as interrupted.
     expect(elsewhere).toMatchObject({ statusLabel: "Running elsewhere", attentionTone: undefined, active: false });
-    const attention = groups[1].sessions;
+    const attention = groups[0].sessions;
     expect(attention[0]).toMatchObject({ statusLabel: "Waiting", attentionTone: "warning" });
     expect(attention[1]).toMatchObject({ statusLabel: "Failed", attentionTone: "danger" });
     expect(attention[2]).toMatchObject({ statusLabel: "Interrupted", attentionTone: "danger" });

@@ -1,23 +1,17 @@
-import {
-  Blocks,
-  ChevronRight,
-  Folder,
-  Languages,
-  Plus,
-  Search,
-  PanelLeftClose,
-  Settings2,
-  X,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { Session } from "../../types";
-import type { ThemePreference } from "../../lib/theme";
-import { DesktopSelect } from "../primitives/Select";
-import { ThreadRow } from "./ThreadRow";
+/*
+ * Contextual sidebar frame. The project it scopes sits on top, the page's own list fills the
+ * middle (threads, Source Control, Context), Core status sits at the bottom. The global rail
+ * beside it owns navigation, so the sidebar never repeats it.
+ */
+import { useState, type ReactNode } from "react";
+import type { AppCopy } from "../../lib/i18n/app-copy";
+import { AnchoredPopover } from "../primitives/AnchoredPopover";
+import { Icon } from "../primitives/Icon";
+import type { Session, SessionRuntime } from "../../types";
 
 export type SidebarThread = {
   session: Session;
-  runtime: import("../../types").SessionRuntime;
+  runtime: SessionRuntime;
   title: string;
   active: boolean;
   pinned: boolean;
@@ -32,276 +26,75 @@ export type SidebarGroup = {
   sessions: SidebarThread[];
 };
 
-type RuntimeState = "ready" | "online" | "offline";
+export type RuntimeState = "ready" | "online" | "offline";
 
-type Props = {
-  open: boolean;
+function basename(path: string) {
+  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
+}
+
+function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace }: {
   workspace: string;
-  workspaceName: string;
-  groups: SidebarGroup[];
   recentProjects: string[];
-  selectedSessionId: string;
-  providerActive: boolean;
-  extensionsActive: boolean;
-  runtimeState: RuntimeState;
-  runtimeVersion?: string;
-  themePreference: ThemePreference;
-  labels: {
-    close: string;
-    collapse: string;
-    newTask: string;
-    project: string;
-    openProject: string;
-    sessions: string;
-    noSessions: string;
-    threadSearch: string;
-    recentProjects: string;
-    providerSettings: string;
-    extensions: string;
-    language: string;
-    theme: string;
-    themeSystem: string;
-    themeLight: string;
-    themeDark: string;
-    runtimeReady: string;
-    runtimeOnline: string;
-    runtimeOffline: string;
-    renameThread: string;
-    pinThread: string;
-    unpinThread: string;
-    archiveThread: string;
-    restoreThread: string;
-    deleteThread: string;
-    save: string;
-    cancel: string;
-    threadMenu: string;
-    localRuntime: string;
-    worktreeRuntime: string;
-  };
-  onClose: () => void;
-  onCollapse: () => void;
-  onNewTask: () => void;
+  labels: AppCopy;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
-  onSelectSession: (sessionId: string) => void;
-  onRenameSession: (sessionId: string, title: string) => void;
-  onPinSession: (sessionId: string, pinned: boolean) => void;
-  onArchiveSession: (sessionId: string, archived: boolean) => void;
-  onDeleteSession: (sessionId: string) => void;
-  onOpenProviders: () => void;
-  onOpenExtensions: () => void;
-  onSwitchLocale: () => void;
-  onThemePreferenceChange: (theme: ThemePreference) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const name = workspace ? basename(workspace) : labels.openProject;
+  return (
+    <div className="project-switcher popover-anchor">
+      <button type="button" className="project-button" aria-haspopup="dialog" aria-expanded={open} title={workspace} onClick={() => setOpen(!open)}>
+        <span className="project-avatar" aria-hidden>{name.slice(0, 1).toUpperCase()}</span>
+        <span className="project-text">
+          <span className="project-name">{name}</span>
+          {workspace && <span className="project-branch"><span>{workspace}</span></span>}
+        </span>
+        <Icon name="collapse" size={14} className="project-chevron" />
+      </button>
+      <AnchoredPopover open={open} onClose={() => setOpen(false)} label={labels.recentProjects} className="menu project-menu">
+        {recentProjects.length > 0 && <div className="menu-label">{labels.recentProjects}</div>}
+        {recentProjects.slice(0, 8).map((path) => (
+          <button key={path} type="button" className="menu-item" aria-checked={path === workspace} onClick={() => { setOpen(false); if (path !== workspace) onOpenWorkspace(path); }}>
+            <Icon name="project" size={15} />
+            <span className="menu-item-body"><span>{basename(path)}</span><span className="menu-item-sub mono">{path}</span></span>
+            {path === workspace && <Icon name="checkmark" size={14} className="menu-check" />}
+          </button>
+        ))}
+        {recentProjects.length > 0 && <div className="menu-sep" />}
+        <button type="button" className="menu-item" onClick={() => { setOpen(false); onPickWorkspace(); }}>
+          <Icon name="projectOpen" size={15} /><span className="menu-item-body"><span>{labels.openProjectEllipsis}</span></span>
+        </button>
+      </AnchoredPopover>
+    </div>
+  );
+}
+
+type Props = {
+  label: string;
+  workspace: string;
+  recentProjects: string[];
+  runtimeState: RuntimeState;
+  runtimeVersion?: string;
+  activeRuns: number;
+  labels: AppCopy;
+  onPickWorkspace: () => void;
+  onOpenWorkspace: (path: string) => void;
+  children: ReactNode;
 };
 
-export function Sidebar({
-  open,
-  workspace,
-  workspaceName,
-  groups,
-  recentProjects,
-  selectedSessionId,
-  providerActive,
-  extensionsActive,
-  runtimeState,
-  runtimeVersion,
-  themePreference,
-  labels,
-  onClose,
-  onCollapse,
-  onNewTask,
-  onPickWorkspace,
-  onOpenWorkspace,
-  onSelectSession,
-  onRenameSession,
-  onPinSession,
-  onArchiveSession,
-  onDeleteSession,
-  onOpenProviders,
-  onOpenExtensions,
-  onSwitchLocale,
-  onThemePreferenceChange,
-}: Props) {
-  const [query, setQuery] = useState("");
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
-    return () => window.clearTimeout(focusTimer);
-  }, [open]);
-  const sessionCount = groups.reduce((total, group) => total + group.sessions.length, 0);
-  const visibleGroups = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return groups;
-    return groups
-      .map((group) => ({
-        ...group,
-        sessions: group.sessions.filter(({ session, title }) =>
-          title.toLowerCase().includes(normalized) ||
-          session.goal.toLowerCase().includes(normalized) ||
-          session.provider?.toLowerCase().includes(normalized) ||
-          session.model?.toLowerCase().includes(normalized)
-        ),
-      }))
-      .filter((group) => group.sessions.length > 0);
-  }, [groups, query]);
-  const runtimeLabel =
-    runtimeState === "online"
-      ? labels.runtimeOnline
-      : runtimeState === "offline"
-        ? labels.runtimeOffline
-        : labels.runtimeReady;
-
+export function Sidebar({ label, workspace, recentProjects, runtimeState, runtimeVersion, activeRuns, labels, onPickWorkspace, onOpenWorkspace, children }: Props) {
+  const runtimeLabel = runtimeState === "online" ? labels.runtimeOnline : runtimeState === "offline" ? labels.runtimeOffline : labels.runtimeReady;
   return (
-    <aside className={`sidebar ${open ? "open" : ""}`}>
-      <div className="sidebar-head">
-        <div className="brand-mark" aria-hidden>LC</div>
-        <div className="brand-copy">
-          <strong>LumenCortex</strong>
-          <span>Desktop</span>
-        </div>
-        <button
-          className="icon-button sidebar-collapse-button"
-          onClick={onCollapse}
-          aria-label={labels.collapse}
-          aria-keyshortcuts="Meta+B Control+B"
-        >
-          <PanelLeftClose size={16} strokeWidth={1.7} aria-hidden />
-        </button>
-        {open && (
-          <button ref={closeButtonRef} className="icon-button mobile-only" onClick={onClose} aria-label={labels.close}>
-            <X size={16} strokeWidth={1.7} aria-hidden />
-          </button>
-        )}
-      </div>
-
-      <button className="new-task-button" onClick={onNewTask}>
-        <Plus size={15} strokeWidth={1.7} aria-hidden />
-        <span>{labels.newTask}</span>
-      </button>
-
-      <button className="project-button" onClick={onPickWorkspace}>
-        <span className="project-icon"><Folder size={16} strokeWidth={1.7} aria-hidden /></span>
-        <span className="project-copy">
-          <small>{labels.project}</small>
-          <strong>{workspace ? workspaceName : labels.openProject}</strong>
-        </span>
-        <ChevronRight size={14} strokeWidth={1.7} aria-hidden />
-      </button>
-
-      {recentProjects.length > 0 && (
-        <div className="recent-projects">
-          <span>{labels.recentProjects}</span>
-          {recentProjects.filter((path) => path !== workspace).slice(0, 4).map((path) => (
-            <button key={path} type="button" onClick={() => onOpenWorkspace(path)} title={path}>
-              <Folder size={12} strokeWidth={1.7} aria-hidden />
-              <span>{path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <label className="thread-search">
-        <Search size={13} strokeWidth={1.7} aria-hidden />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={labels.threadSearch}
-          aria-label={labels.threadSearch}
-        />
-      </label>
-
-      <div className="sidebar-section-title sidebar-section-summary">
-        <span>{labels.sessions}</span>
-        <span>{sessionCount}</span>
-      </div>
-
-      <div className="thread-list">
-        {visibleGroups.map((group) => (
-          <section className={`thread-group ${group.key === "attention" ? "attention" : ""}`} key={group.key}>
-            <div className="thread-group-title">
-              <span>{group.label}</span>
-              <span>{group.sessions.length}</span>
-            </div>
-            {group.sessions.map(({ session, runtime, title, active, pinned, archived, attentionTone, statusLabel }) => (
-              <ThreadRow
-                key={session.id}
-                session={session}
-                runtime={runtime}
-                title={title}
-                active={active}
-                pinned={pinned}
-                archived={archived}
-                selected={session.id === selectedSessionId}
-                statusLabel={statusLabel}
-                attentionTone={attentionTone}
-                labels={{
-                  rename: labels.renameThread,
-                  pin: labels.pinThread,
-                  unpin: labels.unpinThread,
-                  archive: labels.archiveThread,
-                  restore: labels.restoreThread,
-                  delete: labels.deleteThread,
-                  save: labels.save,
-                  cancel: labels.cancel,
-                  menu: labels.threadMenu,
-                  localRuntime: labels.localRuntime,
-                  worktreeRuntime: labels.worktreeRuntime,
-                }}
-                onSelect={() => onSelectSession(session.id)}
-                onRename={(title) => onRenameSession(session.id, title)}
-                onPinnedChange={(value) => onPinSession(session.id, value)}
-                onArchivedChange={(value) => onArchiveSession(session.id, value)}
-                onDelete={() => onDeleteSession(session.id)}
-              />
-            ))}
-          </section>
-        ))}
-        {!sessionCount && <div className="sidebar-empty">{labels.noSessions}</div>}
-        {sessionCount > 0 && !visibleGroups.length && <div className="sidebar-empty">{labels.noSessions}</div>}
-      </div>
-
-      <div className="sidebar-footer">
-        <div className="runtime-line">
-          <span className={`runtime-dot ${runtimeState}`} />
+    <aside className="sidebar" aria-label={label}>
+      <ProjectSwitcher workspace={workspace} recentProjects={recentProjects} labels={labels} onPickWorkspace={onPickWorkspace} onOpenWorkspace={onOpenWorkspace} />
+      <div className="sidebar-body">{children}</div>
+      <footer className="sidebar-footer">
+        <span className="core-status" title={runtimeVersion ? `LumenCortex Core ${runtimeVersion}` : "LumenCortex Core"}>
+          <span className={`core-dot is-${runtimeState} ${activeRuns ? "is-busy" : ""}`} aria-hidden />
           <span>{runtimeLabel}</span>
-          {runtimeVersion && <code>{runtimeVersion}</code>}
-        </div>
-        <button
-          className={`footer-button provider-settings-entry ${providerActive ? "active" : ""}`}
-          onClick={onOpenProviders}
-        >
-          <Settings2 size={14} strokeWidth={1.7} aria-hidden />
-          <span>{labels.providerSettings}</span>
-        </button>
-        <button
-          className={`footer-button ${extensionsActive ? "active" : ""}`}
-          onClick={onOpenExtensions}
-        >
-          <Blocks size={14} strokeWidth={1.7} aria-hidden />
-          <span>{labels.extensions}</span>
-        </button>
-        <div className="sidebar-theme-control">
-          <DesktopSelect
-            ariaLabel={labels.theme}
-            value={themePreference}
-            placeholder={labels.theme}
-            showDescriptionInTrigger={false}
-            className="footer-theme-select"
-            options={[
-              { value: "system", label: labels.themeSystem },
-              { value: "light", label: labels.themeLight },
-              { value: "dark", label: labels.themeDark },
-            ]}
-            onChange={(value) => onThemePreferenceChange(value as ThemePreference)}
-          />
-        </div>
-        <button className="footer-button" onClick={onSwitchLocale}>
-          <Languages size={14} strokeWidth={1.7} aria-hidden />
-          <span>{labels.language}</span>
-        </button>
-      </div>
+          <span className="core-runs">{activeRuns ? labels.runsActive.replace("{n}", String(activeRuns)) : labels.noRuns}</span>
+        </span>
+      </footer>
     </aside>
   );
 }

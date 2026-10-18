@@ -1,6 +1,7 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/inspector-types";
 import { WorkspaceView } from "./app/WorkspaceView";
+import type { SettingsState } from "./app/useWorkspaceCommands";
 import { buildAgentConfig, type AgentPolicy } from "./app/agent-config";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
@@ -14,18 +15,17 @@ import { modelOptions } from "./app/model-selection";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
-import { bridge } from "./lib/bridge";
 import { sessionRuntime } from "./lib/session-runtime";
 import { sessionUI } from "./lib/session-ui";
 import { useThemePreference } from "./lib/theme";
-import { useSidebarCollapsedPreference } from "./lib/sidebar-preference";
+import { useLayoutPreference } from "./lib/layout-preference";
 import type { RuntimeKind } from "./types";
 import type { WorktreeCleanupTarget } from "./components/worktree/WorktreeCleanupDialog";
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [themePreference, setThemePreference] = useThemePreference();
-  const [sidebarCollapsed, setSidebarCollapsed] = useSidebarCollapsedPreference();
+  const [layout, setLayout] = useLayoutPreference();
   const t = copy[locale];
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
@@ -110,7 +110,9 @@ export default function App() {
     handleSessionRuntimeEvent,
   });
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
+  const [settings, setSettings] = useState<SettingsState>({ open: false, pane: "general", mounted: false });
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
   const [worktreeCleanupTarget, setWorktreeCleanupTarget] = useState<WorktreeCleanupTarget | null>(null);
@@ -121,6 +123,10 @@ export default function App() {
   }, [locale]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);
+  const parent = useMemo(() => {
+    const parentId = current ? sessionUI(current).parentSessionId : undefined;
+    return parentId ? state.sessions.find((session) => session.id === parentId) : undefined;
+  }, [current, state.sessions]);
   const activeRunIds = useMemo(() => new Set(state.activeRuns.map((run) => run.sessionId)), [state.activeRuns]);
   const running = selected ? activeRunIds.has(selected) : false;
   const currentRuntime = useMemo(
@@ -139,21 +145,8 @@ export default function App() {
     sessions: state.sessions,
     activeRunIds,
     workspace: state.workspace,
-    labels: {
-      active: t.active,
-      created: t.created,
-      completed: t.completed,
-      interrupted: t.interrupted,
-      failed: t.failed,
-      waiting: t.waiting,
-      runningElsewhere: t.runningElsewhere,
-      unknown: t.unknown,
-      runningThreads: t.runningThreads,
-      attentionThreads: t.attentionThreads,
-      pinnedThreads: t.pinnedThreads,
-      recentThreads: t.recentThreads,
-      archivedThreads: t.archivedThreads,
-    },
+    // The app copy carries every status and group label the sidebar needs.
+    labels: t,
   }), [activeRunIds, state.sessions, state.workspace, t]);
 
   const {
@@ -212,7 +205,7 @@ export default function App() {
     setRuntimeKind("local");
     clearEvents();
     setInspectorOpen(false);
-    setSidebarOpen(false);
+    setSidebarDrawerOpen(false);
   }
 
   async function pickWorkspace() {
@@ -231,11 +224,9 @@ export default function App() {
     clearContextPaths();
     setRuntimeKind("local");
     setInspectorOpen(false);
-    setSidebarOpen(false);
+    setSidebarDrawerOpen(false);
     window.setTimeout(() => composerRef.current?.focus(), 0);
   }
-
-  function switchLocale() { setLocale((currentLocale) => currentLocale === "zh-CN" ? "en" : "zh-CN"); }
 
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -248,21 +239,26 @@ export default function App() {
     <WorkspaceView
       route={route}
       current={current}
+      parent={parent}
       runtime={currentRuntime}
       locale={locale}
       labels={t}
       themePreference={themePreference}
       workspace={state.workspace}
+      sessions={state.sessions}
       groups={sessionGroups}
       recentProjects={recentProjects}
       selectedSessionId={selected}
       runtimeState={health ? "online" : state.workspace ? "offline" : "ready"}
+      activeRuns={state.activeRuns.length}
       health={health}
       pressure={pressure}
-      sidebarOpen={sidebarOpen}
-      sidebarCollapsed={sidebarCollapsed}
+      layout={layout}
+      sidebarDrawerOpen={sidebarDrawerOpen}
       inspectorOpen={inspectorOpen}
       inspectorTab={inspectorTab}
+      settings={settings}
+      paletteOpen={paletteOpen}
       events={selectedEvents}
       config={config}
       trusting={trusting}
@@ -292,8 +288,10 @@ export default function App() {
       error={error}
       textareaRef={composerRef}
       onSetRoute={setRoute}
-      onSidebarOpenChange={setSidebarOpen}
-      onSidebarCollapsedChange={setSidebarCollapsed}
+      onLayoutChange={setLayout}
+      onSidebarDrawerOpenChange={setSidebarDrawerOpen}
+      onSettingsChange={setSettings}
+      onPaletteOpenChange={setPaletteOpen}
       onInspectorOpenChange={setInspectorOpen}
       onInspectorTabChange={setInspectorTab}
       onWorktreeCleanupTargetChange={setWorktreeCleanupTarget}
@@ -304,7 +302,7 @@ export default function App() {
       onRenameSession={(sessionId, title) => void updateSessionUI(sessionId, { title })}
       onPinSession={(sessionId, pinned) => void updateSessionUI(sessionId, { pinned })}
       onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
-      onSwitchLocale={switchLocale}
+      onLocaleChange={setLocale}
       onThemePreferenceChange={setThemePreference}
       onConfigChanged={() => void refreshConfig()}
       onTrustWorkspace={() => void trustWorkspace()}
