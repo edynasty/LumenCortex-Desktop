@@ -351,7 +351,7 @@ go vet ./internal/backend
 ```
 
 ```bash
-wails build -clean -platform darwin/universal
+scripts/build-macos.sh
 ```
 
 Passing an earlier commit's CI is not evidence that a later commit passes.

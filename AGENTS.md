@@ -221,7 +221,7 @@ go vet ./internal/backend
 Desktop integration changes:
 
 ```bash
-wails build -clean -platform darwin/universal
+scripts/build-macos.sh
 ```
 
 A change is not complete until all affected checks pass or the failure is explicitly documented.

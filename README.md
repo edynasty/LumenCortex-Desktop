@@ -43,17 +43,38 @@ See [docs/architecture.md](docs/architecture.md).
 
 ## Development
 
-Requirements:
+Requirements (macOS):
 
-- Go 1.27+
+- Go 1.25+ (the version in `go.mod`)
 - Node.js 24+
 - Wails v2.16.0+
+- Xcode Command Line Tools (`xcode-select --install`)
+
+`go install` writes binaries to `$(go env GOPATH)/bin` (`~/go/bin` by default). That directory must be on `PATH`, otherwise `wails: command not found` even though the CLI is installed:
 
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+export PATH="$HOME/go/bin:$PATH"   # add this line to ~/.zshrc to make it permanent
+wails version
 wails doctor
+```
+
+### Development mode
+
+```bash
 wails dev
 ```
+
+This starts the Go backend, the Vite dev server and a native window. `wails dev` builds its development binary into the **same** `build/bin/LumenCortex Desktop.app` bundle as `wails build` and **deletes that binary when it exits**. After a dev session the bundle is a shell with an empty `Contents/MacOS` and cannot be opened; rebuild before launching the packaged app.
+
+### Native application
+
+```bash
+scripts/build-macos.sh
+open "build/bin/LumenCortex Desktop.app"
+```
+
+`scripts/build-macos.sh` runs `wails build -platform darwin/$(uname -m)` and then `scripts/verify-macos-bundle.sh`, which fails when `Contents/MacOS` is empty, `CFBundleExecutable` is missing or empty, the declared executable is absent or not executable, the binary is not Mach-O, its architecture does not match, or the ad-hoc signature does not verify. Pass extra `wails build` flags as arguments (for example `scripts/build-macos.sh -v 2`).
 
 Frontend only:
 
