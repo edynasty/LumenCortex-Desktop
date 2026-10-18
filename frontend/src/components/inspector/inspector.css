@@ -401,3 +401,243 @@
 .check-row.passed .check-status { color: var(--green); }
 .check-row-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 4px; color: var(--muted); font-size: 9px; }
 .check-row-meta .check-artifacts button { height: 20px; padding: 0 6px; font-size: 9px; }
+
+/* Moved from styles.css: inspector buttons, subagent tree, milestones. */
+
+.icon-button, .toolbar-button {
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+.icon-button {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.icon-button:hover, .icon-button.active {
+  border-color: var(--border);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+.toolbar-button {
+  height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.toolbar-button:hover { background: var(--surface-soft); color: var(--text); }
+.toolbar-button.stop { color: var(--red); }
+
+.primary-action, .secondary-action {
+  border: 0;
+  border-radius: 9px;
+  font-weight: 590;
+  cursor: pointer;
+}
+.primary-action {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 19px;
+  padding: 0 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+}
+.primary-action:hover { background: var(--accent-hover); }
+
+.subagent-group {
+  gap: 7px;
+}
+
+.subagent-group > .settings-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.subagent-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.subagent-tree {
+  display: grid;
+  gap: 2px;
+}
+
+.subagent-tree-node {
+  min-width: 0;
+}
+
+.subagent-tree-node > button {
+  width: calc(100% - (var(--subagent-depth, 0) * 12px));
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  margin-left: calc(var(--subagent-depth, 0) * 12px);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.subagent-tree-node > button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.subagent-state {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.subagent-state.active {
+  color: var(--blue);
+}
+
+.subagent-state.completed {
+  color: var(--green);
+}
+
+.subagent-state.interrupted {
+  color: var(--amber);
+}
+
+.subagent-tree-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.subagent-tree-copy strong {
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-tree-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font: 7.8px/1.35 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-checkpoints {
+  display: grid;
+  gap: 3px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+}
+
+.subagent-checkpoint-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.subagent-checkpoint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+  padding: 0 4px;
+  color: var(--text-soft);
+  font-size: 8px;
+}
+
+.subagent-checkpoint time {
+  color: var(--faint);
+  font: 7.5px var(--mono);
+}
+
+
+.milestone-list {
+  display: grid;
+  padding: 4px 6px 12px;
+}
+
+.milestone-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px;
+  min-height: 38px;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.milestone-icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.milestone-item.active .milestone-icon { color: var(--blue); }
+.milestone-item.success .milestone-icon { color: var(--green); }
+.milestone-item.warning .milestone-icon { color: var(--amber); }
+
+.milestone-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.milestone-copy > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.milestone-copy strong {
+  color: var(--text-soft);
+  font-size: 8.8px;
+  font-weight: 500;
+}
+
+.milestone-copy time {
+  color: var(--faint);
+  font: 7.5px var(--mono);
+}
+
+.milestone-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font: 7.8px/1.45 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+@keyframes inspectorEnter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
