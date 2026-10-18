@@ -1,6 +1,6 @@
 # C3 Desktop: delegation grant, execution tasks, subtree Stop (2026-10-18)
 
-Status: **implemented and validated locally; committed to local Desktop `main`, not pushed.** Paired with Core C2 ([Core C2 report](../../../LumenCortex/docs/reports/C2-execution-tasks-2026-10-18.md)) and ADR-0006 D2/D3/D4.
+Status: **implemented and validated locally; not pushed.** Desktop `8f08b39` (code, tests, this report; this hash line is a follow-up commit), Core `aa12861` (pinned) plus Core docs commit recording C3 in ADR-0006. Paired with Core C2 ([Core C2 report](../../../LumenCortex/docs/reports/C2-execution-tasks-2026-10-18.md)) and ADR-0006 D2/D3/D4.
 
 ## Scope and baseline
 
