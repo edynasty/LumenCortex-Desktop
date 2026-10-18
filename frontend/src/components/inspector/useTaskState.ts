@@ -3,7 +3,8 @@ import { bridge } from "../../lib/bridge";
 import type { RuntimeEvent, TaskReferenceEdit, TaskResolutionState, TaskStateInfo } from "../../types";
 
 // Events after which the host view of Task State may differ: Task State versions and queued edits,
-// a context reset, the end of a run, and changes to the evidence the resolution reads.
+// a context reset, the end of a run, changes to the evidence the resolution reads, and the start,
+// end and delivery of an execution task (its run status is evidence of the parent).
 function changesTaskState(event: RuntimeEvent): boolean {
   if (event.type.startsWith("task_state.")) return true;
   switch (event.type) {
@@ -13,10 +14,21 @@ function changesTaskState(event: RuntimeEvent): boolean {
     case "workflow.approved":
     case "worktree.applied":
     case "worktree.removed":
+    case "task.started":
+    case "task.delivered":
       return true;
+    case "subagent.event":
+      return childRunEnded(event);
     default:
       return false;
   }
+}
+
+// A child's events reach its parent as subagent.event; these are the ones that end its run.
+export function childRunEnded(event: RuntimeEvent): boolean {
+  const type = event.data?.eventType;
+  return type === "session.complete" || type === "session.interrupted" || type === "session.failed" ||
+    type === "workflow.gate_waiting";
 }
 
 type Options = {
@@ -85,6 +97,7 @@ export function useTaskState({ sessionId, events }: Options) {
     info,
     error,
     busy,
+    refresh: load,
     setBrief: (brief: string) => apply(() => bridge.setTaskBrief(sessionId, brief)),
     editReference: (edit: TaskReferenceEdit) => apply(() => bridge.editTaskReference(sessionId, edit)),
     resolve: (state: TaskResolutionState) => apply(() => bridge.resolveThread(sessionId, state)),

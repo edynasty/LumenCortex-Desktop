@@ -228,9 +228,12 @@ export type DeleteSessionOutcome = {
   refusal?: WorktreeRefusal;
 };
 
+// Core runtime.SubagentNode. kind is the relation: "subagent" (read-only helper) or "execution"
+// (an execution task in its own worktree, ADR-0006 D4). active: this process runs it.
 export type SubagentNode = {
   sessionId: string;
   parentSessionId?: string;
+  kind: "subagent" | "execution" | string;
   goal: string;
   status: string;
   final?: string;
@@ -249,10 +252,76 @@ export type SessionCheckpoint = {
   json: unknown;
 };
 
+// The thread's start_task grant (ADR-0006 D4). Core stores it in the ui key and enforces the value
+// passed at each Start; "none" is the default and is never stored.
+export type Delegation = "none" | "propose" | "isolated";
+
 export type SessionUIPatch = {
   title?: string;
   pinned?: boolean;
   archived?: boolean;
+  delegation?: Delegation;
+};
+
+// Core runtime.ExecutionTask: a task Core started.
+export type ExecutionTask = {
+  sessionId: string;
+  parentSessionId: string;
+  taskId?: string;
+  base: string;
+  runtime: SessionRuntime;
+  status: string;
+};
+
+// Core taskstate.Task: a task the thread proposed or started.
+export type ThreadTask = {
+  id: string;
+  objective: string;
+  state: "proposed" | "started" | string;
+  sessionId?: string;
+  proposedAt?: string;
+  startedAt?: string;
+};
+
+// Core runtime.TaskResult: the JSON of a task_result row, after its header line.
+export type TaskResult = {
+  taskId?: string;
+  sessionId: string;
+  objective: string;
+  status: string;
+  errorKind?: string;
+  error?: string;
+  final?: string;
+  openUnits?: TaskResultUnit[];
+  checks: TaskResultCheck[] | null;
+  checksError?: string;
+  handoff?: TaskHandoff;
+  handoffError?: string;
+};
+
+export type TaskResultUnit = {
+  id: string;
+  goal: string;
+  status: string;
+};
+
+export type TaskResultCheck = {
+  id: string;
+  required: boolean;
+  satisfied: boolean;
+  status: string;
+  provenance?: string;
+};
+
+export type TaskHandoff = {
+  branch: string;
+  path: string;
+  base?: string;
+  head?: string;
+  exists: boolean;
+  dirtyFiles?: string[];
+  dirtyCount: number;
+  unappliedCommits: number;
 };
 
 export type Session = {
@@ -429,6 +498,7 @@ export type AgentConfig = {
   toolDenylist?: string[];
   maxTokens?: number;
   temperature?: number;
+  delegation?: Delegation;
 };
 
 // Task State (Core runtime.TaskStateInfo, ADR-0006). The host view already includes queued edits.
@@ -453,7 +523,7 @@ export type TaskResolution = {
   cancelledUnits?: string[];
 };
 
-export type TaskObligation = "work_units" | "gate" | "workflow" | "pending_application" | "checks" | string;
+export type TaskObligation = "work_units" | "gate" | "workflow" | "pending_application" | "checks" | "tasks" | string;
 
 export type TaskStateInfo = {
   sessionId: string;
@@ -464,6 +534,8 @@ export type TaskStateInfo = {
     references?: TaskReference[];
     resolution: TaskResolution;
     windowStartSeq: number;
+    // The execution tasks the thread proposed or started, oldest first.
+    tasks?: ThreadTask[];
   };
   obligations: TaskObligation[] | null;
   readyForReview: boolean;

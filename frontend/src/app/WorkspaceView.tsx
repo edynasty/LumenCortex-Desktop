@@ -4,6 +4,7 @@ import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { ThemePreference } from "../lib/theme";
 import type {
+  Delegation,
   Health,
   LSPDiagnostic,
   LSPStatus,
@@ -121,6 +122,8 @@ type Props = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendReviewInstruction: (path: string, instruction: string) => Promise<void>;
+  onRefreshThread: (sessionId: string) => Promise<void>;
+  onDelegationChange: (sessionId: string, delegation: Delegation) => void;
 };
 
 export function WorkspaceView(props: Props) {
@@ -319,6 +322,10 @@ export function WorkspaceView(props: Props) {
           onSubmit={props.onSubmit}
           onKeyDown={props.onKeyDown}
           onSendReviewInstruction={props.onSendReviewInstruction}
+          events={events}
+          onRefreshThread={props.onRefreshThread}
+          onOpenSession={(sessionId) => props.onSetRoute({ kind: "thread", sessionId })}
+          onDelegationChange={props.onDelegationChange}
         />
       </WorkspaceChrome>
 

@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Menu, PanelLeftOpen, PanelRight } from "lucide-react";
+import { threadWorkspaceLabels } from "../app/presentation-model";
+import { ThreadTasksLayer } from "../app/ThreadTasksLayer";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
 import type { InspectorTab } from "../components/inspector/inspector-types";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
+import type { Delegation } from "../types";
 import {
   checkpoints,
   health,
@@ -15,6 +18,7 @@ import {
   visualConfigState,
   visualEvents,
 } from "./fixture-data";
+import { taskSession, taskThreadMessages, visualTaskTree } from "./task-fixture";
 
 const noop = () => undefined;
 
@@ -137,6 +141,63 @@ export function VisualThreadScene({
       onSubmit={(event) => event.preventDefault()}
       onKeyDown={noop}
     />
+  );
+}
+
+// The C3 thread: the real ThreadTasksLayer over the stubbed Core, so Start and Stop go through the
+// bridge and the cards show only what the stub's Task State and SubagentTree report afterwards.
+export function VisualTasksScene({ goal, onGoalChange }: { goal: string; onGoalChange: (value: string) => void }) {
+  const [nodes, setNodes] = useState(visualTaskTree);
+  const [delegation, setDelegation] = useState<Delegation>("propose");
+  const thread = { ...taskSession, metadata: { ui: { delegation } } };
+  return (
+    <ThreadTasksLayer
+      session={thread}
+      events={[]}
+      subagents={nodes}
+      messages={taskThreadMessages}
+      running={false}
+      busy={false}
+      labels={labels}
+      onRefreshThread={async () => setNodes(visualTaskTree())}
+      onOpenSession={noop}
+      onDelegationChange={(_id, value) => setDelegation(value)}
+    >
+      {(extras) => (
+        <ThreadWorkspace
+          {...extras}
+          session={thread}
+          runtime={runtime}
+          messages={taskThreadMessages}
+          hasOlderMessages={false}
+          historicalMessages={false}
+          loadingOlderMessages={false}
+          running={false}
+          statusLabel={labels.completed}
+          statusDetail=""
+          runningElsewhere={false}
+          workspaceName="lumencortex"
+          modelRef="openai/gpt-5.6"
+          models={[{ value: "openai/gpt-5.6", label: "GPT-5.6", group: "OpenAI", description: "128K ctx · 16K out", badge: "Default" }]}
+          policyLabel={labels.workspace}
+          goal={goal}
+          busy={false}
+          workflowSummary={null}
+          activeSubagents={nodes.filter((node) => node.active).length}
+          textareaRef={null}
+          labels={threadWorkspaceLabels(labels, labels.noModels)}
+          onGoalChange={onGoalChange}
+          onModelChange={noop}
+          onApproveGate={noop}
+          onLoadOlderMessages={noop}
+          onJumpToLatest={noop}
+          onCancel={noop}
+          onRetry={noop}
+          onSubmit={(event) => event.preventDefault()}
+          onKeyDown={noop}
+        />
+      )}
+    </ThreadTasksLayer>
   );
 }
 

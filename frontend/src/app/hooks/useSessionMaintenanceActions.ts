@@ -1,14 +1,8 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { bridge } from "../../lib/bridge";
-import type { WorkspaceState } from "../../types";
+import type { SessionUIPatch, WorkspaceState } from "../../types";
 import type { WorktreeCleanupTarget } from "../../components/worktree/WorktreeCleanupDialog";
 import type { WorkspaceRoute } from "../workspace-route";
-
-type SessionUIPatch = {
-  title?: string;
-  pinned?: boolean;
-  archived?: boolean;
-};
 
 type Options = {
   selectedSessionId: string;

@@ -7,7 +7,9 @@ import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
 import type {
   ConfigState,
+  Delegation,
   Message,
+  RuntimeEvent,
   RuntimeKind,
   Session,
   SessionRuntime,
@@ -16,9 +18,10 @@ import type {
 } from "../types";
 import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
-import { sessionStatusLabel } from "./presentation-model";
+import { sessionStatusLabel, threadWorkspaceLabels } from "./presentation-model";
 import { WorkspaceExtensionsRoute } from "./WorkspaceExtensionsRoute";
 import { WorkspaceReviewRoute } from "./WorkspaceReviewRoute";
+import { ThreadTasksLayer } from "./ThreadTasksLayer";
 import type { WorkspaceRoute } from "./workspace-route";
 
 type Policy = "read-only" | "workspace" | "full";
@@ -68,6 +71,12 @@ type Props = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendReviewInstruction: (path: string, instruction: string) => Promise<void>;
+  // C3: the thread's runtime events, a Core re-read of the thread, opening a child thread and the
+  // thread's delegation grant.
+  events: RuntimeEvent[];
+  onRefreshThread: (sessionId: string) => Promise<void>;
+  onOpenSession: (sessionId: string) => void;
+  onDelegationChange: (sessionId: string, delegation: Delegation) => void;
 };
 
 function basename(path: string) {
@@ -119,6 +128,10 @@ export function WorkspaceRouteContent({
   onSubmit,
   onKeyDown,
   onSendReviewInstruction,
+  events,
+  onRefreshThread,
+  onOpenSession,
+  onDelegationChange,
 }: Props) {
   const composerModels = configuredModels.map((item) => ({
     ...item,
@@ -272,74 +285,54 @@ export function WorkspaceRouteContent({
       : "";
 
   return withProviderLayer(
-    <ThreadWorkspace
+    <ThreadTasksLayer
+      key={current.id}
       session={current}
-      runtime={runtime}
+      events={events}
+      subagents={subagents}
       messages={messages}
-      hasOlderMessages={messages.length > 0 && messages[0].seq > 0}
-      historicalMessages={!messageAtLatest}
-      loadingOlderMessages={messageLoadingOlder}
       running={running}
-      statusLabel={sessionStatusLabel(labels, current.status, running)}
-      statusDetail={statusDetail}
-      runningElsewhere={isRunningElsewhere(current.status, running)}
-      workspaceName={basename(workspace)}
-      modelRef={modelRef}
-      models={modelSelectOptions}
-      policyLabel={policy === "read-only" ? labels.readOnly : policy === "full" ? labels.full : labels.workspace}
-      notice={configNotice}
-      goal={goal}
       busy={busy}
-      workflowSummary={workflowSummary}
-      activeSubagents={subagents.filter((node) => node.active).length}
-      textareaRef={textareaRef}
-      labels={{
-        newTask: labels.newTask,
-        running: labels.running,
-        noMessages: labels.noMessages,
-        finalAnswer: labels.finalAnswer,
-        startAnother: labels.startAnother,
-        composerPlaceholder: labels.composerPlaceholder,
-        composerHint: labels.composerHint,
-        noModels: modelPlaceholder,
-        modelSearch: labels.modelSearch,
-        noModelMatches: labels.noModelMatches,
-        start: labels.start,
-        roleUser: labels.messageRoleUser,
-        roleAssistant: labels.messageRoleAssistant,
-        roleTool: labels.messageRoleTool,
-        roleSystem: labels.messageRoleSystem,
-        approvalTitle: labels.approvalTitle,
-        approve: labels.approve,
-        loadEarlier: labels.loadEarlier,
-        backToLatest: labels.backToLatest,
-        historyWindow: labels.historyWindow,
-        localRuntime: labels.localRuntime,
-        worktreeRuntime: labels.worktreeRuntime,
-        plan: labels.plan,
-        planRunning: labels.planRunning,
-        planWaiting: labels.planWaiting,
-        planSubagents: labels.planSubagents,
-        copy: labels.copy,
-        copied: labels.copied,
-        retry: labels.retry,
-        runningElsewhereNotice: labels.runningElsewhereNotice,
-        runtimeNotice: labels.runtimeNotice,
-        originToolInterrupted: labels.originToolInterrupted,
-        originToolInterruptedBody: labels.originToolInterruptedBody,
-        originCompletionBlocked: labels.originCompletionBlocked,
-        originResume: labels.originResume,
-        originTurn: labels.originTurn,
-      }}
-      onGoalChange={onGoalChange}
-      onModelChange={onModelChange}
-      onApproveGate={onApproveGate}
-      onLoadOlderMessages={onLoadOlderMessages}
-      onJumpToLatest={onJumpToLatest}
-      onCancel={onCancel}
-      onRetry={onRetry}
-      onSubmit={onSubmit}
-      onKeyDown={onKeyDown}
-    />
+      labels={labels}
+      onRefreshThread={onRefreshThread}
+      onOpenSession={onOpenSession}
+      onDelegationChange={onDelegationChange}
+    >
+      {(extras) => (
+        <ThreadWorkspace
+          {...extras}
+          session={current}
+          runtime={runtime}
+          messages={messages}
+          hasOlderMessages={messages.length > 0 && messages[0].seq > 0}
+          historicalMessages={!messageAtLatest}
+          loadingOlderMessages={messageLoadingOlder}
+          running={running}
+          statusLabel={sessionStatusLabel(labels, current.status, running)}
+          statusDetail={statusDetail}
+          runningElsewhere={isRunningElsewhere(current.status, running)}
+          workspaceName={basename(workspace)}
+          modelRef={modelRef}
+          models={modelSelectOptions}
+          policyLabel={policy === "read-only" ? labels.readOnly : policy === "full" ? labels.full : labels.workspace}
+          notice={configNotice}
+          goal={goal}
+          busy={busy}
+          workflowSummary={workflowSummary}
+          activeSubagents={subagents.filter((node) => node.active).length}
+          textareaRef={textareaRef}
+          labels={threadWorkspaceLabels(labels, modelPlaceholder)}
+          onGoalChange={onGoalChange}
+          onModelChange={onModelChange}
+          onApproveGate={onApproveGate}
+          onLoadOlderMessages={onLoadOlderMessages}
+          onJumpToLatest={onJumpToLatest}
+          onCancel={onCancel}
+          onRetry={onRetry}
+          onSubmit={onSubmit}
+          onKeyDown={onKeyDown}
+        />
+      )}
+    </ThreadTasksLayer>
   );
 }

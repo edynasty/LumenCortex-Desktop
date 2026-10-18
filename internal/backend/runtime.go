@@ -50,6 +50,9 @@ type AgentConfig struct {
 	ToolDenylist        []string `json:"toolDenylist,omitempty"`
 	MaxTokens           int      `json:"maxTokens,omitempty"`
 	Temperature         *float64 `json:"temperature,omitempty"`
+	// Delegation is the thread's grant for start_task: "" or none, propose, isolated (ADR-0006 D4).
+	// Core validates it and enforces it; Desktop only passes the user's choice.
+	Delegation string `json:"delegation,omitempty"`
 }
 
 type WorkspaceState struct {
@@ -351,6 +354,7 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,
 		Temperature:         cfg.Temperature,
+		Delegation:          strings.TrimSpace(cfg.Delegation),
 		// Every Desktop thread is a conversation (ADR-0006 D3): an answer ends the turn, and the thread's
 		// resolution, not the run status, says whether the task is done.
 		Interactive: true,
@@ -363,16 +367,6 @@ func (r *Runtime) ContinueAgent(ctx context.Context, sessionID, content string, 
 		return Session{}, errors.New("follow-up content is required")
 	}
 	return r.startAgent(ctx, sessionID, content, cfg)
-}
-
-func (r *Runtime) CancelAgent(sessionID string) bool {
-	r.mu.RLock()
-	supervisor := r.supervisor
-	r.mu.RUnlock()
-	if supervisor == nil {
-		return false
-	}
-	return supervisor.Cancel(sessionID)
 }
 
 func (r *Runtime) WorkflowSummary(ctx context.Context, sessionID string) (any, error) {

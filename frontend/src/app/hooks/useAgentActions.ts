@@ -121,12 +121,14 @@ export function useAgentActions({
     }
   }
 
+  // The thread's Stop is the subtree Stop (ADR-0006 D4): it ends this thread's run and every task and
+  // subagent it started that this process runs. Cancelling the run alone would leave its tasks running.
   async function cancelAgent() {
     if (!selectedSessionId || busy) return;
     setBusy(true);
     setError("");
     try {
-      await bridge.cancelAgent(selectedSessionId);
+      await bridge.cancelSubtree(selectedSessionId);
       setWorkspaceState(await bridge.state());
       await refreshCurrent(selectedSessionId);
     } catch (err) {

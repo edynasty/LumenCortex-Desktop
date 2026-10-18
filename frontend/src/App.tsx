@@ -16,6 +16,7 @@ import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
 import { bridge } from "./lib/bridge";
 import { sessionRuntime } from "./lib/session-runtime";
+import { sessionUI } from "./lib/session-ui";
 import { useThemePreference } from "./lib/theme";
 import { useSidebarCollapsedPreference } from "./lib/sidebar-preference";
 import type { RuntimeKind } from "./types";
@@ -172,7 +173,7 @@ export default function App() {
     goal,
     contextPaths,
     runtimeKind,
-    getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps),
+    getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps, current ? sessionUI(current).delegation : "none"),
     setWorkspaceState: setState,
     setRoute,
     setGoal,
@@ -340,6 +341,8 @@ export default function App() {
       onSubmit={submitTask}
       onKeyDown={onComposerKeyDown}
       onSendReviewInstruction={sendReviewInstruction}
+      onRefreshThread={refreshCurrent}
+      onDelegationChange={(sessionId, delegation) => void updateSessionUI(sessionId, { delegation })}
     />
   );
 

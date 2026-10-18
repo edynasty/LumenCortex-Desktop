@@ -1,4 +1,4 @@
-import type { ChangeEvent, FormEvent, KeyboardEvent, Ref } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
 import { ArrowUp, Folder, Square } from "lucide-react";
 import type { SessionRuntime } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
@@ -10,6 +10,8 @@ type Props = {
   modelRef: string;
   models: SelectOption[];
   policyLabel: string;
+  // The thread's delegation grant control; absent where a thread cannot hold one.
+  delegationControl?: ReactNode;
   goal: string;
   running: boolean;
   busy: boolean;
@@ -38,6 +40,7 @@ export function ThreadComposer({
   modelRef,
   models,
   policyLabel,
+  delegationControl,
   goal,
   running,
   busy,
@@ -78,6 +81,7 @@ export function ThreadComposer({
               className="composer-model-trigger"
             />
             <span>{policyLabel}</span>
+            {delegationControl}
             <RuntimeIdentity
               runtime={runtime}
               localLabel={labels.localRuntime}

@@ -241,6 +241,10 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"worktreeBusy":          lcx.ErrWorktreeBusy,
 		"noFingerprint":         lcx.ErrNoFingerprint,
 		"unknownCheck":          lcx.ErrUnknownCheck,
+		"taskProposalNotFound":  lcx.ErrTaskProposalNotFound,
+		"taskProposalStarted":   lcx.ErrTaskProposalStarted,
+		"taskNeedsCommit":       lcx.ErrExecutionTaskNeedsCommit,
+		"childLimit":            lcx.ErrSubagentLimitExceeded,
 	}
 	got := map[string]string{}
 	for key, err := range want {

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   state: vi.fn(),
   continueAgent: vi.fn(),
   createSessionWithRuntime: vi.fn(),
-  cancelAgent: vi.fn(),
+  cancelSubtree: vi.fn(),
   approveWorkflowGate: vi.fn(),
 }));
 

@@ -99,7 +99,10 @@ describe("model selection and session pinning", () => {
       policy: "workspace",
       maxSteps: 24,
       maxToolCallsPerStep: 8,
+      delegation: "none",
     });
+    // The thread's grant is sent as the user set it; Core enforces it for that Start.
+    expect(buildAgentConfig("test/a", "read-only", 24, "isolated").delegation).toBe("isolated");
     const keys = Object.keys(JSON.parse(JSON.stringify(buildAgentConfig(undefined, "read-only", 3))));
     expect(keys).not.toContain("modelRef");
     expect(keys).not.toContain("provider");

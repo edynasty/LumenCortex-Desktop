@@ -30,6 +30,7 @@ import type {
   SessionUIPatch,
   ShellResult,
   SubagentNode,
+  ExecutionTask,
   TaskReferenceEdit,
   TaskResolutionState,
   TaskStateInfo,
@@ -75,7 +76,8 @@ type AppAPI = {
   SaveProviderCatalogScope(scope: ProviderCatalogScope, doc: ProviderCatalogDocument): Promise<ProviderCatalogDocument>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
   ContinueAgent(sessionId: string, content: string, config: AgentConfig): Promise<Session>;
-  CancelAgent(sessionId: string): Promise<boolean>;
+  StartProposedTask(parentSessionId: string, taskId: string): Promise<ExecutionTask>;
+  CancelSubtree(sessionId: string): Promise<string[]>;
   GetWorkflowSummary(sessionId: string): Promise<WorkflowSummary | null>;
   ApproveWorkflowGate(sessionId: string, gateId: string): Promise<WorkflowSummary>;
   GetTaskState(sessionId: string): Promise<TaskStateInfo>;
@@ -177,7 +179,8 @@ export const bridge = {
   saveProviderCatalogScope: (scope: ProviderCatalogScope, doc: ProviderCatalogDocument) => api().SaveProviderCatalogScope(scope, doc),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
   continueAgent: (sessionId: string, content: string, config: AgentConfig) => api().ContinueAgent(sessionId, content, config),
-  cancelAgent: (sessionId: string) => api().CancelAgent(sessionId),
+  startProposedTask: (parentSessionId: string, taskId: string) => api().StartProposedTask(parentSessionId, taskId),
+  cancelSubtree: (sessionId: string) => api().CancelSubtree(sessionId),
   workflowSummary: (sessionId: string) => api().GetWorkflowSummary(sessionId),
   approveWorkflowGate: (sessionId: string, gateId: string) => api().ApproveWorkflowGate(sessionId, gateId),
   taskState: (sessionId: string) => api().GetTaskState(sessionId),

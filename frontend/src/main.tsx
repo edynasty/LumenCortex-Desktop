@@ -8,6 +8,7 @@ import "./components/primitives/primitives.css";
 import "./styles.css";
 import "./components/inspector/inspector.css";
 import "./components/sidebar/sidebar.css";
+import "./components/thread/tasks.css";
 
 applyThemePreference(initialThemePreference());
 

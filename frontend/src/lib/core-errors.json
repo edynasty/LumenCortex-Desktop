@@ -10,5 +10,9 @@
   "runHeld": "run is active in another process or engine",
   "worktreeBusy": "session worktree is in use",
   "noFingerprint": "workspace has no fingerprint (not a git repository with a commit)",
-  "unknownCheck": "check is not configured"
+  "unknownCheck": "check is not configured",
+  "taskProposalNotFound": "execution task proposal not found",
+  "taskProposalStarted": "execution task proposal was already started",
+  "taskNeedsCommit": "execution tasks need a git workspace with at least one commit",
+  "childLimit": "subagent concurrency limit exceeded for parent session"
 }

@@ -214,8 +214,12 @@ func (a *App) ContinueAgent(sessionID, content string, config backend.AgentConfi
 	return a.backend.ContinueAgent(context.Background(), sessionID, content, config)
 }
 
-func (a *App) CancelAgent(sessionID string) bool {
-	return a.backend.CancelAgent(sessionID)
+func (a *App) StartProposedTask(parentSessionID, taskID string) (backend.ExecutionTask, error) {
+	return a.backend.StartProposedTask(context.Background(), parentSessionID, taskID)
+}
+
+func (a *App) CancelSubtree(sessionID string) ([]string, error) {
+	return a.backend.CancelSubtree(context.Background(), sessionID)
 }
 
 func (a *App) GetWorkflowSummary(sessionID string) (any, error) {

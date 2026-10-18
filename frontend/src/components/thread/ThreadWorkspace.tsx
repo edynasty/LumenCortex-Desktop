@@ -34,6 +34,14 @@ type Props = {
   models: SelectOption[];
   policyLabel: string;
   notice?: ReactNode;
+  // The thread's resolution from Task State (ADR-0006 D2), independent of the run status: a turn that
+  // ended is not a done objective. Absent until Core's view is read.
+  resolution?: { label: string; tone: "open" | "review" | "done" | "dropped"; title: string };
+  // The execution task cards (C3) and the delegation control in the composer.
+  tasks?: ReactNode;
+  delegationControl?: ReactNode;
+  // Renders a runtime row the thread presents itself (task_result); null keeps the default row.
+  renderRuntimeRow?: (message: Message) => ReactNode | null;
   goal: string;
   busy: boolean;
   workflowSummary?: WorkflowSummary | null;
@@ -104,6 +112,10 @@ export function ThreadWorkspace({
   models,
   policyLabel,
   notice,
+  resolution,
+  tasks,
+  delegationControl,
+  renderRuntimeRow,
   goal,
   busy,
   workflowSummary,
@@ -151,6 +163,9 @@ export function ThreadWorkspace({
               <h1>{session.goal}</h1>
               <div className="task-meta">
                 <span className={`status-pill ${running ? "running" : session.status}`}>{statusLabel}</span>
+                {resolution && (
+                  <span className={`resolution-pill ${resolution.tone}`} title={resolution.title}>{resolution.label}</span>
+                )}
                 {statusDetail && <span>{statusDetail}</span>}
                 {session.provider && <span>{session.provider}</span>}
                 {session.model && <span>{session.model}</span>}
@@ -200,7 +215,7 @@ export function ThreadWorkspace({
               </div>
             )}
 
-            {messages.map((message) => (
+            {messages.map((message) => renderRuntimeRow?.(message) ?? (
               <MessageItem
                 key={`${message.seq}-${message.role}`}
                 message={message}
@@ -228,6 +243,8 @@ export function ThreadWorkspace({
             )}
           </section>
 
+          {tasks}
+
           {workflowSummary && session.status === "waiting_gate" && (
             <ApprovalCard
               summary={workflowSummary}
@@ -239,7 +256,7 @@ export function ThreadWorkspace({
           )}
 
           {session.final && (
-            <section className="final-result">
+            <section className={`final-result${resolution?.tone === "done" ? " settled" : ""}`}>
               <div className="final-label">
                 <span>
                   <CircleCheck size={14} strokeWidth={1.7} aria-hidden />
@@ -280,6 +297,7 @@ export function ThreadWorkspace({
         modelRef={modelRef}
         models={models}
         policyLabel={policyLabel}
+        delegationControl={delegationControl}
         goal={goal}
         running={running}
         busy={busy}

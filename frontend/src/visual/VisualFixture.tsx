@@ -18,13 +18,14 @@ import {
   visualLocale,
   type VisualScene,
 } from "./fixture-data";
-import { VisualInspectorFixture, VisualThreadScene, VisualTopbar } from "./VisualFixtureParts";
+import { VisualInspectorFixture, VisualTasksScene, VisualThreadScene, VisualTopbar } from "./VisualFixtureParts";
 
 const noop = () => undefined;
 
 function sceneFromLocation(): VisualScene {
   const value = new URLSearchParams(window.location.search).get("scene");
   return value === "thread" ||
+    value === "tasks" ||
     value === "providers" ||
     value === "review" ||
     value === "extensions" ||
@@ -45,7 +46,7 @@ export function VisualFixture() {
   });
   const scene = sceneFromLocation();
   const visualError = new URLSearchParams(window.location.search).get("error");
-  const sessionScene = scene === "thread" || scene === "review" || scene === "inspector";
+  const sessionScene = scene === "thread" || scene === "tasks" || scene === "review" || scene === "inspector";
 
   const sidebar = (
     <Sidebar
@@ -90,6 +91,7 @@ export function VisualFixture() {
     scene === "extensions" ? (zh ? "MCP · 技能 · 权限" : "MCP · Skills · Permissions") :
     scene === "review" ? (zh ? "3 个变更文件 · 本地" : "3 changed files · Local") :
     scene === "new-task" ? (zh ? "本地" : "Local") :
+    scene === "tasks" ? (zh ? "Worktree · GPT-5.6 · 本轮已结束" : "Worktree · GPT-5.6 · Turn ended") :
     (zh ? "Worktree · GPT-5.6 · 运行中" : "Worktree · GPT-5.6 · Active");
 
   return (
@@ -165,6 +167,7 @@ export function VisualFixture() {
       )}
 
       {(scene === "thread" || scene === "inspector") && <VisualThreadScene goal={goal} onGoalChange={setGoal} />}
+      {scene === "tasks" && <VisualTasksScene goal={goal} onGoalChange={setGoal} />}
 
       {scene === "providers" && (
         <ProviderSettingsPanel

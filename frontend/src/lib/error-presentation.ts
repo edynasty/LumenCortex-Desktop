@@ -15,6 +15,10 @@ type ErrorLabels = Pick<
   | "errInvalidConfig"
   | "errNoFingerprint"
   | "errUnknownCheck"
+  | "errTaskProposalNotFound"
+  | "errTaskProposalStarted"
+  | "errTaskNeedsCommit"
+  | "errChildLimit"
 >;
 
 const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
@@ -30,6 +34,10 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   worktreeBusy: "errWorktreeBusy",
   noFingerprint: "errNoFingerprint",
   unknownCheck: "errUnknownCheck",
+  taskProposalNotFound: "errTaskProposalNotFound",
+  taskProposalStarted: "errTaskProposalStarted",
+  taskNeedsCommit: "errTaskNeedsCommit",
+  childLimit: "errChildLimit",
 };
 
 // A Core error the UI knows is shown as actionable localized copy. Any other error keeps its text.

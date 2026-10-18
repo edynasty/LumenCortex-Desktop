@@ -17,8 +17,12 @@ import type {
   TaskReferenceEdit,
   TaskStateInfo,
 } from "../types";
+import { cancelVisualSubtree, startVisualTask, visualTaskList } from "./task-fixture";
 
-export type VisualScene = "new-task" | "thread" | "providers" | "review" | "extensions" | "inspector";
+export type VisualScene = "new-task" | "thread" | "tasks" | "providers" | "review" | "extensions" | "inspector";
+
+// The tasks scene reads Task State with the thread's execution tasks and their obligation.
+const tasksScene = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("scene") === "tasks";
 
 const localeParam = typeof window === "undefined"
   ? null
@@ -207,6 +211,7 @@ export const lspStatus: LSPStatus = {
 export const subagents: SubagentNode[] = [{
   sessionId: "subagent-1",
   parentSessionId: session.id,
+  kind: "subagent",
   goal: "Review provider tests",
   status: "running",
   active: true,
@@ -478,7 +483,16 @@ export function installVisualAppStub() {
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value: { disabled: string[] }) => value,
 
-    GetTaskState: async () => structuredClone(visualTaskState),
+    GetTaskState: async () => {
+      const info = structuredClone(visualTaskState);
+      if (tasksScene) {
+        info.state.tasks = visualTaskList();
+        info.obligations = [...(info.obligations ?? []), "tasks"];
+      }
+      return info;
+    },
+    StartProposedTask: async (_parentId: string, taskId: string) => startVisualTask(taskId),
+    CancelSubtree: async (sessionId: string) => cancelVisualSubtree(sessionId),
     SetTaskBrief: async (_id: string, brief: string) => editVisualTaskState((state) => { state.brief = brief; }),
     EditTaskReference: async (_id: string, edit: TaskReferenceEdit) =>
       editVisualTaskState((state) => {

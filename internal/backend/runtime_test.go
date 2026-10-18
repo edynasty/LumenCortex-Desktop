@@ -276,8 +276,8 @@ func TestWorkspaceStateReflectsCoreRunSupervisor(t *testing.T) {
 		t.Fatalf("active runs=%#v", state.ActiveRuns)
 	}
 
-	if !r.CancelAgent(session.ID) {
-		t.Fatal("cancel should report active run")
+	if cancelled, err := r.CancelSubtree(ctx, session.ID); err != nil || len(cancelled) != 1 || cancelled[0] != session.ID {
+		t.Fatalf("Stop should report the active run: %v %v", cancelled, err)
 	}
 
 	deadline := time.Now().Add(3 * time.Second)

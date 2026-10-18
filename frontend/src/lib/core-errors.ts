@@ -19,6 +19,10 @@ const order: CoreErrorKey[] = [
   "worktreeBusy",
   "noFingerprint",
   "unknownCheck",
+  "taskProposalNotFound",
+  "taskProposalStarted",
+  "taskNeedsCommit",
+  "childLimit",
 ];
 
 export function coreErrorKey(error: string): CoreErrorKey | null {

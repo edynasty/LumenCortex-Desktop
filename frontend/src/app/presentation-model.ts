@@ -2,6 +2,9 @@ import type { SidebarGroup } from "../components/sidebar/Sidebar";
 import { sessionRuntime } from "../lib/session-runtime";
 import { isRunningElsewhere } from "../lib/session-status";
 import { sessionUI } from "../lib/session-ui";
+import type { ComponentProps } from "react";
+import type { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
+import type { AppCopy } from "../lib/i18n/app-copy";
 import type { Session } from "../types";
 
 export type SessionStatusLabels = {
@@ -99,4 +102,47 @@ export function buildSidebarGroups({
     { key: "recent", label: labels.recentThreads, sessions: recentThreads },
     { key: "archived", label: labels.archivedThreads, sessions: archivedThreads },
   ].filter((group) => group.sessions.length > 0);
+}
+
+// threadWorkspaceLabels maps the app copy onto the thread view's labels; noModels is the picker's
+// placeholder, which depends on the configuration.
+export function threadWorkspaceLabels(labels: AppCopy, noModels: string): ComponentProps<typeof ThreadWorkspace>["labels"] {
+  return {
+    newTask: labels.newTask,
+    running: labels.running,
+    noMessages: labels.noMessages,
+    finalAnswer: labels.finalAnswer,
+    startAnother: labels.startAnother,
+    composerPlaceholder: labels.composerPlaceholder,
+    composerHint: labels.composerHint,
+    noModels,
+    modelSearch: labels.modelSearch,
+    noModelMatches: labels.noModelMatches,
+    start: labels.start,
+    roleUser: labels.messageRoleUser,
+    roleAssistant: labels.messageRoleAssistant,
+    roleTool: labels.messageRoleTool,
+    roleSystem: labels.messageRoleSystem,
+    approvalTitle: labels.approvalTitle,
+    approve: labels.approve,
+    loadEarlier: labels.loadEarlier,
+    backToLatest: labels.backToLatest,
+    historyWindow: labels.historyWindow,
+    localRuntime: labels.localRuntime,
+    worktreeRuntime: labels.worktreeRuntime,
+    plan: labels.plan,
+    planRunning: labels.planRunning,
+    planWaiting: labels.planWaiting,
+    planSubagents: labels.planSubagents,
+    copy: labels.copy,
+    copied: labels.copied,
+    retry: labels.retry,
+    runningElsewhereNotice: labels.runningElsewhereNotice,
+    runtimeNotice: labels.runtimeNotice,
+    originToolInterrupted: labels.originToolInterrupted,
+    originToolInterruptedBody: labels.originToolInterruptedBody,
+    originCompletionBlocked: labels.originCompletionBlocked,
+    originResume: labels.originResume,
+    originTurn: labels.originTurn,
+  };
 }

@@ -98,8 +98,8 @@ func TestContinueAgentAfterCancelledToolLeavesPairedTranscript(t *testing.T) {
 			t.Fatal("the tool never produced output")
 		}
 	}
-	if !r.CancelAgent(session.ID) {
-		t.Fatal("cancel reported no active run")
+	if cancelled, err := r.CancelSubtree(ctx, session.ID); err != nil || len(cancelled) == 0 {
+		t.Fatalf("Stop reported no active run: %v %v", cancelled, err)
 	}
 	waitIdle(t, r, ctx)
 

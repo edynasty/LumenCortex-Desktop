@@ -16,7 +16,9 @@ describe("sessionUI", () => {
       title: "Original goal",
       pinned: false,
       archived: false,
+      delegation: "none",
       parentSessionId: undefined,
+      childMode: undefined,
     });
   });
 
@@ -36,12 +38,12 @@ describe("sessionUI", () => {
       title: "Readable title",
       pinned: true,
       archived: true,
+      delegation: "none",
       parentSessionId: undefined,
+      childMode: undefined,
     });
     expect(session.goal).toBe("Original goal");
   });
-});
-
 
   it("identifies durable subagent parent metadata", () => {
     const session: Session = {
@@ -54,4 +56,25 @@ describe("sessionUI", () => {
       },
     };
     expect(sessionUI(session).parentSessionId).toBe("parent-session");
+    expect(sessionUI(session).childMode).toBe("read-only");
   });
+
+  it("reads the thread's delegation grant; an unknown value is none", () => {
+    const withGrant = (delegation: unknown): Session => ({ ...base, metadata: { ui: { delegation } } });
+    expect(sessionUI(withGrant("propose")).delegation).toBe("propose");
+    expect(sessionUI(withGrant("isolated")).delegation).toBe("isolated");
+    expect(sessionUI(withGrant("full")).delegation).toBe("none");
+  });
+
+  it("never reports a grant for a child, whatever its ui key holds", () => {
+    const child: Session = {
+      ...base,
+      metadata: {
+        ui: { delegation: "isolated" },
+        subagent: { parentSessionId: "parent", mode: "execution" },
+      },
+    };
+    expect(sessionUI(child).delegation).toBe("none");
+    expect(sessionUI(child).childMode).toBe("execution");
+  });
+});

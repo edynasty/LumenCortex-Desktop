@@ -79,6 +79,10 @@ const baseProps: ComponentProps<typeof WorkspaceRouteContent> = {
   onSubmit: (event) => event.preventDefault(),
   onKeyDown: noop,
   onSendReviewInstruction: async () => undefined,
+  events: [],
+  onRefreshThread: async () => undefined,
+  onOpenSession: noop,
+  onDelegationChange: noop,
 };
 
 describe("WorkspaceRouteContent provider keepalive", () => {
