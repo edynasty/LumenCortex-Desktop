@@ -58,6 +58,18 @@ the schema and marker are direct consequences of the bump, not feature work.
 - No provider/settings UI was added; `effort.auto` is documented in the schema copy and in
   `docs/frontend-development-standard.md` §12.
 
+## Commits
+
+- `7309746` — `chore(deps): pin core 4615933 (auto effort)` (go.mod, go.sum, schema copy, Core
+  error marker).
+- `87cca70` — `feat(desktop): Auto reasoning effort in the composer` (model selection, the composer
+  model-control hook and its test, the frontend standard section, this report, the error fixture).
+- The parallel agent-management work landed `c0f8915` (pin `f7ffc18`) and `601fa70` before this
+  commit; `601fa70` also carried the Auto hunks that share files with it (`runtime.go` effort guard,
+  `models_test.go` test, `types.ts` `AgentEffort`, composer preferences whitelist, copy, icon,
+  Composer Auto row, Playwright case), because those files could not be split non-interactively. The
+  final tree is the union; nothing was reverted or rewritten.
+
 ## Tests
 
 | Test | What it locks |
@@ -71,15 +83,19 @@ the schema and marker are direct consequences of the bump, not feature work.
 
 ## Validation
 
+Run on the final tree (agent-management commits `c0f8915` + `601fa70` + this work).
+
 | Command | Result |
 | --- | --- |
 | `npx tsc --noEmit` | pass |
-| `npx vitest run` | 51 files, 229 tests pass |
-| `npx playwright test` | 72 pass |
-| `go vet . ./internal/backend` | pass |
-| `go test -count=1 . ./internal/backend` | `internal/backend` pass; root `TestWireTypesMatchGoDTOs` fails on the parallel agent-profile work (`profileId` in Go, not yet in `types.ts`), not on this change |
-| `npm run build` | blocked by the parallel agent-profile work (`AppAPI` gained profile methods, visual stub not yet updated) |
-| `scripts/build-macos.sh` | blocked by the same in-flight sibling work at the time of writing |
+| `npx vitest run` | 51 files, 230 tests pass |
+| `npx playwright test` | 72 pass, 2 fail: the agent-profile cases at `app.spec.ts:441` and `:460` (parallel feature), not the Auto cases |
+| `go build ./...`, `go vet . ./internal/backend` | pass |
+| `go test -count=1 . ./internal/backend` | pass |
+| `npm run build` | pass |
+| `scripts/build-macos.sh` | pass (arm64 bundle built and self-signed) |
+| `go mod verify` | all modules verified |
 
-The working tree also carries a later, parallel Core pin (`f7ffc18`, `AgentOptions.Instructions`) by
-the agent-management work; `auto` is unchanged by that commit.
+The later Core pin `f7ffc18` (`AgentOptions.Instructions`) is additive; `auto` is unchanged by it.
+The f7ffc18 module zip initially carried directory entries and made `go mod verify` fail; the
+agent-management work rebuilt it as a standard zip and verification is clean.
