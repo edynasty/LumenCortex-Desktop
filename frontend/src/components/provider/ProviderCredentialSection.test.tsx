@@ -100,9 +100,10 @@ describe("ProviderCredentialSection (through the panel)", () => {
 
     const field = await screen.findByLabelText("API key", { selector: "input" });
     // The placeholder text is not a secret, so the field renders it as plain text.
-    expect(field).toHaveValue("${DEEPSEEK_API_KEY}");
+    // The field exists before the credential status answers, so wait for its value.
+    await waitFor(() => expect(field).toHaveValue("${DEEPSEEK_API_KEY}"));
     expect(field).toHaveAttribute("type", "text");
-    expect(screen.getByText("Reads environment variable DEEPSEEK_API_KEY (not set)")).toHaveAttribute("aria-live", "polite");
+    expect(await screen.findByText("Reads environment variable DEEPSEEK_API_KEY (not set)")).toHaveAttribute("aria-live", "polite");
     expect(screen.queryByRole("radiogroup", { name: "Source" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
