@@ -63,7 +63,7 @@ type AgentProfile struct {
 	Name         string `json:"name"`
 	Description  string `json:"description,omitempty"`
 	Base         string `json:"base"`
-	Instructions string `json:"instructions,omitempty"`
+	Instructions string `json:"instructions"`
 	ModelRef     string `json:"modelRef,omitempty"`
 	Effort       string `json:"effort,omitempty"`
 	Policy       string `json:"policy,omitempty"`

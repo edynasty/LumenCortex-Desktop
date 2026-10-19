@@ -315,3 +315,30 @@ func TestStartAgentUsesProfileInstructionsAndBase(t *testing.T) {
 		t.Fatalf("unknown profile err = %v", err)
 	}
 }
+
+// The page reads instructions as a string it measures and edits; an empty value must still be on
+// the wire, or the renderer receives undefined and the page crashes.
+func TestAgentProfilesAlwaysCarryInstructionsOnTheWire(t *testing.T) {
+	useConfigDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	state, err := r.ListAgentProfiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded struct {
+		Profiles []map[string]any `json:"profiles"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	for _, profile := range decoded.Profiles {
+		if value, ok := profile["instructions"].(string); !ok || value != "" {
+			t.Fatalf("profile %v: instructions = %#v, want present empty string", profile["id"], profile["instructions"])
+		}
+	}
+}
