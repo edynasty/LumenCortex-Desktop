@@ -1,9 +1,5 @@
 import { useEffect, useRef } from "react";
-import type {
-  FormEvent,
-  ReactNode,
-  Ref,
-} from "react";
+import type { FormEvent, ReactNode, Ref } from "react";
 import type { AgentEffort, Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
 import type { ComposerCopy } from "../composer/Composer";
@@ -30,7 +26,7 @@ type Props = {
   statusLabel: string;
   statusDetail: string;
   runningElsewhere: boolean;
-  workspaceName: string;
+  workspaceName: string; workspacePath: string;
   modelRef: string;
   models: PickerOption[];
   modelPending?: boolean;
@@ -137,6 +133,7 @@ export function ThreadWorkspace({
   statusDetail,
   runningElsewhere,
   workspaceName,
+  workspacePath,
   modelRef,
   models,
   modelPending,
@@ -317,6 +314,8 @@ export function ThreadWorkspace({
       <ThreadComposer
         runtime={runtime}
         copy={composerLabels}
+        projectName={workspaceName}
+        projectPath={workspacePath}
         modelRef={modelRef}
         models={models}
         modelPending={modelPending}

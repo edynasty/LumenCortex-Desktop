@@ -56,3 +56,45 @@ Backend: `internal/backend/runtime.go`, `internal/backend/agent_mode_test.go` (n
 ## Native verification
 
 Done on the built bundle; see "Composer (commit a158829) on the real bundle" in `ux-provider-completion-platform-2026-10-19.md` (execution-environment row, left/right toolbar split, ⌘⇧M picker, grouping, disabled rows with reason, filtering, effort chip following the selected model). No screenshots: Screen Recording is not granted to this process.
+
+## Owner follow-up: Codex-style environment strip and composer spacing (2026-10-19)
+
+### Environment strip (shared by both composer variants)
+- New `components/composer/EnvironmentStrip.tsx` + `environment-strip.css`, rendered by `Composer` immediately above the textarea inside the same rounded card (same width, rounded top, hairline seam). It replaces both the new-task project chip and the thread's runtime chip.
+- **New task**: the project name is a read-only label (folder icon, tooltip = full path) — the sidebar project switcher is the only selector. Next to it is the execution target (`Local` with the laptop icon, or `Worktree`). The gear on the right opens a `Configure environment` popover containing:
+  - `New worktree` — a real `role="switch"` (Space/Enter, `aria-checked`), on = worktree runtime, off = local;
+  - `Branch` — the base branch the existing `CreateSessionWithRuntime(goal, paths, runtimeKind, "HEAD")` flow takes, shown read-only as `HEAD` with the reason (`baseBranchFixed`);
+  - notes that the worktree forks from the current HEAD and the environment is fixed once the session starts.
+  - Escape/outside press closes it and returns focus to the gear. Without a project the strip keeps one clear `Open project` action (not a toolbar chip) and the gear is disabled.
+- **Thread**: the same strip shows the project label and the session's fixed runtime identity (`Local`, or `Worktree` + branch), read-only; no gear and no environment control exists in a thread.
+- The old `.new-thread-exec` row under the card and the toolbar `leftSlot`/`runtimeSlot` are removed.
+
+### Toolbar
+- Order: left = attach `+`, permission chip, Ask/Agent mode, delegation; right = model, effort, Send/Stop. The permission chip uses the warning token (`--warn`) when the policy is `full` (`.composer-policy.is-full`).
+- Delegation stays next to permission; the 560 px geometry test confirms it does not crowd.
+
+### Root cause and fix of the cramped thread composer
+- The bar let every chip shrink (`flex: 0 1 auto; min-width: 0`), the hint had `flex-shrink: 10000`, and `.chip-label` ellipsized freely, so at the 712 px reading width the mode/policy/delegation labels collapsed to one or two characters. The runtime chip sat in the toolbar without `white-space: nowrap`, so `本地` wrapped vertically.
+- Fix: chips are `flex: none`; only the model chip shrinks (min 112 px, max 220 px, ellipsis) because it is the primary choice; labels are `nowrap`; the keyboard hint is hidden when it cannot fit whole; the icon-only collapse threshold is now a container query at 620 px of the composer's real width (all labels need ~600 px); gaps and paddings use `--sp-*` tokens.
+- The model chip shows the model's display name (`modelName`, else `modelID`, else the ref's last segment — never `provider/modelId`) and keeps the full ref in its tooltip.
+
+### Verification
+
+| Check | Command | Result |
+|---|---|---|
+| Types | `cd frontend && npx tsc --noEmit` | 0 errors |
+| Unit tests | `cd frontend && npx vitest run` | **49 files / 217 tests passed** (new: environment strip switch/read-only/open-project, model display-name fallback) |
+| Playwright | `cd frontend && npx playwright test` | **71 passed** (new: composer toolbar geometry at 1568/1440/1180/820/560 — one row, no wrapped/hard-clipped labels, 4 px gaps, no overflow; environment strip switch, fixed `HEAD`, focus return, read-only thread strip; full-access warning state) |
+| Frontend build | `cd frontend && npm run build` | ✓ built (1738 modules; existing 500 kB chunk warning only) |
+
+### Screenshots (visual harness, real Chromium)
+Saved under `docs/reports/ux-provider-completion/`:
+- `composer-new-light-1568.png`, `composer-new-dark-1568.png`, `composer-thread-light-1568.png`, `composer-thread-dark-1568.png`
+- `composer-thread-light-1440.png`, `composer-thread-light-1180.png`, `composer-thread-light-820.png`
+- `composer-thread-light-560.png`, `composer-thread-dark-560.png`, `composer-new-light-560.png`, `composer-new-dark-560.png`
+- `composer-environment-light-1568.png`, `composer-environment-dark-1568.png`, `composer-environment-light-560.png`
+
+All were inspected: labels stay whole at 1568/1440/1180/820, the 560 px bar collapses secondary chips to icons while keeping the model label, and the strip/popover read correctly in both themes. The popover at 560 px stays inside the viewport.
+
+### Files
+`components/composer/EnvironmentStrip.tsx` (new), `EnvironmentStrip.test.tsx` (new), `environment-strip.css` (new), `Composer.tsx`, `ComposerPickers.tsx`, `NewTaskComposer.tsx`, `composer.css`, `new-task-composer.css`, `components/thread/ThreadComposer.tsx` (+test), `ThreadWorkspace.tsx`, `app/WorkspaceRouteContent.tsx`, `app/WorkspaceView.tsx`, `app/model-selection.ts` (+test), `lib/i18n/app-copy.ts`, `visual-tests/app.spec.ts`, this report and the screenshots above.

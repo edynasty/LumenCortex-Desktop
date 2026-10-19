@@ -34,7 +34,6 @@ type Props = {
   runtime: SessionRuntime;
   labels: AppCopy;
   workspace: string;
-  recentProjects: string[];
   config: ConfigState;
   trusting: boolean;
   modelRef: string;
@@ -66,7 +65,6 @@ type Props = {
   onPolicyChange: (value: Policy) => void;
   onRuntimeChange: (value: RuntimeKind) => void;
   onPickWorkspace: () => void;
-  onOpenWorkspace: (path: string) => void;
   onOpenProviders: () => void;
   onApproveGate: (gateId: string) => void;
   onLoadOlderMessages: () => void;
@@ -94,7 +92,6 @@ export function WorkspaceRouteContent({
   runtime,
   labels,
   workspace,
-  recentProjects,
   config,
   trusting,
   modelRef,
@@ -126,7 +123,6 @@ export function WorkspaceRouteContent({
   onPolicyChange,
   onRuntimeChange,
   onPickWorkspace,
-  onOpenWorkspace,
   onOpenProviders,
   onApproveGate,
   onLoadOlderMessages,
@@ -180,7 +176,6 @@ export function WorkspaceRouteContent({
         copy={composerCopy}
         workspace={workspace}
         workspaceName={workspace ? basename(workspace) : ""}
-        recentProjects={recentProjects}
         modelRef={modelRef}
         models={composerModels}
         recentModelRefs={recentModelRefs}
@@ -204,7 +199,6 @@ export function WorkspaceRouteContent({
         onPolicyChange={onPolicyChange}
         onRuntimeChange={onRuntimeChange}
         onPickWorkspace={onPickWorkspace}
-        onOpenWorkspace={onOpenWorkspace}
         onOpenProviders={onOpenProviders}
         onSubmit={onSubmit}
       />
@@ -248,6 +242,7 @@ export function WorkspaceRouteContent({
           statusDetail={statusDetail}
           runningElsewhere={isRunningElsewhere(current.status, running)}
           workspaceName={basename(workspace)}
+          workspacePath={workspace}
           modelRef={modelRef}
           models={composerModels}
           modelPending={modelPending}

@@ -13,6 +13,8 @@ function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]>
   const props = {
     runtime: { kind: "local" as const, path: "/repo" },
     copy: labels,
+    projectName: "repo",
+    projectPath: "/repo",
     modelRef: "",
     models: [],
     recentModelRefs: [],
@@ -78,11 +80,14 @@ describe("ThreadComposer", () => {
     expect(props.onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the runtime identity read-only (no switchable control in an existing conversation)", () => {
+  it("keeps the runtime identity read-only in the strip above the input", () => {
     renderComposer({ runtime: { kind: "worktree", path: "/wt", branch: "lumencortex/task" } });
     const chip = screen.getByTitle(t.runtimeFixed);
     expect(chip).toBeInTheDocument();
+    expect(chip.closest(".composer-env")).not.toBeNull();
+    expect(chip.closest(".composer-bar")).toBeNull();
     expect(screen.queryByRole("button", { name: new RegExp(t.environment) })).toBeNull();
+    expect(screen.queryByRole("button", { name: t.configureEnvironment })).toBeNull();
   });
 
   it("caps the permission control with an explanation while in Ask mode", async () => {

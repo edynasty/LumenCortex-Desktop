@@ -57,9 +57,8 @@ type Props = {
   effort?: AgentEffort;
   effortOptions: string[];
   onEffortChange: (effort: AgentEffort | undefined) => void;
-  // The new task's project chip; the thread's read-only runtime identity.
-  leftSlot?: ReactNode;
-  runtimeSlot?: ReactNode;
+  /** The environment strip attached above the input card (shared by both variants). */
+  environment?: ReactNode;
   /** Replaces the send button's tooltip when the task cannot start (e.g. no project open). */
   sendTitle?: string;
 };
@@ -86,9 +85,10 @@ const effortLabelKey: Record<AgentEffort, "effortNone" | "effortLow" | "effortMe
 };
 
 // The shared composer surface (Codex / Copilot Chat pattern over Lumen Glass): one rounded glass
-// card with an auto-growing textarea, attachment chips above, and one compact toolbar — left:
-// attach, Ask/Agent, authorization, delegation; right: model, effort, Send/Stop. The same
-// component renders the new-task card and the thread follow-up so both stay consistent.
+// card with an environment strip above the input, an auto-growing textarea, attachment chips, and
+// one compact toolbar — left: attach, permission, Ask/Agent, delegation; right: model, effort,
+// Send/Stop. The same component renders the new-task card and the thread follow-up so both stay
+// consistent.
 export function Composer({
   variant,
   copy,
@@ -120,8 +120,7 @@ export function Composer({
   effort,
   effortOptions,
   onEffortChange,
-  leftSlot,
-  runtimeSlot,
+  environment,
   sendTitle,
 }: Props) {
   const innerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -191,6 +190,7 @@ export function Composer({
       className={`composer ${variant === "new" ? "is-new" : ""} ${running ? "is-running" : ""}`}
       onSubmit={onSubmit}
     >
+      {environment}
       <textarea
         ref={setTextarea}
         value={value}
@@ -215,6 +215,22 @@ export function Composer({
           onPickFiles={onPickContextFiles}
           onPickFolder={onPickContextFolder}
         />
+        <span className={`composer-policy ${policy === "full" ? "is-full" : ""}`}>
+          <MenuPicker
+            ariaLabel={copy.policy}
+            collapsible
+            value={policy}
+            placeholder={copy.workspace}
+            disabled={busy || ask}
+            disabledReason={ask ? copy.askCapsControls : undefined}
+            options={[
+              { value: "read-only", label: copy.readOnly, description: copy.readOnlyDescription, icon: policyIcon["read-only"] },
+              { value: "workspace", label: copy.workspace, description: copy.workspaceDescription, icon: policyIcon.workspace },
+              { value: "full", label: copy.full, description: copy.fullDescription, icon: policyIcon.full },
+            ]}
+            onChange={(next) => onPolicyChange(next as AgentPolicy)}
+          />
+        </span>
         <MenuPicker
           ariaLabel={copy.mode}
           collapsible
@@ -227,23 +243,7 @@ export function Composer({
           ]}
           onChange={(next) => onModeChange(next as AgentMode)}
         />
-        <MenuPicker
-          ariaLabel={copy.policy}
-          collapsible
-          value={policy}
-          placeholder={copy.workspace}
-          disabled={busy || ask}
-          disabledReason={ask ? copy.askCapsControls : undefined}
-          options={[
-            { value: "read-only", label: copy.readOnly, description: copy.readOnlyDescription, icon: policyIcon["read-only"] },
-            { value: "workspace", label: copy.workspace, description: copy.workspaceDescription, icon: policyIcon.workspace },
-            { value: "full", label: copy.full, description: copy.fullDescription, icon: policyIcon.full },
-          ]}
-          onChange={(next) => onPolicyChange(next as AgentPolicy)}
-        />
         {delegationControl}
-        {leftSlot}
-        {runtimeSlot}
         <span className="composer-spacer" />
         <span className="composer-hint"><span className="composer-hint-text">{copy.composerHint}</span></span>
         <ModelPicker

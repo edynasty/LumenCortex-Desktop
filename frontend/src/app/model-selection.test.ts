@@ -54,6 +54,19 @@ describe("model picker options", () => {
     }]);
   });
 
+  it("shows a model display name without the provider prefix when the name is missing", () => {
+    const options = modelOptions({
+      model: "local/deepseek-v4.1-flash",
+      models: [
+        model("local/deepseek-v4.1-flash", { modelName: "", modelID: "deepseek-v4.1-flash", providerName: "Local" }),
+        model("local/plain-model", { modelName: "", modelID: "", providerName: "Local" }),
+      ],
+    });
+    expect(options.map((item) => item.label)).toEqual(["deepseek-v4.1-flash", "plain-model"]);
+    // The ref stays intact for the picker, the tooltip and Core.
+    expect(options.map((item) => item.ref)).toEqual(["local/deepseek-v4.1-flash", "local/plain-model"]);
+  });
+
   it("flags a missing key only when the provider references one", () => {
     const options = modelOptions({
       model: "",

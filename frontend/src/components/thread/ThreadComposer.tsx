@@ -2,12 +2,15 @@ import type { FormEvent, ReactNode, Ref } from "react";
 import type { AgentEffort, SessionRuntime } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
 import type { PickerOption } from "../composer/ComposerPickers";
-import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { Composer, type ComposerCopy } from "../composer/Composer";
+import { EnvironmentStrip } from "../composer/EnvironmentStrip";
 
 type Props = {
   runtime: SessionRuntime;
   copy: ComposerCopy;
+  /** The open project, shown as a read-only label in the environment strip. */
+  projectName: string;
+  projectPath: string;
   modelRef: string;
   models: PickerOption[];
   modelPending?: boolean;
@@ -37,11 +40,13 @@ type Props = {
 };
 
 // The follow-up composer: the shared Composer card docked at the thread's foot. The session's
-// runtime identity rides along as a read-only chip — the execution environment was chosen at
-// session creation and never switches mid-session.
+// runtime identity rides in the strip above the input, read-only — the execution environment was
+// chosen at session creation and never switches mid-session (ADR-0005).
 export function ThreadComposer({
   runtime,
   copy,
+  projectName,
+  projectPath,
   modelRef,
   models,
   modelPending,
@@ -99,15 +104,14 @@ export function ThreadComposer({
         effort={effort}
         effortOptions={effortOptions}
         onEffortChange={onEffortChange}
-        runtimeSlot={
-          <span className="composer-runtime" title={copy.runtimeFixed}>
-            <RuntimeIdentity
-              runtime={runtime}
-              localLabel={copy.localRuntime}
-              worktreeLabel={copy.worktreeRuntime}
-              compact
-            />
-          </span>
+        environment={
+          <EnvironmentStrip
+            variant="thread"
+            copy={copy}
+            projectName={projectName}
+            projectPath={projectPath}
+            runtime={runtime}
+          />
         }
       />
     </div>

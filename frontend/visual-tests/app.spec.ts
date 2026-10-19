@@ -10,7 +10,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-const WIDTHS = [1440, 1180, 820, 560] as const;
+const WIDTHS = [1568, 1440, 1180, 820, 560] as const;
 
 async function open(page: Page, query = "", width = 1440) {
   await page.setViewportSize({ width, height: 900 });
@@ -179,6 +179,47 @@ test.describe("layout at real window widths", () => {
       });
     }
   }
+
+  test("the composer toolbar keeps intact labels on one line at every width", async ({ page }) => {
+    for (const width of WIDTHS) {
+      for (const variant of ["new task", "thread"] as const) {
+        await open(page, "", width);
+        if (variant === "thread") await openThread(page, "Provider settings refactor");
+        const metrics = await page.locator(".composer-bar").evaluate((bar) => {
+          const barBox = bar.getBoundingClientRect();
+          const visibleChips = [...bar.querySelectorAll<HTMLElement>(".chip")]
+            .filter((chip) => chip.offsetParent && chip.getBoundingClientRect().width > 1);
+          const labels = [...bar.querySelectorAll<HTMLElement>(".chip-label")]
+            .filter((label) => label.offsetWidth > 1);
+          return {
+            rows: new Set(visibleChips.map((chip) => Math.round(chip.getBoundingClientRect().top))).size,
+            wrapped: labels.filter((label) => label.getClientRects().length > 1 || label.scrollHeight > label.clientHeight + 1)
+              .map((label) => label.textContent),
+            hardClipped: labels.filter((label) => label.scrollWidth > label.clientWidth + 1 && getComputedStyle(label).textOverflow !== "ellipsis")
+              .map((label) => label.textContent),
+            ellipsized: labels.filter((label) => label.scrollWidth > label.clientWidth + 1)
+              .map((label) => label.textContent),
+            outside: visibleChips.filter((chip) => {
+              const box = chip.getBoundingClientRect();
+              return box.left < barBox.left - 1 || box.right > barBox.right + 1;
+            }).map((chip) => chip.textContent),
+            gap: getComputedStyle(bar).gap,
+            overflow: bar.scrollWidth - bar.clientWidth,
+          };
+        });
+        const where = `${variant} @${width}`;
+        expect(metrics.rows, `rows ${where}`).toBe(1);
+        expect(metrics.wrapped, `wrapped ${where}`).toEqual([]);
+        expect(metrics.hardClipped, `hard-clipped ${where}`).toEqual([]);
+        expect(metrics.outside, `outside ${where}`).toEqual([]);
+        expect(metrics.gap, `gap ${where}`).toBe("4px");
+        expect(metrics.overflow, `overflow ${where}`).toBeLessThanOrEqual(1);
+        // Above the compact breakpoint every label is whole; at 560 only the model may ellipsize.
+        if (width >= 820) expect(metrics.ellipsized, `ellipsized ${where}`).toEqual([]);
+        else expect(metrics.ellipsized.every((label) => label?.includes("GPT-5.6")), `ellipsized ${where}`).toBe(true);
+      }
+    }
+  });
 
   test("paths shorten the directory before the file name", async ({ page }) => {
     for (const width of WIDTHS) {
@@ -450,18 +491,41 @@ test.describe("Core-backed interactions", () => {
     await expect(page.getByRole("button", { name: /^Model:/ })).not.toContainText("Pending");
   });
 
-  test("the execution environment is chosen on the new-task screen and read-only in a thread", async ({ page }) => {
+  test("the environment is configured on the new-task strip and read-only in a thread", async ({ page }) => {
     await open(page, "", 1180);
-    // New task: the environment row offers Local/Worktree.
-    const exec = page.getByRole("button", { name: /^Run environment:/ });
-    await expect(exec).toBeVisible();
-    await exec.click();
-    await page.getByRole("menu", { name: "Run environment" }).getByRole("menuitemradio", { name: /^Worktree/ }).click();
-    await expect(page.getByRole("button", { name: /^Run environment:/ })).toHaveAccessibleName("Run environment: Worktree");
+    // New task: the project is a read-only label in the strip, never a toolbar chip.
+    const strip = page.locator(".composer-env");
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".env-project")).toContainText("lumencortex");
+    await expect(strip.locator(".env-project")).toHaveAttribute("title", "/Users/demo/Projects/lumencortex");
+    await expect(page.locator(".composer-bar").getByRole("button", { name: "lumencortex" })).toHaveCount(0);
+    await expect(strip.locator(".env-target")).toContainText("Local");
 
-    // An existing conversation shows the session's runtime identity as plain text, not a control.
+    // Full access is the one permission that carries the warning colour.
+    await page.getByRole("button", { name: /^Permissions:/ }).click();
+    await page.getByRole("menu", { name: "Permissions" }).getByRole("menuitemradio", { name: /^Full access/ }).click();
+    await expect(page.locator(".composer-policy")).toHaveClass(/is-full/);
+
+    // The gear opens the environment popover: New worktree is the Local/Worktree switch.
+    const gear = page.getByRole("button", { name: "Configure environment" });
+    await gear.click();
+    const popover = page.getByRole("dialog", { name: "Configure environment" });
+    const toggle = popover.getByRole("switch", { name: "New worktree" });
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(popover.locator(".env-setting-value")).toHaveText("HEAD");
+    await expect(popover.locator(".env-setting-value")).toHaveAttribute("title", /stays HEAD/);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await expect(strip.locator(".env-target")).toContainText("Worktree");
+    await page.keyboard.press("Escape");
+    await expect(gear).toBeFocused();
+
+    // An existing conversation shows the session's runtime identity in the same strip, read-only.
     await openThread(page, "Provider settings refactor");
-    await expect(page.locator(".composer-runtime .runtime-identity")).toBeVisible();
+    await expect(page.locator(".composer-env .runtime-identity")).toBeVisible();
+    await expect(page.locator(".composer-env .runtime-identity")).toContainText("Worktree");
+    await expect(page.locator(".composer-env .runtime-identity")).toContainText("lumencortex/demo");
+    await expect(page.getByRole("button", { name: "Configure environment" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Run environment:/ })).toHaveCount(0);
   });
 

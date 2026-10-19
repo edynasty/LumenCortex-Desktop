@@ -38,6 +38,12 @@ export function supportedEffort(effort: AgentEffort | undefined, supported: stri
   return effort && supported.includes(effort) ? effort : undefined;
 }
 
+function modelDisplayName(model: ModelInfo): string {
+  if (model.modelName) return model.modelName;
+  if (model.modelID) return model.modelID;
+  return model.ref.slice(model.ref.lastIndexOf("/") + 1) || model.ref;
+}
+
 function configuredOption(model: ModelInfo, defaultRef: string): ConfiguredModelOption {
   const metadata = [
     model.modelID && model.modelID !== model.ref.slice(model.ref.indexOf("/") + 1) ? model.modelID : "",
@@ -46,7 +52,7 @@ function configuredOption(model: ModelInfo, defaultRef: string): ConfiguredModel
   ].filter(Boolean).join(" · ");
   return {
     ref: model.ref,
-    label: model.modelName || model.ref,
+    label: modelDisplayName(model),
     group: model.providerName,
     description: metadata,
     isDefault: defaultRef === model.ref,

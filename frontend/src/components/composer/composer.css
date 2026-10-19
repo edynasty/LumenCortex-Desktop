@@ -43,29 +43,34 @@
 .composer textarea:focus, .composer textarea:focus-visible { outline: none; }
 .composer textarea:disabled { color: var(--fg-3); }
 
-/* Control bar: pickers left, hint + send right. */
-.composer-bar { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 6px 8px 8px; cursor: default; }
-.composer-bar .chip { flex: 0 1 auto; min-width: 0; }
-.composer-bar .chip .chip-label, .composer-bar .chip .chip-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.composer-spacer { flex: 1 0 8px; }
-.composer-hint { flex: 0 10000 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px; overflow: hidden; white-space: nowrap; color: var(--fg-4); font-size: var(--text-2xs); }
+/* Control bar: pickers left, hint + send right. Labels never wrap; chips keep their intrinsic
+   width and collapse to icon-only instead of shrinking to unreadable fragments. */
+.composer-bar { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; padding: var(--sp-1) var(--sp-2) var(--sp-2); cursor: default; }
+.composer-bar .chip { flex: none; min-width: 0; }
+.composer-bar .chip .chip-label, .composer-bar .chip .chip-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-spacer { flex: 1 1 auto; min-width: var(--sp-1); }
+.composer-hint { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px; overflow: hidden; white-space: nowrap; color: var(--fg-4); font-size: var(--text-2xs); }
 .composer-hint > svg { flex: none; }
 .composer-hint-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-/* The keyboard hint is a nicety: show it whole or not at all. Widths measured with every chip present. */
-@container composer (max-width: 680px) { .composer-hint { display: none; } }
-@container composer (max-width: 780px) { :lang(en) .composer-hint { display: none; } }
-/* Narrow composers keep the model (and the new-task permission picker) readable: secondary chips
-   fall back to their icon. The label stays in the accessibility tree; the title shows it on hover. */
-@container composer (max-width: 600px) {
-  .composer-bar .chip.is-collapsible { padding-inline: 7px; }
+/* The keyboard hint is a nicety: show it whole or not at all. It needs ~160px beyond the chips,
+   which the composer's 712px reading width never has, so it stays hidden rather than squeezing
+   the controls. */
+@container composer (max-width: 780px) { .composer-hint { display: none; } }
+/* The model is the primary choice: it keeps its label and ellipsizes only as a last resort. */
+.composer-bar .model-chip { flex: 0 1 auto; min-width: 112px; max-width: 220px; }
+.composer-bar .model-chip .chip-label { text-overflow: ellipsis; }
+/* Full access is the one policy that warrants a warning colour on the permission chip. */
+.composer-policy { display: inline-flex; flex: none; min-width: 0; }
+.composer-policy.is-full .chip, .composer-policy.is-full .chip > svg { color: var(--warn); }
+/* Narrow composers keep the model readable: secondary chips fall back to their icon. The label
+   stays in the accessibility tree; the title shows it on hover. All labels need ~600px, so the
+   collapse threshold is set just above that, measured against the composer's real width. */
+@container composer (max-width: 620px) {
+  .composer-bar .chip.is-collapsible { padding-inline: var(--sp-1); }
   .composer-bar .chip.is-collapsible .chip-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .composer-bar .chip.is-collapsible .chip-caret { display: none; }
-  .composer-runtime .runtime-identity > span { display: none; }
+  .composer-bar .model-chip { min-width: 100px; max-width: 180px; }
 }
-
-/* The runtime identity rides along as a quiet static chip. */
-.composer-runtime { display: inline-flex; align-items: center; min-width: 0; padding: 0 6px; border-radius: var(--r-sm); font-size: var(--text-2xs); color: var(--fg-3); }
-.composer-runtime:has(.runtime-identity.worktree) { color: var(--fg-2); }
 
 .send-btn {
   display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: none; border-radius: var(--r-pill);

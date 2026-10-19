@@ -198,7 +198,7 @@ export const ModelPicker = forwardRef<ModelPickerHandle, PickerProps & {
       <button
         ref={triggerRef}
         type="button"
-        className={`chip ${selected?.badgeTone === "warning" ? "is-warn" : ""}`}
+        className={`chip model-chip ${selected?.badgeTone === "warning" ? "is-warn" : ""}`}
         disabled={disabled}
         onClick={() => setOpen(!open)}
         aria-haspopup="dialog"

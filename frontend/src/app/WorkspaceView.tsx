@@ -291,7 +291,6 @@ export function WorkspaceView(props: Props) {
         runtime={props.runtime}
         labels={labels}
         workspace={workspace}
-        recentProjects={props.recentProjects}
         config={props.config}
         trusting={props.trusting}
         modelRef={props.modelRef}
@@ -323,7 +322,6 @@ export function WorkspaceView(props: Props) {
         onPolicyChange={props.onPolicyChange}
         onRuntimeChange={props.onRuntimeChange}
         onPickWorkspace={props.onPickWorkspace}
-        onOpenWorkspace={props.onOpenWorkspace}
         onOpenProviders={() => openSettings("models")}
         onApproveGate={props.onApproveGate}
         onLoadOlderMessages={props.onLoadOlderMessages}
