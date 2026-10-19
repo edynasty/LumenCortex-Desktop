@@ -508,7 +508,7 @@ async function openProviderPane(page: Page) {
   await expect(page.getByText("Environment variable DEEPSEEK_API_KEY is not set")).toBeVisible();
 }
 
-test.describe("provider pane: protocol and Keychain credentials", () => {
+test.describe("provider pane: protocol and direct-input API keys", () => {
   test("keeps the new controls unclipped at every window width", async ({ page }) => {
     for (const width of WIDTHS) {
       await open(page, "", width);
@@ -517,7 +517,7 @@ test.describe("provider pane: protocol and Keychain credentials", () => {
 
       const pane = page.getByRole("dialog", { name: "Settings" });
       await expect(pane.getByRole("radiogroup", { name: "Source" })).toBeVisible();
-      await pane.getByRole("radio", { name: "macOS Keychain" }).click();
+      await pane.getByRole("radio", { name: "Direct input" }).click();
       await expect(pane.getByRole("textbox", { name: "API key" })).toBeVisible();
       await pane.getByRole("button", { name: "Edit" }).first().click();
       await expect(pane.getByRole("radiogroup", { name: "Protocol" })).toBeVisible();
@@ -529,16 +529,16 @@ test.describe("provider pane: protocol and Keychain credentials", () => {
     }
   });
 
-  test("Keychain save -> status -> remove flow over the stub bridge", async ({ page }) => {
+  test("direct-input save -> status -> remove flow over the stub bridge", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings refactor");
     await openProviderPane(page);
     const pane = page.getByRole("dialog", { name: "Settings" });
 
-    await pane.getByRole("radio", { name: "macOS Keychain" }).click();
+    await pane.getByRole("radio", { name: "Direct input" }).click();
     await pane.getByRole("textbox", { name: "API key" }).fill("sk-stub-NEVER-PRINT-2468");
     await pane.getByRole("button", { name: "Save" }).click();
-    await expect(pane.getByText("Saved in Keychain")).toBeVisible();
+    await expect(pane.getByText("Saved locally")).toBeVisible();
     await expect(page.locator(".lc-window")).not.toContainText("sk-stub-NEVER-PRINT-2468");
     await expect(pane.getByRole("textbox", { name: "API key" })).toHaveValue("");
 

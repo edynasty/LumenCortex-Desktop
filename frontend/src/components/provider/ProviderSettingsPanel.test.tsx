@@ -67,7 +67,6 @@ describe("ProviderSettingsPanel", () => {
       scope: "global",
       source: "none",
       set: false,
-      keychainAvailable: true,
     });
   });
   it("hydrates a safe DeepSeek preset without exposing a literal secret field", async () => {

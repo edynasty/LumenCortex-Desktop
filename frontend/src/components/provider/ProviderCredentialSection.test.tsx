@@ -48,7 +48,6 @@ function status(overrides: Partial<CredentialStatus> = {}): CredentialStatus {
     scope: "global",
     source: "none",
     set: false,
-    keychainAvailable: true,
     ...overrides,
   };
 }
@@ -96,7 +95,7 @@ describe("ProviderCredentialSection (through the panel)", () => {
     );
   });
 
-  it("shows the env status and switches to the Keychain source", async () => {
+  it("shows the env status and switches to the direct-input source", async () => {
     const user = userEvent.setup();
     renderPanel();
 
@@ -104,7 +103,7 @@ describe("ProviderCredentialSection (through the panel)", () => {
     expect(screen.getByText("Environment variable DEEPSEEK_API_KEY is not set")).toHaveAttribute("aria-live", "polite");
     expect(screen.getByRole("radio", { name: "Environment variable" })).toHaveAttribute("aria-checked", "true");
 
-    await user.click(screen.getByRole("radio", { name: "macOS Keychain" }));
+    await user.click(screen.getByRole("radio", { name: "Direct input" }));
     const keyField = screen.getByLabelText("API key", { selector: "input" });
     expect(keyField).toHaveAttribute("type", "password");
     expect(keyField).toHaveAttribute("autocomplete", "new-password");
@@ -115,12 +114,12 @@ describe("ProviderCredentialSection (through the panel)", () => {
   it("save sends the key once, clears the input, replaces and never renders it", async () => {
     const user = userEvent.setup();
     mocks.saveProviderCredential.mockResolvedValue(
-      status({ source: "keychain", ref: "{secret:provider.global.deepseek.a1b2c3d4}", set: true }),
+      status({ source: "stored", ref: "{secret:provider.global.deepseek.a1b2c3d4}", set: true }),
     );
     renderPanel();
 
     await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set");
-    await user.click(screen.getByRole("radio", { name: "macOS Keychain" }));
+    await user.click(screen.getByRole("radio", { name: "Direct input" }));
     const keyField = screen.getByLabelText("API key", { selector: "input" });
     await user.type(keyField, KEY);
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -130,7 +129,7 @@ describe("ProviderCredentialSection (through the panel)", () => {
 
     // Cleared after the call; only the fixed status/reference is shown, never the value.
     await waitFor(() => expect(keyField).toHaveValue(""));
-    expect(screen.getByText("Saved in Keychain")).toBeInTheDocument();
+    expect(screen.getByText("Saved locally")).toBeInTheDocument();
     expectKeyNowhereInDom();
 
     // A saved key turns Save into Replace, which reuses the same bridge call.
@@ -147,11 +146,11 @@ describe("ProviderCredentialSection (through the panel)", () => {
   it("save failure clears the input and shows only a redacted generic message", async () => {
     const user = userEvent.setup();
     // The rejection tries to smuggle the key back; the section must drop it.
-    mocks.saveProviderCredential.mockRejectedValue(new Error(`keychain refused: ${KEY}`));
+    mocks.saveProviderCredential.mockRejectedValue(new Error(`credentials file refused: ${KEY}`));
     renderPanel();
 
     await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set");
-    await user.click(screen.getByRole("radio", { name: "macOS Keychain" }));
+    await user.click(screen.getByRole("radio", { name: "Direct input" }));
     const keyField = screen.getByLabelText("API key", { selector: "input" });
     await user.type(keyField, KEY);
     await user.click(screen.getByRole("button", { name: "Save" }));
@@ -165,32 +164,20 @@ describe("ProviderCredentialSection (through the panel)", () => {
   it("remove requires an inline confirm and calls RemoveProviderCredential", async () => {
     const user = userEvent.setup();
     mocks.providerCredentialStatus.mockResolvedValue(
-      status({ source: "keychain", ref: "{secret:provider.global.deepseek.a1b2c3d4}", set: true }),
+      status({ source: "stored", ref: "{secret:provider.global.deepseek.a1b2c3d4}", set: true }),
     );
     mocks.removeProviderCredential.mockResolvedValue(status({ source: "none", set: false }));
     renderPanel();
 
-    expect(await screen.findByText("Saved in Keychain")).toBeInTheDocument();
+    expect(await screen.findByText("Saved locally")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Remove" }));
     expect(mocks.removeProviderCredential).not.toHaveBeenCalled();
-    expect(screen.getByText("Remove the API key from the Keychain?")).toBeInTheDocument();
+    expect(screen.getByText("Remove the API key stored on this machine?")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirm removal" }));
     await waitFor(() => expect(mocks.removeProviderCredential).toHaveBeenCalledWith("global", "deepseek"));
     expect(await screen.findByText("No API key configured")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
-  });
-
-  it("disables the Keychain source with an explanation when unavailable", async () => {
-    mocks.providerCredentialStatus.mockResolvedValue(
-      status({ source: "env", ref: "{env:DEEPSEEK_API_KEY}", set: true, keychainAvailable: false }),
-    );
-    renderPanel();
-
-    expect(await screen.findByText("Environment variable DEEPSEEK_API_KEY is set")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "macOS Keychain" })).toBeDisabled();
-    expect(screen.getByText("macOS Keychain is unavailable in this environment (macOS with a usable Keychain only).")).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Enter the API key")).not.toBeInTheDocument();
   });
 
   it("tests the connection through the shared runtime action with a visible result", async () => {

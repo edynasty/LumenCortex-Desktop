@@ -6,7 +6,7 @@ import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 
-type CredentialSource = "env" | "keychain";
+type CredentialSource = "env" | "stored";
 
 type Props = {
   locale: ProviderLocale;
@@ -19,9 +19,10 @@ type Props = {
 
 /**
  * Per-provider API key management for an existing provider: the {env:NAME} status and the
- * macOS Keychain flow. The typed key lives only in this component's input state, travels to
- * Go exactly once as the SaveProviderCredential argument, and is cleared after every save
- * attempt; nothing here ever renders, returns or logs a key value.
+ * direct-input flow (the backend keeps the value in a local credentials file and the config
+ * keeps only a {secret:NAME} reference). The typed key lives only in this component's input
+ * state, travels to Go exactly once as the SaveProviderCredential argument, and is cleared
+ * after every save attempt; nothing here ever renders, returns or logs a key value.
  */
 export function ProviderCredentialSection({
   locale,
@@ -56,7 +57,7 @@ export function ProviderCredentialSection({
       .then((next) => {
         if (cancelled || targetRef.current !== target) return;
         setStatus(next);
-        setSource(next.source === "keychain" && next.keychainAvailable ? "keychain" : "env");
+        setSource(next.source === "stored" ? "stored" : "env");
       })
       .catch(() => {
         if (!cancelled) setLoadFailed(true);
@@ -66,8 +67,7 @@ export function ProviderCredentialSection({
     };
   }, [scope, providerId, target]);
 
-  const keychainAvailable = status?.keychainAvailable ?? false;
-  const hasKeychainRef = status?.source === "keychain";
+  const hasStoredRef = status?.source === "stored";
 
   async function saveKey() {
     const value = keyInput.trim();
@@ -78,7 +78,7 @@ export function ProviderCredentialSection({
       const next = await bridge.saveProviderCredential(scope, providerId, value);
       if (targetRef.current === target) {
         setStatus(next);
-        setSource(next.source === "keychain" ? "keychain" : "env");
+        setSource(next.source === "stored" ? "stored" : "env");
         setConfirmingRemove(false);
         onCatalogChanged();
       }
@@ -100,7 +100,7 @@ export function ProviderCredentialSection({
       const next = await bridge.removeProviderCredential(scope, providerId);
       if (targetRef.current === target) {
         setStatus(next);
-        setSource(next.source === "keychain" ? "keychain" : "env");
+        setSource(next.source === "stored" ? "stored" : "env");
         setConfirmingRemove(false);
         onCatalogChanged();
       }
@@ -116,7 +116,7 @@ export function ProviderCredentialSection({
     ? t.statusLoadFailed
     : status === null
       ? ""
-      : status.source === "keychain"
+      : status.source === "stored"
         ? t.keySaved
         : status.source === "env"
           ? (status.set ? t.keyEnvSet : t.keyEnvUnset).replace("{name}", envName)
@@ -147,10 +147,9 @@ export function ProviderCredentialSection({
         onChange={setSource}
         options={[
           { value: "env", label: t.sourceEnv, title: t.sourceEnv },
-          { value: "keychain", label: t.sourceKeychain, title: t.sourceKeychain, disabled: !keychainAvailable },
+          { value: "stored", label: t.sourceStored, title: t.sourceStored },
         ]}
       />
-      {!keychainAvailable && status !== null && <p className="provider-credential-hint">{t.keychainUnavailable}</p>}
       {source === "env" ? (
         <div className="provider-credential-body">
           <p className="provider-credential-hint">{t.envSourceHint}</p>
@@ -163,7 +162,7 @@ export function ProviderCredentialSection({
             type="password"
             value={keyInput}
             onChange={(event) => setKeyInput(event.target.value)}
-            placeholder={hasKeychainRef ? t.keyMasked : t.keychainPlaceholder}
+            placeholder={hasStoredRef ? t.keyMasked : t.keyInputPlaceholder}
             autoComplete="new-password"
             autoCorrect="off"
             spellCheck={false}
@@ -177,14 +176,14 @@ export function ProviderCredentialSection({
               disabled={busy !== null || keyInput.trim() === ""}
               onClick={() => void saveKey()}
             >
-              {hasKeychainRef ? t.replaceKey : t.save}
+              {hasStoredRef ? t.replaceKey : t.save}
             </Button>
-            {hasKeychainRef && !confirmingRemove && (
+            {hasStoredRef && !confirmingRemove && (
               <Button variant="secondary" size="sm" disabled={busy !== null} onClick={() => setConfirmingRemove(true)}>
                 {t.removeKey}
               </Button>
             )}
-            {hasKeychainRef && confirmingRemove && (
+            {hasStoredRef && confirmingRemove && (
               <>
                 <span className="provider-credential-confirm">{t.confirmRemoveKey}</span>
                 <Button variant="danger" size="sm" disabled={busy !== null} onClick={() => void removeKey()}>
@@ -197,7 +196,7 @@ export function ProviderCredentialSection({
             )}
             {testButton}
           </div>
-          <p className="provider-credential-hint">{t.keychainHint}</p>
+          <p className="provider-credential-hint">{t.storedHint}</p>
         </div>
       )}
       {actionError && <p className="provider-credential-error" role="alert">{actionError}</p>}

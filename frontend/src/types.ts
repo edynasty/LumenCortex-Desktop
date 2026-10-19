@@ -412,10 +412,9 @@ export type ProviderPackage = "openai-compatible" | "anthropic-messages";
 export type CredentialStatus = {
   providerId: string;
   scope: ProviderCatalogScope;
-  source: "none" | "env" | "keychain";
+  source: "none" | "env" | "stored";
   ref?: string;
   set: boolean;
-  keychainAvailable: boolean;
 };
 
 export type ProviderModel = {

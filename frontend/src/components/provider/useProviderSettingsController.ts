@@ -179,7 +179,7 @@ export function useProviderSettingsController({
     }
   }
 
-  // The credential section writes the file behind the panel's back (Keychain save/remove);
+  // The credential section writes the file behind the panel's back (direct-input save/remove);
   // this re-reads it so the digest and advanced JSON stay current. No draft is in flight:
   // the section is only rendered while no provider edit is open.
   async function reloadCatalog() {

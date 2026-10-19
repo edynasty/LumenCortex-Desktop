@@ -157,7 +157,7 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
               <div className="provider-action-notice">{providerNotice[selectedProviderId]}</div>
             )}
 
-            {/* Keychain/env API key management: view mode only — the form's env-name field
+            {/* API key management (env reference + direct input): view mode only — the form's env-name field
                 covers the create/edit flow, and the section writes the file itself. */}
             <ProviderCredentialSection
               locale={locale}

@@ -319,14 +319,14 @@ function acceptVisualCheck(checkId: string): CheckResult {
   return result;
 }
 
-// The harness's credential store: keys live only in this map, and no stub answer ever
+// The harness's credential file: keys live only in this map, and no stub answer ever
 // contains a value from it — SaveProviderCredential's response is built from fixed strings.
-const visualKeychain = new Map<string, string>();
+const visualStoredKeys = new Map<string, string>();
 
 // Which names the stub's fake environment happens to have set (mirrors visualConfigState).
 const visualEnvSet: Record<string, boolean> = { OPENAI_API_KEY: true, DEEPSEEK_API_KEY: false, ANTHROPIC_API_KEY: false };
 
-function keychainSecretName(scope: string, providerId: string): string {
+function storedSecretName(scope: string, providerId: string): string {
   return `lumencortex-${scope}-${providerId}`.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 128);
 }
 
@@ -337,14 +337,13 @@ function credentialStatusFor(scope: "global" | "workspace", providerId: string):
   return {
     providerId,
     scope,
-    source: secret ? "keychain" : envMatch ? "env" : "none",
+    source: secret ? "stored" : envMatch ? "env" : "none",
     ref: ref || undefined,
     set: secret
-      ? visualKeychain.has(`${scope}/${providerId}`)
+      ? visualStoredKeys.has(`${scope}/${providerId}`)
       : envMatch
         ? Boolean(visualEnvSet[envMatch[1]])
         : false,
-    keychainAvailable: true,
   };
 }
 
@@ -361,16 +360,16 @@ export function visualAppStub() {
     SaveProviderCatalogScope: async (_scope, doc) => doc,
     GetProviderCredentialStatus: async (scope, providerId) => credentialStatusFor(scope, providerId),
     SaveProviderCredential: async (scope, providerId, apiKey) => {
-      // The value goes into the in-memory store only; every response is key-free.
-      visualKeychain.set(`${scope}/${providerId}`, apiKey);
-      const name = keychainSecretName(scope, providerId);
+      // The value goes into the in-memory credential file only; every response is key-free.
+      visualStoredKeys.set(`${scope}/${providerId}`, apiKey);
+      const name = storedSecretName(scope, providerId);
       providerCatalog.providers[providerId] ??= {};
       providerCatalog.providers[providerId].settings ??= {};
       providerCatalog.providers[providerId].settings!.apiKey = `{secret:${name}}`;
       return credentialStatusFor(scope, providerId);
     },
     RemoveProviderCredential: async (scope, providerId) => {
-      visualKeychain.delete(`${scope}/${providerId}`);
+      visualStoredKeys.delete(`${scope}/${providerId}`);
       const settings = providerCatalog.providers[providerId]?.settings;
       if (settings?.apiKey?.startsWith("{secret:")) settings.apiKey = undefined;
       return credentialStatusFor(scope, providerId);

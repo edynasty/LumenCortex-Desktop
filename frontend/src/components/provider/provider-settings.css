@@ -45,7 +45,7 @@
   .provider-add-model, .provider-advanced-toggle { transition: none; }
 }
 
-/* API key section: {env:NAME} status plus the macOS Keychain flow, per selected provider. */
+/* API key section: {env:NAME} status plus the direct-input flow, per selected provider. */
 .provider-credential { display: flex; flex-direction: column; gap: 9px; padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-sunken); box-shadow: inset 0 0 0 1px var(--line); }
 .provider-credential-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .provider-credential-head .subhead { margin: 0; }
