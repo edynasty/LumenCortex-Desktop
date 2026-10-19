@@ -30,15 +30,15 @@ const (
 	secretC = "sk-secret-NEVER-PRINT-1357"
 )
 
-// fakeStore is the in-memory credentialStore of the lifecycle and leak tests.
+// fakeStore is the in-memory credentialStore of the rollback test, whose store must keep
+// writing while the configuration directory is unwritable.
 type fakeStore struct {
-	mu        sync.Mutex
-	items     map[string]string
-	available bool
+	mu    sync.Mutex
+	items map[string]string
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{items: map[string]string{}, available: true}
+	return &fakeStore{items: map[string]string{}}
 }
 
 func (f *fakeStore) Set(name, secret string) error {
@@ -53,7 +53,7 @@ func (f *fakeStore) Get(name string) (string, error) {
 	defer f.mu.Unlock()
 	v, ok := f.items[name]
 	if !ok {
-		return "", fmt.Errorf("%w: %s", errSecretNotFound, name)
+		return "", fmt.Errorf("%w: %s", config.ErrCredentialNotFound, name)
 	}
 	return v, nil
 }
@@ -61,17 +61,8 @@ func (f *fakeStore) Get(name string) (string, error) {
 func (f *fakeStore) Delete(name string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if _, ok := f.items[name]; !ok {
-		return fmt.Errorf("%w: %s", errSecretNotFound, name)
-	}
 	delete(f.items, name)
 	return nil
-}
-
-func (f *fakeStore) Available() bool {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	return f.available
 }
 
 func (f *fakeStore) len() int {
@@ -103,21 +94,25 @@ func writeCredentialCatalog(t *testing.T, path, anthropicBase, openaiBase string
 }`, anthropicBase, openaiBase))
 }
 
-// The full credential lifecycle over the fake store: save -> keychain/set -> replace -> new value
+// The full credential lifecycle over the fake store: save -> stored/set -> replace -> new value
 // resolves -> remove -> none, plus the picker's availability and the env-reference states.
 func TestProviderCredentialLifecycle(t *testing.T) {
 	configPath := useConfigDir(t)
 	writeCredentialCatalog(t, configPath, "http://127.0.0.1:1", "http://127.0.0.1:2/v1")
-	store := newFakeStore()
-	r := openRuntimeWithStore(t, canonicalDir(t), store)
+	r := openRuntime(t, canonicalDir(t))
+	storePath, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := config.NewFileCredentialStore(storePath)
 	name := credentialName("global", "acme")
 
-	// Before any key: no reference, nothing set, store available.
+	// Before any key: no reference, nothing set.
 	status, err := r.GetProviderCredentialStatus("global", "acme")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status != (CredentialStatus{ProviderID: "acme", Scope: "global", Source: "none", KeychainAvailable: true}) {
+	if status != (CredentialStatus{ProviderID: "acme", Scope: "global", Source: "none"}) {
 		t.Fatalf("initial status=%#v", status)
 	}
 	if state, _ := r.ConfigState(); modelSet(t, state, "acme/m") {
@@ -130,8 +125,8 @@ func TestProviderCredentialLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := CredentialStatus{
-		ProviderID: "acme", Scope: "global", Source: "keychain",
-		Ref: "{secret:" + name + "}", Set: true, KeychainAvailable: true,
+		ProviderID: "acme", Scope: "global", Source: "stored",
+		Ref: "{secret:" + name + "}", Set: true,
 	}
 	if status != want {
 		t.Fatalf("status after save=%#v, want %#v", status, want)
@@ -166,7 +161,7 @@ func TestProviderCredentialLifecycle(t *testing.T) {
 	if status.Source != "none" || status.Set || status.Ref != "" {
 		t.Fatalf("status after remove=%#v", status)
 	}
-	if _, err := store.Get(name); !errors.Is(err, errSecretNotFound) {
+	if _, err := store.Get(name); !errors.Is(err, config.ErrCredentialNotFound) {
 		t.Fatalf("store after remove: %v", err)
 	}
 	if onDisk := readFile(t, configPath); strings.Contains(onDisk, "{secret:") {
@@ -192,7 +187,7 @@ func TestProviderCredentialLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Source != "env" || !status.Set || status.Ref != "{env:LCX_CRED_SET}" || !status.KeychainAvailable {
+	if status.Source != "env" || !status.Set || status.Ref != "{env:LCX_CRED_SET}" {
 		t.Fatalf("env status=%#v", status)
 	}
 	if _, err := r.RemoveProviderCredential("global", "acme"); err != nil {
@@ -238,8 +233,11 @@ func modelSet(t *testing.T, state ConfigState, ref string) bool {
 func TestProviderCredentialRejectsInvalidInput(t *testing.T) {
 	configPath := useConfigDir(t)
 	writeCredentialCatalog(t, configPath, "http://127.0.0.1:1", "http://127.0.0.1:2/v1")
-	store := newFakeStore()
-	r := openRuntimeWithStore(t, canonicalDir(t), store)
+	storePath, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := openRuntime(t, canonicalDir(t))
 
 	if _, err := r.SaveProviderCredential("global", "missing", secretA); err == nil || !strings.Contains(err.Error(), "missing") {
 		t.Fatalf("unknown provider: err=%v", err)
@@ -258,8 +256,8 @@ func TestProviderCredentialRejectsInvalidInput(t *testing.T) {
 	if _, err := r.SaveProviderCredential("bogus", "acme", secretA); err == nil || !strings.Contains(err.Error(), "scope") {
 		t.Fatalf("bogus scope: err=%v", err)
 	}
-	if store.len() != 0 {
-		t.Fatalf("rejected input must not write the store: %v", store.items)
+	if _, err := os.Stat(storePath); !os.IsNotExist(err) {
+		t.Fatalf("rejected input must not write the store: %v", err)
 	}
 }
 
@@ -274,6 +272,8 @@ func TestSaveProviderCredentialRollsBackWhenConfigSaveFails(t *testing.T) {
     "beta": {"settings": {"baseURL": "http://127.0.0.1:3/v1"}, "models": {"m": {"limit": {"context": 1000, "output": 100}}}}
   }
 }`)
+	// The rollback test needs a store that still writes while the configuration directory is
+	// unwritable, so it uses the in-memory fake through the same seam.
 	store := newFakeStore()
 	r := openRuntimeWithStore(t, canonicalDir(t), store)
 
@@ -298,7 +298,7 @@ func TestSaveProviderCredentialRollsBackWhenConfigSaveFails(t *testing.T) {
 	if _, err := r.SaveProviderCredential("global", "beta", secretC); err == nil {
 		t.Fatal("the save must fail when the config file cannot be written")
 	}
-	if _, err := store.Get(credentialName("global", "beta")); !errors.Is(err, errSecretNotFound) {
+	if _, err := store.Get(credentialName("global", "beta")); !errors.Is(err, config.ErrCredentialNotFound) {
 		t.Fatalf("rollback must delete a first-time key, got %v", err)
 	}
 	if onDisk := readFile(t, configPath); onDisk != before {
@@ -437,8 +437,9 @@ func TestProviderRunAndAPINeverLeakTheSecret(t *testing.T) {
 	defer openai.Close()
 
 	writeCredentialCatalog(t, configPath, anthropic.URL, openai.URL+"/v1")
-	store := newFakeStore()
-	r := openRuntimeWithStore(t, canonicalDir(t), store)
+	// The real default store, in the isolated global config dir useConfigDir set up: the run must
+	// resolve {secret:NAME} exactly as production does, from credentials.json on disk.
+	r := openRuntime(t, canonicalDir(t))
 
 	// Capture the default logger and slog while the runs happen.
 	var logBuf, slogBuf bytes.Buffer
@@ -472,7 +473,7 @@ func TestProviderRunAndAPINeverLeakTheSecret(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !status.Set || status.Source != "keychain" {
+		if !status.Set || status.Source != "stored" {
 			t.Fatalf("%s status=%#v", provider.id, status)
 		}
 		if raw, _ := json.Marshal(status); strings.Contains(string(raw), provider.key) {
@@ -540,7 +541,8 @@ func TestProviderRunAndAPINeverLeakTheSecret(t *testing.T) {
 		}
 	}
 
-	// Neither log sink, no event and no file at rest carries either value.
+	// Neither log sink, no event and no file at rest carries either value — the credential store
+	// file is the one sanctioned exception, and it must be exactly where Core puts it, 0600.
 	for name, text := range map[string]string{"log": logBuf.String(), "slog": slogBuf.String(), "events": string(eventJSON)} {
 		for _, secret := range []string{secretA, secretB} {
 			if strings.Contains(text, secret) {
@@ -549,14 +551,35 @@ func TestProviderRunAndAPINeverLeakTheSecret(t *testing.T) {
 		}
 	}
 	home := filepath.Dir(filepath.Dir(configPath)) // the isolated XDG root
-	assertNoSecretInTree(t, home, secretA, secretB)
-	assertNoSecretInTree(t, r.currentWorkspace(), secretA, secretB)
+	storePath, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(storePath, home) {
+		t.Fatalf("the store must live under the isolated global config dir: %s", storePath)
+	}
+	assertNoSecretInTree(t, home, []string{secretA, secretB}, storePath)
+	assertNoSecretInTree(t, r.currentWorkspace(), []string{secretA, secretB})
+	if info, err := os.Stat(storePath); err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("credentials.json must exist with mode 0600: %v %v", info, err)
+	}
+	if raw := readFile(t, storePath); !strings.Contains(raw, secretA) || !strings.Contains(raw, secretB) {
+		t.Fatalf("the store file must hold both values for the runs to have worked: %s", raw)
+	}
+	if doc, _ := r.ProviderCatalogScope("global"); strings.Contains(fmt.Sprint(doc), secretA) || strings.Contains(fmt.Sprint(doc), secretB) {
+		t.Fatal("the catalog document must never expose the store's contents")
+	}
 }
 
-func assertNoSecretInTree(t *testing.T, root string, secrets ...string) {
+// assertNoSecretInTree fails when any file under root other than the exempted paths holds a value.
+func assertNoSecretInTree(t *testing.T, root string, secrets []string, exempt ...string) {
 	t.Helper()
+	excluded := map[string]bool{}
+	for _, path := range exempt {
+		excluded[path] = true
+	}
 	_ = filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil || entry.IsDir() {
+		if err != nil || entry.IsDir() || excluded[path] {
 			return err
 		}
 		raw, err := os.ReadFile(path)
@@ -610,8 +633,7 @@ func TestDiscoveryAndConnectionRedactEchoedKeys(t *testing.T) {
   }
 }`, server.URL+"/ok-an", server.URL+"/ok-oa/v1", server.URL+"/echo-an", server.URL+"/echo-oa/v1"))
 
-	store := newFakeStore()
-	r := openRuntimeWithStore(t, canonicalDir(t), store)
+	r := openRuntime(t, canonicalDir(t))
 	for _, provider := range []struct{ id, key string }{{"ok-an", secretA}, {"ok-oa", secretB}, {"echo-an", secretA}, {"echo-oa", secretB}} {
 		if _, err := r.SaveProviderCredential("global", provider.id, provider.key); err != nil {
 			t.Fatal(err)

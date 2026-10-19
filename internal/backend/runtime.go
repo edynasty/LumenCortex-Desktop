@@ -28,7 +28,7 @@ type Runtime struct {
 	engine     *lcx.Engine
 	supervisor *lcx.RunSupervisor
 	workspace  string
-	// credentials is the platform secret store behind {secret:NAME} provider references.
+	// credentials is Core's file-backed secret store behind {secret:NAME} provider references.
 	credentials credentialStore
 }
 
@@ -72,28 +72,30 @@ type WorkspaceState struct {
 }
 
 func New() *Runtime {
-	return &Runtime{credentials: newCredentialStore()}
+	r := &Runtime{}
+	if store, err := defaultCredentialStore(); err == nil {
+		r.credentials = store
+	}
+	return r
 }
 
 // providerFactory builds each run's provider client through Core's package dispatcher, so the
 // provider's own wire protocol (openai-compatible or anthropic-messages) is honored and
-// {secret:NAME} references resolve from the platform secret store instead of the environment
-// only. It is what runtime.Options.ProviderFactory exists for; Core's default factory stays
-// environment-only for the CLI.
+// {secret:NAME} references resolve from the credential store instead of the environment only.
+// It is what runtime.Options.ProviderFactory exists for; Core's default factory would stay
+// environment-only.
 func (r *Runtime) providerFactory(m config.ResolvedModel) (protocol.Provider, error) {
 	return provider.FromModel(m, provider.Options{Credentials: r.credentialResolver()})
 }
 
-// credentialResolver returns the resolver over the platform secret store. Runs, the picker's
+// credentialResolver returns the resolver over the credential store. Runs, the picker's
 // availability, connection tests and model discovery all read {secret:NAME} references through
-// it; {env:NAME} references never consult it.
+// it; {env:NAME} references never consult it. A Runtime whose default store path could not be
+// resolved has none: every secret reference reports unset, and saving one fails.
 func (r *Runtime) credentialResolver() credentialResolver {
 	r.mu.RLock()
 	store := r.credentials
 	r.mu.RUnlock()
-	if store == nil {
-		store = newCredentialStore()
-	}
 	return credentialResolver{store: store}
 }
 func (r *Runtime) OpenWorkspace(ctx context.Context, path string) (WorkspaceState, error) {

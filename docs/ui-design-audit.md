@@ -56,7 +56,7 @@ Implemented:
 - backend regression tests cover literal-secret rejection and environment-reference persistence.
 
 Future hardening:
-- optional OS keychain-backed secret references can be added without changing this persistence contract.
+- none pending: `{secret:NAME}` references now resolve through Core's file-backed credential store (credentials.json, 0600), which this persistence contract already accommodates.
 
 ### P0-03 — Provider save failure handling was unsafe
 

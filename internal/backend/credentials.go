@@ -12,37 +12,29 @@ import (
 	"github.com/edynasty/LumenCortex/config"
 )
 
-// This file owns the Desktop side of {secret:NAME} provider credentials: the platform store
-// (macOS Keychain in keychain_darwin.go, an explicit unavailable stub elsewhere), Core's
-// CredentialResolver on top of it, and the three Wails-facing lifecycle APIs. The secret value
-// crosses this boundary exactly once, as SaveProviderCredential's argument; it is never returned,
-// logged, exported or written into lumencortex.json, which stores only the {secret:NAME}
-// reference (the same rule AGENTS.md states for {env:NAME}).
+// This file owns the Desktop side of {secret:NAME} provider credentials: Core's file-backed
+// credential store (config.FileCredentialStore, one 0600 credentials.json in the global
+// configuration directory, shared with the CLI), the resolver the Desktop builds on top of it,
+// and the three Wails-facing lifecycle APIs. The secret value crosses this boundary exactly
+// once, as SaveProviderCredential's argument; it is never returned, logged, exported or written
+// into lumencortex.json, which stores only the {secret:NAME} reference (the same rule AGENTS.md
+// states for {env:NAME}). The store is not a secrets manager — it is not encrypted at rest; it is
+// protected by file permissions and the user account, the trust level of an environment variable.
 
-// errSecretNotFound is the store-level "no such item" error; credentialResolver maps it to
-// Core's config.ErrCredentialNotFound.
-var errSecretNotFound = errors.New("secret not found")
-
-// credentialStore is the platform secret store behind {secret:NAME} references. Names are the
-// NAME of the reference; no method may put the secret's value into an error.
+// credentialStore is the subset of config.FileCredentialStore the Desktop uses; tests install
+// their own fake through the same seam. No method may put a secret's value into an error.
 type credentialStore interface {
 	// Set stores secret under name, replacing an existing item.
 	Set(name, secret string) error
 	// Get returns the secret stored under name; a missing item is an error wrapping
-	// errSecretNotFound.
+	// config.ErrCredentialNotFound.
 	Get(name string) (string, error)
-	// Delete removes the item; a missing item is an error wrapping errSecretNotFound.
+	// Delete removes the item; removing an absent name is not an error.
 	Delete(name string) error
-	// Available reports whether the store can be used at all (false off macOS).
-	Available() bool
 }
 
-// credentialService is the Keychain service all provider credentials live under; the account is
-// the secret name, so items are scoped to this store and never adopted by another install.
-const credentialService = "com.lumencortex.desktop.provider-credentials"
-
-// credentialStoreTimeout bounds every store call made from a UI callback or a run: a Keychain
-// that stalls (for example behind an OS prompt) fails fast instead of blocking the caller
+// credentialStoreTimeout bounds every store call made from a UI callback or a run: the store's
+// cross-process advisory lock can stall behind another writer, and no Wails callback may block
 // indefinitely. The underlying call is not cancellable; it finishes on its own goroutine and its
 // result is dropped.
 const credentialStoreTimeout = 5 * time.Second
@@ -67,7 +59,7 @@ func (c credentialResolver) Resolve(name string) (string, error) {
 	select {
 	case res := <-ch:
 		if res.err != nil {
-			if errors.Is(res.err, errSecretNotFound) {
+			if errors.Is(res.err, config.ErrCredentialNotFound) {
 				return "", fmt.Errorf("%w: %s", config.ErrCredentialNotFound, name)
 			}
 			return "", res.err
@@ -110,23 +102,24 @@ func (c credentialResolver) call(label string, fn func() error) error {
 // CredentialStatus is the Wails-facing answer of the three credential APIs: it names the
 // configured reference and whether a value is resolvable, never the value itself.
 type CredentialStatus struct {
-	ProviderID        string `json:"providerId"`
-	Scope             string `json:"scope"`
-	Source            string `json:"source"`            // "none" | "env" | "keychain"
-	Ref               string `json:"ref,omitempty"`     // the configured reference; never a value
-	Set               bool   `json:"set"`               // a value is resolvable right now
-	KeychainAvailable bool   `json:"keychainAvailable"` // false off macOS or when Keychain cannot be used
+	ProviderID string `json:"providerId"`
+	Scope      string `json:"scope"`
+	Source     string `json:"source"` // "none" | "env" | "stored"
+	// Ref is the configured reference ({env:X} / {secret:Y}); never a value.
+	Ref string `json:"ref,omitempty"`
+	// Set reports whether a value is resolvable right now.
+	Set bool `json:"set"`
 }
 
 // Credential source values of CredentialStatus.Source.
 const (
-	credentialSourceNone      = "none"
-	credentialSourceEnv       = "env"
-	credentialSourceKeychain  = "keychain"
-	credentialRefPrefixSecret = "{secret:"
+	credentialSourceNone   = "none"
+	credentialSourceEnv    = "env"
+	credentialSourceStored = "stored"
+	credentialRefPrefix    = "{secret:"
 )
 
-// credentialName derives the Keychain secret name of one provider in one scope. It is
+// credentialName derives the store's secret name of one provider in one scope. It is
 // deterministic (the scope and provider id are the identity), collision-free for any provider id
 // the schema allows (the sanitized id carries the readable part, the hash suffix separates ids
 // that sanitize alike), and matches Core's NAME pattern ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$.
@@ -161,9 +154,16 @@ func sanitizeSecretNamePart(id string) string {
 	return b.String()
 }
 
-// GetProviderCredentialStatus reports the credential state of one provider in one scope's
-// lumencortex.json: which reference is configured, where it resolves, and whether a value is
-// available right now.
+// defaultCredentialStore returns Core's file-backed store at its default path, the one the CLI
+// resolves through as well, so both hosts see the same secrets.
+func defaultCredentialStore() (credentialStore, error) {
+	path, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		return nil, err
+	}
+	return config.NewFileCredentialStore(path), nil
+}
+
 func (r *Runtime) GetProviderCredentialStatus(scope, providerID string) (CredentialStatus, error) {
 	resolver := r.credentialResolver()
 	provider, err := r.scopeProvider(scope, providerID)
@@ -171,9 +171,8 @@ func (r *Runtime) GetProviderCredentialStatus(scope, providerID string) (Credent
 		return CredentialStatus{}, err
 	}
 	status := CredentialStatus{
-		ProviderID:        providerID,
-		Scope:             normalizedScope(scope),
-		KeychainAvailable: resolver.store.Available(),
+		ProviderID: providerID,
+		Scope:      normalizedScope(scope),
 	}
 	ref := ""
 	if provider.Settings != nil {
@@ -189,7 +188,7 @@ func (r *Runtime) GetProviderCredentialStatus(scope, providerID string) (Credent
 		return status, nil
 	}
 	if name, ok := config.SecretName(ref); ok {
-		status.Source, status.Ref = credentialSourceKeychain, ref
+		status.Source, status.Ref = credentialSourceStored, ref
 		_, err := resolver.Resolve(name)
 		status.Set = err == nil
 		return status, nil
@@ -197,11 +196,11 @@ func (r *Runtime) GetProviderCredentialStatus(scope, providerID string) (Credent
 	return CredentialStatus{}, fmt.Errorf("apiKey of provider %s is not an {env:NAME} or {secret:NAME} reference", providerID)
 }
 
-// SaveProviderCredential stores the key in the platform store and points the provider's
+// SaveProviderCredential stores the key in the credential store and points the provider's
 // settings.apiKey at it ({secret:NAME}) in the scope's lumencortex.json, through the same save
-// path as the provider panel (digest conflict included). The Keychain write is rolled back when
-// the config save fails, so the file and the store never disagree. The key value itself is
-// never returned, logged or written to the file.
+// path as the provider panel (digest conflict included). The store write is rolled back when the
+// config save fails, so the file and the store never disagree. The key value itself is never
+// returned, logged or written to the config file.
 func (r *Runtime) SaveProviderCredential(scope, providerID, apiKey string) (CredentialStatus, error) {
 	if strings.TrimSpace(apiKey) == "" {
 		return CredentialStatus{}, fmt.Errorf("the API key of provider %s is empty", providerID)
@@ -228,7 +227,7 @@ func (r *Runtime) SaveProviderCredential(scope, providerID, apiKey string) (Cred
 	if settings == nil {
 		settings = &config.ProviderSettings{}
 	}
-	settings.APIKey = credentialRefPrefixSecret + name + "}"
+	settings.APIKey = credentialRefPrefix + name + "}"
 	provider.Settings = settings
 	doc.File.Providers[providerID] = provider
 	if _, err := config.Save(path, doc.File, doc.Digest); err != nil {
@@ -243,9 +242,9 @@ func (r *Runtime) SaveProviderCredential(scope, providerID, apiKey string) (Cred
 	return r.GetProviderCredentialStatus(scope, providerID)
 }
 
-// RemoveProviderCredential deletes the Keychain item and clears the provider's apiKey reference
-// in the scope's file, but only when the reference is a {secret:NAME} one: an {env:NAME}
-// reference is the user's own configuration and is left alone.
+// RemoveProviderCredential deletes the stored item and clears the provider's apiKey reference in
+// the scope's file, but only when the reference is a {secret:NAME} one: an {env:NAME} reference
+// is the user's own configuration and is left alone.
 func (r *Runtime) RemoveProviderCredential(scope, providerID string) (CredentialStatus, error) {
 	resolver := r.credentialResolver()
 	path, doc, err := r.scopeDocument(scope)
@@ -265,7 +264,7 @@ func (r *Runtime) RemoveProviderCredential(scope, providerID string) (Credential
 		// Nothing of ours to remove: report the unchanged state.
 		return r.GetProviderCredentialStatus(scope, providerID)
 	}
-	if err := resolver.delete(name); err != nil && !errors.Is(err, errSecretNotFound) {
+	if err := resolver.delete(name); err != nil {
 		return CredentialStatus{}, fmt.Errorf("deleting the key of provider %s failed: %w", providerID, err)
 	}
 	if provider.Settings != nil {

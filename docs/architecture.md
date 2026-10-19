@@ -46,17 +46,17 @@ uses the correct protocol and resolves its API key through the Desktop's credent
 
 Provider keys are never stored in `lumencortex.json`, the database, logs or frontend state. The
 file holds only a reference — `{env:NAME}` reads the process environment, `{secret:NAME}` reads
-the platform secret store (the macOS Keychain; a non-macOS build has no store and reports it
-unavailable, while `{env:NAME}` keeps working). Keychain items are generic passwords under the
-service `com.lumencortex.desktop.provider-credentials`, accessible only when unlocked and bound
-to this device; the account is the derived secret name, so no item is ever adopted by another
-install. The Desktop derives names deterministically from the scope and provider id, within
-Core's secret NAME pattern.
+Core's file-backed credential store: one `credentials.json` (mode 0600, atomic writes, advisory
+cross-process lock) in the global configuration directory, shared with the CLI so both hosts see
+the same secrets. It is not a secrets manager — the file is not encrypted at rest; it is protected
+by file permissions and the user account, the trust level of an environment variable. The Desktop
+derives secret names deterministically from the scope and provider id, within Core's secret NAME
+pattern, so no two providers ever collide in the store.
 
 The key crosses the Go boundary exactly once, as the `SaveProviderCredential` argument; every
-status, error, event and log line names only the reference. Store writes are bounded in time so a
-stalled Keychain cannot block a UI callback indefinitely, and a failed configuration save rolls
-the Keychain write back. Connection tests and model discovery speak each protocol's own
+status, error, event and log line names only the reference. Store calls are bounded in time so a
+stalled store lock cannot block a UI callback indefinitely, and a failed configuration save rolls
+the store write back. Connection tests and model discovery speak each protocol's own
 authentication (Bearer for openai-compatible, `x-api-key` plus `anthropic-version` for
 anthropic-messages) and redact the key from every error an upstream echoes it in.
 
