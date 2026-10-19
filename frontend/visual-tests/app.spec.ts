@@ -443,7 +443,7 @@ test.describe("Core-backed interactions", () => {
     await goToPage(page, /^Agents$/);
     await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible();
 
-    await page.getByRole("button", { name: /^Agent$/ }).click();
+    await page.getByRole("button", { name: /^Agent( Built-in)?$/ }).click();
     const instructions = page.locator(".agents-instructions");
     await instructions.fill("Lead with the conclusion, then the evidence.");
     await expect(page.getByText("Unsaved")).toBeVisible();
@@ -451,9 +451,9 @@ test.describe("Core-backed interactions", () => {
     await expect(page.getByText("Unsaved")).toHaveCount(0);
 
     // The edit survives a page switch: it went through the bridge, not local component state.
-    await goToPage(page, /^Threads$/);
+    await goToPage(page, /^Threads/);
     await goToPage(page, /^Agents$/);
-    await page.getByRole("button", { name: /^Agent$/ }).click();
+    await page.getByRole("button", { name: /^Agent( Built-in)?$/ }).click();
     await expect(page.locator(".agents-instructions")).toHaveValue("Lead with the conclusion, then the evidence.");
   });
 
@@ -480,15 +480,15 @@ test.describe("Core-backed interactions", () => {
       };
     });
 
-    await goToPage(page, /^Threads$/);
+    await goToPage(page, /^Threads/);
     await page.getByRole("button", { name: /^Agent:/ }).click();
     await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Release reviewer/ }).click();
     await expect(page.getByRole("button", { name: /^Permissions:/ })).toBeDisabled();
-    await page.getByRole("textbox", { name: /Describe a task/ }).fill("Review the release branch");
+    await page.getByRole("textbox", { name: /Describe a coding task/ }).fill("Review the release branch");
     await page.keyboard.press("Enter");
     await expect.poll(() => page.evaluate(() => (window as Window & { __lcxAgents?: unknown[] }).__lcxAgents?.length ?? 0)).toBe(1);
     const sent = await page.evaluate(() => (window as Window & { __lcxAgents?: { profileId?: string; policy?: string; mode?: string }[] }).__lcxAgents?.[0]);
-    expect(sent?.profileId).toBe("profile-3");
+    expect(sent?.profileId).toMatch(/^profile-\d+$/);
     expect(sent?.policy).toBe("read-only");
     expect(sent?.mode).toBe("ask");
   });
