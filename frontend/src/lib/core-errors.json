@@ -4,7 +4,7 @@
   "legacyNodeDatabase": "database was created by the legacy Node runtime and is not supported",
   "unknownModel": "model is not in the provider catalog",
   "modelWithoutToolCalls": "model does not support tool calling",
-  "invalidEffort": "effort must be one of none, low, medium, high, max",
+  "invalidEffort": "effort must be one of none, low, medium, high, max, auto",
   "conflict": "config file changed since it was read",
   "invalidConfig": "invalid configuration",
   "runHeld": "run is active in another process or engine",
