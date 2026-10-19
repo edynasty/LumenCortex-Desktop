@@ -499,6 +499,9 @@ export type AgentConfig = {
   maxTokens?: number;
   temperature?: number;
   delegation?: Delegation;
+  // The composer's Ask/Agent switch. Ask caps the turn to Core's read-only policy with no
+  // delegation before it reaches Core; the backend guard enforces the same cap.
+  mode?: "ask" | "agent";
 };
 
 // Task State (Core runtime.TaskStateInfo, ADR-0006). The host view already includes queued edits.

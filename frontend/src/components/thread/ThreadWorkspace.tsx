@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
 import type {
   FormEvent,
-  KeyboardEvent,
   ReactNode,
   Ref,
 } from "react";
-import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
-import type { SelectOption } from "../primitives/Select";
+import type { AgentEffort, Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
+import type { AgentMode, AgentPolicy } from "../../app/agent-config";
+import type { ComposerCopy } from "../composer/Composer";
+import type { PickerOption } from "../composer/ComposerPickers";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { EmptyState } from "../primitives/EmptyState";
 import { LoadingState } from "../primitives/LoadingState";
@@ -31,8 +32,21 @@ type Props = {
   runningElsewhere: boolean;
   workspaceName: string;
   modelRef: string;
-  models: SelectOption[];
-  policyLabel: string;
+  models: PickerOption[];
+  modelPending?: boolean;
+  recentModelRefs: string[];
+  onOpenProviders: () => void;
+  effort?: AgentEffort;
+  effortOptions: string[];
+  mode: AgentMode;
+  policy: AgentPolicy;
+  onModeChange: (mode: AgentMode) => void;
+  onPolicyChange: (policy: AgentPolicy) => void;
+  onEffortChange: (effort: AgentEffort | undefined) => void;
+  onPickContextFiles: () => void;
+  onPickContextFolder: () => void;
+  onRemoveContextPath: (path: string) => void;
+  contextPaths: string[];
   notice?: ReactNode;
   // The thread's resolution from Task State (ADR-0006 D2), independent of the run status: a turn that
   // ended is not a done objective. Absent until Core's view is read.
@@ -48,48 +62,26 @@ type Props = {
   activeSubagents: number;
   textareaRef: Ref<HTMLTextAreaElement>;
   labels: {
-    newTask: string;
-    running: string;
-    noMessages: string;
-    finalAnswer: string;
-    startAnother: string;
-    composerPlaceholder: string;
-    composerHint: string;
-    noModels: string;
-    modelSearch: string;
-    noModelMatches: string;
+    newTask: string; running: string;
+    noMessages: string; finalAnswer: string;
     start: string;
-    roleUser: string;
-    roleAssistant: string;
-    roleTool: string;
-    roleSystem: string;
-    approvalTitle: string;
-    approve: string;
-    loadEarlier: string;
-    backToLatest: string;
-    historyWindow: string;
-    localRuntime: string;
-    worktreeRuntime: string;
+    roleUser: string; roleAssistant: string;
+    roleTool: string; roleSystem: string;
+    approvalTitle: string; approve: string;
+    loadEarlier: string; backToLatest: string; historyWindow: string;
+    localRuntime: string; worktreeRuntime: string;
     plan: string;
-    planRunning: string;
-    planWaiting: string;
-    planSubagents: string;
-    copy: string;
-    copied: string;
-    retry: string;
-    failureTitle: string;
-    workTitle: string;
-    workCalls: string;
-    showOutput: string;
-    hideOutput: string;
-    runningElsewhereNotice: string;
-    runtimeNotice: string;
-    originToolInterrupted: string;
-    originToolInterruptedBody: string;
-    originCompletionBlocked: string;
-    originResume: string;
-    originTurn: string;
+    planRunning: string; planWaiting: string; planSubagents: string;
+    copy: string; copied: string;
+    retry: string; failureTitle: string;
+    workTitle: string; workCalls: string;
+    showOutput: string; hideOutput: string;
+    runningElsewhereNotice: string; runtimeNotice: string;
+    originToolInterrupted: string; originToolInterruptedBody: string;
+    originCompletionBlocked: string; originResume: string; originTurn: string;
   };
+  // The composer's own copy (app copy + the config-dependent picker placeholder).
+  composerLabels: ComposerCopy;
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onApproveGate: (gateId: string) => void;
@@ -98,7 +90,6 @@ type Props = {
   onCancel: () => void;
   onRetry: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
 
 type Entry = { kind: "message"; message: Message } | { kind: "work"; messages: Message[]; live: boolean };
@@ -148,7 +139,20 @@ export function ThreadWorkspace({
   workspaceName,
   modelRef,
   models,
-  policyLabel,
+  modelPending,
+  recentModelRefs,
+  onOpenProviders,
+  effort,
+  effortOptions,
+  mode,
+  policy,
+  onModeChange,
+  onPolicyChange,
+  onEffortChange,
+  onPickContextFiles,
+  onPickContextFolder,
+  onRemoveContextPath,
+  contextPaths,
   notice,
   resolution,
   tasks,
@@ -160,6 +164,7 @@ export function ThreadWorkspace({
   activeSubagents,
   textareaRef,
   labels,
+  composerLabels,
   onGoalChange,
   onModelChange,
   onApproveGate,
@@ -168,7 +173,6 @@ export function ThreadWorkspace({
   onCancel,
   onRetry,
   onSubmit,
-  onKeyDown,
 }: Props) {
   const threadViewRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
@@ -312,31 +316,32 @@ export function ThreadWorkspace({
 
       <ThreadComposer
         runtime={runtime}
-        workspaceName={workspaceName}
+        copy={composerLabels}
         modelRef={modelRef}
         models={models}
-        policyLabel={policyLabel}
+        modelPending={modelPending}
+        recentModelRefs={recentModelRefs}
+        onOpenProviders={onOpenProviders}
+        effort={effort}
+        effortOptions={effortOptions}
+        mode={mode}
+        policy={policy}
         delegationControl={delegationControl}
+        contextPaths={contextPaths}
         goal={goal}
         running={running}
         busy={busy}
         textareaRef={textareaRef}
-        labels={{
-          startAnother: labels.startAnother,
-          composerHint: labels.composerHint,
-          noModels: labels.noModels,
-          modelSearch: labels.modelSearch,
-          noModelMatches: labels.noModelMatches,
-          start: labels.start,
-          running: labels.running,
-          localRuntime: labels.localRuntime,
-          worktreeRuntime: labels.worktreeRuntime,
-        }}
         onGoalChange={onGoalChange}
         onModelChange={onModelChange}
+        onModeChange={onModeChange}
+        onPolicyChange={onPolicyChange}
+        onEffortChange={onEffortChange}
+        onPickContextFiles={onPickContextFiles}
+        onPickContextFolder={onPickContextFolder}
+        onRemoveContextPath={onRemoveContextPath}
         onCancel={onCancel}
         onSubmit={onSubmit}
-        onKeyDown={onKeyDown}
       />
     </div>
   );

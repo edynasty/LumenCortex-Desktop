@@ -101,3 +101,12 @@
 }
 .popover-footer-link:hover { background: var(--state-hover); color: var(--fg); }
 .popover-footer-link > svg { color: var(--fg-3); }
+
+/* Pending model choice: sent on the next turn, not yet what the session is pinned to. */
+.tag.is-pending { background: var(--warn-soft); color: var(--warn); }
+
+/* A refused model row keeps its reason visible under the ref. */
+.model-row:disabled { opacity: .55; cursor: not-allowed; }
+.model-row:disabled:hover { background: transparent; }
+.model-row-reason { display: flex; align-items: center; gap: 4px; font-size: var(--text-2xs); color: var(--warn); }
+.model-row.is-active { box-shadow: inset 0 0 0 1px var(--accent-line); }

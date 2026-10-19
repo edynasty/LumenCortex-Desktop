@@ -24,6 +24,9 @@ type Props = {
   messages: Message[];
   running: boolean;
   busy: boolean;
+  // Ask mode caps the turn to read-only/none; the grant control shows why instead of switching off.
+  controlsCapped?: boolean;
+  controlsCappedReason?: string;
   labels: AppCopy;
   onRefreshThread: (sessionId: string) => Promise<void>;
   onOpenSession: (sessionId: string) => void;
@@ -41,6 +44,8 @@ export function ThreadTasksLayer({
   messages,
   running,
   busy,
+  controlsCapped,
+  controlsCappedReason,
   labels,
   onRefreshThread,
   onOpenSession,
@@ -99,7 +104,8 @@ export function ThreadTasksLayer({
           <DelegationControl
             value={ui.delegation}
             fixed={Boolean(ui.parentSessionId)}
-            disabled={busy}
+            disabled={busy || Boolean(controlsCapped)}
+            cappedReason={controlsCapped ? controlsCappedReason : undefined}
             labels={labels}
             onChange={(value) => onDelegationChange(session.id, value)}
           />

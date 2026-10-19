@@ -1,13 +1,20 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   baselineModel,
   chooseModel,
   displayedModel,
+  effortsOfModel,
   executableModels,
   explicitModelRef,
   modelOptions,
   noExplicitModel,
+  orderedEfforts,
+  pickerModelOptions,
   pickerPlaceholder,
+  pushRecentModel,
+  readRecentModels,
+  saveRecentModels,
+  supportedEffort,
 } from "./model-selection";
 import { buildAgentConfig } from "./agent-config";
 import type { ModelInfo } from "../types";
@@ -43,6 +50,7 @@ describe("model picker options", () => {
       description: "upstream-coder · 64K ctx · 8K out",
       isDefault: true,
       missingSecret: true,
+      efforts: [],
     }]);
   });
 
@@ -96,10 +104,12 @@ describe("model selection and session pinning", () => {
   it("puts the explicit model, and no provider settings, in the agent config", () => {
     expect(buildAgentConfig("test/a", "workspace", 24)).toEqual({
       modelRef: "test/a",
+      effort: undefined,
       policy: "workspace",
       maxSteps: 24,
       maxToolCallsPerStep: 8,
       delegation: "none",
+      mode: "agent",
     });
     // The thread's grant is sent as the user set it; Core enforces it for that Start.
     expect(buildAgentConfig("test/a", "read-only", 24, "isolated").delegation).toBe("isolated");
@@ -122,5 +132,69 @@ describe("picker placeholder", () => {
 
   it("falls back to the no-model copy only when nothing is selected", () => {
     expect(pickerPlaceholder("", options, labels)).toBe("No model configured");
+  });
+});
+
+describe("effort support", () => {
+  const models = [
+    { ...model("test/a"), efforts: ["low", "high"] },
+    model("test/b"),
+  ];
+
+  it("lists a model's effort levels in Core's order", () => {
+    expect(effortsOfModel("test/a", models)).toEqual(["low", "high"]);
+    expect(effortsOfModel("test/b", models)).toEqual([]);
+    expect(effortsOfModel("test/missing", models)).toEqual([]);
+    expect(orderedEfforts(["max", "low", "none", "bogus"])).toEqual(["none", "low", "max"]);
+  });
+
+  it("sends only an effort the displayed model supports", () => {
+    expect(supportedEffort("high", ["low", "high"])).toBe("high");
+    expect(supportedEffort("high", ["low"])).toBeUndefined();
+    expect(supportedEffort(undefined, ["low"])).toBeUndefined();
+  });
+});
+
+describe("picker options", () => {
+  it("shows refused models disabled with their reason, and carries efforts", () => {
+    const options = pickerModelOptions(
+      {
+        model: "test/a",
+        models: [
+          { ...model("test/a"), efforts: ["low", "high"] },
+          model("test/notools", { toolCalling: false }),
+          model("test/nokey", { apiKeyEnv: "K", apiKeySet: false }),
+          model("test/anon"),
+        ],
+      },
+      { missingKey: "API key not set", noToolCalling: "No tool calling" },
+    );
+    expect(options.map((o) => [o.ref, o.disabled, o.disabledReason])).toEqual([
+      ["test/a", false, undefined],
+      ["test/notools", true, "No tool calling"],
+      ["test/nokey", true, "API key not set"],
+      ["test/anon", false, undefined],
+    ]);
+    expect(options[0].efforts).toEqual(["low", "high"]);
+  });
+});
+
+describe("recent models", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("is bounded, most recent first, deduplicated, and persists refs only", () => {
+    expect(pushRecentModel([], "a/b")).toEqual(["a/b"]);
+    expect(pushRecentModel(["a/b", "c/d"], "c/d")).toEqual(["c/d", "a/b"]);
+    expect(pushRecentModel(["a", "b", "c", "d", "e"], "f")).toEqual(["f", "a", "b", "c", "d"]);
+    expect(pushRecentModel(["a"], "")).toEqual(["a"]);
+
+    saveRecentModels(["x/y", "z/w"]);
+    expect(readRecentModels()).toEqual(["x/y", "z/w"]);
+    expect(JSON.parse(localStorage.getItem("lcx-recent-models") ?? "[]")).toEqual(["x/y", "z/w"]);
+
+    localStorage.setItem("lcx-recent-models", "not json");
+    expect(readRecentModels()).toEqual([]);
+    localStorage.setItem("lcx-recent-models", JSON.stringify(["ok", 42, null]));
+    expect(readRecentModels()).toEqual(["ok"]);
   });
 });

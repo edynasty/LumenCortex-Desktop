@@ -21,6 +21,13 @@ import { taskSession, taskThreadMessages, visualTaskList, visualTaskTree } from 
 const at = (minutes: number) => new Date(Date.UTC(2026, 8, 22, 1, minutes)).toISOString();
 const ok = (output: string) => ({ output, truncated: false });
 
+// Core rule model.user: an AgentOptions.ModelRef that differs from the session's pinned model
+// re-pins it; empty keeps the pin.
+function pinModel(session: Session, cfg: { modelRef?: string } | undefined, status: string): Session {
+  const modelRef = cfg?.modelRef ?? session.modelRef;
+  return { ...session, modelRef, status };
+}
+
 const failed: Session = {
   id: "session-failed",
   createdAt: at(30),
@@ -250,11 +257,11 @@ export function visualApp(projectOpen: boolean): AppAPI {
     },
     RecentMessages: async (id, limit) => (transcripts[id] ?? []).slice(-limit),
     TrustWorkspace: async () => visualAppStub().GetConfigState(),
-    StartAgent: async (id) => replace({ ...find(id), status: "running" }),
-    ContinueAgent: async (id, content) => {
+    StartAgent: async (id, cfg) => replace(pinModel({ ...find(id) }, cfg, "running")),
+    ContinueAgent: async (id, content, cfg) => {
       const rows = transcripts[id] ?? [];
       transcripts[id] = [...rows, { sessionId: id, seq: (rows.at(-1)?.seq ?? -1) + 1, role: "user", json: { content } }];
-      return replace({ ...find(id), status: "running" });
+      return replace(pinModel({ ...find(id) }, cfg, "running"));
     },
     GetWorkflowSummary: async (id) => (id === gate.id ? gateSummary : null),
     ApproveWorkflowGate: async () => ({ ...gateSummary, status: "running", pendingGates: [] }),

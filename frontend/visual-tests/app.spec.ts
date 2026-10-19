@@ -321,6 +321,113 @@ test.describe("Core-backed interactions", () => {
     });
   }
 
+
+  // ————— Stage A composer: Ask/Agent, effort, model picker, execution environment —————
+
+  test("Ask mode caps the permission and delegation controls and survives thread switching", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Provider settings refactor");
+    const mode = page.getByRole("button", { name: /^Mode:/ });
+    await mode.click();
+    await page.getByRole("menu", { name: "Mode" }).getByRole("menuitemradio", { name: /^Ask/ }).click();
+    await expect(page.getByRole("button", { name: /^Mode:/ })).toHaveAccessibleName("Mode: Ask");
+
+    // The two Core controls keep their state but are capped with an explanation while in Ask.
+    const policy = page.getByRole("button", { name: /^Permissions:/ });
+    await expect(policy).toBeDisabled();
+    await expect(policy).toHaveAttribute("title", /Ask is always read-only/);
+    const delegation = page.getByRole("button", { name: /^Delegation:/ });
+    await expect(delegation).toBeDisabled();
+
+    // The mode is app-level: switching threads keeps it.
+    await openThread(page, "Upgrade SQLite driver");
+    await expect(page.getByRole("button", { name: /^Mode:/ })).toHaveAccessibleName("Mode: Ask");
+
+    // Switching back to Agent restores the controls.
+    await page.getByRole("button", { name: /^Mode:/ }).click();
+    await page.getByRole("menu", { name: "Mode" }).getByRole("menuitemradio", { name: /^Agent/ }).click();
+    await expect(page.getByRole("button", { name: /^Permissions:/ })).toBeEnabled();
+  });
+
+  test("the effort picker offers only the selected model's levels and disables when fixed", async ({ page }) => {
+    await open(page, "", 1180);
+    // GPT-5.6 has efforts; the effort chip opens a menu with Default + its levels.
+    await page.getByRole("button", { name: /^Effort:/ }).click();
+    const menu = page.getByRole("menu", { name: "Effort" });
+    await expect(menu.getByRole("menuitemradio")).toHaveCount(4);
+    await menu.getByRole("menuitemradio", { name: "High" }).click();
+    await expect(page.getByRole("button", { name: /^Effort:/ })).toHaveAccessibleName("Effort: High");
+
+    // Switch to a model without efforts: the picker shows the not-configurable state.
+    await page.getByRole("button", { name: /^Model:/ }).first().click();
+    await page.getByRole("textbox", { name: "Search models" }).fill("mini");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: /^Effort:/ })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /^Effort:/ })).toHaveAccessibleName("Effort: Effort fixed");
+  });
+
+  test("the model picker filters, shows reasons for refused models, keeps Recent, and re-pins on send", async ({ page }) => {
+    await open(page, "", 1180);
+    // An idle thread: its composer offers Resume (the active fixture thread shows Stop instead).
+    await openThread(page, "Improve review diff rendering");
+    const chip = page.getByRole("button", { name: /^Model:/ });
+    await expect(chip).toHaveAccessibleName("Model: GPT-5.6");
+
+    // A refused model (missing key) stays visible, disabled, with its reason.
+    await chip.click();
+    const listbox = page.getByRole("listbox", { name: "Model" });
+    const noKey = listbox.getByRole("option", { name: /DeepSeek Chat/ });
+    await expect(noKey).toBeDisabled();
+    await expect(noKey).toContainText("API key not set");
+    const noTools = listbox.getByRole("option", { name: /Embed Text/ });
+    await expect(noTools).toBeDisabled();
+    await expect(noTools).toContainText("No tool calling");
+
+    // Keyboard: filter by upstream id, arrow to it, Enter picks it.
+    await page.getByRole("textbox", { name: "Search models" }).fill("gpt-5.6-mini");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: /^Model:/ })).toHaveAccessibleName("Model: GPT-5.6 Mini");
+    // The choice is pending: it is sent on the next turn, not yet what the session is pinned to.
+    await expect(page.getByRole("button", { name: /^Model:/ })).toContainText("Pending");
+
+    // Recent holds the pick; the provider group still lists it.
+    await page.getByRole("button", { name: /^Model:/ }).click();
+    await expect(page.getByRole("listbox", { name: "Model" }).getByText("Recent")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // Sending applies it once: the stub re-pins like Core's model.user rule.
+    await page.getByRole("textbox", { name: "Start another task" }).fill("continue with mini");
+    await page.getByRole("button", { name: "Resume" }).click();
+    await expect(page.getByRole("button", { name: /^Model:/ })).toHaveAccessibleName("Model: GPT-5.6 Mini");
+    await expect(page.getByRole("button", { name: /^Model:/ })).not.toContainText("Pending");
+  });
+
+  test("the execution environment is chosen on the new-task screen and read-only in a thread", async ({ page }) => {
+    await open(page, "", 1180);
+    // New task: the environment row offers Local/Worktree.
+    const exec = page.getByRole("button", { name: /^Run environment:/ });
+    await expect(exec).toBeVisible();
+    await exec.click();
+    await page.getByRole("menu", { name: "Run environment" }).getByRole("menuitemradio", { name: /^Worktree/ }).click();
+    await expect(page.getByRole("button", { name: /^Run environment:/ })).toHaveAccessibleName("Run environment: Worktree");
+
+    // An existing conversation shows the session's runtime identity as plain text, not a control.
+    await openThread(page, "Provider settings refactor");
+    await expect(page.locator(".composer-runtime .runtime-identity")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Run environment:/ })).toHaveCount(0);
+  });
+
+  test("the composer shortcuts focus the input and open the model picker", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Provider settings refactor");
+    await page.keyboard.press("ControlOrMeta+/");
+    await expect(page.getByRole("textbox", { name: "Start another task" })).toBeFocused();
+    await page.keyboard.press("ControlOrMeta+Shift+KeyM");
+    await expect(page.getByRole("textbox", { name: "Search models" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: /^Model:/ })).toBeFocused();
+  });
+
   test("split diff is unavailable at the 820px compact breakpoint", async ({ page }) => {
     await open(page, "", 820);
     await openThread(page, "Provider settings refactor");

@@ -1,4 +1,4 @@
-import { useMemo, type FormEvent, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useMemo, type FormEvent, type ReactNode, type Ref } from "react";
 import { CommandPalette } from "../components/app-shell/CommandPalette";
 import { Welcome } from "../components/app-shell/Welcome";
 import type { InspectorTab } from "../components/inspector/inspector-types";
@@ -11,29 +11,19 @@ import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { LayoutPreference } from "../lib/layout-preference";
 import type { ThemePreference } from "../lib/theme";
 import type {
-  ConfigState,
-  Delegation,
-  Health,
-  LSPDiagnostic,
-  LSPStatus,
-  Message,
-  RuntimeEvent,
-  RuntimeKind,
-  Session,
-  SessionCheckpoint,
-  SessionRuntime,
-  SubagentNode,
-  WorkflowSummary,
+  ConfigState, Delegation, Health, LSPDiagnostic, LSPStatus, Message,
+  RuntimeEvent, RuntimeKind, Session, SessionCheckpoint, SessionRuntime,
+  SubagentNode, WorkflowSummary,
 } from "../types";
-import type { ConfiguredModelOption } from "./model-selection";
+import type { AgentMode, AgentPolicy } from "./agent-config";
+import type { ConfiguredModelOption, ModelPickerOption } from "./model-selection";
+import type { AgentEffort } from "../types";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
 import { useWorkspacePages } from "./useWorkspacePages";
 import { useWorkspaceCommands, type SettingsState } from "./useWorkspaceCommands";
 import type { WorkspaceRoute } from "./workspace-route";
-
-type Policy = "read-only" | "workspace" | "full";
 
 type Props = {
   route: WorkspaceRoute;
@@ -63,10 +53,15 @@ type Props = {
   trusting: boolean;
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
-  contextPaths: string[];
-  policy: Policy;
-  runtimeKind: RuntimeKind;
+  pickerModels: ModelPickerOption[];
+  recentModelRefs: string[];
+  mode: AgentMode;
+  effort?: AgentEffort;
+  effortOptions: string[];
   maxSteps: number;
+  contextPaths: string[];
+  policy: AgentPolicy;
+  runtimeKind: RuntimeKind;
   command: string;
   lspCommand: string;
   lspArgs: string;
@@ -106,9 +101,11 @@ type Props = {
   onConfigChanged: () => void;
   onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
+  onModeChange: (mode: AgentMode) => void;
+  onEffortChange: (effort: AgentEffort | undefined) => void;
   onError: (message: string) => void;
   onClearError: () => void;
-  onPolicyChange: (value: Policy) => void;
+  onPolicyChange: (value: AgentPolicy) => void;
   onRuntimeChange: (value: RuntimeKind) => void;
   onMaxStepsChange: (value: number) => void;
   onCommandChange: (value: string) => void;
@@ -132,7 +129,6 @@ type Props = {
   onRetry: () => void;
   onStartAgent: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendReviewInstruction: (path: string, instruction: string) => Promise<void>;
   onRefreshThread: (sessionId: string) => Promise<void>;
   onDelegationChange: (sessionId: string, delegation: Delegation) => void;
@@ -299,7 +295,11 @@ export function WorkspaceView(props: Props) {
         config={props.config}
         trusting={props.trusting}
         modelRef={props.modelRef}
-        configuredModels={props.configuredModels}
+        pickerModels={props.pickerModels}
+        recentModelRefs={props.recentModelRefs}
+        mode={props.mode}
+        effort={props.effort}
+        effortOptions={props.effortOptions}
         contextPaths={props.contextPaths}
         policy={props.policy}
         runtimeKind={props.runtimeKind}
@@ -314,6 +314,8 @@ export function WorkspaceView(props: Props) {
         textareaRef={props.textareaRef}
         onTrustWorkspace={props.onTrustWorkspace}
         onModelChange={props.onModelChange}
+        onModeChange={props.onModeChange}
+        onEffortChange={props.onEffortChange}
         onGoalChange={props.onGoalChange}
         onPickContextFiles={props.onPickContextFiles}
         onPickContextFolder={props.onPickContextFolder}
@@ -329,7 +331,6 @@ export function WorkspaceView(props: Props) {
         onCancel={props.onCancelAgent}
         onRetry={props.onRetry}
         onSubmit={props.onSubmit}
-        onKeyDown={props.onKeyDown}
         onSendReviewInstruction={props.onSendReviewInstruction}
         events={props.events}
         onRefreshThread={props.onRefreshThread}

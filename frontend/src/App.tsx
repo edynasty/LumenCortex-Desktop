@@ -1,8 +1,8 @@
-import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/inspector-types";
 import { WorkspaceView } from "./app/WorkspaceView";
 import type { SettingsState } from "./app/useWorkspaceCommands";
-import { buildAgentConfig, type AgentPolicy } from "./app/agent-config";
+import { buildAgentConfig, resolveTurnOptions, type AgentMode, type AgentPolicy } from "./app/agent-config";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -11,7 +11,9 @@ import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceA
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
 import { useModelSelection } from "./app/hooks/useModelSelection";
+
 import { modelOptions } from "./app/model-selection";
+import { useComposerModelControls } from "./app/hooks/useComposerModelControls";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
 import { copy, initialLocale, type Locale } from "./lib/i18n/app-copy";
@@ -19,7 +21,7 @@ import { sessionRuntime } from "./lib/session-runtime";
 import { sessionUI } from "./lib/session-ui";
 import { useThemePreference } from "./lib/theme";
 import { useLayoutPreference } from "./lib/layout-preference";
-import type { RuntimeKind } from "./types";
+import type { AgentEffort, RuntimeKind } from "./types";
 import type { WorktreeCleanupTarget } from "./components/worktree/WorktreeCleanupDialog";
 
 export default function App() {
@@ -31,6 +33,8 @@ export default function App() {
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
   const [policy, setPolicy] = useState<AgentPolicy>("workspace");
+  // App-level like policy: Ask/Agent and effort survive thread switches; resolveTurnOptions maps once.
+  const [mode, setMode] = useState<AgentMode>("agent");
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
@@ -51,29 +55,18 @@ export default function App() {
   } = useWorkspaceController({ setError });
 
   const {
-    paths: contextPaths,
-    pickFiles: pickContextFiles,
-    pickDirectory: pickContextDirectory,
-    remove: removeContextPath,
-    clear: clearContextPaths,
+    paths: contextPaths, pickFiles: pickContextFiles, pickDirectory: pickContextDirectory,
+    remove: removeContextPath, clear: clearContextPaths,
   } = useContextAttachments({
     workspace: state.workspace,
     setError,
   });
 
   const {
-    messages,
-    atLatest: messageAtLatest,
-    loadingOlder: messageLoadingOlder,
-    workflowSummary,
-    subagents,
-    checkpoints,
-    refreshCurrent,
-    loadOlder: loadOlderMessages,
-    jumpToLatest: jumpToLatestMessages,
-    handleRuntimeEvent: handleSessionRuntimeEvent,
-    reset: resetSessionRuntime,
-    replaceWorkflowSummary,
+    messages, atLatest: messageAtLatest, loadingOlder: messageLoadingOlder, workflowSummary,
+    subagents, checkpoints, refreshCurrent, loadOlder: loadOlderMessages,
+    jumpToLatest: jumpToLatestMessages, handleRuntimeEvent: handleSessionRuntimeEvent,
+    reset: resetSessionRuntime, replaceWorkflowSummary,
   } = useSessionRuntimeState({
     selectedSessionId: selected,
     setWorkspaceState: setState,
@@ -112,7 +105,7 @@ export default function App() {
 
   const [sidebarDrawerOpen, setSidebarDrawerOpen] = useState(false);
   const [settings, setSettings] = useState<SettingsState>({ open: false, pane: "general", mounted: false });
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false); // command palette
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("task");
   const [worktreeCleanupTarget, setWorktreeCleanupTarget] = useState<WorktreeCleanupTarget | null>(null);
@@ -143,6 +136,9 @@ export default function App() {
   );
   const configuredModels = useMemo(() => modelOptions(config), [config]);
   const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "" });
+  // Picker options, effort support and the bounded recent list for the composer.
+  const { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort } =
+    useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef });
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
@@ -168,7 +164,11 @@ export default function App() {
     goal,
     contextPaths,
     runtimeKind,
-    getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps, current ? sessionUI(current).delegation : "none"),
+    contextLabel: t.followUpContext,
+    getAgentConfig: () => {
+      const turn = resolveTurnOptions(mode, policy, current ? sessionUI(current).delegation : "none");
+      return buildAgentConfig(agentModelRef(), turn.policy, maxSteps, turn.delegation, mode, effectiveEffort);
+    },
     setWorkspaceState: setState,
     setRoute,
     setGoal,
@@ -230,13 +230,6 @@ export default function App() {
     window.setTimeout(() => composerRef.current?.focus(), 0);
   }
 
-  function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      event.currentTarget.form?.requestSubmit();
-    }
-  }
-
   return (
     <WorkspaceView
       route={route}
@@ -266,6 +259,11 @@ export default function App() {
       trusting={trusting}
       modelRef={modelRef}
       configuredModels={configuredModels}
+      pickerModels={pickerModels}
+      recentModelRefs={recentModelRefs}
+      mode={mode}
+      effort={effectiveEffort}
+      effortOptions={effortOptions}
       contextPaths={contextPaths}
       policy={policy}
       runtimeKind={runtimeKind}
@@ -308,7 +306,9 @@ export default function App() {
       onThemePreferenceChange={setThemePreference}
       onConfigChanged={() => void refreshConfig()}
       onTrustWorkspace={() => void trustWorkspace()}
-      onModelChange={selectModel}
+      onModelChange={selectModelFromPicker}
+      onModeChange={setMode}
+      onEffortChange={setEffort}
       onError={setError}
       onClearError={() => setError("")}
       onPolicyChange={setPolicy}
@@ -339,7 +339,6 @@ export default function App() {
       onRetry={() => void retryCurrent()}
       onStartAgent={() => void startAgent()}
       onSubmit={submitTask}
-      onKeyDown={onComposerKeyDown}
       onSendReviewInstruction={sendReviewInstruction}
       onRefreshThread={refreshCurrent}
       onDelegationChange={(sessionId, delegation) => void updateSessionUI(sessionId, { delegation })}

@@ -1,9 +1,11 @@
-import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
+import type { FormEvent, ReactNode, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
+import type { ComposerCopy } from "../components/composer/Composer";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
 import type {
+  AgentEffort,
   ConfigState,
   Delegation,
   Message,
@@ -14,14 +16,15 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
+import type { AgentMode, AgentPolicy } from "./agent-config";
+import { pickerPlaceholder, type ModelPickerOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel, threadWorkspaceLabels } from "./presentation-model";
 import { WorkspaceReviewRoute } from "./WorkspaceReviewRoute";
 import { ThreadTasksLayer } from "./ThreadTasksLayer";
 import type { WorkspaceRoute } from "./workspace-route";
 
-type Policy = "read-only" | "workspace" | "full";
+type Policy = AgentPolicy;
 
 type Props = {
   route: WorkspaceRoute;
@@ -35,7 +38,11 @@ type Props = {
   config: ConfigState;
   trusting: boolean;
   modelRef: string;
-  configuredModels: ConfiguredModelOption[];
+  pickerModels: ModelPickerOption[];
+  recentModelRefs: string[];
+  mode: AgentMode;
+  effort?: AgentEffort;
+  effortOptions: string[];
   contextPaths: string[];
   policy: Policy;
   runtimeKind: RuntimeKind;
@@ -50,6 +57,8 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
+  onModeChange: (mode: AgentMode) => void;
+  onEffortChange: (effort: AgentEffort | undefined) => void;
   onGoalChange: (value: string) => void;
   onPickContextFiles: () => void;
   onPickContextFolder: () => void;
@@ -65,7 +74,6 @@ type Props = {
   onCancel: () => void;
   onRetry: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendReviewInstruction: (path: string, instruction: string) => Promise<void>;
   // C3: the thread's runtime events, a Core re-read of the thread, opening a child thread and the
   // thread's delegation grant.
@@ -90,7 +98,11 @@ export function WorkspaceRouteContent({
   config,
   trusting,
   modelRef,
-  configuredModels,
+  pickerModels,
+  recentModelRefs,
+  mode,
+  effort,
+  effortOptions,
   contextPaths,
   policy,
   runtimeKind,
@@ -105,6 +117,8 @@ export function WorkspaceRouteContent({
   textareaRef,
   onTrustWorkspace,
   onModelChange,
+  onModeChange,
+  onEffortChange,
   onGoalChange,
   onPickContextFiles,
   onPickContextFolder,
@@ -120,15 +134,15 @@ export function WorkspaceRouteContent({
   onCancel,
   onRetry,
   onSubmit,
-  onKeyDown,
   onSendReviewInstruction,
   events,
   onRefreshThread,
   onOpenSession,
   onDelegationChange,
 }: Props) {
-  const composerModels = configuredModels.map((item) => ({
+  const composerModels = pickerModels.map((item) => ({
     ...item,
+    value: item.ref,
     badge: item.missingSecret
       ? labels.missingProviderKey
       : item.isDefault
@@ -136,15 +150,10 @@ export function WorkspaceRouteContent({
         : undefined,
     badgeTone: item.missingSecret ? "warning" as const : "default" as const,
   }));
-  const modelSelectOptions = composerModels.map((item) => ({
-    value: item.ref,
-    label: item.label,
-    description: item.description,
-    group: item.group,
-    badge: item.badge,
-    badgeTone: item.badgeTone,
-  }));
-  const modelPlaceholder = pickerPlaceholder(modelRef, configuredModels, labels);
+  const modelPlaceholder: string = pickerPlaceholder(modelRef, pickerModels, labels);
+  // A chosen model the session is not pinned to yet is sent on the next turn; mark it pending.
+  const modelPending = Boolean(current && modelRef !== current.modelRef);
+  const composerCopy: ComposerCopy = Object.assign({}, labels, { noModels: modelPlaceholder });
 
   const configNotice = <ConfigWarnings labels={labels} warnings={config.warnings} trusting={trusting} hideDefaultLimit onTrust={onTrustWorkspace} />;
 
@@ -168,55 +177,27 @@ export function WorkspaceRouteContent({
       <NewTaskComposer
         title={workspace ? labels.newThreadTitle : labels.buildTitle}
         subtitle={labels.newThreadSubtitle}
-        placeholder={labels.composerPlaceholder}
+        copy={composerCopy}
         workspace={workspace}
         workspaceName={workspace ? basename(workspace) : ""}
         recentProjects={recentProjects}
-        recentProjectsLabel={labels.recentProjects}
-        chooseProjectLabel={labels.openProject}
-        modelLabel={labels.modelSelect}
-        modelSearchLabel={labels.modelSearch}
-        noModelMatchesLabel={labels.noModelMatches}
         modelRef={modelRef}
         models={composerModels}
-        noModelsLabel={modelPlaceholder}
-        contextPaths={contextPaths}
-        contextLabels={{
-          context: labels.context,
-          files: labels.attachFiles,
-          folder: labels.attachFolder,
-          remove: labels.removeContext,
-        }}
-        policyLabel={labels.policy}
+        recentModelRefs={recentModelRefs}
+        effort={effort}
+        effortOptions={effortOptions}
+        mode={mode}
         policy={policy}
-        policyLabels={{
-          "read-only": labels.readOnly,
-          workspace: labels.workspace,
-          full: labels.full,
-        }}
-        policyDescriptions={{
-          "read-only": labels.readOnlyDescription,
-          workspace: labels.workspaceDescription,
-          full: labels.fullDescription,
-        }}
-        environmentLabel={labels.environment}
+        contextPaths={contextPaths}
         runtime={runtimeKind}
-        runtimeLabels={{
-          local: labels.localRuntime,
-          worktree: labels.worktreeRuntime,
-        }}
-        runtimeDescriptions={{
-          local: labels.localRuntimeDescription,
-          worktree: labels.worktreeRuntimeDescription,
-        }}
-        hint={labels.composerHint}
-        startLabel={labels.start}
         notice={configNotice}
         goal={goal}
         busy={busy}
         textareaRef={textareaRef}
         onGoalChange={onGoalChange}
         onModelChange={onModelChange}
+        onModeChange={onModeChange}
+        onEffortChange={onEffortChange}
         onPickContextFiles={onPickContextFiles}
         onPickContextFolder={onPickContextFolder}
         onRemoveContextPath={onRemoveContextPath}
@@ -226,7 +207,6 @@ export function WorkspaceRouteContent({
         onOpenWorkspace={onOpenWorkspace}
         onOpenProviders={onOpenProviders}
         onSubmit={onSubmit}
-        onKeyDown={onKeyDown}
       />
     );
   }
@@ -247,6 +227,8 @@ export function WorkspaceRouteContent({
       messages={messages}
       running={running}
       busy={busy}
+      controlsCapped={mode === "ask"}
+      controlsCappedReason={labels.askCapsControls}
       labels={labels}
       onRefreshThread={onRefreshThread}
       onOpenSession={onOpenSession}
@@ -267,8 +249,21 @@ export function WorkspaceRouteContent({
           runningElsewhere={isRunningElsewhere(current.status, running)}
           workspaceName={basename(workspace)}
           modelRef={modelRef}
-          models={modelSelectOptions}
-          policyLabel={policy === "read-only" ? labels.readOnly : policy === "full" ? labels.full : labels.workspace}
+          models={composerModels}
+          modelPending={modelPending}
+          recentModelRefs={recentModelRefs}
+          onOpenProviders={onOpenProviders}
+          effort={effort}
+          effortOptions={effortOptions}
+          mode={mode}
+          policy={policy}
+          onModeChange={onModeChange}
+          onPolicyChange={onPolicyChange}
+          onEffortChange={onEffortChange}
+          onPickContextFiles={onPickContextFiles}
+          onPickContextFolder={onPickContextFolder}
+          onRemoveContextPath={onRemoveContextPath}
+          contextPaths={contextPaths}
           notice={configNotice}
           goal={goal}
           busy={busy}
@@ -276,6 +271,7 @@ export function WorkspaceRouteContent({
           activeSubagents={subagents.filter((node) => node.active).length}
           textareaRef={textareaRef}
           labels={threadWorkspaceLabels(labels, modelPlaceholder)}
+          composerLabels={composerCopy}
           onGoalChange={onGoalChange}
           onModelChange={onModelChange}
           onApproveGate={onApproveGate}
@@ -284,7 +280,6 @@ export function WorkspaceRouteContent({
           onCancel={onCancel}
           onRetry={onRetry}
           onSubmit={onSubmit}
-          onKeyDown={onKeyDown}
         />
       )}
     </ThreadTasksLayer>

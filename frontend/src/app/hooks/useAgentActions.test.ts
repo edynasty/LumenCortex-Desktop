@@ -45,6 +45,7 @@ function renderActions(overrides: Partial<Parameters<typeof useAgentActions>[0]>
     workspace: "/repo",
     goal: "continue task",
     contextPaths: ["src"],
+    contextLabel: "Reference paths",
     runtimeKind: "local",
     getAgentConfig: () => ({
       modelRef: "demo/model",
@@ -104,7 +105,7 @@ describe("useAgentActions", () => {
 
     expect(mocks.continueAgent).toHaveBeenCalledWith(
       "session-1",
-      "continue task",
+      "continue task\n\nReference paths:\n- src",
       expect.objectContaining({
         modelRef: "demo/model",
         policy: "workspace",

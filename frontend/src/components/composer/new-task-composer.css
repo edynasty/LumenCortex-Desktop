@@ -28,3 +28,11 @@
   .new-thread-sub { margin-bottom: 20px; }
   .new-thread > .config-warnings { width: calc(100% - 24px); margin-top: 12px; }
 }
+
+/* The execution environment row: the one place Local/Worktree is chosen (session creation). */
+.new-thread-exec {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding: 0 4px; color: var(--fg-3); font-size: var(--text-xs);
+}
+.new-thread-exec .exec-label { font-weight: var(--weight-medium); color: var(--fg-2); }
+.new-thread-exec .exec-note { color: var(--fg-4); font-size: var(--text-2xs); }

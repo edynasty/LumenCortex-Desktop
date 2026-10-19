@@ -1,4 +1,5 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
+import { composeFollowUpInput } from "../agent-config";
 import { bridge } from "../../lib/bridge";
 import type { AgentConfig, RuntimeKind, Session, WorkflowSummary, WorkspaceState } from "../../types";
 import type { WorkspaceRoute } from "../workspace-route";
@@ -12,6 +13,8 @@ type Options = {
   workspace: string;
   goal: string;
   contextPaths: string[];
+  // i18n header for the context-path block appended to a follow-up turn.
+  contextLabel: string;
   runtimeKind: RuntimeKind;
   getAgentConfig: () => AgentConfig;
   setWorkspaceState: Dispatch<SetStateAction<WorkspaceState>>;
@@ -36,6 +39,7 @@ export function useAgentActions({
   workspace,
   goal,
   contextPaths,
+  contextLabel,
   runtimeKind,
   getAgentConfig,
   setWorkspaceState,
@@ -78,8 +82,11 @@ export function useAgentActions({
       setBusy(true);
       setError("");
       try {
-        await bridge.continueAgent(currentSession.id, task, getAgentConfig());
+        // Attachments ride in the message text: Core's continue input is plain text, and session
+        // context paths exist only at creation. The chips show the user exactly what is appended.
+        await bridge.continueAgent(currentSession.id, composeFollowUpInput(task, contextPaths, contextLabel), getAgentConfig());
         setGoal("");
+        clearContextPaths();
         setWorkspaceState(await bridge.state());
         await refreshCurrent(currentSession.id);
       } catch (err) {

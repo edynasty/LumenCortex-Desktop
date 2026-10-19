@@ -17,6 +17,7 @@ var (
 	// run. Start wrote nothing; the UI shows "running elsewhere".
 	ErrRunHeld       = lcx.ErrRunHeld
 	ErrInvalidPolicy = errors.New("invalid agent policy")
+	ErrInvalidMode   = errors.New("invalid agent mode")
 	ErrArchiveActive = errors.New("cannot archive an active agent run")
 )
 
@@ -53,6 +54,10 @@ type AgentConfig struct {
 	// Delegation is the thread's grant for start_task: "" or none, propose, isolated (ADR-0006 D4).
 	// Core validates it and enforces it; Desktop only passes the user's choice.
 	Delegation string `json:"delegation,omitempty"`
+	// Mode is the composer's Ask/Agent switch: "ask" forces the turn to Core's read-only policy
+	// with no delegation (a read-only conversation turn), "agent" or "" keeps the user's choices.
+	// The frontend maps the same rule; this guard is what actually reaches Core.
+	Mode string `json:"mode,omitempty"`
 }
 
 type WorkspaceState struct {
@@ -337,28 +342,54 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 	if !validPolicy(cfg.Policy) {
 		return Session{}, ErrInvalidPolicy
 	}
+	if !validMode(cfg.Mode) {
+		return Session{}, ErrInvalidMode
+	}
 	permissions, err := loadToolPermissions(workspace)
 	if err != nil {
 		return Session{}, err
 	}
 	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
-	return supervisor.Start(ctx, sessionID, lcx.AgentOptions{
+	return supervisor.Start(ctx, sessionID, agentOptionsFor(cfg, toolDenylist, input))
+}
+
+// agentOptionsFor maps the bridge's AgentConfig onto Core's AgentOptions. Mode "ask" is the guard:
+// whatever policy or delegation the request carries, the options handed to Core are read-only with
+// no delegation, so a mode=ask turn can never reach Core write-capable.
+func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.AgentOptions {
+	policy := normalizedPolicy(cfg.Policy)
+	delegation := strings.TrimSpace(cfg.Delegation)
+	if strings.TrimSpace(cfg.Mode) == "ask" {
+		policy = "read-only"
+		delegation = ""
+	}
+	return lcx.AgentOptions{
 		// Empty ModelRef continues the session on its pinned model; Core resolves everything else.
 		ModelRef:            config.ModelRef(strings.TrimSpace(cfg.ModelRef)),
 		Effort:              config.Effort(strings.TrimSpace(cfg.Effort)),
 		Input:               input,
-		Policy:              normalizedPolicy(cfg.Policy),
+		Policy:              policy,
 		MaxSteps:            cfg.MaxSteps,
 		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
 		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,
 		Temperature:         cfg.Temperature,
-		Delegation:          strings.TrimSpace(cfg.Delegation),
+		Delegation:          delegation,
 		// Every Desktop thread is a conversation (ADR-0006 D3): an answer ends the turn, and the thread's
-		// resolution, not the run status, says whether the task is done.
+		// resolution, not the run status, says whether the task is done. An Ask turn is the read-only
+		// conversation case of the same rule.
 		Interactive: true,
-	})
+	}
+}
+
+func validMode(mode string) bool {
+	switch strings.TrimSpace(mode) {
+	case "", "ask", "agent":
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *Runtime) ContinueAgent(ctx context.Context, sessionID, content string, cfg AgentConfig) (Session, error) {

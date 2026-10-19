@@ -59,7 +59,9 @@ export const visualConfigState: ConfigState = {
   model: "openai/gpt-5.6",
   failover: [],
   models: [
-    { ref: "openai/gpt-5.6", providerName: "OpenAI", modelName: "GPT-5.6", modelID: "gpt-5.6", context: 128000, output: 32000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "OPENAI_API_KEY", apiKeySet: true },
+    { ref: "openai/gpt-5.6", providerName: "[OI]", modelName: "GPT-5.6", modelID: "gpt-5.6", context: 128000, output: 32000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "OPENAI_API_KEY", apiKeySet: true, efforts: ["low", "medium", "high"] },
+    { ref: "openai/gpt-5.6-mini", providerName: "[OI]", modelName: "GPT-5.6 Mini", modelID: "gpt-5.6-mini", context: 64000, output: 16000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "OPENAI_API_KEY", apiKeySet: true },
+    { ref: "openai/embed-text", providerName: "[OI]", modelName: "Embed Text", modelID: "embed-text", context: 8192, output: 512, toolCalling: false, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "OPENAI_API_KEY", apiKeySet: true },
     { ref: "deepseek/deepseek-chat", providerName: "DeepSeek", modelName: "DeepSeek Chat", modelID: "deepseek-chat", context: 64000, output: 8000, toolCalling: true, inputModalities: ["text"], reasoningFormat: "", apiKeyEnv: "DEEPSEEK_API_KEY", apiKeySet: false },
   ],
   warnings: [
@@ -392,6 +394,7 @@ export function visualAppStub() {
     SetSkillEnabled: async () => undefined,
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
+    TitleBarDoubleClick: async () => undefined,
 
     GetTaskState: async (sessionId) => ({ ...structuredClone(visualTaskState), sessionId }),
     StartProposedTask: async (_parentId, taskId) => startVisualTask(taskId),
