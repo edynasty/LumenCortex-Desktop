@@ -702,3 +702,179 @@ func TestCredentialResolverContract(t *testing.T) {
 		t.Fatalf("resolve: %q %v", v, err)
 	}
 }
+
+// The single API key field: a ${NAME} (or {env:NAME}) placeholder switches the provider to an
+// env reference and leaves nothing in the credential store; a literal goes to the store; the two
+// replace each other in both directions; a value that only carries '$' or '{' in the middle is a
+// literal like any other.
+func TestSaveProviderCredentialSingleFieldClassification(t *testing.T) {
+	configPath := useConfigDir(t)
+	storePath, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeCredentialCatalog(t, configPath, "http://127.0.0.1:1", "http://127.0.0.1:2/v1")
+	r := openRuntime(t, canonicalDir(t))
+	t.Setenv("LCX_PLACEHOLDER_KEY", "from-env")
+
+	// Literal first: stored, and the store file holds the value.
+	status, err := r.SaveProviderCredential("global", "acme", secretA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Source != "stored" || !status.Set || status.Ref == "" {
+		t.Fatalf("literal status=%#v", status)
+	}
+	if raw := readFile(t, storePath); !strings.Contains(raw, secretA) {
+		t.Fatalf("the store must hold the literal: %s", raw)
+	}
+
+	// Placeholder replaces it: env reference in the file, nothing left in the store.
+	status, err = r.SaveProviderCredential("global", "acme", "  ${LCX_PLACEHOLDER_KEY}  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != (CredentialStatus{ProviderID: "acme", Scope: "global", Source: "env", Ref: "{env:LCX_PLACEHOLDER_KEY}", Set: true}) {
+		t.Fatalf("placeholder status=%#v", status)
+	}
+	if onDisk := readFile(t, configPath); !strings.Contains(onDisk, "{env:LCX_PLACEHOLDER_KEY}") || strings.Contains(onDisk, "{secret:") {
+		t.Fatalf("the file must carry the env reference and no secret reference: %s", onDisk)
+	}
+	if raw := readFile(t, storePath); strings.Contains(raw, secretA) {
+		t.Fatalf("no stored key may survive the switch: %s", raw)
+	}
+
+	// The Core-native form is the same placeholder.
+	if status, err = r.SaveProviderCredential("global", "acme", "{env:LCX_PLACEHOLDER_KEY}"); err != nil ||
+		status.Source != "env" || status.Ref != "{env:LCX_PLACEHOLDER_KEY}" {
+		t.Fatalf("core-native form: %#v %v", status, err)
+	}
+
+	// Back to a literal: stored again, env reference gone.
+	if status, err = r.SaveProviderCredential("global", "acme", secretB); err != nil || status.Source != "stored" || !status.Set {
+		t.Fatalf("back to literal: %#v %v", status, err)
+	}
+	if onDisk := readFile(t, configPath); strings.Contains(onDisk, "{env:LCX_PLACEHOLDER_KEY}") {
+		t.Fatalf("the env reference must be gone: %s", onDisk)
+	}
+	if raw := readFile(t, storePath); !strings.Contains(raw, secretB) || strings.Contains(raw, secretA) {
+		t.Fatalf("the store must hold only the new literal: %s", raw)
+	}
+
+	// A literal that merely contains '$' or '{' in the middle is a literal like any other.
+	literal := "sk-live-abc${XYZ}tail{env:FOO}mid"
+	if status, err = r.SaveProviderCredential("global", "acme", literal); err != nil || status.Source != "stored" || !status.Set {
+		t.Fatalf("dollar-brace literal: %#v %v", status, err)
+	}
+	if raw := readFile(t, storePath); !strings.Contains(raw, literal) {
+		t.Fatalf("the store must hold the literal verbatim: %s", raw)
+	}
+}
+
+// Values that look like a placeholder or a {secret:..} reference but are not a valid one are
+// refused, the error names only the shape, and neither the configuration nor the store changes.
+func TestSaveProviderCredentialRejectsInvalidPlaceholders(t *testing.T) {
+	configPath := useConfigDir(t)
+	storePath, err := config.DefaultCredentialStorePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeCredentialCatalog(t, configPath, "http://127.0.0.1:1", "http://127.0.0.1:2/v1")
+	r := openRuntime(t, canonicalDir(t))
+
+	// A stored literal and its reference must survive every rejected input untouched.
+	if _, err := r.SaveProviderCredential("global", "acme", secretA); err != nil {
+		t.Fatal(err)
+	}
+	beforeConfig := readFile(t, configPath)
+	beforeStore := readFile(t, storePath)
+
+	for _, invalid := range []string{
+		"${A B}", "${NAME:default}", "${}", "${1abc}", "${under_score-ok}", "${NAME",
+		"{env:1BAD}", "{env:}", "{env:NAME}extra", "{secret:x}", "{secret:valid-name}", "{secret:}",
+	} {
+		status, err := r.SaveProviderCredential("global", "acme", invalid)
+		if err == nil {
+			t.Fatalf("%q must be rejected, got %#v", invalid, status)
+		}
+		if !strings.Contains(err.Error(), "not accepted") {
+			t.Fatalf("%q error must name the problem: %v", invalid, err)
+		}
+		// The error never echoes the typed text beyond the shape names it explains.
+		if strings.Contains(err.Error(), invalid) && !isShapeName(invalid) {
+			t.Fatalf("%q error echoes the rejected value: %v", invalid, err)
+		}
+		if invalid == "${NAME:default}" && strings.Contains(err.Error(), "NAME:default") {
+			t.Fatalf("the default example must not echo the typed text: %v", err)
+		}
+	}
+	if after := readFile(t, configPath); after != beforeConfig {
+		t.Fatalf("rejected input changed the configuration:\n%s", after)
+	}
+	if after := readFile(t, storePath); after != beforeStore {
+		t.Fatalf("rejected input changed the store:\n%s", after)
+	}
+}
+
+// A delete failure while switching to an env reference rolls the configuration back: the file
+// keeps the previous {secret:..} reference and the stored key stays, so the switch is
+// all-or-nothing.
+func TestSaveProviderCredentialEnvSwitchRollsBackWhenDeleteFails(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeCredentialCatalog(t, configPath, "http://127.0.0.1:1", "http://127.0.0.1:2/v1")
+	store := &failingDeleteStore{items: map[string]string{}}
+	r := openRuntimeWithStore(t, canonicalDir(t), store)
+
+	if _, err := r.SaveProviderCredential("global", "acme", secretA); err != nil {
+		t.Fatal(err)
+	}
+	before := readFile(t, configPath)
+
+	store.fail = true
+	if _, err := r.SaveProviderCredential("global", "acme", "${LCX_ANY_KEY}"); err == nil {
+		t.Fatal("the switch must fail when the stored key cannot be deleted")
+	}
+	if after := readFile(t, configPath); after != before {
+		t.Fatalf("the configuration must be rolled back:\n%s", after)
+	}
+	if v, _ := store.Get(credentialName("global", "acme")); v != secretA {
+		t.Fatalf("the stored key must survive the failed switch: %q", v)
+	}
+}
+
+// isShapeName reports whether value is one of the reference shapes the error text names.
+func isShapeName(value string) bool {
+	for _, shape := range []string{"${NAME}", "${NAME:value}", "{env:NAME}", "{secret:NAME}"} {
+		if strings.Contains(shape, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// failingDeleteStore wraps the fake store with a Delete that fails on demand.
+type failingDeleteStore struct {
+	items map[string]string
+	fail  bool
+}
+
+func (f *failingDeleteStore) Set(name, secret string) error {
+	f.items[name] = secret
+	return nil
+}
+
+func (f *failingDeleteStore) Get(name string) (string, error) {
+	v, ok := f.items[name]
+	if !ok {
+		return "", fmt.Errorf("%w: %s", config.ErrCredentialNotFound, name)
+	}
+	return v, nil
+}
+
+func (f *failingDeleteStore) Delete(name string) error {
+	if f.fail {
+		return errors.New("store is locked")
+	}
+	delete(f.items, name)
+	return nil
+}

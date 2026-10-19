@@ -111,6 +111,40 @@ rollback-on-config-save-failure, protocol-aware discovery with redaction, and ev
 - Discovery errors include a bounded body excerpt — better diagnostics — which is exactly why every such text is run through the redactor; errors that would carry the key lose their error identity (`errors.New`), acceptable only on that path.
 - `SaveProviderCredential` on a provider whose `apiKey` is an `{env:..}` reference replaces it with `{secret:NAME}`: saving a key means the key lives in the store from then on. `RemoveProviderCredential` is the only path that refuses to touch env references.
 
+## Owner decision 3: the single API key field (Spring-style value)
+
+No two-source tabs: one field, and the user types either a literal key or an environment
+placeholder `${NAME}` (the Core-native `{env:NAME}` form is accepted as the same thing).
+`SaveProviderCredential` classifies the trimmed value first:
+
+- `${NAME}` / `{env:NAME}` with NAME matching `[A-Za-z_][A-Za-z0-9_]*` → the provider's
+  `settings.apiKey` becomes `{env:NAME}` in that scope (Core-native config, nothing stored). The
+  configuration write happens first; then every stored key of the provider is deleted (the
+  derived item plus whatever the previous `{secret:..}` reference named), so no stale secret
+  remains in credentials.json. A delete failure rolls the configuration back to the previous
+  reference — the switch is all-or-nothing, mirroring the literal path's store rollback.
+- A value that starts like a placeholder or a `{secret:..}` reference but is not a valid one
+  (`${A B}`, `${NAME:default}`, `${}`, `${1abc}`, `{env:1BAD}`, `{secret:x}` …) is refused with
+  an error naming only the shape. Spring-style defaults are explicitly unsupported (a default
+  would be a literal secret in config), and `{secret:..}` references are created only by storing
+  a key, never typed.
+- Anything else is a literal key: the existing path (file store + derived `{secret:NAME}`
+  reference), including keys that merely contain `$` or `{` in the middle.
+- Empty (or whitespace-only) is an error, unchanged.
+
+`CredentialStatus` is unchanged (`source: none|env|stored`, `ref` carries the configured
+reference — `{env:NAME}` for env, the `{secret:NAME}` reference for stored; the UI derives
+`${NAME}` from it). `RemoveProviderCredential` is unchanged.
+
+Tests added (`internal/backend/credentials_test.go`): `TestSaveProviderCredentialSingleFieldClassification`
+(placeholder → env ref saved, status env, nothing left in credentials.json, previous stored value
+removed; Core-native form; back to literal; literal with `$`/`{` in the middle stored verbatim),
+`TestSaveProviderCredentialRejectsInvalidPlaceholders` (eleven invalid shapes refused, errors
+never echo the typed text beyond the shape names, config and store byte-identical),
+`TestSaveProviderCredentialEnvSwitchRollsBackWhenDeleteFails` (failing delete → error, config
+rolled back to the previous `{secret:..}` reference, stored key intact). All prior tests,
+including both leak proofs, unchanged and green.
+
 ## Blockers / handoffs
 
 - None on the Go side. DesktopProviderUI owns `bridge.ts`/`types.ts`; their committed `CredentialStatus` (no `keychainAvailable`, `source: "stored"`) matches this backend exactly.

@@ -54,7 +54,13 @@ derives secret names deterministically from the scope and provider id, within Co
 pattern, so no two providers ever collide in the store.
 
 The key crosses the Go boundary exactly once, as the `SaveProviderCredential` argument; every
-status, error, event and log line names only the reference. Store calls are bounded in time so a
+status, error, event and log line names only the reference. That argument is what the user typed
+into the single API key field, classified on save: a `${NAME}` (or `{env:NAME}`) placeholder
+becomes the provider's `{env:NAME}` reference — nothing is stored, and any previously stored key
+of the provider is deleted so no stale secret remains — while anything else is a literal key that
+goes to the store. A value that starts like a placeholder or a `{secret:..}` reference but is not
+a valid one is refused (Spring-style defaults would put a literal secret in the configuration);
+a key that merely contains `$` or `{` elsewhere stays a literal. Store calls are bounded in time so a
 stalled store lock cannot block a UI callback indefinitely, and a failed configuration save rolls
 the store write back. Connection tests and model discovery speak each protocol's own
 authentication (Bearer for openai-compatible, `x-api-key` plus `anthropic-version` for

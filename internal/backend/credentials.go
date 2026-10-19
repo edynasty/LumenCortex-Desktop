@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -196,15 +197,121 @@ func (r *Runtime) GetProviderCredentialStatus(scope, providerID string) (Credent
 	return CredentialStatus{}, fmt.Errorf("apiKey of provider %s is not an {env:NAME} or {secret:NAME} reference", providerID)
 }
 
-// SaveProviderCredential stores the key in the credential store and points the provider's
-// settings.apiKey at it ({secret:NAME}) in the scope's lumencortex.json, through the same save
-// path as the provider panel (digest conflict included). The store write is rolled back when the
-// config save fails, so the file and the store never disagree. The key value itself is never
-// returned, logged or written to the config file.
+// SaveProviderCredential stores what the user typed into the single API key field, classified
+// first: a ${NAME} or {env:NAME} environment placeholder becomes the provider's {env:NAME}
+// reference (nothing is stored, and any stored key of the provider is deleted after the
+// configuration write); anything else is a literal key, stored in the credential store with the
+// provider pointing at its {secret:NAME} reference. Both paths save through the same config.Save
+// as the provider panel (digest conflict included) and roll their first write back when the
+// second one fails, so the file and the store never disagree. A value that starts like a
+// placeholder or a {secret:..} reference but is not a valid one is refused. The key value itself
+// is never returned, logged or written to the config file.
 func (r *Runtime) SaveProviderCredential(scope, providerID, apiKey string) (CredentialStatus, error) {
-	if strings.TrimSpace(apiKey) == "" {
+	value := strings.TrimSpace(apiKey)
+	if value == "" {
 		return CredentialStatus{}, fmt.Errorf("the API key of provider %s is empty", providerID)
 	}
+	envName, isEnv, err := classifyCredentialValue(value)
+	if err != nil {
+		return CredentialStatus{}, fmt.Errorf("the API key of provider %s is not accepted: %w", providerID, err)
+	}
+	if isEnv {
+		return r.saveProviderEnvReference(scope, providerID, envName)
+	}
+	return r.saveProviderStoredKey(scope, providerID, value)
+}
+
+// dollarEnv matches a Spring-style ${NAME} placeholder; the NAME alphabet is Core's env
+// reference alphabet.
+var dollarEnv = regexp.MustCompile(`^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$`)
+
+// classifyCredentialValue sorts one typed API key value into an environment placeholder name or
+// a literal key. A value that starts like a placeholder or a {secret:..} reference but is not a
+// valid one is refused with an error that names only the shape, never the typed text:
+// Spring-style defaults (${NAME:default}) are unsupported because a default would be a literal
+// secret in the configuration, and {secret:..} references are created only by storing a key,
+// never typed. A key that merely contains '$' or '{' elsewhere stays a literal key.
+func classifyCredentialValue(value string) (envName string, isEnv bool, err error) {
+	if m := dollarEnv.FindStringSubmatch(value); m != nil {
+		return m[1], true, nil
+	}
+	if strings.HasPrefix(value, "${") {
+		return "", false, errors.New("not a valid ${NAME} environment placeholder (defaults such as ${NAME:value} are not supported)")
+	}
+	if name, ok := config.EnvName(value); ok {
+		return name, true, nil
+	}
+	if strings.HasPrefix(value, "{env:") {
+		return "", false, errors.New("not a valid {env:NAME} reference")
+	}
+	if strings.HasPrefix(value, "{secret:") {
+		return "", false, errors.New("a {secret:NAME} reference cannot be typed; paste the key itself or use ${NAME}")
+	}
+	return "", false, nil
+}
+
+// saveProviderEnvReference switches the provider to an {env:NAME} reference. The configuration
+// write happens first; any stored key of the provider (the derived item and the one the previous
+// reference named) is deleted afterwards, and a delete failure rolls the configuration back, so
+// the switch is all-or-nothing and no stale secret stays reachable-or-stored.
+func (r *Runtime) saveProviderEnvReference(scope, providerID, name string) (CredentialStatus, error) {
+	resolver := r.credentialResolver()
+	path, doc, err := r.scopeDocument(scope)
+	if err != nil {
+		return CredentialStatus{}, err
+	}
+	provider, ok := doc.File.Providers[providerID]
+	if !ok {
+		return CredentialStatus{}, fmt.Errorf("provider %q is not defined in the %s configuration", providerID, normalizedScope(scope))
+	}
+	hadSettings := provider.Settings != nil
+	previous := ""
+	if hadSettings {
+		previous = provider.Settings.APIKey
+	}
+
+	settings := provider.Settings
+	if settings == nil {
+		settings = &config.ProviderSettings{}
+	}
+	settings.APIKey = "{env:" + name + "}"
+	provider.Settings = settings
+	doc.File.Providers[providerID] = provider
+	newDigest, err := config.Save(path, doc.File, doc.Digest)
+	if err != nil {
+		return CredentialStatus{}, err
+	}
+
+	// No stored key may outlive the switch: drop the derived item and whatever the previous
+	// reference named. A failure rolls the configuration back to the previous reference.
+	stale := map[string]bool{credentialName(scope, providerID): true}
+	if previousName, ok := config.SecretName(previous); ok {
+		stale[previousName] = true
+	}
+	for item := range stale {
+		if err := resolver.delete(item); err != nil {
+			restored := doc.File
+			entry := restored.Providers[providerID]
+			if hadSettings {
+				settings := *entry.Settings
+				settings.APIKey = previous
+				entry.Settings = &settings
+			} else {
+				entry.Settings = nil
+			}
+			restored.Providers[providerID] = entry
+			if _, rollbackErr := config.Save(path, restored, newDigest); rollbackErr != nil {
+				return CredentialStatus{}, fmt.Errorf("deleting the stored key of provider %s failed (%v) and rolling the configuration back failed too (%v); a stored key may remain in the credential store", providerID, err, rollbackErr)
+			}
+			return CredentialStatus{}, fmt.Errorf("deleting the stored key of provider %s failed: %w", providerID, err)
+		}
+	}
+	return r.GetProviderCredentialStatus(scope, providerID)
+}
+
+// saveProviderStoredKey stores a literal key in the credential store and points the provider at
+// its {secret:NAME} reference. The store write is rolled back when the config save fails.
+func (r *Runtime) saveProviderStoredKey(scope, providerID, key string) (CredentialStatus, error) {
 	resolver := r.credentialResolver()
 	path, doc, err := r.scopeDocument(scope)
 	if err != nil {
@@ -220,7 +327,7 @@ func (r *Runtime) SaveProviderCredential(scope, providerID, apiKey string) (Cred
 	previous, previousErr := resolver.read(name)
 	hadPrevious := previousErr == nil
 
-	if err := resolver.set(name, apiKey); err != nil {
+	if err := resolver.set(name, key); err != nil {
 		return CredentialStatus{}, fmt.Errorf("storing the key of provider %s failed: %w", providerID, err)
 	}
 	settings := provider.Settings
