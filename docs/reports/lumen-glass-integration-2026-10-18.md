@@ -20,9 +20,9 @@ tree). Local commits only, nothing pushed. Two owner decisions remain open (see 
 |---|---|
 | `0dd0bd7` | Stage A: tokens, base elements, window shell (toolbar, rail, resizable sidebar/inspector, drawers), threads sidebar, settings sheet, command palette, welcome, A1 brand, hidden-inset native title bar, visual harness over a stubbed bridge |
 | `73ac2ba` | Split the legacy `styles.css` into thread / inspector / runtime-identity / toast stylesheets; dead pre-shell selectors removed |
-| _see final section_ | Stages B–D (UI) and this report with screenshots |
 | `c3d8bb6` | Stages B–D: conversation, composer, task cards, inspector, Source Control, Context, settings panes, Stage D fixes, Playwright rewrite |
-| _this report's commit_ | Report, screenshots, app icon candidate |
+| `77e1bbc` | Report, screenshots, app icon candidate |
+
 ## Decisions
 
 | # | Decision | Why |
