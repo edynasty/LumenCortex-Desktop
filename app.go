@@ -206,6 +206,20 @@ func (a *App) SaveProviderCatalogScope(scope string, doc backend.ProviderCatalog
 	return a.backend.SaveProviderCatalogScope(scope, doc)
 }
 
+func (a *App) GetProviderCredentialStatus(scope, providerID string) (backend.CredentialStatus, error) {
+	return a.backend.GetProviderCredentialStatus(scope, providerID)
+}
+
+// SaveProviderCredential stores the provider's key in the platform secret store and points its
+// apiKey at a {secret:NAME} reference; the key itself is never returned or stored in the config.
+func (a *App) SaveProviderCredential(scope, providerID, apiKey string) (backend.CredentialStatus, error) {
+	return a.backend.SaveProviderCredential(scope, providerID, apiKey)
+}
+
+func (a *App) RemoveProviderCredential(scope, providerID string) (backend.CredentialStatus, error) {
+	return a.backend.RemoveProviderCredential(scope, providerID)
+}
+
 func (a *App) StartAgent(sessionID string, config backend.AgentConfig) (backend.Session, error) {
 	return a.backend.StartAgent(context.Background(), sessionID, config)
 }
@@ -334,7 +348,6 @@ func (a *App) RunShell(sessionID, command string) (backend.ShellResult, error) {
 	return a.backend.RunShell(context.Background(), sessionID, command)
 }
 
-
 func (a *App) StartLSP(sessionID string, config backend.LSPConfig) (backend.LSPStatus, error) {
 	return a.backend.StartLSP(context.Background(), sessionID, config)
 }
@@ -350,7 +363,6 @@ func (a *App) GetLSPStatus(sessionID string) (backend.LSPStatus, error) {
 func (a *App) GetLSPDiagnostics(sessionID, path string) ([]backend.LSPDiagnostic, error) {
 	return a.backend.LSPDiagnostics(context.Background(), sessionID, path)
 }
-
 
 func (a *App) GetMCPConfigs() ([]backend.MCPConfig, error) {
 	return a.backend.MCPConfigs()
@@ -396,7 +408,6 @@ func (a *App) RefreshMCPTools(sessionID, serverID string) error {
 	return a.backend.MCPRefreshTools(context.Background(), sessionID, serverID)
 }
 
-
 func (a *App) GetSubagentTree(parentSessionID string) ([]backend.SubagentNode, error) {
 	return a.backend.SubagentTree(context.Background(), parentSessionID)
 }
@@ -404,7 +415,6 @@ func (a *App) GetSubagentTree(parentSessionID string) ([]backend.SubagentNode, e
 func (a *App) GetSessionCheckpoints(sessionID string, limit int) ([]backend.SessionCheckpoint, error) {
 	return a.backend.SessionCheckpoints(context.Background(), sessionID, limit)
 }
-
 
 func (a *App) GetSkills(scope string) ([]backend.Skill, error) {
 	return a.backend.Skills(scope)
@@ -425,7 +435,6 @@ func (a *App) DeleteSkill(scope, id string) error {
 func (a *App) SetSkillEnabled(scope, id string, enabled bool) error {
 	return a.backend.SetSkillEnabled(scope, id, enabled)
 }
-
 
 func (a *App) GetToolPermissions() (backend.ToolPermissions, error) {
 	return a.backend.ToolPermissions()

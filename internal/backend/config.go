@@ -120,7 +120,23 @@ func (r *Runtime) ConfigState() (ConfigState, error) {
 	if err != nil {
 		return ConfigState{}, err
 	}
-	return configState(cfg), nil
+	state := configState(cfg)
+	r.applyCredentialAvailability(cfg, state.Models)
+	return state, nil
+}
+
+// applyCredentialAvailability re-reports each model's apiKeySet with the Desktop's credential
+// resolver: a {secret:NAME} reference counts as set exactly when the platform store holds it.
+// Core's Catalog() alone knows only the environment, so it reports secret references as unset.
+func (r *Runtime) applyCredentialAvailability(cfg *config.Config, models []ModelInfo) {
+	resolver := r.credentialResolver()
+	for i := range models {
+		m, err := cfg.Resolve(models[i].Ref)
+		if err != nil {
+			continue
+		}
+		models[i].APIKeySet = m.APIKeySet(resolver)
+	}
 }
 
 func configState(cfg *config.Config) ConfigState {
@@ -245,7 +261,10 @@ func (r *Runtime) SaveProviderCatalogScope(scope string, doc ProviderCatalogDocu
 	if current.Digest != doc.Digest {
 		return ProviderCatalogDocument{}, fmt.Errorf("%w: %s", config.ErrConflict, path)
 	}
-	next := applyCatalog(current.File, doc.Catalog)
+	next, err := applyCatalog(current.File, doc.Catalog)
+	if err != nil {
+		return ProviderCatalogDocument{}, err
+	}
 	other, err := r.otherScopeFile(scope)
 	if err != nil {
 		return ProviderCatalogDocument{}, err
@@ -308,8 +327,9 @@ func catalogFromFile(f config.File) ProviderCatalog {
 // applyCatalog overlays the DTO on the file it was read from. Only the DTO's fields change: the
 // model, each provider's name, package, baseURL, endpoint and apiKey, and each model's name,
 // modelID and limit. Providers and models the DTO omits are removed. A renamed provider or model
-// starts from the entry it was renamed from, so its other fields move with it.
-func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
+// starts from the entry it was renamed from, so its other fields move with it. A package the
+// dispatcher does not support is refused here, not at run time.
+func applyCatalog(existing config.File, dto ProviderCatalog) (config.File, error) {
 	out := existing
 	out.Model = config.ModelRef(strings.TrimSpace(dto.Model))
 	if out.Schema == "" {
@@ -325,7 +345,11 @@ func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
 			next = existing.Providers[def.RenamedFrom]
 		}
 		next.Name = def.Name
-		next.Package = def.Package
+		pkg, err := providerPackageForSave(next.Package, def.Package)
+		if err != nil {
+			return config.File{}, fmt.Errorf("provider %s: %w", id, err)
+		}
+		next.Package = pkg
 		next.Settings = overlaySettings(next.Settings, def.Settings)
 		var models map[string]config.Model
 		if len(def.Models) > 0 {
@@ -348,7 +372,18 @@ func applyCatalog(existing config.File, dto ProviderCatalog) config.File {
 		providers[id] = next
 	}
 	out.Providers = providers
-	return out
+	return out, nil
+}
+
+// providerPackageForSave keeps the file's package when the DTO sends none, and normalizes a sent
+// one through Core: the legacy ids collapse to openai-compatible, and any other value is refused
+// with a clear error, because the dispatcher supports only those two protocols.
+func providerPackageForSave(existing, dto string) (string, error) {
+	dto = strings.TrimSpace(dto)
+	if dto == "" {
+		return existing, nil
+	}
+	return config.NormalizePackage(dto)
 }
 
 func overlaySettings(existing *config.ProviderSettings, dto ProviderSettings) *config.ProviderSettings {
@@ -394,7 +429,7 @@ func (r *Runtime) DiscoverProviderModels(providerID string) ([]DiscoveredModel, 
 	if err != nil {
 		return nil, err
 	}
-	return discoverProviderModels(provider)
+	return discoverProviderModels(provider, r.credentialResolver())
 }
 
 func (r *Runtime) TestProviderConnection(providerID string) (ProviderConnectionResult, error) {
@@ -410,10 +445,14 @@ func (r *Runtime) TestProviderConnection(providerID string) (ProviderConnectionR
 }
 
 func providerModelsURL(provider config.ResolvedProvider) (string, error) {
+	chatPath, modelsPath := "/chat/completions", "/models"
+	if provider.Package == config.PackageAnthropicMessages {
+		chatPath, modelsPath = "/v1/messages", "/v1/models"
+	}
 	base := strings.TrimSpace(provider.BaseURL)
 	if base == "" {
 		if endpoint := strings.TrimSpace(provider.Endpoint); endpoint != "" {
-			base = strings.TrimSuffix(endpoint, "/chat/completions")
+			base = strings.TrimSuffix(endpoint, chatPath)
 		}
 	}
 	if base == "" {
@@ -423,7 +462,7 @@ func providerModelsURL(provider config.ResolvedProvider) (string, error) {
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return "", errors.New("provider baseURL is invalid")
 	}
-	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/models"
+	parsed.Path = strings.TrimRight(parsed.Path, "/") + modelsPath
 	parsed.RawQuery = ""
 	parsed.Fragment = ""
 	return parsed.String(), nil
@@ -431,30 +470,44 @@ func providerModelsURL(provider config.ResolvedProvider) (string, error) {
 
 const discoveryTimeout = 12 * time.Second
 
-// discoverProviderModels lists the provider's models with the settings Core resolved: the
-// provider's own headers plus its Authorization. Redirects are refused, because Go would forward
-// custom credential headers to the redirect target.
-func discoverProviderModels(provider config.ResolvedProvider) ([]DiscoveredModel, error) {
+// discoverProviderModels lists the provider's models with the settings Core resolved, speaking
+// the provider's own wire protocol: openai-compatible models authorize with a Bearer token,
+// anthropic-messages models with x-api-key plus anthropic-version. The provider's configured
+// headers win over both defaults. Redirects are refused, because Go would forward custom
+// credential headers to the redirect target. Errors never carry the key, not even when the
+// upstream echoes it in its error body: every error text passes the redactor.
+func discoverProviderModels(provider config.ResolvedProvider, resolver config.CredentialResolver) ([]DiscoveredModel, error) {
 	modelsURL, err := providerModelsURL(provider)
 	if err != nil {
 		return nil, err
 	}
-	key, err := provider.ResolveAPIKey()
+	key, err := provider.ResolveAPIKey(resolver)
 	if err != nil {
 		return nil, err
 	}
+	redact := secretRedactor(key)
 	ctx, cancel := context.WithTimeout(context.Background(), discoveryTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelsURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, redact(err)
 	}
 	for name, value := range provider.Headers {
 		req.Header.Set(name, value)
 	}
 	req.Header.Set("Accept", "application/json")
-	if key != "" {
-		req.Header.Set("Authorization", "Bearer "+key)
+	switch provider.Package {
+	case config.PackageAnthropicMessages:
+		if key != "" && req.Header.Get("x-api-key") == "" {
+			req.Header.Set("x-api-key", key)
+		}
+		if req.Header.Get("anthropic-version") == "" {
+			req.Header.Set("anthropic-version", "2023-06-01")
+		}
+	default:
+		if key != "" && req.Header.Get("Authorization") == "" {
+			req.Header.Set("Authorization", "Bearer "+key)
+		}
 	}
 
 	client := &http.Client{
@@ -463,15 +516,15 @@ func discoverProviderModels(provider config.ResolvedProvider) ([]DiscoveredModel
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, redactTransportError(err)
+		return nil, redact(redactTransportError(err))
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
-		return nil, err
+		return nil, redact(err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("provider models request failed: status=%d", resp.StatusCode)
+		return nil, redact(fmt.Errorf("provider models request failed: status=%d%s", resp.StatusCode, errorExcerpt(body)))
 	}
 	var payload struct {
 		Data []struct {
@@ -479,7 +532,7 @@ func discoverProviderModels(provider config.ResolvedProvider) ([]DiscoveredModel
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &payload); err != nil {
-		return nil, fmt.Errorf("parse provider models response: %w", err)
+		return nil, redact(fmt.Errorf("parse provider models response: %w", err))
 	}
 	out := make([]DiscoveredModel, 0, len(payload.Data))
 	seen := map[string]bool{}
@@ -495,6 +548,38 @@ func discoverProviderModels(provider config.ResolvedProvider) ([]DiscoveredModel
 		}
 	}
 	return out, nil
+}
+
+// errorExcerpt is a one-line, bounded excerpt of an upstream error body so a failed request can
+// explain itself; secretRedactor strips the key from the assembled message before it is returned.
+func errorExcerpt(body []byte) string {
+	const max = 256
+	excerpt := strings.TrimSpace(string(body))
+	if len(excerpt) > max {
+		excerpt = excerpt[:max]
+	}
+	if i := strings.IndexAny(excerpt, "\r\n"); i >= 0 {
+		excerpt = excerpt[:i]
+	}
+	if excerpt == "" {
+		return ""
+	}
+	return ": " + excerpt
+}
+
+// secretRedactor returns a function that strips every occurrence of the secret from an error's
+// text; with an empty secret it is the identity. The wrapped error loses its identity, which is
+// acceptable only on this path: an error that carries the key cannot be shown at all.
+func secretRedactor(secret string) func(error) error {
+	if secret == "" {
+		return func(err error) error { return err }
+	}
+	return func(err error) error {
+		if err == nil || !strings.Contains(err.Error(), secret) {
+			return err
+		}
+		return errors.New(strings.ReplaceAll(err.Error(), secret, "[redacted]"))
+	}
 }
 
 // redactTransportError keeps the failure reason of a request error but not the request URL, which

@@ -37,6 +37,29 @@ The default target is **embedded mode**: Wails loads the public LumenCortex `run
 
 A daemon/remote mode may be added later for isolation and remote execution, but it is not the default architecture.
 
+## Provider protocols and credentials
+
+Providers speak the wire protocol their catalog `package` selects — `openai-compatible` (chat
+completions) or `anthropic-messages` — dispatched by Core's `provider.FromModel`. The Desktop
+injects that dispatcher as `runtime.Options.ProviderFactory` when it opens an Engine, so every run
+uses the correct protocol and resolves its API key through the Desktop's credential resolver.
+
+Provider keys are never stored in `lumencortex.json`, the database, logs or frontend state. The
+file holds only a reference — `{env:NAME}` reads the process environment, `{secret:NAME}` reads
+the platform secret store (the macOS Keychain; a non-macOS build has no store and reports it
+unavailable, while `{env:NAME}` keeps working). Keychain items are generic passwords under the
+service `com.lumencortex.desktop.provider-credentials`, accessible only when unlocked and bound
+to this device; the account is the derived secret name, so no item is ever adopted by another
+install. The Desktop derives names deterministically from the scope and provider id, within
+Core's secret NAME pattern.
+
+The key crosses the Go boundary exactly once, as the `SaveProviderCredential` argument; every
+status, error, event and log line names only the reference. Store writes are bounded in time so a
+stalled Keychain cannot block a UI callback indefinitely, and a failed configuration save rolls
+the Keychain write back. Connection tests and model discovery speak each protocol's own
+authentication (Bearer for openai-compatible, `x-api-key` plus `anthropic-version` for
+anthropic-messages) and redact the key from every error an upstream echoes it in.
+
 
 ## Frontend architecture
 

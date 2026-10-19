@@ -8,6 +8,11 @@ import (
 	"testing"
 )
 
+// originalHome is the HOME TestMain replaced, for the one test that talks to the user's real
+// Keychain (the store looks up the login keychain through HOME, and the app always runs with the
+// user's real one).
+var originalHome = os.Getenv("HOME")
+
 // TestMain points the package at a private HOME and configuration directory, so no test reads or
 // writes the developer's lumencortex.json, mcp.json or skills, and clears the variables the earlier
 // provider path read.
