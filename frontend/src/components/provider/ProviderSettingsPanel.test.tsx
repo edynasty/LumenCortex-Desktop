@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigState, ProviderCatalogDocument, ProviderCatalogScope } from "../../types";
@@ -157,7 +157,7 @@ describe("ProviderSettingsPanel", () => {
     const providerId = screen.getByLabelText("Provider ID");
     await user.clear(providerId);
     await user.type(providerId, "new");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(within(document.querySelector(".provider-form")!).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
     const renamedProvider = mocks.saveProviderCatalogScope.mock.calls[0][1].catalog.providers;
     expect(Object.keys(renamedProvider)).toEqual(["new"]);
@@ -169,7 +169,7 @@ describe("ProviderSettingsPanel", () => {
     const modelId = screen.getByLabelText("Model ID");
     await user.clear(modelId);
     await user.type(modelId, "m2");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(within(document.querySelector(".provider-model-form")!).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(2));
     const models = mocks.saveProviderCatalogScope.mock.calls[1][1].catalog.providers.new.models;
     expect(Object.keys(models)).toEqual(["m2"]);
@@ -222,7 +222,7 @@ describe("ProviderSettingsPanel", () => {
     expect(screen.getByPlaceholderText("https://api.anthropic.com/v1/messages")).toBeInTheDocument();
     expect(screen.getByText("Defaults to baseURL + /v1/messages when empty.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(within(document.querySelector(".provider-form")!).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
     expect(mocks.saveProviderCatalogScope.mock.calls[0][1].catalog.providers.old.package).toBe("anthropic-messages");
   });
@@ -255,7 +255,7 @@ describe("ProviderSettingsPanel", () => {
     await user.clear(envField);
     await user.type(envField, "sk-live-NEVER-PRINT-9876543210");
 
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(within(document.querySelector(".provider-form")!).getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.getByText(/may only contain letters, digits and underscores/)).toBeInTheDocument();
     expect(envField).toHaveAttribute("aria-invalid", "true");
     expect(mocks.saveProviderCatalogScope).not.toHaveBeenCalled();

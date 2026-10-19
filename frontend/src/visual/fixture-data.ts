@@ -323,6 +323,12 @@ function acceptVisualCheck(checkId: string): CheckResult {
 // contains a value from it — SaveProviderCredential's response is built from fixed strings.
 const visualStoredKeys = new Map<string, string>();
 
+// SaveProviderCredential classifies its value like the backend: an environment placeholder
+// (${NAME} or {env:NAME}) becomes an {env:NAME} reference in config (any stored key removed);
+// anything else is a literal stored in the credentials file under a {secret:NAME} reference.
+// Spring-style ${NAME:default} placeholders are refused.
+const ENV_VALUE = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$|^\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/;
+
 // Which names the stub's fake environment happens to have set (mirrors visualConfigState).
 const visualEnvSet: Record<string, boolean> = { OPENAI_API_KEY: true, DEEPSEEK_API_KEY: false, ANTHROPIC_API_KEY: false };
 
@@ -359,13 +365,21 @@ export function visualAppStub() {
     }),
     SaveProviderCatalogScope: async (_scope, doc) => doc,
     GetProviderCredentialStatus: async (scope, providerId) => credentialStatusFor(scope, providerId),
-    SaveProviderCredential: async (scope, providerId, apiKey) => {
-      // The value goes into the in-memory credential file only; every response is key-free.
-      visualStoredKeys.set(`${scope}/${providerId}`, apiKey);
-      const name = storedSecretName(scope, providerId);
-      providerCatalog.providers[providerId] ??= {};
-      providerCatalog.providers[providerId].settings ??= {};
-      providerCatalog.providers[providerId].settings!.apiKey = `{secret:${name}}`;
+    SaveProviderCredential: async (scope, providerId, value) => {
+      const provider = providerCatalog.providers[providerId] ?? (providerCatalog.providers[providerId] = {});
+      provider.settings ??= {};
+      const match = ENV_VALUE.exec(value.trim());
+      if (value.trim().startsWith("$") || value.trim().startsWith("{env:")) {
+        if (!match) throw "invalid environment placeholder: ${NAME:default} defaults are not supported";
+        // Placeholder: keep the reference in config, drop any stored literal.
+        visualStoredKeys.delete(`${scope}/${providerId}`);
+        provider.settings!.apiKey = `{env:${match[1] || match[2]}}`;
+      } else {
+        // Literal: stored in the in-memory credential file only; every response is key-free.
+        visualStoredKeys.set(`${scope}/${providerId}`, value);
+        const name = storedSecretName(scope, providerId);
+        provider.settings!.apiKey = `{secret:${name}}`;
+      }
       return credentialStatusFor(scope, providerId);
     },
     RemoveProviderCredential: async (scope, providerId) => {

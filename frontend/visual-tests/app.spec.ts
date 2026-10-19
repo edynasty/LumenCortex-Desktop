@@ -505,7 +505,7 @@ async function openProviderPane(page: Page) {
   await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Models & providers" })).toBeVisible();
   await page.locator(".provider-row").filter({ hasText: "DeepSeek" }).click();
-  await expect(page.getByText("Environment variable DEEPSEEK_API_KEY is not set")).toBeVisible();
+  await expect(page.getByText("Reads environment variable DEEPSEEK_API_KEY (not set)")).toBeVisible();
 }
 
 test.describe("provider pane: protocol and direct-input API keys", () => {
@@ -516,9 +516,9 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
       await openProviderPane(page);
 
       const pane = page.getByRole("dialog", { name: "Settings" });
-      await expect(pane.getByRole("radiogroup", { name: "Source" })).toBeVisible();
-      await pane.getByRole("radio", { name: "Direct input" }).click();
-      await expect(pane.getByRole("textbox", { name: "API key" })).toBeVisible();
+      // ONE API key field shows the env reference as visible text; no source radio group.
+      await expect(pane.getByRole("radiogroup", { name: "Source" })).toHaveCount(0);
+      await expect(pane.getByRole("textbox", { name: "API key" })).toHaveValue("$" + "{DEEPSEEK_API_KEY}");
       await pane.getByRole("button", { name: "Edit" }).first().click();
       await expect(pane.getByRole("radiogroup", { name: "Protocol" })).toBeVisible();
       await expect(pane.getByRole("radio", { name: "Anthropic Messages" })).toBeVisible();
@@ -529,19 +529,33 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
     }
   });
 
-  test("direct-input save -> status -> remove flow over the stub bridge", async ({ page }) => {
+  test("single key field: placeholder input, literal storage, remove, and no leaks", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings refactor");
     await openProviderPane(page);
     const pane = page.getByRole("dialog", { name: "Settings" });
+    const field = pane.getByRole("textbox", { name: "API key" });
 
-    await pane.getByRole("radio", { name: "Direct input" }).click();
-    await pane.getByRole("textbox", { name: "API key" }).fill("sk-stub-NEVER-PRINT-2468");
+    // A literal goes through masked; the value leaves with the save call.
+    await field.fill("sk-stub-NEVER-PRINT-2468");
     await pane.getByRole("button", { name: "Save" }).click();
     await expect(pane.getByText("Saved locally")).toBeVisible();
     await expect(page.locator(".lc-window")).not.toContainText("sk-stub-NEVER-PRINT-2468");
-    await expect(pane.getByRole("textbox", { name: "API key" })).toHaveValue("");
+    await expect(field).toHaveValue("");
+    await expect(field).toHaveAttribute("placeholder", "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
 
+    // Replace with an environment placeholder: visible plain text, env status adopted.
+    await field.fill("$" + "{MY_PROVIDER_KEY}");
+    await pane.getByRole("button", { name: "Replace" }).click();
+    await expect(pane.getByText("Reads environment variable MY_PROVIDER_KEY (not set)")).toBeVisible();
+    await expect(field).toHaveValue("$" + "{MY_PROVIDER_KEY}");
+
+    // With an env reference configured there is no stored key to remove, so no Remove
+    // button exists (backend leaves env references alone). Store a literal again to remove it.
+    await expect(pane.getByRole("button", { name: "Remove" })).toHaveCount(0);
+    await field.fill("sk-stub-NEVER-PRINT-2468");
+    await pane.getByRole("button", { name: "Save" }).click();
+    await expect(pane.getByText("Saved locally")).toBeVisible();
     await pane.getByRole("button", { name: "Remove" }).click();
     await pane.getByRole("button", { name: "Confirm removal" }).click();
     await expect(pane.getByText("No API key configured")).toBeVisible();

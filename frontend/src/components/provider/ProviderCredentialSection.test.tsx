@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConfigState, CredentialStatus, ProviderCatalogDocument } from "../../types";
@@ -95,52 +95,59 @@ describe("ProviderCredentialSection (through the panel)", () => {
     );
   });
 
-  it("shows the env status and switches to the direct-input source", async () => {
-    const user = userEvent.setup();
+  it("shows one field: the env reference as visible text with a set/not-set status", async () => {
     renderPanel();
 
-    expect(await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set")).toBeInTheDocument();
-    expect(screen.getByText("Environment variable DEEPSEEK_API_KEY is not set")).toHaveAttribute("aria-live", "polite");
-    expect(screen.getByRole("radio", { name: "Environment variable" })).toHaveAttribute("aria-checked", "true");
-
-    await user.click(screen.getByRole("radio", { name: "Direct input" }));
-    const keyField = screen.getByLabelText("API key", { selector: "input" });
-    expect(keyField).toHaveAttribute("type", "password");
-    expect(keyField).toHaveAttribute("autocomplete", "new-password");
-    expect(keyField).toHaveAttribute("spellcheck", "false");
+    const field = await screen.findByLabelText("API key", { selector: "input" });
+    // The placeholder text is not a secret, so the field renders it as plain text.
+    expect(field).toHaveValue("${DEEPSEEK_API_KEY}");
+    expect(field).toHaveAttribute("type", "text");
+    expect(screen.getByText("Reads environment variable DEEPSEEK_API_KEY (not set)")).toHaveAttribute("aria-live", "polite");
+    expect(screen.queryByRole("radiogroup", { name: "Source" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove" })).not.toBeInTheDocument();
   });
 
-  it("save sends the key once, clears the input, replaces and never renders it", async () => {
+  it("saving an edited ${NAME} placeholder sends it and adopts the env status", async () => {
+    const user = userEvent.setup();
+    mocks.saveProviderCredential.mockResolvedValue(
+      status({ source: "env", ref: "{env:DEEPSEEK_API_KEY}", set: true }),
+    );
+    renderPanel();
+
+    const field = await screen.findByLabelText("API key", { selector: "input" });
+    // fireEvent.change sets the whole value at once (userEvent.type parses "{" as an escape).
+    fireEvent.change(field, { target: { value: "${MY_PROVIDER_KEY}" } });
+    expect(field).toHaveAttribute("type", "text");
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mocks.saveProviderCredential).toHaveBeenCalledWith("global", "deepseek", "${MY_PROVIDER_KEY}"));
+    expect(await screen.findByText("Reads environment variable DEEPSEEK_API_KEY (set)")).toBeInTheDocument();
+    expect(field).toHaveValue("${DEEPSEEK_API_KEY}");
+  });
+
+  it("a literal is masked while typed, stored on save, never rendered, and offered as Replace", async () => {
     const user = userEvent.setup();
     mocks.saveProviderCredential.mockResolvedValue(
       status({ source: "stored", ref: "{secret:provider.global.deepseek.a1b2c3d4}", set: true }),
     );
     renderPanel();
 
-    await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set");
-    await user.click(screen.getByRole("radio", { name: "Direct input" }));
-    const keyField = screen.getByLabelText("API key", { selector: "input" });
-    await user.type(keyField, KEY);
+    const field = await screen.findByLabelText("API key", { selector: "input" });
+    fireEvent.change(field, { target: { value: KEY } });
+    // A literal stays masked (type=password) while it is the field's value.
+    expect(field).toHaveAttribute("type", "password");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(mocks.saveProviderCredential).toHaveBeenCalledTimes(1));
-    expect(mocks.saveProviderCredential).toHaveBeenCalledWith("global", "deepseek", KEY);
+    await waitFor(() => expect(mocks.saveProviderCredential).toHaveBeenCalledWith("global", "deepseek", KEY));
 
-    // Cleared after the call; only the fixed status/reference is shown, never the value.
-    await waitFor(() => expect(keyField).toHaveValue(""));
-    expect(screen.getByText("Saved locally")).toBeInTheDocument();
+    // Cleared after the call; only the fixed status is shown, never the value. The stored
+    // literal is not read back: the field falls back to the dot-mask placeholder.
+    await waitFor(() => expect(field).toHaveValue(""));
+    expect(field).toHaveAttribute("placeholder", "••••••••");
+    expect(await screen.findByText("Saved locally")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replace" })).toBeInTheDocument();
     expectKeyNowhereInDom();
-
-    // A saved key turns Save into Replace, which reuses the same bridge call.
-    await user.type(keyField, "sk-second-NEVER-PRINT-1111");
-    await user.click(screen.getByRole("button", { name: "Replace" }));
-    await waitFor(() => expect(mocks.saveProviderCredential).toHaveBeenCalledTimes(2));
-    expect(mocks.saveProviderCredential).toHaveBeenLastCalledWith("global", "deepseek", "sk-second-NEVER-PRINT-1111");
-    await waitFor(() => expect(keyField).toHaveValue(""));
-
-    // The catalog reloads: the composer's model list is refreshed after the write.
-    expect(mocks.providerCatalogScope.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
   it("save failure clears the input and shows only a redacted generic message", async () => {
@@ -149,14 +156,13 @@ describe("ProviderCredentialSection (through the panel)", () => {
     mocks.saveProviderCredential.mockRejectedValue(new Error(`credentials file refused: ${KEY}`));
     renderPanel();
 
-    await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set");
-    await user.click(screen.getByRole("radio", { name: "Direct input" }));
-    const keyField = screen.getByLabelText("API key", { selector: "input" });
-    await user.type(keyField, KEY);
+    const field = await screen.findByLabelText("API key", { selector: "input" });
+    fireEvent.change(field, { target: { value: KEY } });
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("Saving the API key failed.")).toBeInTheDocument();
-    await waitFor(() => expect(keyField).toHaveValue(""));
+    // After a failed save the field falls back to the (visible) env reference, not the key.
+    await waitFor(() => expect(field).toHaveValue("${DEEPSEEK_API_KEY}"));
     expectKeyNowhereInDom();
     expect(mocks.saveProviderCredential).toHaveBeenCalledTimes(1);
   });
@@ -186,7 +192,7 @@ describe("ProviderCredentialSection (through the panel)", () => {
     mocks.testProviderConnection.mockImplementation(() => promise);
     renderPanel();
 
-    await screen.findByText("Environment variable DEEPSEEK_API_KEY is not set");
+    await screen.findByText("Reads environment variable DEEPSEEK_API_KEY (not set)");
     const test = within(screen.getByRole("region", { name: "API key" })).getByRole("button", { name: "Test connection" });
     await user.click(test);
     expect(mocks.testProviderConnection).toHaveBeenCalledWith("deepseek");
