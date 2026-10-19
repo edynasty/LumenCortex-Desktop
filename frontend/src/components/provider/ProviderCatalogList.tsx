@@ -4,6 +4,7 @@ import { Icon } from "../primitives/Icon";
 import { ModelForm, ProviderForm } from "./ProviderForms";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { emptyProvider } from "./provider-settings-model";
+import { ProviderCredentialSection } from "./ProviderCredentialSection";
 import type { ProviderSettingsController } from "./useProviderSettingsController";
 
 type Props = {
@@ -155,6 +156,17 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
             {providerNotice[selectedProviderId] && (
               <div className="provider-action-notice">{providerNotice[selectedProviderId]}</div>
             )}
+
+            {/* Keychain/env API key management: view mode only — the form's env-name field
+                covers the create/edit flow, and the section writes the file itself. */}
+            <ProviderCredentialSection
+              locale={locale}
+              scope={controller.scope}
+              providerId={selectedProviderId}
+              testing={providerAction === "test:" + selectedProviderId}
+              onTestConnection={() => void testConnection(selectedProviderId)}
+              onCatalogChanged={() => void controller.reloadCatalog()}
+            />
 
             {editingProvider === selectedProviderId ? (
               <ProviderForm

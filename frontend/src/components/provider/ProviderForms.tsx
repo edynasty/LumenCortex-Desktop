@@ -1,7 +1,8 @@
 import { Button } from "../primitives/Button";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import type { ProviderLocale } from "./provider-copy";
 import { providerCopy } from "./provider-copy";
-import type { ModelDraft, ProviderDraft } from "./provider-settings-model";
+import { envNameValid, type ModelDraft, type ProviderDraft } from "./provider-settings-model";
 
 export function ProviderForm({
   t,
@@ -18,6 +19,9 @@ export function ProviderForm({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const anthropic = draft.package === "anthropic-messages";
+  // A literal key pasted into the env-name field: refused before anything is saved.
+  const envInvalid = !envNameValid(draft.apiKey);
   return (
     <div className="provider-form">
       <div className="form-grid">
@@ -29,27 +33,49 @@ export function ProviderForm({
           <span className="field-label">{t.providerName}</span>
           <input className="input" value={draft.name} onChange={(event) => onChange({ ...draft, name: event.target.value })} placeholder="DeepSeek" />
         </label>
+        <div className="field span-2">
+          <span className="field-label">{t.package}</span>
+          <SegmentedControl
+            ariaLabel={t.package}
+            size="sm"
+            value={draft.package}
+            onChange={(value) => onChange({ ...draft, package: value })}
+            options={[
+              { value: "openai-compatible", label: t.openaiCompatible, title: t.openaiCompatible },
+              { value: "anthropic-messages", label: t.anthropicMessages, title: t.anthropicMessages },
+            ]}
+          />
+          <span className="field-help">{anthropic ? t.protocolHintAnthropic : t.protocolHintOpenai}</span>
+        </div>
         <label className="field span-2">
           <span className="field-label">{t.baseUrl}</span>
-          <input className="input mono" value={draft.baseURL} onChange={(event) => onChange({ ...draft, baseURL: event.target.value })} placeholder="https://api.deepseek.com/v1" />
+          <input className="input mono" value={draft.baseURL} onChange={(event) => onChange({ ...draft, baseURL: event.target.value })} placeholder={anthropic ? t.anthropicBasePlaceholder : "https://api.deepseek.com/v1"} />
         </label>
         <label className="field span-2">
           <span className="field-label">{t.endpoint}</span>
-          <input className="input mono" value={draft.endpoint} onChange={(event) => onChange({ ...draft, endpoint: event.target.value })} placeholder="https://example.com/v1/chat/completions" />
+          <input className="input mono" value={draft.endpoint} onChange={(event) => onChange({ ...draft, endpoint: event.target.value })} placeholder={anthropic ? t.anthropicEndpointPlaceholder : "https://example.com/v1/chat/completions"} />
+          {anthropic && <span className="field-help">{t.endpointDefaultAnthropic}</span>}
         </label>
         <label className="field span-2">
           <span className="field-label">{t.apiKey}</span>
-          <input className="input mono" value={draft.apiKey} onChange={(event) => onChange({ ...draft, apiKey: event.target.value })} placeholder={t.apiKeyPlaceholder} autoComplete="off" />
-          <span className="field-help">{t.envHint}</span>
-        </label>
-        <label className="field">
-          <span className="field-label">{t.package}</span>
-          <input className="input mono" value={t.openaiCompatible} disabled />
+          <input
+            className={`input mono${envInvalid ? " is-invalid" : ""}`}
+            value={draft.apiKey}
+            onChange={(event) => onChange({ ...draft, apiKey: event.target.value })}
+            placeholder={t.apiKeyPlaceholder}
+            autoComplete="off"
+            aria-invalid={envInvalid || undefined}
+          />
+          {envInvalid ? (
+            <span className="field-help is-error" role="alert">{t.invalidEnvName}</span>
+          ) : (
+            <span className="field-help">{t.envHint}</span>
+          )}
         </label>
       </div>
       <div className="editor-actions">
         <Button variant="secondary" size="sm" onClick={onCancel}>{t.cancel}</Button>
-        <Button variant="primary" size="sm" disabled={saving} onClick={onSave}>{t.save}</Button>
+        <Button variant="primary" size="sm" disabled={saving || envInvalid} onClick={onSave}>{t.save}</Button>
       </div>
     </div>
   );

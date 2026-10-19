@@ -51,10 +51,37 @@ export const providerCopy = {
     loading: "正在读取配置…",
     globalPath: "~/.config/lumencortex/lumencortex.json",
     projectPath: "项目根目录/lumencortex.json",
-    openaiCompatible: "OpenAI Compatible",
+    openaiCompatible: "[OI] Compatible",
     envHint: "这里只填写环境变量名。LumenCortex 会保存 {env:VAR_NAME} 引用，不会把真实密钥写入配置文件。",
     emptyProjectScope: "当前项目没有覆盖配置，将继承全局 Provider。",
     effectiveDefault: "当前默认"
+    ,anthropicMessages: "Anthropic Messages"
+    ,protocolHintOpenai: "[OI] Compatible：发送 /chat/completions 请求，密钥放在 Authorization: Bearer 请求头。"
+    ,statusLoadFailed: "无法读取密钥状态。"
+    ,protocolHintAnthropic: "Anthropic Messages：发送 /v1/messages 请求，密钥放在 x-api-key 请求头，并附带 anthropic-version。"
+    ,anthropicBasePlaceholder: "https://api.anthropic.com"
+    ,anthropicEndpointPlaceholder: "https://api.anthropic.com/v1/messages"
+    ,endpointDefaultAnthropic: "留空时使用 baseURL + /v1/messages。"
+    ,invalidEnvName: "API Key 环境变量名只能包含字母、数字和下划线，且以字母或下划线开头；不能直接粘贴密钥。"
+    ,apiKeySection: "API Key"
+    ,credentialSource: "来源"
+    ,sourceEnv: "环境变量"
+    ,sourceKeychain: "macOS 钥匙串"
+    ,keychainUnavailable: "当前环境无法使用 macOS 钥匙串（仅支持 macOS 且钥匙串可用时）。"
+    ,keySaved: "已保存到钥匙串"
+    ,keyEnvSet: "环境变量 {name} 已设置"
+    ,keyEnvUnset: "环境变量 {name} 未设置"
+    ,keyNone: "未配置 API Key"
+    ,keychainPlaceholder: "输入 API Key"
+    ,keyMasked: "••••••••"
+    ,replaceKey: "替换"
+    ,removeKey: "移除"
+    ,confirmRemoveKey: "移除钥匙串中的 API Key？"
+    ,confirmRemoveKeyAction: "确认移除"
+    ,keychainHint: "密钥只写入 macOS 钥匙串；配置文件里只保存 {secret:NAME} 引用。"
+    ,envSourceHint: "在编辑 Provider 时填写环境变量名，配置文件里保存 {env:NAME} 引用。"
+    ,keySaveFailed: "保存 API Key 失败。"
+    ,keyRemoveFailed: "移除 API Key 失败。"
   },
   en: {
     title: "Models & Providers",
@@ -106,9 +133,36 @@ export const providerCopy = {
     loading: "Loading provider settings…",
     globalPath: "~/.config/lumencortex/lumencortex.json",
     projectPath: "project/lumencortex.json",
-    openaiCompatible: "OpenAI Compatible",
+    openaiCompatible: "[OI] Compatible",
     envHint: "Enter only the environment variable name. LumenCortex stores a {env:VAR_NAME} reference and never persists the resolved secret.",
     emptyProjectScope: "This project has no overrides and inherits global providers.",
     effectiveDefault: "Effective default"
+    ,anthropicMessages: "Anthropic Messages"
+    ,protocolHintOpenai: "[OI] Compatible: sends /chat/completions requests with the key in an Authorization: Bearer header."
+    ,statusLoadFailed: "Could not read the key status."
+    ,protocolHintAnthropic: "Anthropic Messages: sends /v1/messages requests with the key in an x-api-key header, plus anthropic-version."
+    ,anthropicBasePlaceholder: "https://api.anthropic.com"
+    ,anthropicEndpointPlaceholder: "https://api.anthropic.com/v1/messages"
+    ,endpointDefaultAnthropic: "Defaults to baseURL + /v1/messages when empty."
+    ,invalidEnvName: "The API key environment variable name may only contain letters, digits and underscores and must start with a letter or underscore; pasting a literal key is not supported."
+    ,apiKeySection: "API key"
+    ,credentialSource: "Source"
+    ,sourceEnv: "Environment variable"
+    ,sourceKeychain: "macOS Keychain"
+    ,keychainUnavailable: "macOS Keychain is unavailable in this environment (macOS with a usable Keychain only)."
+    ,keySaved: "Saved in Keychain"
+    ,keyEnvSet: "Environment variable {name} is set"
+    ,keyEnvUnset: "Environment variable {name} is not set"
+    ,keyNone: "No API key configured"
+    ,keychainPlaceholder: "Enter the API key"
+    ,keyMasked: "••••••••"
+    ,replaceKey: "Replace"
+    ,removeKey: "Remove"
+    ,confirmRemoveKey: "Remove the API key from the Keychain?"
+    ,confirmRemoveKeyAction: "Confirm removal"
+    ,keychainHint: "The key is stored only in the macOS Keychain; the configuration file keeps just a {secret:NAME} reference."
+    ,envSourceHint: "Set the variable name when editing the provider; the file stores an {env:NAME} reference."
+    ,keySaveFailed: "Saving the API key failed."
+    ,keyRemoveFailed: "Removing the API key failed."
   }
 } as const;

@@ -1,11 +1,15 @@
-import type { ProviderCatalog, ProviderDefinition, ProviderModel } from "../../types";
+import type { ProviderCatalog, ProviderDefinition, ProviderModel, ProviderPackage } from "../../types";
 
 export type ProviderDraft = {
   id: string;
   name: string;
+  package: ProviderPackage;
   baseURL: string;
   endpoint: string;
   apiKey: string;
+  // The provider's {secret:NAME} reference as loaded, if any. Display-only: the panel never
+  // holds a key value, and commit keeps this reference unless an env name replaces it.
+  secretRef: string;
 };
 
 export type ModelDraft = {
@@ -23,10 +27,30 @@ export type DeleteTarget =
 export const emptyProvider: ProviderDraft = {
   id: "",
   name: "",
+  package: "openai-compatible",
   baseURL: "",
   endpoint: "",
   apiKey: "",
+  secretRef: "",
 };
+
+// A configured {secret:NAME} reference as-is ("" when absent). Never a key value.
+export function secretReference(value: string | undefined): string {
+  const trimmed = (value || "").trim();
+  if (trimmed.startsWith("{secret:") && trimmed.endsWith("}") && trimmed.length > "{secret:}".length) {
+    return trimmed;
+  }
+  return "";
+}
+
+// Same shape Core's schema enforces for {env:VAR_NAME}: a literal key typed into the env-name
+// field fails this and is refused before anything is saved.
+const envNamePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export function envNameValid(value: string): boolean {
+  const name = value.trim();
+  return !name || envNamePattern.test(name);
+}
 
 export const emptyModel: ModelDraft = {
   id: "",
@@ -57,9 +81,12 @@ export function providerToDraft(id: string, provider: ProviderDefinition): Provi
   return {
     id,
     name: provider.name || "",
+    // Missing/legacy packages display (and save) as [OI]-compatible.
+    package: provider.package === "anthropic-messages" ? "anthropic-messages" : "openai-compatible",
     baseURL: provider.settings?.baseURL || "",
     endpoint: provider.settings?.endpoint || "",
     apiKey: envReferenceName(provider.settings?.apiKey || ""),
+    secretRef: secretReference(provider.settings?.apiKey),
   };
 }
 

@@ -18,6 +18,7 @@ import type {
   Message,
   MessagePage,
   ConfigState,
+  CredentialStatus,
   ProviderCatalogDocument,
   ProviderCatalogScope,
   ProviderConnectionResult,
@@ -73,6 +74,9 @@ export type AppAPI = {
   GetConfigState(): Promise<ConfigState>;
   TrustWorkspace(globalDigest: string): Promise<ConfigState>;
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalogDocument>;
+  GetProviderCredentialStatus(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
+  SaveProviderCredential(scope: ProviderCatalogScope, providerID: string, apiKey: string): Promise<CredentialStatus>;
+  RemoveProviderCredential(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
   SaveProviderCatalogScope(scope: ProviderCatalogScope, doc: ProviderCatalogDocument): Promise<ProviderCatalogDocument>;
   StartAgent(sessionId: string, config: AgentConfig): Promise<Session>;
   ContinueAgent(sessionId: string, content: string, config: AgentConfig): Promise<Session>;
@@ -177,6 +181,9 @@ export const bridge = {
   configState: () => api().GetConfigState(),
   trustWorkspace: (globalDigest: string) => api().TrustWorkspace(globalDigest),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
+  providerCredentialStatus: (scope: ProviderCatalogScope, providerId: string) => api().GetProviderCredentialStatus(scope, providerId),
+  saveProviderCredential: (scope: ProviderCatalogScope, providerId: string, apiKey: string) => api().SaveProviderCredential(scope, providerId, apiKey),
+  removeProviderCredential: (scope: ProviderCatalogScope, providerId: string) => api().RemoveProviderCredential(scope, providerId),
   saveProviderCatalogScope: (scope: ProviderCatalogScope, doc: ProviderCatalogDocument) => api().SaveProviderCatalogScope(scope, doc),
   startAgent: (sessionId: string, config: AgentConfig) => api().StartAgent(sessionId, config),
   continueAgent: (sessionId: string, content: string, config: AgentConfig) => api().ContinueAgent(sessionId, content, config),

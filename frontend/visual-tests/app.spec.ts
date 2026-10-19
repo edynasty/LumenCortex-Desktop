@@ -494,3 +494,76 @@ test.describe("Core-backed interactions", () => {
     await expect(page.locator(".main-pane h2")).toContainText("lumencortex/demo");
   });
 });
+
+/** Opens Settings on the Models & providers pane, as the palette does. */
+async function openProviderPane(page: Page) {
+  await page.keyboard.press("ControlOrMeta+k");
+  const palette = page.getByRole("dialog", { name: "Command palette" });
+  await page.keyboard.type("Models");
+  await page.keyboard.press("Enter");
+  await expect(palette).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Models & providers" })).toBeVisible();
+  await page.locator(".provider-row").filter({ hasText: "DeepSeek" }).click();
+  await expect(page.getByText("Environment variable DEEPSEEK_API_KEY is not set")).toBeVisible();
+}
+
+test.describe("provider pane: protocol and Keychain credentials", () => {
+  test("keeps the new controls unclipped at every window width", async ({ page }) => {
+    for (const width of WIDTHS) {
+      await open(page, "", width);
+      await openThread(page, "Provider settings refactor");
+      await openProviderPane(page);
+
+      const pane = page.getByRole("dialog", { name: "Settings" });
+      await expect(pane.getByRole("radiogroup", { name: "Source" })).toBeVisible();
+      await pane.getByRole("radio", { name: "macOS Keychain" }).click();
+      await expect(pane.getByRole("textbox", { name: "API key" })).toBeVisible();
+      await pane.getByRole("button", { name: "Edit" }).first().click();
+      await expect(pane.getByRole("radiogroup", { name: "Protocol" })).toBeVisible();
+      await expect(pane.getByRole("radio", { name: "Anthropic Messages" })).toBeVisible();
+
+      expect(await clippedControls(page)).toEqual([]);
+      expect(await hardClippedText(page)).toEqual([]);
+      await page.keyboard.press("Escape");
+    }
+  });
+
+  test("Keychain save -> status -> remove flow over the stub bridge", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Provider settings refactor");
+    await openProviderPane(page);
+    const pane = page.getByRole("dialog", { name: "Settings" });
+
+    await pane.getByRole("radio", { name: "macOS Keychain" }).click();
+    await pane.getByRole("textbox", { name: "API key" }).fill("sk-stub-NEVER-PRINT-2468");
+    await pane.getByRole("button", { name: "Save" }).click();
+    await expect(pane.getByText("Saved in Keychain")).toBeVisible();
+    await expect(page.locator(".lc-window")).not.toContainText("sk-stub-NEVER-PRINT-2468");
+    await expect(pane.getByRole("textbox", { name: "API key" })).toHaveValue("");
+
+    await pane.getByRole("button", { name: "Remove" }).click();
+    await pane.getByRole("button", { name: "Confirm removal" }).click();
+    await expect(pane.getByText("No API key configured")).toBeVisible();
+    await expect(page.locator(".lc-window")).not.toContainText("sk-stub-NEVER-PRINT-2468");
+  });
+
+  test("the stub bridge never returns the key value", async ({ page }) => {
+    await open(page);
+    const leaked = await page.evaluate(async () => {
+      const app = window.go?.main?.App as Record<string, (...args: unknown[]) => Promise<unknown>> | undefined;
+      if (!app) throw new Error("stub bridge is not installed");
+      const marker = "sk-stub-NEVER-PRINT-1357";
+      const after = await app.SaveProviderCredential("global", "deepseek", marker);
+      const answers = await Promise.all([
+        app.GetProviderCredentialStatus("global", "deepseek"),
+        app.GetProviderCatalogScope("global"),
+        app.GetConfigState(),
+        app.TestProviderConnection("deepseek"),
+        Promise.resolve(after),
+      ]);
+      return JSON.stringify(answers).includes(marker);
+    });
+    expect(leaked).toBe(false);
+  });
+});

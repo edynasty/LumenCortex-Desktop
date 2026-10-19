@@ -405,9 +405,17 @@ export type ProviderConnectionResult = {
   message: string;
 };
 
-export type ProviderSecretStatus = {
-  configured: boolean;
-  available: boolean;
+export type ProviderPackage = "openai-compatible" | "anthropic-messages";
+
+// Per-provider credential state from the backend. `ref` is the configured reference
+// ({env:NAME} / {secret:NAME}) — never a secret value.
+export type CredentialStatus = {
+  providerId: string;
+  scope: ProviderCatalogScope;
+  source: "none" | "env" | "keychain";
+  ref?: string;
+  set: boolean;
+  keychainAvailable: boolean;
 };
 
 export type ProviderModel = {
@@ -420,7 +428,7 @@ export type ProviderModel = {
 
 export type ProviderDefinition = {
   name?: string;
-  package?: string;
+  package?: ProviderPackage;
   settings?: {
     baseURL?: string;
     endpoint?: string;

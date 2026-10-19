@@ -15,6 +15,7 @@ import {
   cloneCatalog,
   emptyModel,
   emptyProvider,
+  envNameValid,
   envReference,
   modelFromDraft,
   modelToDraft,
@@ -77,6 +78,7 @@ export type ProviderSettingsController = {
   setDefaultModel: (providerId: string, modelId: string) => Promise<void>;
   testConnection: (providerId: string) => Promise<void>;
   discoverModels: (providerId: string) => Promise<void>;
+  reloadCatalog: () => Promise<void>;
   saveAdvancedJSON: () => Promise<void>;
 };
 
@@ -177,15 +179,29 @@ export function useProviderSettingsController({
     }
   }
 
+  // The credential section writes the file behind the panel's back (Keychain save/remove);
+  // this re-reads it so the digest and advanced JSON stay current. No draft is in flight:
+  // the section is only rendered while no provider edit is open.
+  async function reloadCatalog() {
+    try {
+      adopt(await bridge.providerCatalogScope(scope));
+      onConfigChanged();
+    } catch (err) {
+      onError(String(err));
+    }
+  }
+
   function startAddProvider(preset?: ProviderPreset) {
     setProviderDraft(
       preset
         ? {
             id: preset.id,
             name: preset.name,
+            package: preset.package,
             baseURL: preset.baseURL,
             endpoint: "",
             apiKey: preset.envVar,
+            secretRef: "",
           }
         : emptyProvider,
     );
@@ -207,6 +223,13 @@ export function useProviderSettingsController({
       return;
     }
 
+    // A literal key pasted into the env-name field is refused here (Core's schema would
+    // reject it on save anyway); only the variable-name shape may travel into the file.
+    if (!envNameValid(providerDraft.apiKey)) {
+      onError(t.invalidEnvName);
+      return;
+    }
+
     const previousId = editingProvider && editingProvider !== "new" ? editingProvider : null;
     if (catalog.providers[id] && previousId !== id) {
       onError(t.providerIdConflict);
@@ -225,11 +248,12 @@ export function useProviderSettingsController({
 
     next.providers[id] = {
       name: providerDraft.name.trim() || id,
-      package: previous?.package || "openai-compatible",
+      package: providerDraft.package,
       settings: {
         baseURL: providerDraft.baseURL.trim() || undefined,
         endpoint: providerDraft.endpoint.trim() || undefined,
-        apiKey: envReference(providerDraft.apiKey),
+        // An env name wins; otherwise a loaded {secret:NAME} reference is kept as-is.
+        apiKey: envReference(providerDraft.apiKey) ?? (providerDraft.secretRef || undefined),
       },
       models: previous?.models || {},
       // The backend keeps the fields the panel does not edit (headers, timeouts, ...) only if it
@@ -380,6 +404,7 @@ export function useProviderSettingsController({
     setDefaultModel,
     testConnection,
     discoverModels,
+    reloadCatalog,
     saveAdvancedJSON,
   };
 }

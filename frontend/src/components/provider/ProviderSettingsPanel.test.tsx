@@ -1,18 +1,24 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ConfigState, ProviderCatalogDocument } from "../../types";
+import type { ConfigState, ProviderCatalogDocument, ProviderCatalogScope } from "../../types";
 import { ProviderSettingsPanel } from "./ProviderSettingsPanel";
 
 const mocks = vi.hoisted(() => ({
   providerCatalogScope: vi.fn(),
   saveProviderCatalogScope: vi.fn(),
+  providerCredentialStatus: vi.fn(),
+  saveProviderCredential: vi.fn(),
+  removeProviderCredential: vi.fn(),
 }));
 
 vi.mock("../../lib/bridge", () => ({
   bridge: {
     providerCatalogScope: mocks.providerCatalogScope,
     saveProviderCatalogScope: mocks.saveProviderCatalogScope,
+    providerCredentialStatus: mocks.providerCredentialStatus,
+    saveProviderCredential: mocks.saveProviderCredential,
+    removeProviderCredential: mocks.removeProviderCredential,
     testProviderConnection: vi.fn(),
     discoverProviderModels: vi.fn(),
   },
@@ -52,9 +58,18 @@ describe("ProviderSettingsPanel", () => {
     localStorage.clear();
     mocks.providerCatalogScope.mockReset();
     mocks.saveProviderCatalogScope.mockReset();
+    mocks.providerCredentialStatus.mockReset();
+    mocks.saveProviderCredential.mockReset();
+    mocks.removeProviderCredential.mockReset();
     mocks.providerCatalogScope.mockResolvedValue(fileDoc("sha256:one"));
+    mocks.providerCredentialStatus.mockResolvedValue({
+      providerId: "deepseek",
+      scope: "global",
+      source: "none",
+      set: false,
+      keychainAvailable: true,
+    });
   });
-
   it("hydrates a safe DeepSeek preset without exposing a literal secret field", async () => {
     const user = userEvent.setup();
     renderPanel();
@@ -184,5 +199,66 @@ describe("ProviderSettingsPanel", () => {
     expect(screen.getByText("something Core reports that this build does not know")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Trust this project" }));
     expect(onTrust).toHaveBeenCalledTimes(1);
+  });
+
+  it("protocol change updates the base URL/endpoint hints and saves the selected package", async () => {
+    const user = userEvent.setup();
+    mocks.providerCatalogScope.mockResolvedValue(fileDoc("sha256:one", { old: { name: "Old", models: {} } }));
+    mocks.saveProviderCatalogScope.mockResolvedValue(fileDoc("sha256:two", { old: { name: "Old", models: {} } }));
+    renderPanel();
+
+    // A provider written before packages existed displays as [OI] Compatible.
+    const [providerEdit] = await screen.findAllByRole("button", { name: "Edit" });
+    await user.click(providerEdit);
+    const group = screen.getByRole("radiogroup", { name: "Protocol" });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "[OI] Compatible" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText(/sends \/chat\/completions requests/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("https://api.deepseek.com/v1")).toBeInTheDocument();
+
+    // Switching protocol swaps the hints for the Anthropic Messages defaults.
+    await user.click(screen.getByRole("radio", { name: "Anthropic Messages" }));
+    expect(screen.getByText(/sends \/v1\/messages requests with the key in an x-api-key header/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("https://api.anthropic.com")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("https://api.anthropic.com/v1/messages")).toBeInTheDocument();
+    expect(screen.getByText("Defaults to baseURL + /v1/messages when empty.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
+    expect(mocks.saveProviderCatalogScope.mock.calls[0][1].catalog.providers.old.package).toBe("anthropic-messages");
+  });
+
+  it("saves a provider without a package unchanged until the user edits it", async () => {
+    const user = userEvent.setup();
+    mocks.providerCatalogScope.mockResolvedValue(
+      fileDoc("sha256:one", { old: { name: "Old", models: { m: { name: "M" } } } }),
+    );
+    mocks.saveProviderCatalogScope.mockImplementation(async (_scope: ProviderCatalogScope, sent: ProviderCatalogDocument) => ({ ...sent, digest: "sha256:two" }));
+    renderPanel();
+
+    // Setting a default model saves the catalog without touching the provider entry.
+    await screen.findByRole("button", { name: "Old old · 1 models" });
+    await user.click(screen.getByRole("button", { name: "Set default" }));
+    await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
+    const saved = mocks.saveProviderCatalogScope.mock.calls[0][1].catalog.providers.old;
+    expect(saved.package).toBeUndefined();
+    expect(saved.settings?.apiKey).toBeUndefined();
+  });
+
+  it("refuses a literal key pasted into the env-name field", async () => {
+    const user = userEvent.setup();
+    mocks.providerCatalogScope.mockResolvedValue(fileDoc("sha256:one", { deepseek: { name: "DeepSeek", models: {} } }));
+    renderPanel();
+
+    const [providerEdit] = await screen.findAllByRole("button", { name: "Edit" });
+    await user.click(providerEdit);
+    const envField = screen.getByLabelText(/API key environment variable/);
+    await user.clear(envField);
+    await user.type(envField, "sk-live-NEVER-PRINT-9876543210");
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByText(/may only contain letters, digits and underscores/)).toBeInTheDocument();
+    expect(envField).toHaveAttribute("aria-invalid", "true");
+    expect(mocks.saveProviderCatalogScope).not.toHaveBeenCalled();
   });
 });

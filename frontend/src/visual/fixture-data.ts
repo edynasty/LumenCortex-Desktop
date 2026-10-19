@@ -7,6 +7,7 @@ import type {
   LSPStatus,
   Message,
   ConfigState,
+  CredentialStatus,
   ProviderCatalog,
   RuntimeEvent,
   Session,
@@ -107,6 +108,21 @@ export const providerCatalog: ProviderCatalog = {
           name: "DeepSeek Chat",
           modelID: "deepseek-chat",
           limit: { context: 64000, output: 8000 },
+        },
+      },
+    },
+    anthropic: {
+      name: "Anthropic",
+      package: "anthropic-messages",
+      settings: {
+        baseURL: "https://api.anthropic.com",
+        apiKey: "{env:ANTHROPIC_API_KEY}",
+      },
+      models: {
+        "claude-4-5": {
+          name: "the model",
+          modelID: "claude-4-5",
+          limit: { context: 200000, output: 16000 },
         },
       },
     },
@@ -303,6 +319,35 @@ function acceptVisualCheck(checkId: string): CheckResult {
   return result;
 }
 
+// The harness's credential store: keys live only in this map, and no stub answer ever
+// contains a value from it — SaveProviderCredential's response is built from fixed strings.
+const visualKeychain = new Map<string, string>();
+
+// Which names the stub's fake environment happens to have set (mirrors visualConfigState).
+const visualEnvSet: Record<string, boolean> = { OPENAI_API_KEY: true, DEEPSEEK_API_KEY: false, ANTHROPIC_API_KEY: false };
+
+function keychainSecretName(scope: string, providerId: string): string {
+  return `lumencortex-${scope}-${providerId}`.replace(/[^A-Za-z0-9._-]+/g, "-").slice(0, 128);
+}
+
+function credentialStatusFor(scope: "global" | "workspace", providerId: string): CredentialStatus {
+  const ref = providerCatalog.providers[providerId]?.settings?.apiKey || "";
+  const secret = ref.startsWith("{secret:") && ref.endsWith("}");
+  const envMatch = /^\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(ref);
+  return {
+    providerId,
+    scope,
+    source: secret ? "keychain" : envMatch ? "env" : "none",
+    ref: ref || undefined,
+    set: secret
+      ? visualKeychain.has(`${scope}/${providerId}`)
+      : envMatch
+        ? Boolean(visualEnvSet[envMatch[1]])
+        : false,
+    keychainAvailable: true,
+  };
+}
+
 /** Core answers for the configuration, Git, MCP, skills, Task State and checks surfaces. */
 export function visualAppStub() {
   return {
@@ -314,6 +359,22 @@ export function visualAppStub() {
       catalog: providerCatalog,
     }),
     SaveProviderCatalogScope: async (_scope, doc) => doc,
+    GetProviderCredentialStatus: async (scope, providerId) => credentialStatusFor(scope, providerId),
+    SaveProviderCredential: async (scope, providerId, apiKey) => {
+      // The value goes into the in-memory store only; every response is key-free.
+      visualKeychain.set(`${scope}/${providerId}`, apiKey);
+      const name = keychainSecretName(scope, providerId);
+      providerCatalog.providers[providerId] ??= {};
+      providerCatalog.providers[providerId].settings ??= {};
+      providerCatalog.providers[providerId].settings!.apiKey = `{secret:${name}}`;
+      return credentialStatusFor(scope, providerId);
+    },
+    RemoveProviderCredential: async (scope, providerId) => {
+      visualKeychain.delete(`${scope}/${providerId}`);
+      const settings = providerCatalog.providers[providerId]?.settings;
+      if (settings?.apiKey?.startsWith("{secret:")) settings.apiKey = undefined;
+      return credentialStatusFor(scope, providerId);
+    },
     TestProviderConnection: async () => ({ ok: true, models: 2, message: "Connected" }),
     DiscoverProviderModels: async () => [{ id: "gpt-5.6" }, { id: "gpt-5.6-mini" }],
 
