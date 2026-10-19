@@ -15,10 +15,19 @@ import type {
   SessionRuntime,
   SubagentNode,
   TaskStateInfo,
+  AgentProfile,
 } from "../types";
 import { cancelVisualSubtree, startVisualTask } from "./task-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
+
+// The Agents page's catalog in the visual harness. Mutable, so create/edit/delete flows behave
+// like the Desktop backend without a file.
+const visualAgentProfiles: AgentProfile[] = [
+  { id: "ask", name: "Ask", base: "ask" as const, instructions: "", policy: "read-only" as const, builtin: true },
+  { id: "agent", name: "Agent", base: "agent" as const, instructions: "", policy: "workspace" as const, builtin: true },
+  { id: "reviewer", name: "Code reviewer", description: "Reads diffs and names risks.", base: "ask" as const, instructions: "Lead with the risk, then the evidence.", modelRef: "openai/gpt-5.6", effort: "high" as const, policy: "read-only" as const, builtin: false },
+];
 export const localRuntime: SessionRuntime = { kind: "local", path: workspace, branch: "main", head: "0f6c33a" };
 export const runtime: SessionRuntime = {
   kind: "worktree",
@@ -468,6 +477,32 @@ export function visualAppStub() {
     SetSkillEnabled: async () => undefined,
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
+    ListAgentProfiles: async () => ({ profiles: structuredClone(visualAgentProfiles) }),
+    SaveAgentProfile: async (profile) => {
+      const saved = { ...profile, id: profile.id || `profile-${visualAgentProfiles.length - 1}`, builtin: false };
+      const index = visualAgentProfiles.findIndex((item) => item.id === saved.id);
+      if (index >= 0) visualAgentProfiles[index] = saved;
+      else visualAgentProfiles.push(saved);
+      return { profiles: structuredClone(visualAgentProfiles) };
+    },
+    DeleteAgentProfile: async (id) => {
+      const index = visualAgentProfiles.findIndex((item) => item.id === id);
+      if (index >= 0) visualAgentProfiles.splice(index, 1);
+      return { profiles: structuredClone(visualAgentProfiles) };
+    },
+    ResetAgentProfile: async (id) => {
+      const profile = visualAgentProfiles.find((item) => item.id === id);
+      if (profile) {
+        profile.instructions = "";
+        if (profile.builtin) profile.policy = profile.base === "ask" ? "read-only" : "workspace";
+        else {
+          profile.modelRef = undefined;
+          profile.effort = undefined;
+          profile.policy = undefined;
+        }
+      }
+      return { profiles: structuredClone(visualAgentProfiles) };
+    },
     TitleBarDoubleClick: async () => undefined,
 
     GetTaskState: async (sessionId) => ({ ...structuredClone(visualTaskState), sessionId }),

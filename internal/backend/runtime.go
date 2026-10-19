@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -30,6 +31,8 @@ type Runtime struct {
 	workspace  string
 	// credentials is Core's file-backed secret store behind {secret:NAME} provider references.
 	credentials credentialStore
+	// agentProfilesMu serializes read-modify-write of the Desktop agent profile catalog.
+	agentProfilesMu sync.Mutex
 }
 
 type Health = lcx.Health
@@ -47,7 +50,10 @@ type MessagePage = lcx.MessagePage
 type SessionUIPatch = lcx.SessionUIPatch
 
 type AgentConfig struct {
-	ModelRef            string   `json:"modelRef,omitempty"`
+	ModelRef string `json:"modelRef,omitempty"`
+	// Effort is one of Core's five levels, "auto" (Core classifies each turn and resolves one level
+	// before its first request), or "" for the configured default. Core validates it per model; the
+	// bridge refuses an unknown string before the run starts.
 	Effort              string   `json:"effort,omitempty"`
 	Policy              string   `json:"policy,omitempty"`
 	MaxSteps            int      `json:"maxSteps,omitempty"`
@@ -62,6 +68,11 @@ type AgentConfig struct {
 	// with no delegation (a read-only conversation turn), "agent" or "" keeps the user's choices.
 	// The frontend maps the same rule; this guard is what actually reaches Core.
 	Mode string `json:"mode,omitempty"`
+	// ProfileID names the Desktop agent profile the turn uses. The backend resolves its
+	// instructions from the profile store (the frontend never sends the text) and uses its base as
+	// the guard: base=ask forces read-only/no delegation whatever Mode, Policy or Delegation say.
+	// Empty keeps the pre-profile behavior. Unknown ids are refused before anything reaches Core.
+	ProfileID string `json:"profileId,omitempty"`
 }
 
 type WorkspaceState struct {
@@ -372,22 +383,37 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 	if !validMode(cfg.Mode) {
 		return Session{}, ErrInvalidMode
 	}
+	if !validEffort(cfg.Effort) {
+		return Session{}, fmt.Errorf("%w: %q", lcx.ErrInvalidEffort, strings.TrimSpace(cfg.Effort))
+	}
+	// A named profile's instructions and base come from the store, never from the request: the
+	// frontend can only name a profile, not forge its text or widen its base.
+	instructions, profileBase := "", ""
+	if id := strings.TrimSpace(cfg.ProfileID); id != "" {
+		resolved, base, err := profileInstructions(id)
+		if err != nil {
+			return Session{}, err
+		}
+		instructions, profileBase = resolved, base
+	}
 	permissions, err := loadToolPermissions(workspace)
 	if err != nil {
 		return Session{}, err
 	}
 	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
-	return supervisor.Start(ctx, sessionID, agentOptionsFor(cfg, toolDenylist, input))
+	return supervisor.Start(ctx, sessionID, agentOptionsFor(cfg, profileBase, instructions, toolDenylist, input))
 }
 
-// agentOptionsFor maps the bridge's AgentConfig onto Core's AgentOptions. Mode "ask" is the guard:
-// whatever policy or delegation the request carries, the options handed to Core are read-only with
-// no delegation, so a mode=ask turn can never reach Core write-capable.
-func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.AgentOptions {
+// agentOptionsFor maps the bridge's AgentConfig onto Core's AgentOptions. The guard is the profile's
+// base when a profile was named, Mode otherwise: "ask" hands Core a read-only policy and no
+// delegation whatever the request carries, so an Ask-based turn can never reach Core write-capable.
+// Instructions are Core's additional system text, appended after its default prompt.
+func agentOptionsFor(cfg AgentConfig, profileBase, instructions string, toolDenylist []string, input string) lcx.AgentOptions {
 	policy := normalizedPolicy(cfg.Policy)
 	delegation := strings.TrimSpace(cfg.Delegation)
-	if strings.TrimSpace(cfg.Mode) == "ask" {
+	capped := strings.TrimSpace(cfg.Mode) == "ask" || profileBase == AgentBaseAsk
+	if capped {
 		policy = "read-only"
 		delegation = ""
 	}
@@ -397,6 +423,7 @@ func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.A
 		Effort:              config.Effort(strings.TrimSpace(cfg.Effort)),
 		Input:               input,
 		Policy:              policy,
+		Instructions:        instructions,
 		MaxSteps:            cfg.MaxSteps,
 		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
 		ToolDenylist:        toolDenylist,
@@ -413,6 +440,18 @@ func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.A
 func validMode(mode string) bool {
 	switch strings.TrimSpace(mode) {
 	case "", "ask", "agent":
+		return true
+	default:
+		return false
+	}
+}
+
+// validEffort accepts the five concrete levels and "auto"; "" leaves Core's configured default in
+// charge. Core performs the same check against the model, but refusing here keeps an unknown
+// string from ever reaching a run.
+func validEffort(effort string) bool {
+	switch config.Effort(strings.TrimSpace(effort)) {
+	case "", config.EffortNone, config.EffortLow, config.EffortMedium, config.EffortHigh, config.EffortMax, config.EffortAuto:
 		return true
 	default:
 		return false

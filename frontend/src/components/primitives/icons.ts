@@ -76,6 +76,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   Square,
   SquarePen,
   SquareTerminal,
@@ -84,6 +85,7 @@ import {
   TriangleAlert,
   Undo2,
   User,
+  Users,
   Workflow,
   Wrench,
   X,
@@ -121,6 +123,8 @@ export const Icons = {
   reference: AtSign,
   model: Cpu,
   effort: Brain,
+  /** Auto effort: the level is judged per turn. */
+  autoEffort: Sparkles,
   permission: ShieldCheck,
   permissionFull: ShieldAlert,
   readOnly: Eye,
@@ -151,6 +155,8 @@ export const Icons = {
   file: FileCode2,
   shell: SquareTerminal,
   subagent: Bot,
+  /** The agent profile catalog: named presets of Ask/Agent behavior. */
+  agents: Users,
   mcp: Plug,
   skill: BookOpen,
   tool: Wrench,

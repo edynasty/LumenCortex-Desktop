@@ -24,6 +24,7 @@ export function Rail({ page, settingsOpen, attention, worktrees, labels, onNavig
     { page: "threads", icon: "discussion", label: labels.threadsPage, hint: `${labels.threadsPage} ⌘1`, count: attention },
     { page: "context", icon: "context", label: labels.contextPage, hint: `${labels.contextPage} ⌘2` },
     { page: "scm", icon: "worktree", label: labels.sourceControl, hint: `${labels.sourceControl} ⌘3`, dot: worktrees > 0 },
+    { page: "agents", icon: "agents", label: labels.agentsPage, hint: `${labels.agentsPage} ⌘4` },
   ];
   return (
     <nav className="rail" aria-label={labels.mainNav}>

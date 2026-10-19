@@ -9,6 +9,12 @@ import { ThreadComposer } from "./ThreadComposer";
 const t = copy.en;
 const labels: ComposerCopy = Object.assign({} as AppCopy, t, { noModels: "No model configured" });
 
+const agentProfiles = [
+  { id: "ask", name: "Ask", base: "ask" as const, instructions: "", policy: "read-only" as const, builtin: true },
+  { id: "agent", name: "Agent", base: "agent" as const, instructions: "", policy: "workspace" as const, builtin: true },
+  { id: "reviewer", name: "Code reviewer", description: "Reads diffs", base: "ask" as const, instructions: "Lead with risk.", builtin: false },
+];
+
 function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]> = {}) {
   const props = {
     runtime: { kind: "local" as const, path: "/repo" },
@@ -20,6 +26,7 @@ function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]>
     recentModelRefs: [],
     effortOptions: [],
     mode: "agent" as const,
+    agent: { profiles: agentProfiles, selectedId: "agent", onSelect: vi.fn() },
     policy: "workspace" as const,
     contextPaths: [],
     goal: "",
@@ -28,7 +35,6 @@ function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]>
     textareaRef: null,
     onGoalChange: vi.fn(),
     onModelChange: vi.fn(),
-    onModeChange: vi.fn(),
     onPolicyChange: vi.fn(),
     onEffortChange: vi.fn(),
     onPickContextFiles: vi.fn(),
@@ -90,14 +96,19 @@ describe("ThreadComposer", () => {
     expect(screen.queryByRole("button", { name: t.configureEnvironment })).toBeNull();
   });
 
-  it("caps the permission control with an explanation while in Ask mode", async () => {
+  it("offers the built-in and custom agents and selects by id", async () => {
     const user = userEvent.setup();
-    const props = renderComposer({ mode: "agent" });
-    // Agent mode: the policy control is enabled.
-    expect(screen.getByRole("button", { name: `${t.policy}: ${t.workspace}` })).toBeEnabled();
+    const onSelect = vi.fn();
+    renderComposer({ agent: { profiles: agentProfiles, selectedId: "agent", onSelect } });
 
-    await user.click(screen.getByRole("button", { name: new RegExp(`^${t.mode}:`) }));
-    await user.click(screen.getByRole("menuitemradio", { name: new RegExp(t.modeAsk) }));
-    expect(props.onModeChange).toHaveBeenCalledWith("ask");
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t.agentSelector}:`) }));
+    expect(screen.getByRole("menuitemradio", { name: new RegExp(t.agentAskName) })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitemradio", { name: /Code reviewer/ }));
+    expect(onSelect).toHaveBeenCalledWith("reviewer");
+  });
+
+  it("caps the permission control when the selected agent's base is Ask", () => {
+    renderComposer({ mode: "ask" });
+    expect(screen.getByRole("button", { name: `${t.policy}: ${t.workspace}` })).toBeDisabled();
   });
 });

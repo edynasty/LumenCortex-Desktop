@@ -206,6 +206,33 @@ func TestRejectedStartsReportCoreSentinelsAndLeaveTheSessionUnpinned(t *testing.
 	waitStatus(t, r, session.ID, "completed")
 }
 
+// Auto is a request value, not a level: the bridge passes it to Core untouched and Core resolves
+// one level per turn. The guard still refuses an unknown string before any run starts.
+func TestAutoEffortReachesCoreUnchanged(t *testing.T) {
+	if got := agentOptionsFor(AgentConfig{Effort: " auto "}, "", "", nil, "").Effort; got != config.EffortAuto {
+		t.Fatalf("Effort=%q, want %q", got, config.EffortAuto)
+	}
+	configPath := useConfigDir(t)
+	var seen requestModels
+	server := httptest.NewServer(seen.handler(t))
+	defer server.Close()
+	writeTestCatalog(t, configPath, server.URL+"/v1", "test/a")
+
+	ctx := context.Background()
+	r := openRuntime(t, canonicalDir(t))
+	session, err := r.CreateSession(ctx, "auto effort")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{Effort: "auto", MaxSteps: 2}); err != nil {
+		t.Fatal(err)
+	}
+	waitStatus(t, r, session.ID, "completed")
+	if seen.count() != 1 {
+		t.Fatalf("requests=%d, want 1", seen.count())
+	}
+}
+
 func TestStartWithoutConfiguredModelIsUnknownModel(t *testing.T) {
 	useConfigDir(t)
 	ctx := context.Background()

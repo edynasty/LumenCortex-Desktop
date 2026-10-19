@@ -3,7 +3,7 @@ import { BrandMark } from "../brand/A1Mark";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentEffort, RuntimeKind } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
-import { Composer, type ComposerCopy } from "./Composer";
+import { Composer, type ComposerAgent, type ComposerCopy } from "./Composer";
 import { EnvironmentStrip } from "./EnvironmentStrip";
 import { type PickerOption } from "./ComposerPickers";
 import "./new-task-composer.css";
@@ -24,6 +24,7 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   contextPaths: string[];
   mode: AgentMode;
+  agent: ComposerAgent;
   policy: ComposerPolicy;
   models: PickerOption[];
   modelRef: string;
@@ -33,7 +34,6 @@ type Props = {
   /** The execution environment, chosen here and fixed once the session starts. */
   runtime: ComposerRuntime;
   onGoalChange: (value: string) => void;
-  onModeChange: (mode: AgentMode) => void;
   onModelChange: (value: string) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onPolicyChange: (value: ComposerPolicy) => void;
@@ -62,6 +62,7 @@ export function NewTaskComposer({
   textareaRef,
   contextPaths,
   mode,
+  agent,
   policy,
   models,
   modelRef,
@@ -70,7 +71,6 @@ export function NewTaskComposer({
   effortOptions,
   runtime,
   onGoalChange,
-  onModeChange,
   onModelChange,
   onEffortChange,
   onPolicyChange,
@@ -109,7 +109,7 @@ export function NewTaskComposer({
           onPickContextFolder={onPickContextFolder}
           onRemoveContextPath={onRemoveContextPath}
           mode={mode}
-          onModeChange={onModeChange}
+          agent={agent}
           policy={policy}
           onPolicyChange={onPolicyChange}
           models={models}

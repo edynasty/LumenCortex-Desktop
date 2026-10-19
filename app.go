@@ -443,3 +443,25 @@ func (a *App) GetToolPermissions() (backend.ToolPermissions, error) {
 func (a *App) SaveToolPermissions(value backend.ToolPermissions) (backend.ToolPermissions, error) {
 	return a.backend.SaveToolPermissions(value)
 }
+
+// ListAgentProfiles returns the Desktop agent profile catalog: the two built-ins first, then the
+// user's profiles. A corrupt agents.json falls back to the built-ins with a warning.
+func (a *App) ListAgentProfiles() (backend.AgentProfiles, error) {
+	return a.backend.ListAgentProfiles()
+}
+
+// SaveAgentProfile creates a profile (empty id) or updates one. Built-ins keep their id, name and
+// base; only their instructions and composer defaults can change.
+func (a *App) SaveAgentProfile(profile backend.AgentProfile) (backend.AgentProfiles, error) {
+	return a.backend.SaveAgentProfile(profile)
+}
+
+// DeleteAgentProfile removes a custom profile; built-ins cannot be deleted.
+func (a *App) DeleteAgentProfile(id string) (backend.AgentProfiles, error) {
+	return a.backend.DeleteAgentProfile(id)
+}
+
+// ResetAgentProfile clears a profile's instructions (and a custom profile's defaults).
+func (a *App) ResetAgentProfile(id string) (backend.AgentProfiles, error) {
+	return a.backend.ResetAgentProfile(id)
+}

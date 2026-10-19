@@ -138,7 +138,7 @@ export function WorkspaceChrome(props: Props) {
 
   const sidebar = (
     <Sidebar
-      label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : labels.contextPage}
+      label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : page === "agents" ? labels.agentsPage : labels.contextPage}
       workspace={props.workspace}
       recentProjects={props.recentProjects}
       runtimeState={props.runtimeState}

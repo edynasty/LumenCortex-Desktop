@@ -18,7 +18,8 @@ describe("workspace routes", () => {
       { kind: "review", sessionId: "s1" },
       { kind: "scm", checkout: "main" },
       { kind: "context" },
+      { kind: "agents" },
     ];
-    expect(routes.map(routePage)).toEqual(["threads", "threads", "threads", "scm", "context"]);
+    expect(routes.map(routePage)).toEqual(["threads", "threads", "threads", "scm", "context", "agents"]);
   });
 });

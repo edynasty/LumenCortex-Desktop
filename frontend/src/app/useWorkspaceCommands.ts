@@ -66,6 +66,8 @@ export function useWorkspaceCommands(input: Input) {
       input.onSetRoute(lastThread.current ? { kind: "thread", sessionId: lastThread.current } : { kind: "new-task" });
     } else if (page === "scm") {
       input.onSetRoute({ kind: "scm", checkout: lastCheckout.current });
+    } else if (page === "agents") {
+      input.onSetRoute({ kind: "agents" });
     } else {
       input.onSetRoute({ kind: "context" });
     }
@@ -86,6 +88,7 @@ export function useWorkspaceCommands(input: Input) {
       action("page-threads", "discussion", labels.threadsPage, () => navigate("threads"), "⌘1"),
       action("page-context", "context", labels.contextPage, () => navigate("context"), "⌘2"),
       action("page-scm", "worktree", labels.sourceControl, () => navigate("scm"), "⌘3"),
+      action("page-agents", "agents", labels.agentsPage, () => navigate("agents"), "⌘4"),
     ] : []),
     ...(current && route.kind === "thread"
       ? [action("changes", "changes", labels.changesView, () => input.onSetRoute({ kind: "review", sessionId: current.id }))]
@@ -136,6 +139,7 @@ export function useWorkspaceCommands(input: Input) {
       else if (key === "1" && hasProject) go("threads");
       else if (key === "2" && hasProject) go("context");
       else if (key === "3" && hasProject) go("scm");
+      else if (key === "4" && hasProject) go("agents");
       else handled = false;
       if (handled) event.preventDefault();
     };

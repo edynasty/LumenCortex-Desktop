@@ -494,7 +494,9 @@ export type ConfigState = {
   globalDigest: string;
 };
 
-export type AgentEffort = "none" | "low" | "medium" | "high" | "max";
+// A per-model reasoning level, or "auto" (Core classifies each turn and resolves one level; the
+// heuristic applies when no effort.auto.model judge is configured).
+export type AgentEffort = "none" | "low" | "medium" | "high" | "max" | "auto";
 
 export type AgentConfig = {
   modelRef?: string;
@@ -509,6 +511,31 @@ export type AgentConfig = {
   // The composer's Ask/Agent switch. Ask caps the turn to Core's read-only policy with no
   // delegation before it reaches Core; the backend guard enforces the same cap.
   mode?: "ask" | "agent";
+  // The Desktop agent profile the turn uses. The backend resolves its instructions from the
+  // profile store and applies its base as the same guard; the frontend never sends the text.
+  profileId?: string;
+};
+
+// A Desktop agent profile: a named preset of composer choices plus extra instructions appended
+// after Core's default system prompt. `base` decides the runtime semantics and can never be
+// widened: an Ask-based profile is always read-only with no delegation.
+export type AgentBase = "ask" | "agent";
+
+export type AgentProfile = {
+  id: string;
+  name: string;
+  description?: string;
+  base: AgentBase;
+  instructions: string;
+  modelRef?: string;
+  effort?: AgentEffort;
+  policy?: "read-only" | "workspace" | "full";
+  builtin: boolean;
+};
+
+export type AgentProfilesState = {
+  profiles: AgentProfile[];
+  warning?: string;
 };
 
 // Task State (Core runtime.TaskStateInfo, ADR-0006). The host view already includes queued edits.

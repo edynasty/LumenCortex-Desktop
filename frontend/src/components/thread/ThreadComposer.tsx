@@ -2,7 +2,7 @@ import type { FormEvent, ReactNode, Ref } from "react";
 import type { AgentEffort, SessionRuntime } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
 import type { PickerOption } from "../composer/ComposerPickers";
-import { Composer, type ComposerCopy } from "../composer/Composer";
+import { Composer, type ComposerAgent, type ComposerCopy } from "../composer/Composer";
 import { EnvironmentStrip } from "../composer/EnvironmentStrip";
 
 type Props = {
@@ -19,6 +19,7 @@ type Props = {
   effort?: AgentEffort;
   effortOptions: string[];
   mode: AgentMode;
+  agent: ComposerAgent;
   policy: AgentPolicy;
   // The thread's delegation grant control; absent where a thread cannot hold one.
   delegationControl?: ReactNode;
@@ -29,7 +30,6 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   onGoalChange: (value: string) => void;
   onModelChange: (value: string) => void;
-  onModeChange: (mode: AgentMode) => void;
   onPolicyChange: (policy: AgentPolicy) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onPickContextFiles: () => void;
@@ -55,6 +55,7 @@ export function ThreadComposer({
   effort,
   effortOptions,
   mode,
+  agent,
   policy,
   delegationControl,
   contextPaths,
@@ -64,7 +65,6 @@ export function ThreadComposer({
   textareaRef,
   onGoalChange,
   onModelChange,
-  onModeChange,
   onPolicyChange,
   onEffortChange,
   onPickContextFiles,
@@ -91,7 +91,7 @@ export function ThreadComposer({
         onPickContextFolder={onPickContextFolder}
         onRemoveContextPath={onRemoveContextPath}
         mode={mode}
-        onModeChange={onModeChange}
+        agent={agent}
         policy={policy}
         onPolicyChange={onPolicyChange}
         delegationControl={delegationControl}

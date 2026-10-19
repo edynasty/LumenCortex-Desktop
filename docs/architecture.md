@@ -76,3 +76,29 @@ Key rule:
 - React owns presentation state.
 - Core owns execution state.
 - `runtime.RunSupervisor` is the only source of truth for live agent runs.
+
+## Agent profiles
+
+The Agents page (rail item `agents`, route `{ kind: "agents" }`) owns a Desktop-specific preset
+catalog. A profile is `{ id, name, description, base: "ask" | "agent", instructions, modelRef?,
+effort?, policy?, builtin }`; the two built-ins `ask` and `agent` always exist, cannot be deleted
+or renamed, and have a fixed base. The catalog is `agents.json` (`{version: 1, profiles: [...]}`)
+in the global configuration directory next to `credentials.json`, written atomically through a
+temporary file and rename, at most 16 profiles, names 1–40 characters and unique, instructions up
+to 8000 characters. A corrupt file falls back to the built-ins with a warning and is not
+rewritten until the user saves.
+
+Profiles are a Desktop preset of `runtime.AgentOptions`, not a second runtime. Core owns the
+default system prompt, the safety and authority text, the policy and the tool set. The Start path
+maps a profile id — never its text — from the composer to `AgentOptions.Instructions`, which Core
+appends as the last system message after its default prompt and the skills prompt. Core bounds it
+(16 KiB, valid UTF-8) and records only a SHA-256 and length in the decision log. The frontend sends
+only `profileId`; the backend resolves the instructions from the file, so the text is never forged
+by the renderer or stored in the session. A profile's `base` is the same guard the composer's
+Ask/Agent switch used: `ask` forces Core's read-only policy and no delegation whatever the request
+carries; a profile `policy` is only a default the user can still change and is clamped by the base.
+Model and effort defaults are adopted by the composer when the profile is picked and remain
+user-changeable.
+
+Wails APIs: `ListAgentProfiles`, `SaveAgentProfile`, `DeleteAgentProfile`, `ResetAgentProfile`
+(`internal/backend/agent_profiles.go`), with typed bridge methods in `frontend/src/lib/bridge.ts`.

@@ -1,5 +1,7 @@
 import type {
   AgentConfig,
+  AgentProfile,
+  AgentProfilesState,
   DiscoveredModel,
   FileResult,
   GitActionResult,
@@ -134,6 +136,10 @@ export type AppAPI = {
   SetSkillEnabled(scope: SkillScope, id: string, enabled: boolean): Promise<void>;
   GetToolPermissions(): Promise<ToolPermissions>;
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
+  ListAgentProfiles(): Promise<AgentProfilesState>;
+  SaveAgentProfile(profile: AgentProfile): Promise<AgentProfilesState>;
+  DeleteAgentProfile(id: string): Promise<AgentProfilesState>;
+  ResetAgentProfile(id: string): Promise<AgentProfilesState>;
   TitleBarDoubleClick(): Promise<void>;
 };
 
@@ -239,6 +245,10 @@ export const bridge = {
   setSkillEnabled: (scope: SkillScope, id: string, enabled: boolean) => api().SetSkillEnabled(scope, id, enabled),
   toolPermissions: () => api().GetToolPermissions(),
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
+  listAgentProfiles: () => api().ListAgentProfiles(),
+  saveAgentProfile: (profile: AgentProfile) => api().SaveAgentProfile(profile),
+  deleteAgentProfile: (id: string) => api().DeleteAgentProfile(id),
+  resetAgentProfile: (id: string) => api().ResetAgentProfile(id),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit),
   titleBarDoubleClick: () => api().TitleBarDoubleClick()

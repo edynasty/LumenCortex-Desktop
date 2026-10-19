@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { FormEvent, ReactNode, Ref } from "react";
 import type { AgentEffort, Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
-import type { ComposerCopy } from "../composer/Composer";
+import type { ComposerAgent, ComposerCopy } from "../composer/Composer";
 import type { PickerOption } from "../composer/ComposerPickers";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { EmptyState } from "../primitives/EmptyState";
@@ -35,8 +35,8 @@ type Props = {
   effort?: AgentEffort;
   effortOptions: string[];
   mode: AgentMode;
+  agent: ComposerAgent;
   policy: AgentPolicy;
-  onModeChange: (mode: AgentMode) => void;
   onPolicyChange: (policy: AgentPolicy) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onPickContextFiles: () => void;
@@ -142,8 +142,8 @@ export function ThreadWorkspace({
   effort,
   effortOptions,
   mode,
+  agent,
   policy,
-  onModeChange,
   onPolicyChange,
   onEffortChange,
   onPickContextFiles,
@@ -324,6 +324,7 @@ export function ThreadWorkspace({
         effort={effort}
         effortOptions={effortOptions}
         mode={mode}
+        agent={agent}
         policy={policy}
         delegationControl={delegationControl}
         contextPaths={contextPaths}
@@ -333,7 +334,6 @@ export function ThreadWorkspace({
         textareaRef={textareaRef}
         onGoalChange={onGoalChange}
         onModelChange={onModelChange}
-        onModeChange={onModeChange}
         onPolicyChange={onPolicyChange}
         onEffortChange={onEffortChange}
         onPickContextFiles={onPickContextFiles}

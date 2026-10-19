@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
-import type { ComposerCopy } from "../components/composer/Composer";
+import type { ComposerAgent, ComposerCopy } from "../components/composer/Composer";
+import { AgentsPage } from "../components/agents/AgentsPage";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
@@ -17,6 +18,7 @@ import type {
   WorkflowSummary,
 } from "../types";
 import type { AgentMode, AgentPolicy } from "./agent-config";
+import type { AgentProfilesController } from "./hooks/useAgentProfiles";
 import { pickerPlaceholder, type ModelPickerOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel, threadWorkspaceLabels } from "./presentation-model";
@@ -35,11 +37,13 @@ type Props = {
   labels: AppCopy;
   workspace: string;
   config: ConfigState;
+  agents: AgentProfilesController;
   trusting: boolean;
   modelRef: string;
   pickerModels: ModelPickerOption[];
   recentModelRefs: string[];
   mode: AgentMode;
+  agent: ComposerAgent;
   effort?: AgentEffort;
   effortOptions: string[];
   contextPaths: string[];
@@ -56,7 +60,6 @@ type Props = {
   textareaRef: Ref<HTMLTextAreaElement>;
   onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
-  onModeChange: (mode: AgentMode) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onGoalChange: (value: string) => void;
   onPickContextFiles: () => void;
@@ -93,11 +96,13 @@ export function WorkspaceRouteContent({
   labels,
   workspace,
   config,
+  agents,
   trusting,
   modelRef,
   pickerModels,
   recentModelRefs,
   mode,
+  agent,
   effort,
   effortOptions,
   contextPaths,
@@ -114,7 +119,6 @@ export function WorkspaceRouteContent({
   textareaRef,
   onTrustWorkspace,
   onModelChange,
-  onModeChange,
   onEffortChange,
   onGoalChange,
   onPickContextFiles,
@@ -155,6 +159,19 @@ export function WorkspaceRouteContent({
 
   if (route.kind === "scm" || route.kind === "context") return <>{pageContent}</>;
 
+  if (route.kind === "agents") {
+    return (
+      <AgentsPage
+        labels={labels}
+        agents={agents}
+        models={composerModels}
+        recentModelRefs={recentModelRefs}
+        effortOptions={effortOptions}
+        onOpenProviders={onOpenProviders}
+      />
+    );
+  }
+
   if (route.kind === "review" && current) {
     return (
       <WorkspaceReviewRoute
@@ -182,6 +199,7 @@ export function WorkspaceRouteContent({
         effort={effort}
         effortOptions={effortOptions}
         mode={mode}
+        agent={agent}
         policy={policy}
         contextPaths={contextPaths}
         runtime={runtimeKind}
@@ -191,7 +209,6 @@ export function WorkspaceRouteContent({
         textareaRef={textareaRef}
         onGoalChange={onGoalChange}
         onModelChange={onModelChange}
-        onModeChange={onModeChange}
         onEffortChange={onEffortChange}
         onPickContextFiles={onPickContextFiles}
         onPickContextFolder={onPickContextFolder}
@@ -251,9 +268,9 @@ export function WorkspaceRouteContent({
           effort={effort}
           effortOptions={effortOptions}
           mode={mode}
+          agent={agent}
           policy={policy}
-          onModeChange={onModeChange}
-          onPolicyChange={onPolicyChange}
+            onPolicyChange={onPolicyChange}
           onEffortChange={onEffortChange}
           onPickContextFiles={onPickContextFiles}
           onPickContextFolder={onPickContextFolder}

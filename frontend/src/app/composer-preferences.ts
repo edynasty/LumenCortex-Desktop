@@ -7,6 +7,9 @@ import type { AgentMode, AgentPolicy } from "./agent-config";
 export type ComposerPreferences = {
   policy: AgentPolicy;
   mode: AgentMode;
+  // The selected agent profile id. A deleted or missing id falls back to "agent" (see
+  // resolveAgentId); mode stays for older stored preferences and for the base-derived guard.
+  agentId: string;
   effort?: AgentEffort;
   modelRef?: string;
 };
@@ -14,9 +17,9 @@ export type ComposerPreferences = {
 const KEY = "lcx-composer";
 const POLICIES: AgentPolicy[] = ["read-only", "workspace", "full"];
 const MODES: AgentMode[] = ["ask", "agent"];
-const EFFORTS: AgentEffort[] = ["none", "low", "medium", "high", "max"];
+const EFFORTS: AgentEffort[] = ["none", "low", "medium", "high", "max", "auto"];
 
-export const defaultComposerPreferences: ComposerPreferences = { policy: "workspace", mode: "agent" };
+export const defaultComposerPreferences: ComposerPreferences = { policy: "workspace", mode: "agent", agentId: "agent" };
 
 export function readComposerPreferences(): ComposerPreferences {
   let stored: Record<string, unknown> = {};
@@ -30,7 +33,8 @@ export function readComposerPreferences(): ComposerPreferences {
   const mode = MODES.find((item) => item === stored.mode) ?? defaultComposerPreferences.mode;
   const effort = EFFORTS.find((item) => item === stored.effort);
   const modelRef = typeof stored.modelRef === "string" && stored.modelRef ? stored.modelRef : undefined;
-  return { policy, mode, effort, modelRef };
+  const agentId = typeof stored.agentId === "string" && stored.agentId ? stored.agentId : defaultComposerPreferences.agentId;
+  return { policy, mode, agentId, effort, modelRef };
 }
 
 // Merges one change into the stored preferences; an undefined value clears that key.

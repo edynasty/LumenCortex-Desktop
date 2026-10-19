@@ -14,7 +14,7 @@ describe("Ask/Agent turn mapping", () => {
   });
 
   it("buildAgentConfig sends the mapped turn and the mode for the backend guard", () => {
-    expect(buildAgentConfig("test/a", "full", 24, "isolated", "ask")).toEqual({
+    expect(buildAgentConfig("test/a", "full", 24, "isolated", "ask", undefined, "reviewer")).toEqual({
       modelRef: "test/a",
       effort: undefined,
       policy: "read-only",
@@ -22,14 +22,16 @@ describe("Ask/Agent turn mapping", () => {
       maxToolCallsPerStep: 8,
       delegation: "none",
       mode: "ask",
+      profileId: "reviewer",
     });
-    expect(buildAgentConfig(undefined, "workspace", 24, "propose", "agent", "high")).toEqual({
+    expect(buildAgentConfig(undefined, "workspace", 24, "propose", "agent", "high", "agent")).toEqual({
       effort: "high",
       policy: "workspace",
       maxSteps: 24,
       maxToolCallsPerStep: 8,
       delegation: "propose",
       mode: "agent",
+      profileId: "agent",
     });
   });
 

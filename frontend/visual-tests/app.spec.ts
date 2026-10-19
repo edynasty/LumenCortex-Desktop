@@ -413,37 +413,92 @@ test.describe("Core-backed interactions", () => {
 
   // ————— Stage A composer: Ask/Agent, effort, model picker, execution environment —————
 
-  test("Ask mode caps the permission and delegation controls and survives thread switching", async ({ page }) => {
+  test("an Ask-based agent caps the permission and delegation controls and survives thread switching", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings refactor");
-    const mode = page.getByRole("button", { name: /^Mode:/ });
-    await mode.click();
-    await page.getByRole("menu", { name: "Mode" }).getByRole("menuitemradio", { name: /^Ask/ }).click();
-    await expect(page.getByRole("button", { name: /^Mode:/ })).toHaveAccessibleName("Mode: Ask");
+    const agent = page.getByRole("button", { name: /^Agent:/ });
+    await agent.click();
+    await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Ask/ }).click();
+    await expect(page.getByRole("button", { name: /^Agent:/ })).toHaveAccessibleName("Agent: Ask");
 
-    // The two Core controls keep their state but are capped with an explanation while in Ask.
+    // The two Core controls keep their state but are capped with an explanation under an Ask base.
     const policy = page.getByRole("button", { name: /^Permissions:/ });
     await expect(policy).toBeDisabled();
     await expect(policy).toHaveAttribute("title", /Ask is always read-only/);
     const delegation = page.getByRole("button", { name: /^Delegation:/ });
     await expect(delegation).toBeDisabled();
 
-    // The mode is app-level: switching threads keeps it.
+    // The selection is app-level: switching threads keeps it.
     await openThread(page, "Upgrade SQLite driver");
-    await expect(page.getByRole("button", { name: /^Mode:/ })).toHaveAccessibleName("Mode: Ask");
+    await expect(page.getByRole("button", { name: /^Agent:/ })).toHaveAccessibleName("Agent: Ask");
 
-    // Switching back to Agent restores the controls.
-    await page.getByRole("button", { name: /^Mode:/ }).click();
-    await page.getByRole("menu", { name: "Mode" }).getByRole("menuitemradio", { name: /^Agent/ }).click();
+    // Switching back to the Agent built-in restores the controls.
+    await page.getByRole("button", { name: /^Agent:/ }).click();
+    await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Agent/ }).click();
     await expect(page.getByRole("button", { name: /^Permissions:/ })).toBeEnabled();
   });
 
-  test("the effort picker offers only the selected model's levels and disables when fixed", async ({ page }) => {
+  test("opens Agents from the rail, edits a built-in's instructions and saves", async ({ page }) => {
     await open(page, "", 1180);
-    // GPT-5.6 has efforts; the effort chip opens a menu with Default + its levels.
+    await goToPage(page, /^Agents$/);
+    await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible();
+
+    await page.getByRole("button", { name: /^Agent$/ }).click();
+    const instructions = page.locator(".agents-instructions");
+    await instructions.fill("Lead with the conclusion, then the evidence.");
+    await expect(page.getByText("Unsaved")).toBeVisible();
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Unsaved")).toHaveCount(0);
+
+    // The edit survives a page switch: it went through the bridge, not local component state.
+    await goToPage(page, /^Threads$/);
+    await goToPage(page, /^Agents$/);
+    await page.getByRole("button", { name: /^Agent$/ }).click();
+    await expect(page.locator(".agents-instructions")).toHaveValue("Lead with the conclusion, then the evidence.");
+  });
+
+  test("creates a custom Ask-based agent and the composer sends its id with the Ask cap", async ({ page }) => {
+    await open(page, "", 1180);
+    await goToPage(page, /^Agents$/);
+    await page.getByRole("button", { name: "New agent" }).click();
+    await page.getByLabel("Name").fill("Release reviewer");
+    await page.getByRole("radio", { name: /Read-only conversation/ }).click();
+    await page.locator(".agents-instructions").fill("Only flag release-blocking risks.");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("button", { name: /^Release reviewer$/ })).toBeVisible();
+
+    // Record what the composer hands the bridge; the stub answers like Core.
+    await page.evaluate(() => {
+      const app = window.go?.main?.App;
+      if (!app) throw new Error("stub bridge is not installed");
+      const recorded: { profileId?: string; policy?: string; mode?: string }[] = [];
+      (window as Window & { __lcxAgents?: { profileId?: string; policy?: string; mode?: string }[] }).__lcxAgents = recorded;
+      const original = app.StartAgent.bind(app);
+      app.StartAgent = async (id, cfg) => {
+        recorded.push({ profileId: cfg.profileId, policy: cfg.policy, mode: cfg.mode });
+        return original(id, cfg);
+      };
+    });
+
+    await goToPage(page, /^Threads$/);
+    await page.getByRole("button", { name: /^Agent:/ }).click();
+    await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Release reviewer/ }).click();
+    await expect(page.getByRole("button", { name: /^Permissions:/ })).toBeDisabled();
+    await page.getByRole("textbox", { name: /Describe a task/ }).fill("Review the release branch");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => page.evaluate(() => (window as Window & { __lcxAgents?: unknown[] }).__lcxAgents?.length ?? 0)).toBe(1);
+    const sent = await page.evaluate(() => (window as Window & { __lcxAgents?: { profileId?: string; policy?: string; mode?: string }[] }).__lcxAgents?.[0]);
+    expect(sent?.profileId).toBe("profile-3");
+    expect(sent?.policy).toBe("read-only");
+    expect(sent?.mode).toBe("ask");
+  });
+
+  test("the effort picker offers Auto and only the selected model's levels, and disables when fixed", async ({ page }) => {
+    await open(page, "", 1180);
+    // GPT-5.6 has efforts; the effort chip opens a menu with Default + Auto + its levels.
     await page.getByRole("button", { name: /^Effort:/ }).click();
     const menu = page.getByRole("menu", { name: "Effort" });
-    await expect(menu.getByRole("menuitemradio")).toHaveCount(4);
+    await expect(menu.getByRole("menuitemradio")).toHaveCount(5);
     await menu.getByRole("menuitemradio", { name: "High" }).click();
     await expect(page.getByRole("button", { name: /^Effort:/ })).toHaveAccessibleName("Effort: High");
 
@@ -453,6 +508,45 @@ test.describe("Core-backed interactions", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: /^Effort:/ })).toBeDisabled();
     await expect(page.getByRole("button", { name: /^Effort:/ })).toHaveAccessibleName("Effort: Effort fixed");
+  });
+
+  test("picking Auto is keyboard reachable and sends effort auto to the bridge", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Improve review diff rendering");
+
+    // Record what the app hands the bridge; the stub still answers as Core would.
+    await page.evaluate(() => {
+      const app = window.go?.main?.App;
+      if (!app) throw new Error("stub bridge is not installed");
+      const recorded: { effort?: string }[] = [];
+      (window as Window & { __lcxEfforts?: { effort?: string }[] }).__lcxEfforts = recorded;
+      const original = app.ContinueAgent.bind(app);
+      app.ContinueAgent = async (id, content, cfg) => {
+        recorded.push({ effort: cfg.effort });
+        return original(id, content, cfg);
+      };
+    });
+
+    // Auto is the first selectable row after Default, with its heuristic note.
+    const chip = page.getByRole("button", { name: /^Effort:/ });
+    await chip.click();
+    const menu = page.getByRole("menu", { name: "Effort" });
+    await expect(menu.getByRole("menuitemradio")).toHaveCount(5);
+    const auto = menu.getByRole("menuitemradio", { name: /^Auto/ });
+    await expect(auto).toContainText("heuristic rules unless effort.auto.model");
+    await page.keyboard.press("Escape");
+
+    // Keyboard: Tab into the menu, arrows walk Default → Auto, Enter picks.
+    await chip.click();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(chip).toHaveAccessibleName("Effort: Auto");
+
+    await page.getByRole("textbox", { name: "Start another task" }).fill("judge this turn");
+    await page.getByRole("button", { name: "Resume" }).click();
+    const sent = await page.evaluate(() => (window as Window & { __lcxEfforts?: { effort?: string }[] }).__lcxEfforts ?? []);
+    expect(sent.at(-1)?.effort).toBe("auto");
   });
 
   test("the model picker filters, shows reasons for refused models, keeps Recent, and re-pins on send", async ({ page }) => {

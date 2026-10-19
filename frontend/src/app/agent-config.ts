@@ -28,6 +28,7 @@ export function buildAgentConfig(
   delegation: Delegation = "none",
   mode: AgentMode = "agent",
   effort?: AgentEffort,
+  profileId?: string,
 ): AgentConfig {
   const turn = resolveTurnOptions(mode, policy, delegation);
   return {
@@ -38,6 +39,7 @@ export function buildAgentConfig(
     maxToolCallsPerStep: 8,
     delegation: turn.delegation,
     mode,
+    profileId,
   };
 }
 

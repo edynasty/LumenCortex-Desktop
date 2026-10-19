@@ -23,7 +23,7 @@ func TestAskModeForcesReadOnlyAndNoDelegation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := agentOptionsFor(tc.cfg, nil, "")
+			opts := agentOptionsFor(tc.cfg, "", "", nil, "")
 			if opts.Policy != tc.wantPolicy {
 				t.Fatalf("policy = %q, want %q", opts.Policy, tc.wantPolicy)
 			}

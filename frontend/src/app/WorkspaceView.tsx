@@ -16,6 +16,7 @@ import type {
   SubagentNode, WorkflowSummary,
 } from "../types";
 import type { AgentMode, AgentPolicy } from "./agent-config";
+import type { AgentProfilesController } from "./hooks/useAgentProfiles";
 import type { ConfiguredModelOption, ModelPickerOption } from "./model-selection";
 import type { AgentEffort } from "../types";
 import { WorkspaceChrome } from "./WorkspaceChrome";
@@ -50,6 +51,7 @@ type Props = {
   paletteOpen: boolean;
   events: RuntimeEvent[];
   config: ConfigState;
+  agents: AgentProfilesController;
   trusting: boolean;
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
@@ -101,7 +103,6 @@ type Props = {
   onConfigChanged: () => void;
   onTrustWorkspace: () => void;
   onModelChange: (value: string) => void;
-  onModeChange: (mode: AgentMode) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onError: (message: string) => void;
   onClearError: () => void;
@@ -292,11 +293,13 @@ export function WorkspaceView(props: Props) {
         labels={labels}
         workspace={workspace}
         config={props.config}
+        agents={props.agents}
         trusting={props.trusting}
         modelRef={props.modelRef}
         pickerModels={props.pickerModels}
         recentModelRefs={props.recentModelRefs}
         mode={props.mode}
+        agent={props.agents.composerAgent}
         effort={props.effort}
         effortOptions={props.effortOptions}
         contextPaths={props.contextPaths}
@@ -313,7 +316,6 @@ export function WorkspaceView(props: Props) {
         textareaRef={props.textareaRef}
         onTrustWorkspace={props.onTrustWorkspace}
         onModelChange={props.onModelChange}
-        onModeChange={props.onModeChange}
         onEffortChange={props.onEffortChange}
         onGoalChange={props.onGoalChange}
         onPickContextFiles={props.onPickContextFiles}

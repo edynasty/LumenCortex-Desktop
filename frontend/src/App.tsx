@@ -14,6 +14,7 @@ import { useModelSelection } from "./app/hooks/useModelSelection";
 
 import { executableModels, modelOptions } from "./app/model-selection";
 import { useComposerPreferences } from "./app/hooks/useComposerPreferences";
+import { useAgentProfiles } from "./app/hooks/useAgentProfiles";
 import { useComposerModelControls } from "./app/hooks/useComposerModelControls";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -133,11 +134,13 @@ export default function App() {
     [events, selected]
   );
   const configuredModels = useMemo(() => modelOptions(config), [config]);
-  const { policy, setPolicy, mode, setMode, rememberModel, usableModel } = useComposerPreferences(config.models);
+  const { policy, setPolicy, rememberModel, usableModel } = useComposerPreferences(config.models);
   const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "", preferred: usableModel });
   // Picker options, effort support and the bounded recent list for the composer.
   const { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort } =
     useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef, onModelChosen: rememberModel });
+  const agents = useAgentProfiles({ onModel: selectModelFromPicker, onEffort: setEffort, onPolicy: setPolicy });
+  const mode = agents.selected?.base ?? "agent";
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
@@ -166,7 +169,7 @@ export default function App() {
     contextLabel: t.followUpContext,
     getAgentConfig: () => {
       const turn = resolveTurnOptions(mode, policy, current ? sessionUI(current).delegation : "none");
-      return buildAgentConfig(agentModelRef(), turn.policy, maxSteps, turn.delegation, mode, effectiveEffort);
+      return buildAgentConfig(agentModelRef(), turn.policy, maxSteps, turn.delegation, mode, effectiveEffort, agents.agentId);
     },
     setWorkspaceState: setState,
     setRoute,
@@ -255,6 +258,7 @@ export default function App() {
       paletteOpen={paletteOpen}
       events={selectedEvents}
       config={config}
+      agents={agents}
       trusting={trusting}
       modelRef={modelRef}
       configuredModels={configuredModels}
@@ -306,7 +310,6 @@ export default function App() {
       onConfigChanged={() => void refreshConfig()}
       onTrustWorkspace={() => void trustWorkspace()}
       onModelChange={selectModelFromPicker}
-      onModeChange={setMode}
       onEffortChange={setEffort}
       onError={setError}
       onClearError={() => setError("")}
@@ -343,5 +346,4 @@ export default function App() {
       onDelegationChange={(sessionId, delegation) => void updateSessionUI(sessionId, { delegation })}
     />
   );
-
 }

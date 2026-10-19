@@ -9,6 +9,8 @@ import {
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentEffort } from "../../types";
 import type { AgentMode, AgentPolicy } from "../../app/agent-config";
+import { agentProfileName, type ComposerAgent } from "../../app/agent-profiles";
+import { AUTO_EFFORT } from "../../app/model-selection";
 import { ContextAttachments, ContextAttachTrigger } from "./ContextAttachments";
 import { ModelPicker, type ModelPickerHandle, type PickerOption } from "./ComposerPickers";
 import { MenuPicker } from "./MenuPicker";
@@ -17,6 +19,8 @@ import "./composer.css";
 
 /** The composer's copy: the whole app copy plus the picker placeholder, which depends on config. */
 export type ComposerCopy = AppCopy & { noModels: string };
+
+export type { ComposerAgent };
 
 export const COMPOSER_MAX_HEIGHT = 220;
 
@@ -40,9 +44,9 @@ type Props = {
   onPickContextFiles: () => void;
   onPickContextFolder: () => void;
   onRemoveContextPath: (path: string) => void;
-  // Ask/Agent mode; Ask caps the turn to read-only/none and disables the two Core controls.
+  // The selected profile's base: Ask caps the turn to read-only/none and disables the Core controls.
   mode: AgentMode;
-  onModeChange: (mode: AgentMode) => void;
+  agent: ComposerAgent;
   // The user's authorization policy and delegation grant, applied unchanged in Agent mode.
   policy: AgentPolicy;
   onPolicyChange: (policy: AgentPolicy) => void;
@@ -63,25 +67,26 @@ type Props = {
   sendTitle?: string;
 };
 
-const modeIcon: Record<AgentMode, "discussion" | "subagent"> = { ask: "discussion", agent: "subagent" };
 const policyIcon: Record<AgentPolicy, "readOnly" | "permission" | "permissionFull"> = {
   "read-only": "readOnly",
   workspace: "permission",
   full: "permissionFull",
 };
-const effortIconByLevel: Record<AgentEffort, "idle" | "effort" | "plan" | "workflow" | "checkRun"> = {
+const effortIconByLevel: Record<AgentEffort, "idle" | "effort" | "plan" | "workflow" | "checkRun" | "autoEffort"> = {
   none: "idle",
   low: "effort",
   medium: "plan",
   high: "workflow",
   max: "checkRun",
+  auto: "autoEffort",
 };
-const effortLabelKey: Record<AgentEffort, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax"> = {
+const effortLabelKey: Record<AgentEffort, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax" | "effortAuto"> = {
   none: "effortNone",
   low: "effortLow",
   medium: "effortMedium",
   high: "effortHigh",
   max: "effortMax",
+  auto: "effortAuto",
 };
 
 // The shared composer surface (Codex / Copilot Chat pattern over Lumen Glass): one rounded glass
@@ -107,7 +112,7 @@ export function Composer({
   onPickContextFolder,
   onRemoveContextPath,
   mode,
-  onModeChange,
+  agent,
   policy,
   onPolicyChange,
   delegationControl,
@@ -173,10 +178,17 @@ export function Composer({
   };
 
   // Without supported levels the picker offers nothing: the chip shows the not-configurable
-  // placeholder and stays disabled, so no effort is ever claimed or sent.
+  // placeholder and stays disabled, so no effort is ever claimed or sent. Auto is a request value,
+  // not a level, so it sits ahead of the model's own levels and only when the model has any.
   const effortChoices: PickerOption[] = effortOptions.length
     ? [
         { value: "", label: copy.effortDefault },
+        {
+          value: AUTO_EFFORT,
+          label: copy.effortAuto,
+          description: copy.effortAutoDescription,
+          icon: effortIconByLevel.auto,
+        },
         ...effortOptions.map((level) => ({
           value: level,
           label: copy[effortLabelKey[level as AgentEffort]],
@@ -232,16 +244,20 @@ export function Composer({
           />
         </span>
         <MenuPicker
-          ariaLabel={copy.mode}
+          ariaLabel={copy.agentSelector}
           collapsible
-          value={mode}
-          placeholder={copy.modeAgent}
+          value={agent.selectedId}
+          placeholder={copy.agentAgentName}
           disabled={busy}
-          options={[
-            { value: "ask", label: copy.modeAsk, description: copy.modeAskDescription, icon: modeIcon.ask },
-            { value: "agent", label: copy.modeAgent, description: copy.modeAgentDescription, icon: modeIcon.agent },
-          ]}
-          onChange={(next) => onModeChange(next as AgentMode)}
+          options={agent.profiles.map((profile) => ({
+            value: profile.id,
+            label: agentProfileName(profile, copy),
+            description: profile.builtin
+              ? (profile.base === "ask" ? copy.agentsBaseAskDescription : copy.agentsBaseAgentDescription)
+              : profile.description,
+            icon: profile.base === "ask" ? "discussion" : "agents",
+          }))}
+          onChange={agent.onSelect}
         />
         {delegationControl}
         <span className="composer-spacer" />
