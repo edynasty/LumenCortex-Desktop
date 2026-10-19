@@ -130,6 +130,7 @@ export type AppAPI = {
   SetSkillEnabled(scope: SkillScope, id: string, enabled: boolean): Promise<void>;
   GetToolPermissions(): Promise<ToolPermissions>;
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
+  TitleBarDoubleClick(): Promise<void>;
 };
 
 declare global {
@@ -232,7 +233,8 @@ export const bridge = {
   toolPermissions: () => api().GetToolPermissions(),
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
-  sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit)
+  sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit),
+  titleBarDoubleClick: () => api().TitleBarDoubleClick()
 };
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {

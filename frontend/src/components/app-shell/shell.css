@@ -109,7 +109,6 @@
 .project-branch > span:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-head { color: var(--fg-4); flex: none; }
 .project-chevron { color: var(--fg-4); flex: none; }
-.project-menu { width: 100%; min-width: 260px; }
 
 /* Thread rows: title + time on line one, what it needs + where it runs on line two. */
 .thread-group + .thread-group { margin-top: 12px; }

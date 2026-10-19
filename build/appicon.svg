@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    LumenCortex macOS app icon — master (sizes ≥ 256 px).
+    The approved A1 identity (docs/design/Lumen-Glass-Reference; AppIcon preview in
+    frontend/src/components/brand/A1Mark.tsx): the macOS icon-grid squircle tile
+    (824 px body, 185 px radius, centred) in the brand blue gradient, the approved
+    glass material as the mark, a soft accent glow and a light-glass rim.
+    scripts/generate-app-icon.mjs renders this (and appicon-small.svg) into
+    build/appicon.png and build/darwin/iconfile.icns.
+  -->
+  <title>LumenCortex app icon (glass master)</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123a86"/>
+      <stop offset="0.55" stop-color="#0a2152"/>
+      <stop offset="1" stop-color="#061433"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.52" r="0.5">
+      <stop offset="0" stop-color="#3d8bff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#3d8bff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9cc8ff" stop-opacity="0.55"/>
+      <stop offset="0.4" stop-color="#9cc8ff" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#9cc8ff" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#glow)"/>
+  <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="url(#rim)" stroke-width="4"/>
+  <!-- The approved glass mark, centred on the tile as in the AppIcon preview. -->
+  <svg x="178" y="190" width="668" height="644" viewBox="39 59 337 297">
+    <image href="../frontend/src/components/brand/a1-glass.png" x="39" y="59" width="337" height="297"/>
+  </svg>
+</svg>

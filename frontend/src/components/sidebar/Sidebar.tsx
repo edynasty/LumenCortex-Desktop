@@ -3,10 +3,10 @@
  * middle (threads, Source Control, Context), Core status sits at the bottom. The global rail
  * beside it owns navigation, so the sidebar never repeats it.
  */
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
-import { AnchoredPopover } from "../primitives/AnchoredPopover";
 import { Icon } from "../primitives/Icon";
+import { basename, ProjectMenu } from "./ProjectMenu";
 import type { Session, SessionRuntime } from "../../types";
 
 export type SidebarThread = {
@@ -28,10 +28,6 @@ export type SidebarGroup = {
 
 export type RuntimeState = "ready" | "online" | "offline";
 
-function basename(path: string) {
-  return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
-}
-
 function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace }: {
   workspace: string;
   recentProjects: string[];
@@ -40,10 +36,28 @@ function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, o
   onOpenWorkspace: (path: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const name = workspace ? basename(workspace) : labels.openProject;
+
+  // Arrow keys open the menu like a native one; Enter/Space keep the click path.
+  const onTriggerKeyDown = (event: ReactKeyboardEvent) => {
+    if (open || (event.key !== "ArrowDown" && event.key !== "ArrowUp")) return;
+    event.preventDefault();
+    setOpen(true);
+  };
+
   return (
-    <div className="project-switcher popover-anchor">
-      <button type="button" className="project-button" aria-haspopup="dialog" aria-expanded={open} title={workspace} onClick={() => setOpen(!open)}>
+    <div className="project-switcher">
+      <button
+        ref={triggerRef}
+        type="button"
+        className="project-button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={workspace}
+        onClick={() => setOpen(!open)}
+        onKeyDown={onTriggerKeyDown}
+      >
         <span className="project-avatar" aria-hidden>{name.slice(0, 1).toUpperCase()}</span>
         <span className="project-text">
           <span className="project-name">{name}</span>
@@ -51,20 +65,16 @@ function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, o
         </span>
         <Icon name="collapse" size={14} className="project-chevron" />
       </button>
-      <AnchoredPopover open={open} onClose={() => setOpen(false)} label={labels.recentProjects} className="menu project-menu">
-        {recentProjects.length > 0 && <div className="menu-label">{labels.recentProjects}</div>}
-        {recentProjects.slice(0, 8).map((path) => (
-          <button key={path} type="button" className="menu-item" aria-checked={path === workspace} onClick={() => { setOpen(false); if (path !== workspace) onOpenWorkspace(path); }}>
-            <Icon name="project" size={15} />
-            <span className="menu-item-body"><span>{basename(path)}</span><span className="menu-item-sub mono">{path}</span></span>
-            {path === workspace && <Icon name="checkmark" size={14} className="menu-check" />}
-          </button>
-        ))}
-        {recentProjects.length > 0 && <div className="menu-sep" />}
-        <button type="button" className="menu-item" onClick={() => { setOpen(false); onPickWorkspace(); }}>
-          <Icon name="projectOpen" size={15} /><span className="menu-item-body"><span>{labels.openProjectEllipsis}</span></span>
-        </button>
-      </AnchoredPopover>
+      <ProjectMenu
+        open={open}
+        triggerRef={triggerRef}
+        onClose={() => setOpen(false)}
+        workspace={workspace}
+        recentProjects={recentProjects}
+        labels={labels}
+        onPickWorkspace={onPickWorkspace}
+        onOpenWorkspace={onOpenWorkspace}
+      />
     </div>
   );
 }

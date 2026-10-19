@@ -52,3 +52,7 @@ Defects found and fixed during verification:
 ## Files
 Frontend: `types.ts`, `lib/i18n/app-copy.ts`, `app/agent-config.ts`(+test), `app/model-selection.ts`(+test), `app/hooks/useComposerModelControls.ts` (new), `app/hooks/useAgentActions.ts`(+test), `App.tsx`, `app/WorkspaceView.tsx`, `app/WorkspaceChrome.tsx`, `app/WorkspaceRouteContent.tsx`, `app/ThreadTasksLayer.tsx`, `app/presentation-model.ts`, `components/composer/Composer.tsx` (new), `components/composer/ComposerPickers.tsx`(+test), `components/composer/MenuPicker.tsx` (new split), `components/composer/NewTaskComposer.tsx`, `components/composer/composer.css`, `components/composer/new-task-composer.css`, `components/thread/ThreadComposer.tsx`(+test), `components/thread/ThreadWorkspace.tsx`, `components/thread/DelegationControl.tsx`, `visual/fixture-data.ts`, `visual/app-stub.ts`, `visual-tests/app.spec.ts`.
 Backend: `internal/backend/runtime.go`, `internal/backend/agent_mode_test.go` (new).
+
+## Native verification
+
+Done on the built bundle; see "Composer (commit a158829) on the real bundle" in `ux-provider-completion-platform-2026-10-19.md` (execution-environment row, left/right toolbar split, ⌘⇧M picker, grouping, disabled rows with reason, filtering, effort chip following the selected model). No screenshots: Screen Recording is not granted to this process.

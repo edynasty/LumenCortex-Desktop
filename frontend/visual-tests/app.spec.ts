@@ -195,6 +195,54 @@ test.describe("layout at real window widths", () => {
       expect(lost, `@${width}`).toEqual([]);
     }
   });
+
+  test("project switcher menu stays inside the window at every width", async ({ page }) => {
+    await page.addInitScript((projects: string[]) => {
+      localStorage.setItem("lcx-recent-projects", JSON.stringify(projects));
+    }, [
+      "/Users/demo/Projects/lumencortex",
+      "/Users/demo/Projects/really-long-workspace-directory-name-for-geometry-checks",
+    ]);
+    for (const width of WIDTHS) {
+      await open(page, "", width);
+      const trigger = page.locator(".project-button");
+      // Below 880px the sidebar lives in the drawer; open it like a user would.
+      if (!(await trigger.isVisible())) {
+        await page.getByRole("button", { name: /Toggle sidebar/ }).click();
+        await expect(trigger).toBeVisible();
+      }
+      await expect(page.locator(".project-button .project-name")).toHaveText(/lumencortex/i);
+      await trigger.click();
+      const menu = page.locator(".project-menu-popover");
+      await expect(menu).toBeVisible();
+      // Portaled to the body, so neither the sidebar frame nor the drawer can clip it.
+      expect(await page.evaluate(() => document.querySelector(".project-menu-popover")?.parentElement === document.body), `portal @${width}`).toBe(true);
+      const box = (await menu.boundingBox())!;
+      expect(box.y, `top @${width}`).toBeGreaterThanOrEqual(0);
+      expect(box.x, `left @${width}`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `right @${width}`).toBeLessThanOrEqual(width + 1);
+      expect(box.y + box.height, `bottom @${width}`).toBeLessThanOrEqual(900 + 1);
+      // The menu sizes to its content, never to the trigger width.
+      const triggerBox = (await trigger.boundingBox())!;
+      expect(box.width, `width @${width}`).toBeGreaterThan(triggerBox.width);
+      // Names stay complete (wrap, not silent truncation) and every path keeps its tooltip.
+      const problems = await page.evaluate(() => {
+        const el = document.querySelector<HTMLElement>(".project-menu-popover")!;
+        const clippedNames = [...el.querySelectorAll<HTMLElement>(".project-menu-name")]
+          .filter((name) => name.scrollWidth > name.clientWidth + 1)
+          .map((name) => name.textContent);
+        const pathsWithoutTooltip = [...el.querySelectorAll<HTMLElement>(".project-menu-item")]
+          .filter((row) => row.querySelector(".project-menu-path") && !row.title.startsWith("/"))
+          .map((row) => row.textContent);
+        const menuClipped = el.scrollWidth > el.clientWidth + 1 ? ["menu-hscroll"] : [];
+        return [...clippedNames, ...pathsWithoutTooltip, ...menuClipped];
+      });
+      expect(problems, `content @${width}`).toEqual([]);
+      await page.keyboard.press("Escape");
+      await expect(menu).toBeHidden();
+      expect(await page.evaluate(() => document.activeElement?.className), `focus @${width}`).toContain("project-button");
+    }
+  });
 });
 
 test.describe("accessibility", () => {
