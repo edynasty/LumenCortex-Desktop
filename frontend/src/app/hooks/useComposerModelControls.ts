@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AgentEffort, ConfigState, Session } from "../../types";
+import { readComposerPreferences, saveComposerPreferences } from "../composer-preferences";
 import {
   effortsOfModel,
   pickerModelOptions,
@@ -17,12 +18,18 @@ type Options = {
   labels: AppCopy;
   selectModel: (ref: string) => void;
   modelRef: string;
+  // Called when the user picks a model, so the choice outlives the session and the app.
+  onModelChosen?: (ref: string) => void;
 };
 
 // The composer's model/effort/recent state: picker options with refusal reasons, the effort levels
 // the displayed model supports, and the bounded recent list (refs only, never keys).
-export function useComposerModelControls({ config, session, labels, selectModel, modelRef }: Options) {
-  const [effort, setEffort] = useState<AgentEffort | undefined>(undefined);
+export function useComposerModelControls({ config, session, labels, selectModel, modelRef, onModelChosen }: Options) {
+  const [effort, setEffortState] = useState<AgentEffort | undefined>(() => readComposerPreferences().effort);
+  const setEffort = useCallback((next: AgentEffort | undefined) => {
+    setEffortState(next);
+    saveComposerPreferences({ effort: next });
+  }, []);
   const [recentModelRefs, setRecentModelRefs] = useState<string[]>(() => readRecentModels());
 
   const pickerModels = useMemo<ModelPickerOption[]>(
@@ -35,6 +42,7 @@ export function useComposerModelControls({ config, session, labels, selectModel,
   const selectModelFromPicker = useCallback(
     (ref: string) => {
       selectModel(ref);
+      onModelChosen?.(ref);
       setRecentModelRefs((refs) => {
         const next = pushRecentModel(refs, ref);
         saveRecentModels(next);
@@ -44,7 +52,7 @@ export function useComposerModelControls({ config, session, labels, selectModel,
       // unsupported effort is never sent (Core validates Effort against the model).
       if (effort && !effortsOfModel(ref, config.models).includes(effort)) setEffort(undefined);
     },
-    [config.models, effort, selectModel],
+    [config.models, effort, onModelChosen, selectModel, setEffort],
   );
 
   return { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort };

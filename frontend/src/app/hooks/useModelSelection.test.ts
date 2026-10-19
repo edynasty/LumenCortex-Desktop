@@ -43,4 +43,18 @@ describe("useModelSelection", () => {
     expect(result.current.modelRef).toBe("test/c");
     expect(result.current.agentModelRef()).toBeUndefined();
   });
+
+  it("starts a new task on the remembered model, and keeps resetting back to it", () => {
+    const { result, rerender } = renderHook((props: Props) =>
+      useModelSelection({ config: { model: "test/b" }, preferred: "test/a", session: props.session, sessionId: props.sessionId }), { initialProps: { model: "test/b", sessionId: "" } as Props });
+    expect(result.current.modelRef).toBe("test/a");
+    expect(result.current.agentModelRef()).toBe("test/a");
+    act(() => result.current.resetModelChoice());
+    expect(result.current.agentModelRef()).toBe("test/a");
+
+    // An open session keeps the model it is pinned to.
+    rerender({ model: "test/b", sessionId: "s1", session: { modelRef: "test/c" } });
+    expect(result.current.modelRef).toBe("test/c");
+    expect(result.current.agentModelRef()).toBeUndefined();
+  });
 });

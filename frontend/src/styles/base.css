@@ -95,6 +95,8 @@ code, .mono, kbd, pre { font-family: var(--font-mono); }
 .chip[aria-expanded="true"] { background: var(--state-selected); color: var(--fg); }
 .chip:disabled { opacity: .5; }
 .chip.is-static { color: var(--fg-3); }
+/* Icon-only chip: the label lives in aria-label; a count badge may follow the icon. */
+.chip.chip-icon { padding-inline: var(--sp-2); }
 .chip.is-warn { color: var(--warn); }
 .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--weight-medium); }
 .chip-sub { color: var(--fg-3); font-weight: 400; white-space: nowrap; }

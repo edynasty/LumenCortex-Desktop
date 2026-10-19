@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/inspector-types";
 import { WorkspaceView } from "./app/WorkspaceView";
 import type { SettingsState } from "./app/useWorkspaceCommands";
-import { buildAgentConfig, resolveTurnOptions, type AgentMode, type AgentPolicy } from "./app/agent-config";
+import { buildAgentConfig, resolveTurnOptions } from "./app/agent-config";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -12,7 +12,8 @@ import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
 import { useModelSelection } from "./app/hooks/useModelSelection";
 
-import { modelOptions } from "./app/model-selection";
+import { executableModels, modelOptions } from "./app/model-selection";
+import { useComposerPreferences } from "./app/hooks/useComposerPreferences";
 import { useComposerModelControls } from "./app/hooks/useComposerModelControls";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -32,9 +33,6 @@ export default function App() {
   const [route, setRoute] = useState<WorkspaceRoute>({ kind: "new-task" });
   const selected = routeSessionId(route);
   const [goal, setGoal] = useState("");
-  const [policy, setPolicy] = useState<AgentPolicy>("workspace");
-  // App-level like policy: Ask/Agent and effort survive thread switches; resolveTurnOptions maps once.
-  const [mode, setMode] = useState<AgentMode>("agent");
   const [runtimeKind, setRuntimeKind] = useState<RuntimeKind>("local");
   const [maxSteps, setMaxSteps] = useState(24);
   const [command, setCommand] = useState("git status --short");
@@ -135,10 +133,11 @@ export default function App() {
     [events, selected]
   );
   const configuredModels = useMemo(() => modelOptions(config), [config]);
-  const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "" });
+  const { policy, setPolicy, mode, setMode, rememberModel, usableModel } = useComposerPreferences(config.models);
+  const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "", preferred: usableModel });
   // Picker options, effort support and the bounded recent list for the composer.
   const { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort } =
-    useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef });
+    useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef, onModelChosen: rememberModel });
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,

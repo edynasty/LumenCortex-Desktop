@@ -33,17 +33,16 @@ export function ContextAttachTrigger({
     <span className="popover-anchor">
       <button
         type="button"
-        className={`chip is-collapsible ${count > 0 ? "is-static" : ""}`}
+        className={`chip chip-icon ${count > 0 ? "is-static" : ""}`}
         disabled={disabled}
         onClick={() => setOpen(!open)}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={labels.context}
+        title={labels.context}
       >
-        <Icon name="attach" size={14} />
-        <span className="chip-label">{labels.context}</span>
+        <Icon name="attach" size={15} />
         {count > 0 && <span className="count-badge">{count}</span>}
-        <Icon name="collapse" size={12} className="chip-caret" />
       </button>
       <AnchoredPopover open={open} onClose={() => setOpen(false)} placement="above-start" label={labels.context} className="menu">
         <button

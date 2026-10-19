@@ -13,12 +13,21 @@ type Options = {
   // The open session, or undefined on the new-task route.
   session: Pick<Session, "modelRef"> | undefined;
   sessionId: string;
+  // The model the user last chose, already checked against the configured models. A new task
+  // starts on it instead of the configured default; an open session keeps its pinned model.
+  preferred?: string;
 };
 
 // The picker shows the session's pinned model, or Effective.Model for a new task, until the user
 // intentionally picks another. Only that pick is sent to Core as AgentOptions.ModelRef.
-export function useModelSelection({ config, session, sessionId }: Options) {
-  const [explicit, setExplicit] = useState<ExplicitModel>(noExplicitModel);
+export function useModelSelection({ config, session, sessionId, preferred }: Options) {
+  const [chosen, setExplicit] = useState<ExplicitModel>(noExplicitModel);
+  const explicit: ExplicitModel =
+    chosen.scope === sessionId && chosen.ref
+      ? chosen
+      : sessionId === "" && preferred && preferred !== config.model
+        ? { scope: "", ref: preferred }
+        : noExplicitModel;
   const modelRef = displayedModel(explicit, sessionId, session, config.model);
 
   const selectModel = useCallback(

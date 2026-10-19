@@ -127,6 +127,40 @@ describe("useWorkspaceController", () => {
 
   // The file can change in an editor or the CLI while the app is in the background; the picker
   // must not keep showing a default Core no longer uses for a new task.
+  it("reopens the project the user last worked in when the app starts without one", async () => {
+    localStorage.setItem("lcx-recent-projects", JSON.stringify(["/last", "/older"]));
+    mocks.state.mockResolvedValue(emptyState);
+    mocks.configState.mockResolvedValue(configFor("", "alpha/main"));
+    mocks.openWorkspace.mockResolvedValue({ ...emptyState, workspace: "/last" });
+    const setError = vi.fn();
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(result.current.state.workspace).toBe("/last"));
+    expect(mocks.openWorkspace).toHaveBeenCalledWith("/last");
+    expect(result.current.opening).toBe(false);
+  });
+
+  it("stays on the welcome screen without an error when the last project cannot be opened", async () => {
+    localStorage.setItem("lcx-recent-projects", JSON.stringify(["/gone"]));
+    mocks.state.mockResolvedValue(emptyState);
+    mocks.configState.mockResolvedValue(configFor("", "alpha/main"));
+    mocks.openWorkspace.mockRejectedValue(new Error("no such directory"));
+    const setError = vi.fn();
+    const { result } = renderHook(() => useWorkspaceController({ setError }));
+    await waitFor(() => expect(mocks.openWorkspace).toHaveBeenCalledWith("/gone"));
+    await waitFor(() => expect(result.current.opening).toBe(false));
+    expect(result.current.state.workspace).toBe("");
+    expect(setError).not.toHaveBeenCalled();
+  });
+
+  it("does not reopen anything when the backend already has a project", async () => {
+    localStorage.setItem("lcx-recent-projects", JSON.stringify(["/last"]));
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/open" });
+    mocks.configState.mockResolvedValue(configFor("/open", "alpha/main"));
+    const { result } = renderHook(() => useWorkspaceController({ setError: vi.fn() }));
+    await waitFor(() => expect(result.current.state.workspace).toBe("/open"));
+    expect(mocks.openWorkspace).not.toHaveBeenCalled();
+  });
+
   it("reloads Core's configuration when the window regains focus", async () => {
     mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo" });
     mocks.configState.mockResolvedValue(configFor("/repo", "alpha/main"));

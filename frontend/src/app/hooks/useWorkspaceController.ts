@@ -42,8 +42,29 @@ export function useWorkspaceController({ setError }: Options) {
   const [opening, setOpening] = useState(false);
   const [trusting, setTrusting] = useState(false);
 
+  // Reopening the app returns to the project the user last worked in. A project that can no
+  // longer be opened (moved, deleted) leaves the welcome screen instead of showing an error.
   useEffect(() => {
-    bridge.state().then(setState).catch(() => undefined);
+    let cancelled = false;
+    (async () => {
+      const current = await bridge.state();
+      if (cancelled) return;
+      setState(current);
+      const last = initialRecentProjects()[0];
+      if (current.workspace || !last) return;
+      setOpening(true);
+      try {
+        const opened = await bridge.openWorkspace(last);
+        if (!cancelled) setState(opened);
+      } catch {
+        // Stay on the welcome screen.
+      } finally {
+        if (!cancelled) setOpening(false);
+      }
+    })().catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
