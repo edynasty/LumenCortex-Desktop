@@ -9,7 +9,7 @@ const cases: Array<[string, string, keyof typeof copy.en]> = [
   ["Error: database was created by the legacy Node runtime and is not supported: /repo has Node tables", "legacyNodeDatabase", "errLegacyNodeDatabase"],
   ["Error: model is not in the provider catalog: nope/x", "unknownModel", "errUnknownModel"],
   ["Error: model does not support tool calling: test/chat", "modelWithoutToolCalls", "errModelWithoutToolCalling"],
-  ["Error: effort must be one of none, low, medium, high, max", "invalidEffort", "errInvalidEffort"],
+  ["Error: effort must be one of none, low, medium, high, max, auto", "invalidEffort", "errInvalidEffort"],
   ["Error: config file changed since it was read: /home/lumencortex.json", "conflict", "errConflict"],
   ["Error: run is active in another process or engine", "runHeld", "runningElsewhereError"],
   ["Error: session worktree is in use: /repo/.lumencortex-worktrees/session_1 (wt_session_1)", "worktreeBusy", "errWorktreeBusy"],

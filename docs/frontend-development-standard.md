@@ -386,6 +386,14 @@ Persist/reference:
 Execution uses:
 - configured real upstream `modelID`.
 
+The composer also carries a reasoning-effort picker. For a model whose catalog entry lists
+`reasoning.efforts`, the picker offers `auto` ahead of the model's own levels: Core classifies each
+turn's difficulty and resolves one concrete level before its first request, so the user does not
+choose a level per message. Without `effort.auto.model` in the configuration the heuristic
+classifier decides; the picker's Auto description says so. A model with no reasoning levels offers
+no effort choice at all, and `auto` is never sent for it. The choice is remembered across restarts
+(`lcx-composer`); switching models keeps it whenever the new model has levels.
+
 Provider management is a separate configuration surface.
 
 Do not force the user to re-enter:

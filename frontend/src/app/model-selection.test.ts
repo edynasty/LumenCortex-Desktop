@@ -159,12 +159,19 @@ describe("effort support", () => {
     expect(effortsOfModel("test/b", models)).toEqual([]);
     expect(effortsOfModel("test/missing", models)).toEqual([]);
     expect(orderedEfforts(["max", "low", "none", "bogus"])).toEqual(["none", "low", "max"]);
+    // Auto is a request value, never a per-model level.
+    expect(orderedEfforts(["auto", "high", "low"])).toEqual(["low", "high"]);
   });
 
   it("sends only an effort the displayed model supports", () => {
     expect(supportedEffort("high", ["low", "high"])).toBe("high");
     expect(supportedEffort("high", ["low"])).toBeUndefined();
     expect(supportedEffort(undefined, ["low"])).toBeUndefined();
+  });
+
+  it("keeps auto for a model with levels and drops it for one without", () => {
+    expect(supportedEffort("auto", ["low", "high"])).toBe("auto");
+    expect(supportedEffort("auto", [])).toBeUndefined();
   });
 });
 

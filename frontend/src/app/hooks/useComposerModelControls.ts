@@ -49,8 +49,9 @@ export function useComposerModelControls({ config, session, labels, selectModel,
         return next;
       });
       // Switching to a model without the current effort level resets to the default; an
-      // unsupported effort is never sent (Core validates Effort against the model).
-      if (effort && !effortsOfModel(ref, config.models).includes(effort)) setEffort(undefined);
+      // unsupported effort is never sent (Core validates Effort against the model). "auto" survives
+      // the switch whenever the new model has reasoning levels at all.
+      if (effort && !supportedEffort(effort, effortsOfModel(ref, config.models))) setEffort(undefined);
     },
     [config.models, effort, onModelChosen, selectModel, setEffort],
   );

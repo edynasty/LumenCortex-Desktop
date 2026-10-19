@@ -19,11 +19,18 @@ export function executableModels(models: ModelInfo[]): ModelInfo[] {
 }
 
 // Core's reasoning-effort order (internal/agent effortOrder); the picker lists a model's levels in it.
+// "auto" is a request value, not a level: it is never part of this order and never appears in a
+// model's reasoning.efforts list, so orderedEfforts drops it if a configuration names it there.
 export const EFFORT_ORDER: AgentEffort[] = ["none", "low", "medium", "high", "max"];
+
+// AUTO_EFFORT asks Core to classify each turn's difficulty and resolve one level before the first
+// request. It needs no judge model (the heuristic fallback always applies), so it is offered for
+// every model that has reasoning levels at all.
+export const AUTO_EFFORT: AgentEffort = "auto";
 
 export function orderedEfforts(efforts: string[] | undefined): string[] {
   if (!efforts?.length) return [];
-  return EFFORT_ORDER.filter((effort) => efforts.includes(effort));
+  return EFFORT_ORDER.filter((effort) => effort !== AUTO_EFFORT && efforts.includes(effort));
 }
 
 // The effort levels one model supports, in Core's order; empty when the model has none.
@@ -34,7 +41,9 @@ export function effortsOfModel(ref: string, models: ModelInfo[]): string[] {
 
 // The effort to send for the displayed model: the user's choice only when the model supports it.
 // An unsupported choice (model switched, session re-pinned) falls back to the default, never sent.
+// "auto" is valid exactly when the model has reasoning levels; a model without them gets nothing.
 export function supportedEffort(effort: AgentEffort | undefined, supported: string[]): AgentEffort | undefined {
+  if (effort === AUTO_EFFORT) return supported.length ? AUTO_EFFORT : undefined;
   return effort && supported.includes(effort) ? effort : undefined;
 }
 
