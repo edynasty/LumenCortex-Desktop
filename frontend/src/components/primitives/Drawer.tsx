@@ -20,7 +20,8 @@ export function Drawer({ open, side = "right", label, closeLabel = `Close ${labe
   return (
     <>
       <button className="scrim" type="button" tabIndex={-1} aria-label={closeLabel} onClick={() => onOpenChange(false)} />
-      <aside ref={drawerRef} className={`drawer drawer-${side === "left" ? "start" : "end"} ${className}`.trim()} aria-label={label}>
+      {/* Focus is trapped while open, so assistive tech gets modal dialog semantics. */}
+      <aside ref={drawerRef} className={`drawer drawer-${side === "left" ? "start" : "end"} ${className}`.trim()} role="dialog" aria-modal="true" aria-label={label}>
         {children}
       </aside>
     </>

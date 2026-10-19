@@ -1,5 +1,5 @@
 import type { AppAPI } from "../lib/bridge";
-import type { GitStatus, Message, Session, SessionRuntime, WorkflowSummary, WorkspaceState, WorktreeHandoffPlan } from "../types";
+import type { GitStatus, Message, Session, SessionRuntime, TaskStateInfo, WorkflowSummary, WorkspaceState, WorktreeHandoffPlan } from "../types";
 import {
   checkpoints,
   health,
@@ -57,6 +57,73 @@ const tasks: Session = { ...taskSession, metadata: { ui: { delegation: "propose"
 
 let sessions: Session[] = [session, tasks, gate, failed, recent];
 
+// Per-thread Task State for the Context page: each scene thread carries the references the
+// graph draws (thread→file, thread→thread, excluded rows that never draw). Wire shapes only.
+const contextTaskStates: Record<string, () => Promise<TaskStateInfo> | TaskStateInfo> = {
+  [session.id]: () => visualAppStub().GetTaskState(session.id),
+  [tasks.id]: () => ({
+    sessionId: tasks.id,
+    version: 2,
+    pendingEdits: 0,
+    state: {
+      references: [
+        { id: "ctx_task_1", kind: "thread", target: session.id, state: "included", by: "user", at: at(12), note: "same refactor" },
+        { id: "ctx_task_2", kind: "path", target: "internal/backend/provider_config.go", state: "included", by: "agent", at: at(13) },
+        { id: "ctx_task_3", kind: "path", target: "frontend/src/components/provider/ProvidersPane.tsx", state: "suggested", by: "agent", at: at(14) },
+      ],
+      resolution: { state: "open" },
+      windowStartSeq: 0,
+    },
+    obligations: ["tasks"],
+    readyForReview: false,
+  }),
+  [gate.id]: () => ({
+    sessionId: gate.id,
+    version: 1,
+    pendingEdits: 0,
+    state: {
+      references: [
+        { id: "ctx_gate_1", kind: "path", target: "internal/store/migrations.go", state: "included", by: "user", at: at(21) },
+        { id: "ctx_gate_2", kind: "path", target: "docs/schema-notes.md", state: "suggested", by: "agent", at: at(24) },
+      ],
+      resolution: { state: "open" },
+      windowStartSeq: 0,
+    },
+    obligations: ["gate"],
+    readyForReview: false,
+  }),
+  [failed.id]: () => ({
+    sessionId: failed.id,
+    version: 3,
+    pendingEdits: 0,
+    state: {
+      references: [
+        { id: "ctx_failed_1", kind: "path", target: "internal/store/migrations.go", state: "included", by: "user", at: at(31) },
+        { id: "ctx_failed_2", kind: "path", target: "internal/store/sqlite.go", state: "included", by: "agent", at: at(36) },
+        { id: "ctx_failed_3", kind: "path", target: "docs/legacy-provider-notes.md", state: "excluded", by: "user", at: at(38) },
+      ],
+      resolution: { state: "dropped", by: "user", at: at(40) },
+      windowStartSeq: 0,
+    },
+    obligations: null,
+    readyForReview: false,
+  }),
+  [recent.id]: () => ({
+    sessionId: recent.id,
+    version: 1,
+    pendingEdits: 0,
+    state: {
+      references: [
+        { id: "ctx_recent_1", kind: "path", target: "frontend/src/components/inspector/DiffView.tsx", state: "included", by: "user", at: at(2) },
+      ],
+      resolution: { state: "done", by: "user", at: at(8) },
+      windowStartSeq: 0,
+    },
+    obligations: null,
+    readyForReview: false,
+  }),
+};
+
 const transcripts: Record<string, Message[]> = {
   [session.id]: threadMessages,
   [tasks.id]: taskThreadMessages,
@@ -83,7 +150,7 @@ const gateSummary: WorkflowSummary = {
   terminal: false,
   status: "waiting_gate",
   canFinish: false,
-  pendingGates: [{ id: "gate-apply", type: "approval", title: "Apply migration 0007_session_tags", description: "Writes the new session_tags table to the workspace database." }],
+  pendingGates: [{ id: "gate-apply", type: "human", title: "Apply migration 0007_session_tags", description: "Writes the new session_tags table to the workspace database." }],
   facts: {},
 };
 
@@ -192,7 +259,7 @@ export function visualApp(projectOpen: boolean): AppAPI {
     GetWorkflowSummary: async (id) => (id === gate.id ? gateSummary : null),
     ApproveWorkflowGate: async () => ({ ...gateSummary, status: "running", pendingGates: [] }),
     GetTaskState: async (id) => {
-      const info = await visualAppStub().GetTaskState(id);
+      const info = await (contextTaskStates[id]?.() ?? visualAppStub().GetTaskState(id));
       if (id !== tasks.id) return info;
       return { ...info, state: { ...info.state, tasks: visualTaskList() }, obligations: [...(info.obligations ?? []), "tasks"] };
     },

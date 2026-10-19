@@ -1,35 +1,24 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  Code2,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Server,
-  Star,
-  Trash2,
-  Wifi,
-} from "lucide-react";
+import { useState } from "react";
+import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
 import { ModelForm, ProviderForm } from "./ProviderForms";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { emptyProvider } from "./provider-settings-model";
-import type { useProviderSettingsController } from "./useProviderSettingsController";
+import type { ProviderSettingsController } from "./useProviderSettingsController";
 
 type Props = {
   locale: ProviderLocale;
   effectiveModel: string;
-  controller: ReturnType<typeof useProviderSettingsController>;
+  controller: ProviderSettingsController;
 };
 
+/** The provider list + the selected provider's editor, per the Demo Providers pane layout. */
 export function ProviderCatalogList({ locale, effectiveModel, controller }: Props) {
   const t = providerCopy[locale];
   const {
-    scope,
     catalog,
     saving,
     providers,
-    expandedProvider,
-    setExpandedProvider,
     editingProvider,
     setEditingProvider,
     providerDraft,
@@ -52,204 +41,243 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
     discoverModels,
   } = controller;
 
-  return (
-    <>
-      {editingProvider === "new" && (
-        <ProviderForm
-          t={t}
-          draft={providerDraft}
-          onChange={setProviderDraft}
-          onSave={() => void commitProvider()}
-          onCancel={() => {
-            setEditingProvider(null);
-            setProviderDraft(emptyProvider);
-          }}
-          saving={saving}
-        />
-      )}
+  const [selectedId, setSelectedId] = useState("");
+  const selected = providers.find(([providerId]) => providerId === selectedId) ?? providers[0];
+  const [selectedProviderId, provider] = selected ?? ["", undefined];
+  const models = Object.entries(provider?.models || {}).sort(([a], [b]) => a.localeCompare(b));
 
-      {!providers.length && editingProvider !== "new" ? (
-        <div className="provider-empty">
-          <Server size={22} strokeWidth={1.6} aria-hidden />
-          <strong>{t.noProviders}</strong>
-          <p>{scope === "workspace" ? t.emptyProjectScope : t.noProvidersBody}</p>
-          <button type="button" onClick={() => startAddProvider()}>
-            <Plus size={14} strokeWidth={1.8} aria-hidden />
+  return (
+    <div className="provider-layout">
+      <ul className="provider-list">
+        {providers.map(([providerId, entry]) => (
+          <li key={providerId}>
+            <button
+              type="button"
+              className={`provider-row ${selectedProviderId === providerId && editingProvider !== "new" ? "is-selected" : ""}`}
+              onClick={() => {
+                setSelectedId(providerId);
+                setEditingProvider(null);
+              }}
+            >
+              <span className="provider-row-name">{entry.name || providerId}</span>
+              <span className="provider-row-sub mono">
+                {providerId} · {Object.keys(entry.models || {}).length} {t.models}
+              </span>
+            </button>
+          </li>
+        ))}
+        <li>
+          <button
+            type="button"
+            className={`provider-row is-add ${editingProvider === "new" ? "is-selected" : ""}`}
+            onClick={() => startAddProvider()}
+          >
+            <Icon name="create" size={14} />
             {t.addProvider}
           </button>
-        </div>
-      ) : (
-        <div className="provider-list">
-          {providers.map(([providerId, provider]) => {
-            const expanded = expandedProvider === providerId;
-            const models = Object.entries(provider.models || {}).sort(([a], [b]) => a.localeCompare(b));
-            return (
-              <section className="provider-card" key={providerId}>
-                <div className="provider-card-head">
-                  <button
-                    type="button"
-                    className="provider-expand"
-                    aria-expanded={expanded}
-                    onClick={() => setExpandedProvider(expanded ? null : providerId)}
-                  >
-                    {expanded ? (
-                      <ChevronDown size={15} strokeWidth={1.8} aria-hidden />
-                    ) : (
-                      <ChevronRight size={15} strokeWidth={1.8} aria-hidden />
-                    )}
-                    <span className="provider-card-icon"><Server size={15} strokeWidth={1.7} aria-hidden /></span>
-                    <span className="provider-card-copy">
-                      <strong>{provider.name || providerId}</strong>
-                      <small>
-                        {providerId} · {provider.settings?.baseURL || t.openaiCompatible} · {models.length} {t.models}
-                      </small>
-                    </span>
-                  </button>
-                  <div className="provider-card-actions">
-                    <button
-                      type="button"
-                      aria-label={t.testConnection}
-                      title={t.testConnection}
-                      disabled={providerAction !== null}
-                      onClick={() => void testConnection(providerId)}
-                    >
-                      <Wifi size={13} strokeWidth={1.7} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t.discoverModels}
-                      title={t.discoverModels}
-                      disabled={providerAction !== null}
-                      onClick={() => void discoverModels(providerId)}
-                    >
-                      <RefreshCw size={13} strokeWidth={1.7} aria-hidden />
-                    </button>
-                    <button type="button" aria-label={t.edit} onClick={() => startEditProvider(providerId, provider)}>
-                      <Pencil size={13} strokeWidth={1.7} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      aria-label={t.remove}
-                      onClick={() => setDeleteTarget({ kind: "provider", providerId })}
-                    >
-                      <Trash2 size={13} strokeWidth={1.7} aria-hidden />
-                    </button>
-                  </div>
-                </div>
+        </li>
+      </ul>
 
-                {providerNotice[providerId] && (
-                  <div className="provider-action-notice">{providerNotice[providerId]}</div>
-                )}
+      <div className="provider-editor">
+        {editingProvider === "new" ? (
+          <ProviderForm
+            t={t}
+            draft={providerDraft}
+            onChange={setProviderDraft}
+            onSave={() => void commitProvider()}
+            onCancel={() => {
+              setEditingProvider(null);
+              setProviderDraft(emptyProvider);
+            }}
+            saving={saving}
+          />
+        ) : !provider ? (
+          <div className="provider-empty">
+            <Icon name="model" size={22} />
+            <strong>{t.noProviders}</strong>
+            <p>{t.noProvidersBody}</p>
+            <Button variant="secondary" size="sm" icon={<Icon name="create" size={14} />} onClick={() => startAddProvider()}>
+              {t.addProvider}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="provider-editor-head">
+              <div className="provider-editor-id">
+                <strong>{provider.name || selectedProviderId}</strong>
+                <span className="mono">
+                  {selectedProviderId} · {provider.settings?.baseURL || t.openaiCompatible}
+                </span>
+              </div>
+              <div className="provider-editor-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t.testConnection}
+                  title={t.testConnection}
+                  disabled={providerAction !== null}
+                  onClick={() => void testConnection(selectedProviderId)}
+                >
+                  <Icon name="retry" size={13} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t.discoverModels}
+                  title={t.discoverModels}
+                  disabled={providerAction !== null}
+                  onClick={() => void discoverModels(selectedProviderId)}
+                >
+                  <Icon name="search" size={13} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t.edit}
+                  title={t.edit}
+                  onClick={() => startEditProvider(selectedProviderId, provider)}
+                >
+                  <Icon name="edit" size={13} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="is-danger"
+                  aria-label={t.remove}
+                  title={t.remove}
+                  onClick={() => setDeleteTarget({ kind: "provider", providerId: selectedProviderId })}
+                >
+                  <Icon name="delete" size={13} />
+                </Button>
+              </div>
+            </div>
 
-                {expanded && (
-                  <div className="provider-card-body">
-                    {editingProvider === providerId && (
-                      <ProviderForm
-                        t={t}
-                        draft={providerDraft}
-                        onChange={setProviderDraft}
-                        onSave={() => void commitProvider()}
-                        onCancel={() => {
-                          setEditingProvider(null);
-                          setProviderDraft(emptyProvider);
-                        }}
-                        saving={saving}
-                      />
-                    )}
+            {providerNotice[selectedProviderId] && (
+              <div className="provider-action-notice">{providerNotice[selectedProviderId]}</div>
+            )}
 
-                    {models.map(([modelId, model]) => {
-                      const ref = providerId + "/" + modelId;
-                      const localDefault = catalog.model === ref;
-                      const effectiveDefault = effectiveModel === ref;
-                      const editing =
-                        editingModel?.providerId === providerId && editingModel.modelId === modelId;
-                      return (
-                        <div className="provider-model-wrap" key={modelId}>
-                          {editing ? (
-                            <ModelForm
-                              t={t}
-                              draft={modelDraft}
-                              onChange={setModelDraft}
-                              onSave={() => void commitModel()}
-                              onCancel={() => setEditingModel(null)}
-                              saving={saving}
-                            />
-                          ) : (
-                            <div className="provider-model-row">
-                              <span className="provider-model-icon"><Code2 size={14} strokeWidth={1.7} aria-hidden /></span>
-                              <div className="provider-model-copy">
-                                <div>
-                                  <strong>{model.name || modelId}</strong>
-                                  {localDefault && <span className="provider-default-badge">{t.default}</span>}
-                                  {!localDefault && effectiveDefault && (
-                                    <span className="provider-effective-badge">{t.effectiveDefault}</span>
-                                  )}
-                                </div>
-                                <small>
-                                  {model.modelID || modelId}
-                                  {model.limit?.context ? " · " + Math.round(model.limit.context / 1024) + "K ctx" : ""}
-                                  {model.limit?.output ? " · " + Math.round(model.limit.output / 1024) + "K out" : ""}
-                                </small>
-                              </div>
-                              <div className="provider-model-actions">
-                                <button
-                                  type="button"
-                                  className={localDefault ? "selected" : ""}
+            {editingProvider === selectedProviderId ? (
+              <ProviderForm
+                t={t}
+                draft={providerDraft}
+                onChange={setProviderDraft}
+                onSave={() => void commitProvider()}
+                onCancel={() => {
+                  setEditingProvider(null);
+                  setProviderDraft(emptyProvider);
+                }}
+                saving={saving}
+              />
+            ) : (
+              <>
+                <h5 className="subhead">{t.models}</h5>
+                <ul className="provider-model-list">
+                  {models.map(([modelId, model]) => {
+                    const ref = `${selectedProviderId}/${modelId}`;
+                    const localDefault = catalog.model === ref;
+                    const effectiveDefault = effectiveModel === ref;
+                    const editing =
+                      editingModel?.providerId === selectedProviderId && editingModel.modelId === modelId;
+                    return (
+                      <li className="provider-model-row" key={modelId}>
+                        {editing ? (
+                          <ModelForm
+                            t={t}
+                            draft={modelDraft}
+                            onChange={setModelDraft}
+                            onSave={() => void commitModel()}
+                            onCancel={() => setEditingModel(null)}
+                            saving={saving}
+                          />
+                        ) : (
+                          <>
+                            <div className="provider-model-row-head">
+                              <span className="provider-model-row-name">{model.name || modelId}</span>
+                              <code className="mono provider-model-row-ref">{ref}</code>
+                              {localDefault ? (
+                                <span className="tag">{t.default}</span>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   title={t.setDefault}
                                   aria-label={t.setDefault}
-                                  onClick={() => void setDefaultModel(providerId, modelId)}
+                                  onClick={() => void setDefaultModel(selectedProviderId, modelId)}
                                 >
-                                  <Star size={13} strokeWidth={1.7} fill={localDefault ? "currentColor" : "none"} aria-hidden />
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label={t.edit}
-                                  onClick={() => startEditModel(providerId, modelId, model)}
-                                >
-                                  <Pencil size={13} strokeWidth={1.7} aria-hidden />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="danger"
-                                  aria-label={t.remove}
-                                  onClick={() => setDeleteTarget({ kind: "model", providerId, modelId })}
-                                >
-                                  <Trash2 size={13} strokeWidth={1.7} aria-hidden />
-                                </button>
-                              </div>
+                                  {t.setDefault}
+                                </Button>
+                              )}
+                              {effectiveDefault && !localDefault && (
+                                <span className="badge tone-accent">{t.effectiveDefault}</span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="is-row-end is-danger"
+                                aria-label={t.edit}
+                                title={t.edit}
+                                onClick={() => startEditModel(selectedProviderId, modelId, model)}
+                              >
+                                <Icon name="edit" size={13} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="is-row-end is-danger"
+                                aria-label={t.remove}
+                                title={t.remove}
+                                onClick={() => setDeleteTarget({ kind: "model", providerId: selectedProviderId, modelId })}
+                              >
+                                <Icon name="delete" size={13} />
+                              </Button>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            <dl className="provider-model-row-meta">
+                              <div>
+                                <dt>{t.upstreamModelId}</dt>
+                                <dd className="mono" title={model.modelID || modelId}>{model.modelID || modelId}</dd>
+                              </div>
+                              {model.limit?.context ? (
+                                <div>
+                                  <dt>{t.context}</dt>
+                                  <dd>{Math.round(model.limit.context / 1024)}K</dd>
+                                </div>
+                              ) : null}
+                              {model.limit?.output ? (
+                                <div>
+                                  <dt>{t.output}</dt>
+                                  <dd>{Math.round(model.limit.output / 1024)}K</dd>
+                                </div>
+                              ) : null}
+                            </dl>
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
 
-                    {!models.length && !editingModel && (
-                      <div className="provider-no-models">{t.noModels}</div>
-                    )}
+                {!models.length && !editingModel && <p className="provider-no-models">{t.noModels}</p>}
 
-                    {editingModel?.providerId === providerId && !editingModel.modelId && (
-                      <ModelForm
-                        t={t}
-                        draft={modelDraft}
-                        onChange={setModelDraft}
-                        onSave={() => void commitModel()}
-                        onCancel={() => setEditingModel(null)}
-                        saving={saving}
-                      />
-                    )}
-
-                    <button className="provider-add-model" type="button" onClick={() => startAddModel(providerId)}>
-                      <Plus size={13} strokeWidth={1.8} aria-hidden />
-                      {t.addModel}
-                    </button>
-                  </div>
+                {editingModel?.providerId === selectedProviderId && !editingModel.modelId && (
+                  <ModelForm
+                    t={t}
+                    draft={modelDraft}
+                    onChange={setModelDraft}
+                    onSave={() => void commitModel()}
+                    onCancel={() => setEditingModel(null)}
+                    saving={saving}
+                  />
                 )}
-              </section>
-            );
-          })}
-        </div>
-      )}
-    </>
+
+                <button className="provider-add-model" type="button" onClick={() => startAddModel(selectedProviderId)}>
+                  <Icon name="create" size={13} />
+                  {t.addModel}
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }

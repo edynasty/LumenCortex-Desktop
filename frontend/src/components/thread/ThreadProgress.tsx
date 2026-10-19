@@ -36,12 +36,11 @@ export function ThreadProgress({ running, status, workflow, activeSubagents, lab
         </span>
       </div>
       <div className="thread-progress-action">{title}</div>
-      <div className="thread-progress-meta">
-        {workflow?.status && <span>{workflow.status}</span>}
-        {activeSubagents > 0 && (
+      {activeSubagents > 0 && (
+        <div className="thread-progress-meta">
           <span><Bot size={10} strokeWidth={1.7} aria-hidden /> {activeSubagents} {labels.subagents}</span>
-        )}
-      </div>
+        </div>
+      )}
       {running && <div className="thread-progress-bar"><span /></div>}
     </section>
   );

@@ -1,7 +1,8 @@
-import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
-import { ArrowUp, Folder, Settings2 } from "lucide-react";
-import { DesktopSelect, type SelectOption } from "../primitives/Select";
-import { ContextAttachments } from "./ContextAttachments";
+import type { FormEvent, KeyboardEvent, Ref } from "react";
+import { BrandMark } from "../brand/A1Mark";
+import { Icon } from "../primitives/Icon";
+import { ContextAttachments, ContextAttachTrigger } from "./ContextAttachments";
+import { MenuPicker, ModelPicker, type PickerOption } from "./ComposerPickers";
 import "./new-task-composer.css";
 
 export type ComposerPolicy = "read-only" | "workspace" | "full";
@@ -17,6 +18,7 @@ type ModelOption = {
 };
 
 type Props = {
+  /** Title template; `{project}` is replaced with the open workspace's name. */
   title: string;
   subtitle: string;
   placeholder: string;
@@ -48,7 +50,7 @@ type Props = {
   runtimeDescriptions: Record<ComposerRuntime, string>;
   hint: string;
   startLabel: string;
-  notice?: ReactNode;
+  notice?: React.ReactNode;
   goal: string;
   busy: boolean;
   textareaRef: Ref<HTMLTextAreaElement>;
@@ -65,6 +67,9 @@ type Props = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
+
+const policyIcon = { "read-only": "readOnly", workspace: "permission", full: "permissionFull" } as const;
+const runtimeIcon = { local: "local", worktree: "worktree" } as const;
 
 export function NewTaskComposer({
   title,
@@ -111,138 +116,120 @@ export function NewTaskComposer({
   onKeyDown,
 }: Props) {
   const canSubmit = Boolean(workspace && goal.trim());
+  const heading = workspaceName ? title.replace("{project}", workspaceName) : title;
+  const modelOptions: PickerOption[] = models.map((item) => ({
+    value: item.ref,
+    label: item.label,
+    description: item.description,
+    group: item.group,
+    badge: item.badge,
+    badgeTone: item.badgeTone,
+  }));
 
   return (
-    <section className="new-task-workspace">
-      <div className="new-task-copy">
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
-      </div>
-
+    <div className="new-thread">
       {notice}
+      <div className="new-thread-center">
+        <BrandMark size={34} className="new-thread-mark" />
+        <h2>{heading}</h2>
+        <p className="new-thread-sub">{subtitle}</p>
 
-      <form className="new-task-composer" onSubmit={onSubmit}>
-        <textarea
-          ref={textareaRef}
-          value={goal}
-          onChange={(event) => onGoalChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          aria-label={title}
-          rows={4}
-          autoFocus
-        />
-
-        <ContextAttachments
-          paths={contextPaths}
-          disabled={!workspace || busy}
-          labels={contextLabels}
-          onPickFiles={onPickContextFiles}
-          onPickFolder={onPickContextFolder}
-          onRemove={onRemoveContextPath}
-        />
-
-        <div className="new-task-controls">
-          <div className="new-task-context">
-            <button className="composer-context-button" type="button" onClick={onPickWorkspace}>
-              <Folder size={14} strokeWidth={1.7} aria-hidden />
-              <span>{workspace ? workspaceName : chooseProjectLabel}</span>
-            </button>
-
-            {!workspace && recentProjects.length > 0 && (
-              <DesktopSelect
-                ariaLabel={recentProjectsLabel}
-                value={workspace}
-                placeholder={recentProjectsLabel}
-                className="composer-desktop-select project-select"
-                showDescriptionInTrigger={false}
-                options={recentProjects.map<SelectOption>((path) => ({
-                  value: path,
-                  label: path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path,
-                  description: path,
-                }))}
-                onChange={onOpenWorkspace}
-              />
+        <form className="composer is-new" onSubmit={onSubmit}>
+          <textarea
+            ref={textareaRef}
+            value={goal}
+            onChange={(event) => onGoalChange(event.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            rows={3}
+            autoFocus
+          />
+          <ContextAttachments paths={contextPaths} labels={contextLabels} onRemove={onRemoveContextPath} />
+          <div className="composer-bar" onClick={(event) => event.stopPropagation()}>
+            <ContextAttachTrigger
+              disabled={!workspace || busy}
+              labels={contextLabels}
+              count={contextPaths.length}
+              onPickFiles={onPickContextFiles}
+              onPickFolder={onPickContextFolder}
+            />
+            {workspace ? (
+              <button type="button" className="chip is-static is-collapsible" onClick={onPickWorkspace} title={workspace} aria-label={workspaceName}>
+                <Icon name="project" size={14} />
+                <span className="chip-label">{workspaceName}</span>
+              </button>
+            ) : (
+              <>
+                <button type="button" className="chip" onClick={onPickWorkspace}>
+                  <Icon name="projectOpen" size={14} />
+                  <span className="chip-label">{chooseProjectLabel}</span>
+                </button>
+                {recentProjects.length > 0 && (
+                  <MenuPicker
+                    ariaLabel={recentProjectsLabel}
+                    value=""
+                    placeholder={recentProjectsLabel}
+                    options={recentProjects.map((path) => ({
+                      value: path,
+                      label: path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path,
+                      description: path,
+                    }))}
+                    onChange={onOpenWorkspace}
+                  />
+                )}
+              </>
             )}
-
-            <DesktopSelect
+            <ModelPicker
               ariaLabel={modelLabel}
               value={modelRef}
+              options={modelOptions}
               placeholder={noModelsLabel}
-              className="composer-desktop-select model-select"
-              showDescriptionInTrigger={false}
-              search={{
-                ariaLabel: modelSearchLabel,
-                placeholder: modelSearchLabel,
-                emptyLabel: noModelMatchesLabel,
-              }}
-              options={models.map<SelectOption>((item) => ({
-                value: item.ref,
-                label: item.label,
-                description: item.description,
-                group: item.group,
-                badge: item.badge,
-                badgeTone: item.badgeTone,
-              }))}
+              searchLabel={modelSearchLabel}
+              emptyLabel={noModelMatchesLabel}
+              disabled={busy}
               onChange={onModelChange}
+              footer={{ label: modelLabel, onSelect: onOpenProviders }}
             />
-
-            <DesktopSelect
+            <MenuPicker
               ariaLabel={policyLabel}
               value={policy}
               placeholder={policyLabels.workspace}
-              className="composer-desktop-select policy-select"
-              showDescriptionInTrigger={false}
-              options={[
-                { value: "read-only", label: policyLabels["read-only"], description: policyDescriptions["read-only"] },
-                { value: "workspace", label: policyLabels.workspace, description: policyDescriptions.workspace },
-                { value: "full", label: policyLabels.full, description: policyDescriptions.full },
-              ]}
+              options={(Object.keys(policyLabels) as ComposerPolicy[]).map((value) => ({
+                value,
+                label: policyLabels[value],
+                description: policyDescriptions[value],
+                icon: policyIcon[value],
+              }))}
               onChange={(value) => onPolicyChange(value as ComposerPolicy)}
             />
-
-            <DesktopSelect
+            <MenuPicker
               ariaLabel={environmentLabel}
+              collapsible
               value={runtime}
               placeholder={runtimeLabels.local}
-              className="composer-desktop-select environment-select"
-              showDescriptionInTrigger={false}
-              options={[
-                {
-                  value: "local",
-                  label: runtimeLabels.local,
-                  description: runtimeDescriptions.local,
-                },
-                {
-                  value: "worktree",
-                  label: runtimeLabels.worktree,
-                  description: runtimeDescriptions.worktree,
-                },
-              ]}
+              options={(Object.keys(runtimeLabels) as ComposerRuntime[]).map((value) => ({
+                value,
+                label: runtimeLabels[value],
+                description: runtimeDescriptions[value],
+                icon: runtimeIcon[value],
+              }))}
               onChange={(value) => onRuntimeChange(value as ComposerRuntime)}
             />
-          </div>
-
-          <div className="new-task-actions">
-            {!models.length && (
-              <button className="composer-provider-link" type="button" onClick={onOpenProviders}>
-                <Settings2 size={13} strokeWidth={1.7} aria-hidden />
-                {modelLabel}
-              </button>
-            )}
-            <span className="new-task-hint">{hint}</span>
+            <span className="composer-spacer" />
+            <span className="composer-hint"><span className="composer-hint-text">{hint}</span></span>
             <button
-              className="new-task-send"
+              className="send-btn"
               type="submit"
               disabled={!canSubmit || busy}
               aria-label={startLabel}
               title={!workspace ? chooseProjectLabel : startLabel}
             >
-              <ArrowUp size={16} strokeWidth={2} aria-hidden />
+              <Icon name="send" size={16} />
             </button>
           </div>
-        </div>
-      </form>
-    </section>
+        </form>
+      </div>
+    </div>
   );
 }

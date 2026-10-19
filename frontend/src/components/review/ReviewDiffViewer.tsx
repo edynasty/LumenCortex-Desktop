@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SyntaxLine } from "../code/SyntaxLine";
 import { Button } from "../primitives/Button";
 import { EmptyState } from "../primitives/EmptyState";
@@ -20,6 +20,37 @@ type Props = {
   binaryLabel: string;
   loadMoreLabel: string;
 };
+
+export function DiffCount({ added, removed }: { added: number; removed: number }) {
+  return (
+    <span className="diff-count">
+      <span className="add">+{added}</span>
+      <span className="del">−{removed}</span>
+    </span>
+  );
+}
+
+// Split diffs read only once the pane is wide enough; the choice follows the window.
+export function useSplitDiffAvailable() {
+  const query = "(min-width: 1025px)";
+  const [available, setAvailable] = useState(() =>
+    typeof window === "undefined" || typeof window.matchMedia !== "function"
+      ? true
+      : window.matchMedia(query).matches
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+
+    const media = window.matchMedia(query);
+    const sync = () => setAvailable(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return available;
+}
 
 export function ReviewDiffViewer({
   loading,
@@ -50,11 +81,11 @@ export function ReviewDiffViewer({
       ) : binary ? (
         <EmptyState title={binaryLabel} body={selectedPath} />
       ) : mode === "unified" ? (
-        <div className="review-unified">
+        <div className="diff-scroll review-unified">
           {visibleLines.map((line, index) => (
-            <div className={`diff-line ${line.kind}`} key={index}>
-              <span>{line.oldLine ?? ""}</span>
-              <span>{line.newLine ?? ""}</span>
+            <div className={`diff-line k-${line.kind}`} key={index}>
+              <span className="diff-num">{line.kind !== "add" ? line.oldLine ?? "" : ""}</span>
+              <span className="diff-num">{line.kind !== "delete" ? line.newLine ?? "" : ""}</span>
               <code>
                 <span className="diff-prefix">
                   {line.kind === "add" ? "+" : line.kind === "delete" ? "-" : line.kind === "context" ? " " : ""}
@@ -65,19 +96,19 @@ export function ReviewDiffViewer({
           ))}
         </div>
       ) : (
-        <div className="review-split">
+        <div className="diff-scroll review-split">
           {visibleRows.map((row, index) => (
             <div className="split-row" key={index}>
-              <div className={`split-cell ${row.left?.kind || ""}`}>
-                <span>{row.left?.oldLine ?? ""}</span>
+              <div className={`split-cell k-${row.left?.kind ?? "none"}`}>
+                <span className="diff-num">{row.left?.oldLine ?? ""}</span>
                 <code>
                   {row.left?.kind === "meta"
                     ? row.left?.text || ""
                     : <SyntaxLine text={row.left?.text || ""} language={language} />}
                 </code>
               </div>
-              <div className={`split-cell ${row.right?.kind || ""}`}>
-                <span>{row.right?.newLine ?? ""}</span>
+              <div className={`split-cell k-${row.right?.kind ?? "none"}`}>
+                <span className="diff-num">{row.right?.newLine ?? ""}</span>
                 <code>
                   {row.right?.kind === "meta"
                     ? row.right?.text || ""

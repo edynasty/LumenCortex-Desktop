@@ -271,8 +271,9 @@ frontend/src/
     i18n.ts
   types.ts
   styles/
-    tokens.css
-    global.css
+    tokens.css     # Lumen Glass design tokens (single source)
+    base.css       # element defaults and shared controls
+    overlays.css   # sheets, dialogs, popovers, command palette
 ```
 
 The project may migrate incrementally toward this structure.

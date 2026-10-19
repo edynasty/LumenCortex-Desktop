@@ -1,28 +1,30 @@
 import type { ChangeEvent } from "react";
-import { ServerCog } from "lucide-react";
+import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { LSPDiagnostic, LSPStatus } from "../../types";
+import { InspectorSection } from "./Section";
 
-export type LSPSettingsLabels = {
-  lsp: string;
-  lspCommand: string;
-  lspArgs: string;
-  lspLanguage: string;
-  lspStart: string;
-  lspStop: string;
-  lspRunning: string;
-  lspStopped: string;
-  lspPid: string;
-  lspPending: string;
-  lspDiagnostics: string;
-  lspDiagnosticPath: string;
-  lspDiagnosticRefresh: string;
-  lspNoDiagnostics: string;
-  lspSeverityError: string;
-  lspSeverityWarning: string;
-  lspSeverityInfo: string;
-  lspSeverityHint: string;
-  lspLastError: string;
-};
+export type LSPSettingsLabels = Pick<
+  AppCopy,
+  | "lsp"
+  | "lspCommand"
+  | "lspArgs"
+  | "lspLanguage"
+  | "lspStart"
+  | "lspStop"
+  | "lspRunning"
+  | "lspStopped"
+  | "lspPid"
+  | "lspPending"
+  | "lspDiagnostics"
+  | "lspDiagnosticPath"
+  | "lspDiagnosticRefresh"
+  | "lspNoDiagnostics"
+  | "lspSeverityError"
+  | "lspSeverityWarning"
+  | "lspSeverityInfo"
+  | "lspSeverityHint"
+  | "lspLastError"
+>;
 
 type Props = {
   command: string;
@@ -62,35 +64,38 @@ export function LSPSettingsPanel({
   onStop,
 }: Props) {
   return (
-    <div className="settings-group lsp-group">
-      <div className="settings-title lsp-title">
-        <span><ServerCog size={13} strokeWidth={1.7} aria-hidden /> {labels.lsp}</span>
+    <InspectorSection
+      title={labels.lsp}
+      action={
         <span className={`lsp-status ${status.running ? "running" : "stopped"}`}>
           {status.running ? labels.lspRunning : labels.lspStopped}
         </span>
-      </div>
-
-      <label className="settings-field">
-        <span>{labels.lspCommand}</span>
+      }
+    >
+      <label className="field">
+        <span className="field-label">{labels.lspCommand}</span>
         <input
+          className="input mono"
           value={command}
           onChange={(event: ChangeEvent<HTMLInputElement>) => onCommandChange(event.target.value)}
           disabled={status.running}
         />
       </label>
 
-      <label className="settings-field">
-        <span>{labels.lspArgs}</span>
+      <label className="field">
+        <span className="field-label">{labels.lspArgs}</span>
         <input
+          className="input mono"
           value={args}
           onChange={(event: ChangeEvent<HTMLInputElement>) => onArgsChange(event.target.value)}
           disabled={status.running}
         />
       </label>
 
-      <label className="settings-field">
-        <span>{labels.lspLanguage}</span>
+      <label className="field">
+        <span className="field-label">{labels.lspLanguage}</span>
         <input
+          className="input mono"
           value={language}
           onChange={(event: ChangeEvent<HTMLInputElement>) => onLanguageChange(event.target.value)}
           disabled={status.running}
@@ -103,9 +108,10 @@ export function LSPSettingsPanel({
         <div><dt>{labels.lspDiagnostics}</dt><dd>{status.diagnostics ?? 0}</dd></div>
       </dl>
 
-      <label className="settings-field">
-        <span>{labels.lspDiagnosticPath}</span>
+      <label className="field">
+        <span className="field-label">{labels.lspDiagnosticPath}</span>
         <input
+          className="input mono"
           value={diagnosticPath}
           onChange={(event: ChangeEvent<HTMLInputElement>) => onDiagnosticPathChange(event.target.value)}
           placeholder="frontend/src/App.tsx"
@@ -114,7 +120,7 @@ export function LSPSettingsPanel({
       </label>
 
       <button
-        className="secondary-action"
+        className="btn btn-sm btn-secondary"
         type="button"
         disabled={busy || !status.running || !diagnosticPath.trim()}
         onClick={onRefreshDiagnostics}
@@ -134,7 +140,7 @@ export function LSPSettingsPanel({
               <div className="lsp-diagnostic-item" key={index}>
                 <div>
                   <strong>{severity}</strong>
-                  <code>{item.range.start.line + 1}:{item.range.start.character + 1}</code>
+                  <code className="mono">{item.range.start.line + 1}:{item.range.start.character + 1}</code>
                 </div>
                 <p>{item.message}</p>
               </div>
@@ -150,13 +156,13 @@ export function LSPSettingsPanel({
       )}
 
       <button
-        className="secondary-action"
+        className="btn btn-sm btn-secondary"
         type="button"
         disabled={busy || !workspaceOpen || (!status.running && !command.trim())}
         onClick={status.running ? onStop : onStart}
       >
         {status.running ? labels.lspStop : labels.lspStart}
       </button>
-    </div>
+    </InspectorSection>
   );
 }

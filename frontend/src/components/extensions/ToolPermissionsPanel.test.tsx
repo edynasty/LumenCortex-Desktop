@@ -45,11 +45,11 @@ describe("ToolPermissionsPanel", () => {
       />
     );
 
-    const shell = await screen.findByRole("button", { name: /shell/i });
-    expect(shell).toHaveAttribute("aria-pressed", "true");
+    const shell = await screen.findByRole("switch", { name: /shell/i });
+    expect(shell).toHaveAttribute("aria-checked", "true");
 
     await user.click(shell);
-    expect(shell).toHaveAttribute("aria-pressed", "false");
+    expect(shell).toHaveAttribute("aria-checked", "false");
 
     await user.click(screen.getByRole("button", { name: "Save" }));
 
@@ -72,7 +72,8 @@ describe("ToolPermissionsPanel", () => {
       />
     );
 
-    const unknown = await screen.findByRole("button", { name: /mcp__old__removed/i });
-    expect(unknown).toHaveAttribute("aria-pressed", "false");
+    const unknown = await screen.findByRole("switch", { name: /mcp__old__removed/i });
+    expect(unknown).toHaveAttribute("aria-checked", "false");
   });
+
 });

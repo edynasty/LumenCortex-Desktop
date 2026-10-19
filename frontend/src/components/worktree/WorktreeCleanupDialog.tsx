@@ -5,6 +5,7 @@ import type { AppCopy } from "../../lib/i18n/app-copy";
 import { worktreeCleanupChoices, type WorktreeCleanupChoice, type WorktreeCleanupMode } from "../../lib/worktree-cleanup";
 import type { SessionDependent, WorktreeInspection, WorktreeRefusal } from "../../types";
 import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
 import { Dialog } from "../primitives/Dialog";
 import "./worktree-cleanup.css";
 
@@ -152,19 +153,27 @@ export function WorktreeCleanupDialog({ target, labels, onClose, onCompleted }: 
         {inspection && <InspectionSummary inspection={inspection} labels={labels} />}
         {refusalText && (
           <div className="worktree-cleanup-refusal" role="alert">
-            <p>{refusalText}</p>
-            {refusal?.dependents && (
-              <ul>
-                {refusal.dependents.map((dependent) => (
-                  <li key={dependent.sessionId}>
-                    <code>{dependent.sessionId}</code> {labels[dependentReason[dependent.reason]] as string}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <Icon name="failed" size={14} />
+            <div>
+              <p>{refusalText}</p>
+              {refusal?.dependents && (
+                <ul>
+                  {refusal.dependents.map((dependent) => (
+                    <li key={dependent.sessionId}>
+                      <code>{dependent.sessionId}</code> {labels[dependentReason[dependent.reason]] as string}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
-        {error && <div className="worktree-cleanup-refusal" role="alert"><p>{presentError(labels, error)}</p></div>}
+        {error && (
+          <div className="worktree-cleanup-refusal" role="alert">
+            <Icon name="failed" size={14} />
+            <p>{presentError(labels, error)}</p>
+          </div>
+        )}
       </div>
     </Dialog>
   );

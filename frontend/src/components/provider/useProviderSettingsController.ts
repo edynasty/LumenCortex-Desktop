@@ -38,12 +38,54 @@ type Options = {
   onError: (message: string) => void;
 };
 
+/** The provider panes' shared controller: scope, catalog, drafts, edits and runtime actions. */
+export type ProviderSettingsController = {
+  scope: ProviderCatalogScope;
+  setScope: (next: ProviderCatalogScope) => void;
+  catalog: ProviderCatalog;
+  loading: boolean;
+  saving: boolean;
+  providers: [string, ProviderDefinition][];
+  expandedProvider: string | null;
+  setExpandedProvider: (providerId: string | null) => void;
+  editingProvider: string | "new" | null;
+  setEditingProvider: (value: string | "new" | null) => void;
+  providerDraft: ProviderDraft;
+  setProviderDraft: (draft: ProviderDraft) => void;
+  editingModel: { providerId: string; modelId?: string } | null;
+  setEditingModel: (value: { providerId: string; modelId?: string } | null) => void;
+  modelDraft: ModelDraft;
+  setModelDraft: (draft: ModelDraft) => void;
+  advancedOpen: boolean;
+  setAdvancedOpen: (value: boolean | ((current: boolean) => boolean)) => void;
+  advancedJSON: string;
+  setAdvancedJSON: (value: string) => void;
+  advancedDirty: boolean;
+  setAdvancedDirty: (value: boolean) => void;
+  deleteTarget: DeleteTarget | null;
+  setDeleteTarget: (value: DeleteTarget | null) => void;
+  providerAction: string | null;
+  providerNotice: Record<string, string>;
+  startAddProvider: (preset?: ProviderPreset) => void;
+  startEditProvider: (providerId: string, provider: ProviderDefinition) => void;
+  commitProvider: () => Promise<void>;
+  removeProvider: (providerId: string) => Promise<void>;
+  startAddModel: (providerId: string) => void;
+  startEditModel: (providerId: string, modelId: string, model: ProviderModel) => void;
+  commitModel: () => Promise<void>;
+  removeModel: (providerId: string, modelId: string) => Promise<void>;
+  setDefaultModel: (providerId: string, modelId: string) => Promise<void>;
+  testConnection: (providerId: string) => Promise<void>;
+  discoverModels: (providerId: string) => Promise<void>;
+  saveAdvancedJSON: () => Promise<void>;
+};
+
 export function useProviderSettingsController({
   locale,
   workspace,
   onConfigChanged,
   onError,
-}: Options) {
+}: Options): ProviderSettingsController {
   const t = providerCopy[locale];
   const [scope, setScopeState] = useState<ProviderCatalogScope>(() => initialScope(workspace));
   // The file as it was read. Its digest travels with every save, so a file that changed on disk

@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, ReactNode, Ref } from "react";
+import { useMemo, type FormEvent, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { CommandPalette } from "../components/app-shell/CommandPalette";
 import { Welcome } from "../components/app-shell/Welcome";
 import type { InspectorTab } from "../components/inspector/inspector-types";
@@ -29,6 +29,7 @@ import type { ConfiguredModelOption } from "./model-selection";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
+import { useWorkspacePages } from "./useWorkspacePages";
 import { useWorkspaceCommands, type SettingsState } from "./useWorkspaceCommands";
 import type { WorkspaceRoute } from "./workspace-route";
 
@@ -139,8 +140,10 @@ type Props = {
 
 export function WorkspaceView(props: Props) {
   const { route, current, labels, workspace, groups, settings, error } = props;
+  const sessionIds = useMemo(() => new Set(props.sessions.map((session) => session.id)), [props.sessions]);
 
-  const { navigate, openSettings, closeSettings, paletteActions, recovery } = useWorkspaceCommands(props);
+  const { navigate, openSettings, closeSettings, paletteActions, recovery } = useWorkspaceCommands({ ...props, sessionIds });
+  const page = useWorkspacePages(props);
 
   const overlays: ReactNode = (
     <>
@@ -210,6 +213,7 @@ export function WorkspaceView(props: Props) {
 
   return (
     <WorkspaceChrome
+      pageSidebar={page.sidebar}
       route={route}
       current={current}
       parent={props.parent}
@@ -285,6 +289,7 @@ export function WorkspaceView(props: Props) {
       onStartAgent={props.onStartAgent}
     >
       <WorkspaceRouteContent
+        pageContent={page.content}
         route={route}
         current={current}
         runtime={props.runtime}

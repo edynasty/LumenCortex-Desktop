@@ -1,7 +1,8 @@
-import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
-import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import { useSkillsController } from "./useSkillsController";
 
 type Labels = {
@@ -33,6 +34,7 @@ type Props = {
   onError: (message: string) => void;
 };
 
+/** Skills pane: Demo settings-sheet style — scope toolbar, provider-style skill list, editor column. */
 export function SkillsPanel({ workspace, labels, onError }: Props) {
   const {
     effective,
@@ -57,123 +59,153 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
     toggleEnabled,
   } = useSkillsController({ workspace, onError });
 
+  // "Add skill" clears the selection; track that intent so an empty catalogue still
+  // switches the editor column from the empty state to the creation form.
+  const [creating, setCreating] = useState(false);
+  const startNew = () => {
+    beginNew();
+    setCreating(true);
+  };
+  const select = (id: string) => {
+    setSelectedId(id);
+    setCreating(false);
+  };
+
+  const showEditor = Boolean(selectedId) || creating || effective.length > 0;
+
   return (
-    <div className="skills-layout">
-      <aside className="skills-list">
-        <div className="mcp-list-head">
-          <strong>{labels.title}</strong>
-          <Button icon={<Plus size={12} />} onClick={beginNew}>{labels.add}</Button>
-        </div>
-        <div className="skills-list-body">
+    <>
+      <div className="pane-toolbar">
+        <SegmentedControl
+          ariaLabel={labels.title}
+          value={scope}
+          onChange={setScope}
+          options={[
+            { value: "global", label: labels.globalScope, title: labels.globalScope },
+            { value: "project", label: labels.projectScope, title: labels.projectScope },
+          ]}
+        />
+        <span className="pane-hint">{scope === "global" ? labels.globalHint : labels.projectHint}</span>
+      </div>
+
+      <div className="provider-layout">
+        <ul className="provider-list">
           {effective.map((skill) => (
+            <li key={skill.id}>
+              <button
+                type="button"
+                className={`provider-row ${skill.id === selectedId ? "is-selected" : ""}`}
+                onClick={() => select(skill.id)}
+              >
+                <span className="provider-row-name">
+                  <span className={`run-dot ${skill.enabled ? "is-on" : ""}`} aria-hidden />
+                  {skill.name || skill.id}
+                </span>
+                <span className="provider-row-sub">
+                  {skill.scope === "project" ? labels.projectSource : labels.globalSource}
+                </span>
+              </button>
+            </li>
+          ))}
+          <li>
             <button
               type="button"
-              key={skill.id}
-              className={skill.id === selectedId ? "selected" : ""}
-              onClick={() => setSelectedId(skill.id)}
+              className={`provider-row is-add ${!selectedId && creating ? "is-selected" : ""}`}
+              onClick={startNew}
             >
-              <span className={"skill-dot " + (skill.enabled ? "enabled" : "")} />
-              <span>
-                <strong>{skill.name || skill.id}</strong>
-                <small>
-                  {skill.enabled ? labels.enabled : labels.disabled}
-                  {" · "}
-                  {skill.scope === "project" ? labels.projectSource : labels.globalSource}
-                </small>
-              </span>
-              {skill.error && <em title={skill.error}>!</em>}
+              <Icon name="plus" size={14} />
+              {labels.add}
             </button>
-          ))}
-          {!effective.length && (
-            <EmptyState icon={<BookOpen size={20} />} title={labels.empty} />
-          )}
-        </div>
-      </aside>
+          </li>
+        </ul>
 
-      <div className="skills-detail">
-        <div className="mcp-scope-bar">
-          <button
-            type="button"
-            className={scope === "global" ? "active" : ""}
-            onClick={() => setScope("global")}
-          >
-            <span>{labels.globalScope}</span>
-            <small>{labels.globalHint}</small>
-          </button>
-          <button
-            type="button"
-            className={scope === "project" ? "active" : ""}
-            onClick={() => setScope("project")}
-          >
-            <span>{labels.projectScope}</span>
-            <small>{labels.projectHint}</small>
-          </button>
-        </div>
-
-        <section className="skill-editor">
-          <div className="mcp-section-head">
-            <div>
-              <strong>{selectedId || labels.add}</strong>
-              <span>{inherited ? labels.inherited : selectedEffective?.description || ""}</span>
-            </div>
-            <div>
-              {selectedId && (
-                <Button
-                  disabled={busy || (scope === "global" && !selectedScoped)}
-                  onClick={() => void toggleEnabled()}
-                >
-                  {enabled ? labels.enabled : labels.disabled}
-                </Button>
-              )}
-              {selectedId && selectedScoped && (
-                <Button
-                  variant="danger"
-                  icon={<Trash2 size={12} />}
-                  disabled={busy}
-                  onClick={() => setDeleteOpen(true)}
-                >
-                  {labels.delete}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="skill-editor-fields">
-            <label>
-              <span>{labels.id}</span>
-              <input
-                value={selectedId || draftId}
-                disabled={Boolean(selectedId)}
-                onChange={(event) => setDraftId(event.target.value)}
-                placeholder="java-backend"
-              />
-            </label>
-            <label className="skill-content-field">
-              <span>{labels.content}</span>
-              <textarea
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                spellCheck={false}
-              />
-            </label>
-          </div>
-
-          {selectedEffective?.error && (
-            <p className="mcp-runtime-error">
-              <strong>{labels.error}</strong> {selectedEffective.error}
-            </p>
-          )}
-
-          <div className="mcp-form-actions">
-            <Button
-              variant="primary"
-              disabled={busy || !(selectedId || draftId).trim() || !content.trim()}
-              onClick={() => void save()}
-            >
-              {labels.save}
+        {!showEditor ? (
+          <div className="empty-state">
+            <Icon name="skill" size={22} />
+            <h3>{labels.empty}</h3>
+            <Button variant="secondary" size="sm" icon={<Icon name="plus" size={14} />} onClick={startNew}>
+              {labels.add}
             </Button>
           </div>
-        </section>
+        ) : (
+          <div className="extensions-editor">
+            <div className="extensions-editor-head">
+              <div className="extensions-editor-id">
+                <strong>{selectedId || labels.add}</strong>
+                <span className="mono">
+                  {selectedId
+                    ? inherited ? labels.inherited : (selectedEffective?.description || "")
+                    : labels.content}
+                </span>
+              </div>
+              {selectedId && (
+                <div className="extensions-editor-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy || (scope === "global" && !selectedScoped)}
+                    onClick={() => void toggleEnabled()}
+                  >
+                    {enabled ? labels.enabled : labels.disabled}
+                  </Button>
+                  {selectedScoped && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="is-danger"
+                      aria-label={labels.delete}
+                      title={labels.delete}
+                      disabled={busy}
+                      onClick={() => setDeleteOpen(true)}
+                    >
+                      <Icon name="delete" size={13} />
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="form-grid">
+              <label className="field">
+                <span className="field-label">{labels.id}</span>
+                <input
+                  className="input mono"
+                  value={selectedId || draftId}
+                  disabled={Boolean(selectedId)}
+                  onChange={(event) => setDraftId(event.target.value)}
+                  placeholder="java-backend"
+                />
+              </label>
+              <label className="field span-2">
+                <span className="field-label">{labels.content}</span>
+                <textarea
+                  className="input extensions-content"
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  spellCheck={false}
+                />
+              </label>
+            </div>
+
+            {selectedEffective?.error && (
+              <p className="extensions-error">
+                <Icon name="failed" size={13} />
+                <span><strong>{labels.error}</strong> {selectedEffective.error}</span>
+              </p>
+            )}
+
+            <footer className="editor-actions">
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={busy || !(selectedId || draftId).trim() || !content.trim()}
+                onClick={() => void save()}
+              >
+                {labels.save}
+              </Button>
+            </footer>
+          </div>
+        )}
       </div>
 
       <Dialog
@@ -184,13 +216,15 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
         onOpenChange={setDeleteOpen}
         footer={
           <>
-            <Button onClick={() => setDeleteOpen(false)}>{labels.cancel}</Button>
-            <Button variant="danger" disabled={busy} onClick={() => void remove()}>
+            <Button variant="secondary" size="sm" onClick={() => setDeleteOpen(false)}>
+              {labels.cancel}
+            </Button>
+            <Button variant="danger" size="sm" disabled={busy} onClick={() => void remove()}>
               {labels.delete}
             </Button>
           </>
         }
       />
-    </div>
+    </>
   );
 }

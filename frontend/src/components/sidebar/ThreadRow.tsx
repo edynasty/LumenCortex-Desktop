@@ -38,8 +38,7 @@ type Props = {
   onDelete: () => void;
 };
 
-// One glyph per durable status; "running" here means running in another process.
-const statusGlyph: Record<string, { icon: IconName; tone: string }> = {
+export const statusGlyph: Record<string, { icon: IconName; tone: string }> = {
   waiting_gate: { icon: "gate", tone: "is-gate" },
   failed: { icon: "failed", tone: "is-failed" },
   interrupted: { icon: "interrupted", tone: "is-interrupted" },

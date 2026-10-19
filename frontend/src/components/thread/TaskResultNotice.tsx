@@ -1,6 +1,6 @@
-import { SquareArrowOutUpRight } from "lucide-react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { TaskResult } from "../../types";
+import { Icon } from "../primitives/Icon";
 import { ResultFacts, type ExecutionTaskLabels } from "./ExecutionTasks";
 
 type Props = {
@@ -20,38 +20,36 @@ function statusLabel(labels: Props["labels"], status: string): string {
   }
 }
 
-// A task_result row: Core's report of one terminal transition of an execution task, delivered at the
-// parent's Start. It is the runtime's record, not a message from the user or the model.
-export function TaskResultNotice({ seq, result, labels, onOpen }: Props) {
+// A task_result row (Lumen Glass result block): Core's report of one terminal transition of an
+// execution task, delivered at the parent's Start. It is the runtime's record, not a message
+// from the user or the model.
+export function TaskResultNotice({ result, labels, onOpen }: Props) {
   return (
     <article
-      className={`message-row notice task-result status-${result.status}`}
+      className={`block task-result-block tone-${result.status}`}
       role="note"
       aria-label={`${labels.runtimeNotice}: ${labels.originTaskResult}`}
     >
-      <div className="message-avatar" aria-hidden>RT</div>
-      <div className="message-body">
-        <div className="message-head">
-          <strong>{labels.originTaskResult}</strong>
-          <div className="message-head-actions">
-            <button
-              type="button"
-              aria-label={`${labels.taskOpen}: ${result.objective}`}
-              title={labels.taskOpen}
-              onClick={() => onOpen(result.sessionId)}
-            >
-              <SquareArrowOutUpRight size={11} strokeWidth={1.8} aria-hidden />
-            </button>
-            <span>#{seq}</span>
-          </div>
-        </div>
-        <p className="task-result-objective">{result.objective}</p>
-        <div className="task-row-meta">
-          <span className="task-phase">{statusLabel(labels, result.status)}</span>
-          <ResultFacts result={result} labels={labels} />
-        </div>
-        {result.error && <p className="task-row-error">{result.error}</p>}
-        {result.final && <p className="task-result-final">{result.final}</p>}
+      <header className="block-head">
+        <Icon name="inbox" size={16} className="block-icon" />
+        <span className="block-kicker">{labels.originTaskResult}</span>
+        <h3 className="task-objective">{result.objective}</h3>
+        <span className="toolbar-spacer" />
+        <span className={`task-state tone-${result.status}`}>{statusLabel(labels, result.status)}</span>
+      </header>
+      {result.final && <p className="block-text">{result.final}</p>}
+      {result.error && <pre className="block-code">{result.error}</pre>}
+      <div className="task-meta">
+        <ResultFacts result={result} labels={labels} />
+        {result.sessionId && (
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => onOpen(result.sessionId)}
+          >
+            {labels.taskOpen}
+          </button>
+        )}
       </div>
     </article>
   );

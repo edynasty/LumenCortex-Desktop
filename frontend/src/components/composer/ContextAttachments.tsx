@@ -1,88 +1,98 @@
-import { FilePlus2, FolderPlus, Paperclip, X } from "lucide-react";
 import { useState } from "react";
-import { Popover } from "../primitives/Popover";
+import { Icon } from "../primitives/Icon";
+import { PathLabel } from "../primitives/PathLabel";
+import { AnchoredPopover } from "../primitives/AnchoredPopover";
 
-type Props = {
-  paths: string[];
-  disabled?: boolean;
-  labels: {
-    context: string;
-    files: string;
-    folder: string;
-    remove: string;
-  };
-  onPickFiles: () => void;
-  onPickFolder: () => void;
-  onRemove: (path: string) => void;
+type Labels = {
+  context: string;
+  files: string;
+  folder: string;
+  remove: string;
 };
 
-export function ContextAttachments({
-  paths,
+/**
+ * The composer's attach control: a chip that opens the pick menu (files or folder). The
+ * picked paths render as chips above the input (ContextAttachments).
+ */
+export function ContextAttachTrigger({
   disabled = false,
   labels,
+  count,
   onPickFiles,
   onPickFolder,
-  onRemove,
-}: Props) {
+}: {
+  disabled?: boolean;
+  labels: Labels;
+  count: number;
+  onPickFiles: () => void;
+  onPickFolder: () => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="composer-context-attachments">
-      <Popover
-        open={open}
-        onOpenChange={setOpen}
-        ariaLabel={labels.context}
+    <span className="popover-anchor">
+      <button
+        type="button"
+        className={`chip is-collapsible ${count > 0 ? "is-static" : ""}`}
         disabled={disabled}
-        triggerClassName="composer-context-attach-trigger"
-        contentClassName="composer-context-attach-popover"
-        trigger={
-          <>
-            <Paperclip size={13} strokeWidth={1.7} aria-hidden />
-            <span>{labels.context}</span>
-            {paths.length > 0 && <small>{paths.length}</small>}
-          </>
-        }
+        onClick={() => setOpen(!open)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={labels.context}
       >
-        <div className="composer-context-attach-menu">
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onPickFiles();
-            }}
-          >
-            <FilePlus2 size={14} strokeWidth={1.7} aria-hidden />
-            <span>{labels.files}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onPickFolder();
-            }}
-          >
-            <FolderPlus size={14} strokeWidth={1.7} aria-hidden />
-            <span>{labels.folder}</span>
-          </button>
-        </div>
-      </Popover>
+        <Icon name="attach" size={14} />
+        <span className="chip-label">{labels.context}</span>
+        {count > 0 && <span className="count-badge">{count}</span>}
+        <Icon name="collapse" size={12} className="chip-caret" />
+      </button>
+      <AnchoredPopover open={open} onClose={() => setOpen(false)} placement="above-start" label={labels.context} className="menu">
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          onClick={() => {
+            setOpen(false);
+            onPickFiles();
+          }}
+        >
+          <Icon name="addFile" size={15} />
+          <span className="menu-item-body"><span>{labels.files}</span></span>
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          className="menu-item"
+          onClick={() => {
+            setOpen(false);
+            onPickFolder();
+          }}
+        >
+          <Icon name="addFolder" size={15} />
+          <span className="menu-item-body"><span>{labels.folder}</span></span>
+        </button>
+      </AnchoredPopover>
+    </span>
+  );
+}
 
-      {paths.length > 0 && (
-        <div className="composer-context-chips" aria-label={labels.context}>
-          {paths.map((path) => (
-            <span className="composer-context-chip" key={path} title={path}>
-              <code>{path}</code>
-              <button
-                type="button"
-                aria-label={`${labels.remove}: ${path}`}
-                onClick={() => onRemove(path)}
-              >
-                <X size={11} strokeWidth={1.8} aria-hidden />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
+/** Picked context paths as removable chips above the composer input. */
+export function ContextAttachments({ paths, labels, onRemove }: {
+  paths: string[];
+  labels: Pick<Labels, "context" | "remove">;
+  onRemove: (path: string) => void;
+}) {
+  if (!paths.length) return null;
+  return (
+    <div className="composer-context" aria-label={labels.context}>
+      {paths.map((path) => (
+        <span className="context-chip" key={path} title={path}>
+          <Icon name="file" size={12} />
+          <PathLabel path={path} />
+          <button type="button" aria-label={`${labels.remove}: ${path}`} onClick={() => onRemove(path)}>
+            <Icon name="close" size={12} />
+          </button>
+        </span>
+      ))}
     </div>
   );
 }

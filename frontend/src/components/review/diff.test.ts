@@ -26,4 +26,20 @@ describe("review diff parser", () => {
     expect(changed?.left?.text).toBe("before");
     expect(changed?.right?.text).toBe("after");
   });
+
+  it("drops the file header and keeps hunk headers and in-hunk notes", () => {
+    const lines = parseUnifiedDiff(`${patch}\n\\ No newline at end of file\n`);
+    expect(lines.filter((line) => line.kind === "meta").map((line) => line.text)).toEqual([
+      "@@ -1,2 +1,2 @@",
+      "\\ No newline at end of file",
+    ]);
+  });
+
+  it("counts in-hunk lines that start with -- or ++ as changes", () => {
+    const lines = parseUnifiedDiff(["--- a/x.sql", "+++ b/x.sql", "@@ -1 +1 @@", "--- old comment", "+++ new comment"].join("\n"));
+    expect(lines.filter((line) => line.kind !== "meta").map((line) => [line.kind, line.text])).toEqual([
+      ["delete", "-- old comment"],
+      ["add", "++ new comment"],
+    ]);
+  });
 });

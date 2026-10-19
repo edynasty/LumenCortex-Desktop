@@ -132,6 +132,7 @@ export function WorkspaceTopbar({
   }
 
   const startable = threadRoute && !running && (current.status === "created" || current.status === "interrupted");
+  const startLabel = current?.status === "interrupted" ? labels.resume : labels.start;
 
   return (
     <div className="toolbar-main">
@@ -139,13 +140,13 @@ export function WorkspaceTopbar({
       {threadRoute && (
         <div className="toolbar-actions no-drag">
           {running && (
-            <Button size="sm" variant="secondary" icon={<Icon name="stop" size={13} />} disabled={busy} onClick={onCancelAgent} aria-keyshortcuts="Meta+.">
+            <Button size="sm" variant="secondary" icon={<Icon name="stop" size={13} />} disabled={busy} onClick={onCancelAgent} aria-label={narrow ? labels.stop : undefined} title={labels.stop}>
               {!narrow && labels.stop}
             </Button>
           )}
           {startable && (
-            <Button size="sm" variant="secondary" icon={<Icon name="send" size={13} />} disabled={busy} onClick={onStartAgent}>
-              {!narrow && (current.status === "interrupted" ? labels.resume : labels.start)}
+            <Button size="sm" variant="secondary" icon={<Icon name="send" size={13} />} disabled={busy} onClick={onStartAgent} aria-label={narrow ? startLabel : undefined} title={startLabel}>
+              {!narrow && startLabel}
             </Button>
           )}
           <SegmentedControl

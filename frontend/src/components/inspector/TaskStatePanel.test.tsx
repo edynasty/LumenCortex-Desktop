@@ -92,13 +92,13 @@ describe("TaskStatePanel", () => {
   it("disables reset while running and presents a held run as running elsewhere", async () => {
     mocks.taskState.mockResolvedValue(info());
     mocks.resetContext.mockRejectedValue("run is active in another process or engine");
-    const { rerender } = render(<TaskStatePanel sessionId="s1" running events={[]} labels={labels} />);
+    const { rerender } = render(<TaskStatePanel pane="window" sessionId="s1" running events={[]} labels={labels} />);
 
     const reset = await screen.findByRole("button", { name: labels.taskResetContext });
     await waitFor(() => expect(mocks.taskState).toHaveBeenCalled());
     expect((reset as HTMLButtonElement).disabled).toBe(true);
 
-    rerender(<TaskStatePanel sessionId="s1" running={false} events={[]} labels={labels} />);
+    rerender(<TaskStatePanel pane="window" sessionId="s1" running={false} events={[]} labels={labels} />);
     await waitFor(() => expect((reset as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(reset);
     expect((await screen.findByRole("alert")).textContent).toBe(labels.runningElsewhereError);

@@ -1,7 +1,7 @@
-import { Lock, Network } from "lucide-react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { Delegation } from "../../types";
-import { DesktopSelect } from "../primitives/Select";
+import { MenuPicker } from "../composer/ComposerPickers";
+import { Icon } from "../primitives/Icon";
 
 type Labels = Pick<
   AppCopy,
@@ -25,31 +25,31 @@ type Props = {
   onChange: (value: Delegation) => void;
 };
 
+const delegationIcon = { none: "discussion", propose: "proposal", isolated: "task" } as const;
+
 // DelegationControl is the thread's grant line (ADR-0006 D4). It records the user's choice; Core
 // receives it with each Start and alone decides what a run may do with it.
 export function DelegationControl({ value, fixed, disabled, labels, onChange }: Props) {
   if (fixed) {
     return (
-      <span className="delegation-control fixed" title={labels.delegationFixed}>
-        <Lock size={11} strokeWidth={1.8} aria-hidden />
-        {labels.delegationFixed}
+      <span className="chip is-static is-collapsible delegation-control fixed" title={labels.delegationFixed}>
+        <Icon name="lock" size={12} />
+        <span className="chip-label">{labels.delegationFixed}</span>
       </span>
     );
   }
   return (
     <span className={`delegation-control ${value}`} title={labels.delegationNextTurn}>
-      <Network size={12} strokeWidth={1.7} aria-hidden />
-      <DesktopSelect
+      <MenuPicker
         ariaLabel={labels.delegation}
+        collapsible
         value={value}
         placeholder={labels.delegationNone}
         disabled={disabled}
-        showDescriptionInTrigger={false}
-        className="composer-delegation-trigger"
         options={[
-          { value: "none", label: labels.delegationNone, description: labels.delegationNoneDescription, group: labels.delegationNextTurn },
-          { value: "propose", label: labels.delegationPropose, description: labels.delegationProposeDescription, group: labels.delegationNextTurn },
-          { value: "isolated", label: labels.delegationIsolated, description: labels.delegationIsolatedDescription, group: labels.delegationNextTurn },
+          { value: "none", label: labels.delegationNone, description: labels.delegationNoneDescription, icon: delegationIcon.none },
+          { value: "propose", label: labels.delegationPropose, description: labels.delegationProposeDescription, icon: delegationIcon.propose },
+          { value: "isolated", label: labels.delegationIsolated, description: labels.delegationIsolatedDescription, icon: delegationIcon.isolated },
         ]}
         onChange={(next) => onChange(next as Delegation)}
       />

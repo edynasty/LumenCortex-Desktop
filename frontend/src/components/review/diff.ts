@@ -12,26 +12,40 @@ export type SplitRow = {
   right?: DiffLine;
 };
 
+/**
+ * Parses one file's unified diff into rows. The file header before the first hunk (`diff --git`,
+ * `index`, `---`/`+++`, mode lines) is dropped: the diff head bar already names the file. Hunk
+ * headers and in-hunk notes such as "\ No newline at end of file" stay as meta rows.
+ */
 export function parseUnifiedDiff(content: string): DiffLine[] {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
   const out: DiffLine[] = [];
   let oldLine = 0;
   let newLine = 0;
+  let inHunk = false;
 
   for (const text of lines) {
     const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(text);
     if (hunk) {
       oldLine = Number(hunk[1]);
       newLine = Number(hunk[2]);
+      inHunk = true;
       out.push({ kind: "meta", text });
       continue;
     }
-    if (text.startsWith("+") && !text.startsWith("+++")) {
+    if (/^diff --git /.test(text)) {
+      inHunk = false;
+      continue;
+    }
+    // Outside a hunk every line is file header; inside one, the first column alone decides,
+    // so a removed line that itself starts with "--" is still a deletion.
+    if (!inHunk) continue;
+    if (text.startsWith("+")) {
       out.push({ kind: "add", text: text.slice(1), newLine });
       newLine++;
       continue;
     }
-    if (text.startsWith("-") && !text.startsWith("---")) {
+    if (text.startsWith("-")) {
       out.push({ kind: "delete", text: text.slice(1), oldLine });
       oldLine++;
       continue;
@@ -42,7 +56,7 @@ export function parseUnifiedDiff(content: string): DiffLine[] {
       newLine++;
       continue;
     }
-    out.push({ kind: "meta", text });
+    if (text.startsWith("\\")) out.push({ kind: "meta", text });
   }
   return out;
 }

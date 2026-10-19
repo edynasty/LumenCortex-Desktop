@@ -38,6 +38,8 @@ import {
   FlaskConical,
   Folder,
   FolderOpen,
+  FolderPlus,
+  Paperclip,
   GitBranch,
   GitBranchPlus,
   GitCommitHorizontal,
@@ -68,6 +70,7 @@ import {
   Plug,
   Plus,
   RotateCcw,
+  RefreshCw,
   Search,
   Settings2,
   ShieldAlert,
@@ -187,7 +190,13 @@ export const Icons = {
   dark: Moon,
   system: Monitor,
   language: Languages,
-  add: Plus,
+  refresh: RefreshCw,
+  // composer attachments (ConversationSlice)
+  attach: Paperclip,
+  addFile: FilePlus2,
+  addFolder: FolderPlus,
+  // extension panes (ExtensionsSlice)
+  plus: Plus,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof Icons;

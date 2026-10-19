@@ -1,47 +1,82 @@
-import type { ChangeEvent } from "react";
-import type { Health, LSPDiagnostic, LSPStatus, SessionCheckpoint, SubagentNode } from "../../types";
+import type { ChangeEvent, FormEvent } from "react";
+import type { LSPDiagnostic, LSPStatus, RuntimeEvent, SubagentNode } from "../../types";
 import { DesktopSelect, type SelectOption } from "../primitives/Select";
-import { LSPSettingsPanel, type LSPSettingsLabels } from "./LSPSettingsPanel";
+import { LSPSettingsPanel } from "./LSPSettingsPanel";
+import { MilestoneList } from "./MilestoneList";
 import { SubagentTreePanel } from "./SubagentTreePanel";
-import type { InspectorPolicy } from "./inspector-types";
+import { InspectorSection } from "./Section";
+import type { InspectorLabels, InspectorPolicy } from "./inspector-types";
 
-type RunSettingsLabels = LSPSettingsLabels & {
-  provider: string;
-  modelSelect: string;
-  modelSearch: string;
-  noModelMatches: string;
-  noModels: string;
-  providerConfig: string;
-  runSettingsNote: string;
-  run: string;
-  policy: string;
-  readOnly: string;
-  readOnlyDescription: string;
-  workspace: string;
-  workspaceDescription: string;
-  full: string;
-  fullDescription: string;
-  maxSteps: string;
-  runtime: string;
-  workingMemory: string;
-  softBudget: string;
-  hardBudget: string;
-  maxAgents: string;
-  subagents: string;
-  noSubagents: string;
-  subagentActive: string;
-  subagentCompleted: string;
-  subagentInterrupted: string;
-  subagentCheckpoint: string;
-};
+export type RunSettingsLabels = Pick<
+  InspectorLabels,
+  | "provider"
+  | "modelSelect"
+  | "modelSearch"
+  | "noModelMatches"
+  | "noModels"
+  | "providerConfig"
+  | "runSettingsNote"
+  | "run"
+  | "policy"
+  | "readOnly"
+  | "readOnlyDescription"
+  | "workspace"
+  | "workspaceDescription"
+  | "full"
+  | "fullDescription"
+  | "maxSteps"
+  | "subagents"
+  | "noSubagents"
+  | "subagentActive"
+  | "subagentCompleted"
+  | "subagentInterrupted"
+  | "terminal"
+  | "shellCommand"
+  | "runCommand"
+  | "shellHint"
+  | "activity"
+  | "noActivity"
+  | "milestoneAgentStarted"
+  | "milestoneAgentStopped"
+  | "milestoneToolCompleted"
+  | "lsp"
+  | "lspCommand"
+  | "lspArgs"
+  | "lspLanguage"
+  | "lspStart"
+  | "lspStop"
+  | "lspRunning"
+  | "lspStopped"
+  | "lspPid"
+  | "lspPending"
+  | "lspDiagnostics"
+  | "lspDiagnosticPath"
+  | "lspDiagnosticRefresh"
+  | "lspNoDiagnostics"
+  | "lspSeverityError"
+  | "lspSeverityWarning"
+  | "lspSeverityInfo"
+  | "lspSeverityHint"
+  | "lspLastError"
+  | "milestoneApprovalRequired"
+  | "milestoneApprovalGranted"
+  | "milestoneSubagentStarted"
+  | "milestoneSubagentStopped"
+  | "milestoneWorktreeCreated"
+  | "milestoneWorktreeApplied"
+  | "milestoneTaskCompleted"
+  | "milestoneTaskInterrupted"
+  | "milestoneWorkflowAdvanced"
+>;
 
 type Props = {
   modelRef: string;
   models: SelectOption[];
   policy: InspectorPolicy;
   maxSteps: number;
-  health?: Health;
-  pressure: number;
+  command: string;
+  running: boolean;
+  events: RuntimeEvent[];
   lspCommand: string;
   lspArgs: string;
   lspLanguage: string;
@@ -49,7 +84,6 @@ type Props = {
   lspDiagnosticPath: string;
   lspDiagnostics: LSPDiagnostic[];
   subagents: SubagentNode[];
-  checkpoints: SessionCheckpoint[];
   workspaceOpen: boolean;
   selectedSessionId: string;
   busy: boolean;
@@ -58,6 +92,7 @@ type Props = {
   onOpenProviders: () => void;
   onPolicyChange: (value: InspectorPolicy) => void;
   onMaxStepsChange: (value: number) => void;
+  onCommandChange: (value: string) => void;
   onLSPCommandChange: (value: string) => void;
   onLSPArgsChange: (value: string) => void;
   onLSPLanguageChange: (value: string) => void;
@@ -66,22 +101,19 @@ type Props = {
   onStartLSP: () => void;
   onStopLSP: () => void;
   onOpenSubagent: (sessionId: string) => void;
+  onRunShell: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-function bytes(value = 0) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
-  return `${(value / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
+// The Run pane (Demo RunPane): provider and model, permissions and the step budget, the subagent
+// tree, LSP, the debug shell and the bounded event list. Every control goes straight to Core.
 export function RunSettingsPanel({
   modelRef,
   models,
   policy,
   maxSteps,
-  health,
-  pressure,
+  command,
+  running,
+  events,
   lspCommand,
   lspArgs,
   lspLanguage,
@@ -89,7 +121,6 @@ export function RunSettingsPanel({
   lspDiagnosticPath,
   lspDiagnostics,
   subagents,
-  checkpoints,
   workspaceOpen,
   selectedSessionId,
   busy,
@@ -98,6 +129,7 @@ export function RunSettingsPanel({
   onOpenProviders,
   onPolicyChange,
   onMaxStepsChange,
+  onCommandChange,
   onLSPCommandChange,
   onLSPArgsChange,
   onLSPLanguageChange,
@@ -106,13 +138,13 @@ export function RunSettingsPanel({
   onStartLSP,
   onStopLSP,
   onOpenSubagent,
+  onRunShell,
 }: Props) {
   return (
-    <div className="run-settings">
-      <div className="settings-group">
-        <div className="settings-title">{labels.provider}</div>
-        <label className="settings-field">
-          <span>{labels.modelSelect}</span>
+    <div className="tp-pane">
+      <InspectorSection title={labels.provider}>
+        <label className="field">
+          <span className="field-label">{labels.modelSelect}</span>
           <DesktopSelect
             ariaLabel={labels.modelSelect}
             value={modelRef}
@@ -125,19 +157,18 @@ export function RunSettingsPanel({
             }}
             onChange={onModelChange}
             popoverPlacement="bottom"
-            className="settings-desktop-select"
+            className="tp-select"
           />
         </label>
-        <button className="provider-link-button" type="button" onClick={onOpenProviders}>
+        <button className="link-btn" type="button" onClick={onOpenProviders}>
           {labels.providerConfig}
         </button>
-        <p className="settings-note">{labels.runSettingsNote}</p>
-      </div>
+        <p className="tp-pane-muted">{labels.runSettingsNote}</p>
+      </InspectorSection>
 
-      <div className="settings-group">
-        <div className="settings-title">{labels.run}</div>
-        <label className="settings-field">
-          <span>{labels.policy}</span>
+      <InspectorSection title={labels.run}>
+        <label className="field">
+          <span className="field-label">{labels.policy}</span>
           <DesktopSelect
             ariaLabel={labels.policy}
             value={policy}
@@ -149,42 +180,32 @@ export function RunSettingsPanel({
             ]}
             onChange={(value) => onPolicyChange(value as InspectorPolicy)}
             popoverPlacement="bottom"
-            className="settings-desktop-select"
+            className="tp-select"
           />
         </label>
-        <label>{labels.maxSteps}
+        <label className="field">
+          <span className="field-label">{labels.maxSteps}</span>
           <input
+            className="input"
             type="number"
             min={1}
             max={200}
+            aria-label={labels.maxSteps}
             value={maxSteps}
             onChange={(event: ChangeEvent<HTMLInputElement>) => onMaxStepsChange(Math.max(1, Number(event.target.value) || 1))}
           />
         </label>
-      </div>
-
-      <div className="settings-group runtime-group">
-        <div className="settings-title">{labels.runtime}</div>
-        <dl>
-          <div><dt>{labels.workingMemory}</dt><dd>{bytes(health?.usedBytes)}</dd></div>
-          <div><dt>{labels.softBudget}</dt><dd>{bytes(health?.budget.softBytes)}</dd></div>
-          <div><dt>{labels.hardBudget}</dt><dd>{bytes(health?.budget.hardBytes)}</dd></div>
-          <div><dt>{labels.maxAgents}</dt><dd>{health?.budget.maxAgents ?? "—"}</dd></div>
-        </dl>
-        <div className="memory-meter"><span style={{ width: `${pressure}%` }} /></div>
-      </div>
+      </InspectorSection>
 
       {selectedSessionId && (
         <SubagentTreePanel
           nodes={subagents}
-          checkpoints={checkpoints}
           labels={{
             title: labels.subagents,
             empty: labels.noSubagents,
             active: labels.subagentActive,
             completed: labels.subagentCompleted,
             interrupted: labels.subagentInterrupted,
-            checkpoint: labels.subagentCheckpoint,
           }}
           onOpenSession={onOpenSubagent}
         />
@@ -208,6 +229,48 @@ export function RunSettingsPanel({
         onStart={onStartLSP}
         onStop={onStopLSP}
       />
+
+      <InspectorSection title={labels.terminal}>
+        <form className="shell-form" onSubmit={onRunShell}>
+          <textarea
+            className="mono"
+            aria-label={labels.shellCommand}
+            value={command}
+            rows={4}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onCommandChange(event.target.value)}
+            disabled={!selectedSessionId || running}
+          />
+          <button
+            className="btn btn-sm btn-secondary"
+            type="submit"
+            disabled={busy || !selectedSessionId || running || !command.trim()}
+          >
+            {labels.runCommand}
+          </button>
+        </form>
+        <p className="tp-pane-muted">{labels.shellHint}</p>
+      </InspectorSection>
+
+      <InspectorSection title={labels.activity}>
+        <MilestoneList
+          events={events}
+          labels={{
+            empty: labels.noActivity,
+            agentStarted: labels.milestoneAgentStarted,
+            agentStopped: labels.milestoneAgentStopped,
+            toolCompleted: labels.milestoneToolCompleted,
+            approvalRequired: labels.milestoneApprovalRequired,
+            approvalGranted: labels.milestoneApprovalGranted,
+            subagentStarted: labels.milestoneSubagentStarted,
+            subagentStopped: labels.milestoneSubagentStopped,
+            worktreeCreated: labels.milestoneWorktreeCreated,
+            worktreeApplied: labels.milestoneWorktreeApplied,
+            taskCompleted: labels.milestoneTaskCompleted,
+            taskInterrupted: labels.milestoneTaskInterrupted,
+            workflowAdvanced: labels.milestoneWorkflowAdvanced,
+          }}
+        />
+      </InspectorSection>
     </div>
   );
 }

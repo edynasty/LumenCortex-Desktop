@@ -15,6 +15,37 @@ type Options = {
   onError: (message: string) => void;
 };
 
+/** global | project — the writable config layers (not "effective"). */
+export type MCPEditScope = Exclude<MCPConfigScope, "effective">;
+
+/** The MCP pane's controller: scope, layered configs, draft, runtime state and actions. */
+export type MCPWorkspaceController = {
+  configs: MCPConfig[];
+  projectConfigs: MCPConfig[];
+  scope: MCPEditScope;
+  setScope: (next: MCPEditScope) => void;
+  tools: MCPAgentTool[];
+  selectedId: string;
+  setSelectedId: (id: string) => void;
+  draft: MCPConfig;
+  setDraft: (updater: (current: MCPConfig) => MCPConfig) => void;
+  argsText: string;
+  setArgsText: (value: string) => void;
+  busy: boolean;
+  deleteOpen: boolean;
+  setDeleteOpen: (open: boolean) => void;
+  selectedScopedConfig: MCPConfig | undefined;
+  inherited: boolean;
+  statusById: Map<string, MCPStatus>;
+  selectedStatus: MCPStatus | undefined;
+  selectedTools: MCPAgentTool[];
+  beginNew: () => void;
+  saveConfig: () => Promise<void>;
+  deleteConfig: () => Promise<void>;
+  toggleServer: () => Promise<void>;
+  refreshTools: () => Promise<void>;
+};
+
 const emptyConfig = (): MCPConfig => ({
   id: "",
   name: "",
@@ -24,7 +55,7 @@ const emptyConfig = (): MCPConfig => ({
   disabled: false,
 });
 
-export function useMCPWorkspaceController({ workspace, sessionId, onError }: Options) {
+export function useMCPWorkspaceController({ workspace, sessionId, onError }: Options): MCPWorkspaceController {
   const [configs, setConfigs] = useState<MCPConfig[]>([]);
   const [globalConfigs, setGlobalConfigs] = useState<MCPConfig[]>([]);
   const [projectConfigs, setProjectConfigs] = useState<MCPConfig[]>([]);

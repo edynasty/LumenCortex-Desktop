@@ -1,8 +1,11 @@
-import { RefreshCw } from "lucide-react";
 import { presentError } from "../../lib/error-presentation";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { CheckArtifact, CheckInfo, CheckResult, RuntimeEvent } from "../../types";
 import { ConfigWarnings } from "../config/ConfigWarnings";
+import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
+import { IconButton } from "../primitives/IconButton";
+import { InspectorSection } from "./Section";
 import { useChecks } from "./useChecks";
 
 type Props = {
@@ -40,7 +43,7 @@ function ArtifactButtons({ result, labels, open, onToggle }: { result: CheckResu
   return (
     <div className="check-artifacts">
       {hashes.map((hash, index) => (
-        <button key={hash} type="button" aria-pressed={open === hash} className={open === hash ? "active" : ""} onClick={() => onToggle(hash)}>
+        <button key={hash} type="button" aria-pressed={open === hash} className="btn btn-sm btn-ghost" onClick={() => onToggle(hash)}>
           {index === 0 ? labels.checksArtifactLog : labels.checksArtifactDiff}
         </button>
       ))}
@@ -76,18 +79,18 @@ function CheckCard({
       <div className="check-card-head">
         <span className="check-dot" aria-hidden />
         <strong>{spec.id}</strong>
-        <span className="check-chip">{spec.kind}</span>
-        <span className="check-chip">{spec.required ? labels.checksRequired : labels.checksOptional}</span>
+        <span className="chip is-static">{spec.kind}</span>
+        <span className="chip is-static">{spec.required ? labels.checksRequired : labels.checksOptional}</span>
         <span className="check-source">{spec.source === "workspace" ? labels.checksSourceWorkspace : labels.checksSourceGlobal}</span>
       </div>
-      {spec.command && <code className="check-command" title={spec.command}>{spec.command}</code>}
+      {spec.command && <code className="check-command mono" title={spec.command}>{spec.command}</code>}
       <p className="check-detail">
         {detail}
       </p>
       <div className="check-actions">
         {!satisfied && newest && <ArtifactButtons result={newest} labels={labels} open={openArtifact} onToggle={onToggleArtifact} />}
         {!satisfied && (
-          <button type="button" className="check-accept" disabled={!canAccept || accepting} onClick={onAccept}>
+          <button type="button" className="btn btn-sm btn-secondary check-accept" disabled={!canAccept || accepting} onClick={onAccept}>
             {accepting ? labels.checksAccepting : labels.checksAccept}
           </button>
         )}
@@ -101,10 +104,10 @@ function ArtifactViewer({ artifact, labels, onClose }: { artifact: CheckArtifact
     <section className="check-artifact" aria-label={artifact.kind === "diff" ? labels.checksArtifactDiff : labels.checksArtifactLog}>
       <header>
         <span>{artifact.kind === "diff" ? labels.checksArtifactDiff : labels.checksArtifactLog}</span>
-        <code>{artifact.hash.slice(0, 19)}</code>
-        <button type="button" onClick={onClose}>{labels.checksArtifactClose}</button>
+        <code className="mono">{artifact.hash.slice(0, 19)}</code>
+        <button type="button" className="btn btn-sm btn-ghost" onClick={onClose}>{labels.checksArtifactClose}</button>
       </header>
-      {artifact.truncated && <p className="settings-note">{labels.checksArtifactTruncated}</p>}
+      {artifact.truncated && <p className="tp-pane-muted">{labels.checksArtifactTruncated}</p>}
       <pre>{artifact.text}</pre>
     </section>
   );
@@ -120,35 +123,39 @@ export function ChecksPanel({ sessionId, events, configKey, trusting, labels, on
     configKey,
   });
 
-  if (!sessionId) return <div className="inspector-empty">{labels.checksNoSession}</div>;
+  if (!sessionId) return <EmptyState compact icon={<Icon name="checkRun" size={18} />} title={labels.checksNoSession} />;
 
   const checks = info?.checks ?? [];
   const head = info?.env.head ?? "";
   const canAccept = head !== "";
 
   return (
-    <div className="run-settings checks-panel">
-      <div className="checks-env">
+    <>
+      <InspectorSection
+        title={labels.checks}
+        action={
+          <IconButton
+            label={labels.checksRefresh}
+            size="sm"
+            icon={<Icon name="refresh" size={13} />}
+            onClick={() => void refresh()}
+          />
+        }
+      >
         {info && (
-          <span>
+          <p className="tp-pane-muted">
             {head
               ? `${labels.checksEnvHead.replace("{head}", head.slice(0, 7))} · ${info.env.dirtyHash ? labels.checksEnvDirty : labels.checksEnvClean}`
               : labels.checksEnvNoGit}
-          </span>
+          </p>
         )}
-        <button type="button" className="checks-refresh" aria-label={labels.checksRefresh} title={labels.checksRefresh} onClick={() => void refresh()}>
-          <RefreshCw size={12} strokeWidth={1.8} aria-hidden />
-        </button>
-      </div>
 
-      {(info?.warnings?.length ?? 0) > 0 && (
-        <ConfigWarnings labels={labels} warnings={info?.warnings ?? []} trusting={trusting} onTrust={onTrust} />
-      )}
+        {(info?.warnings?.length ?? 0) > 0 && (
+          <ConfigWarnings labels={labels} warnings={info?.warnings ?? []} trusting={trusting} onTrust={onTrust} />
+        )}
 
-      <div className="settings-group">
-        <div className="settings-title">{labels.checks}</div>
         {info && checks.length === 0 ? (
-          <p className="settings-note">{labels.checksEmpty}</p>
+          <p className="tp-pane-muted">{labels.checksEmpty}</p>
         ) : (
           <ul className="check-list">
             {checks.map((check) => (
@@ -165,15 +172,14 @@ export function ChecksPanel({ sessionId, events, configKey, trusting, labels, on
             ))}
           </ul>
         )}
-        {checks.some((check) => !check.satisfied) && canAccept && <p className="settings-note">{labels.checksAcceptHint}</p>}
-      </div>
+        {checks.some((check) => !check.satisfied) && canAccept && <p className="tp-pane-muted">{labels.checksAcceptHint}</p>}
+      </InspectorSection>
 
       {artifact && <ArtifactViewer artifact={artifact} labels={labels} onClose={closeArtifact} />}
 
-      <div className="settings-group">
-        <div className="settings-title">{labels.checksHistory}</div>
+      <InspectorSection title={labels.checksHistory}>
         {results.length === 0 ? (
-          <p className="settings-note">{labels.checksHistoryEmpty}</p>
+          <p className="tp-pane-muted">{labels.checksHistoryEmpty}</p>
         ) : (
           <ol className="check-history">
             {results.map((result) => (
@@ -193,17 +199,17 @@ export function ChecksPanel({ sessionId, events, configKey, trusting, labels, on
           </ol>
         )}
         {hasMore && (
-          <button type="button" className="secondary-action" onClick={() => void loadMore()}>
+          <button type="button" className="btn btn-sm btn-secondary" onClick={() => void loadMore()}>
             {labels.checksLoadMore}
           </button>
         )}
-      </div>
+      </InspectorSection>
 
       {error && (
-        <p className="task-error" role="alert">
+        <p className="tp-pane-error" role="alert">
           {presentError(labels, error)}
         </p>
       )}
-    </div>
+    </>
   );
 }

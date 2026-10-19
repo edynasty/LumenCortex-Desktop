@@ -1,18 +1,20 @@
-import { Plus, RefreshCw, Server, Square, Trash2 } from "lucide-react";
+import { useState } from "react";
 import type { MCPProtocolMode } from "../../types";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
-import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import { DesktopSelect } from "../primitives/Select";
 import type { ExtensionsLabels } from "./extensions-types";
-import type { useMCPWorkspaceController } from "./useMCPWorkspaceController";
+import type { MCPWorkspaceController } from "./useMCPWorkspaceController";
 
 type Props = {
   workspace: string;
   labels: ExtensionsLabels;
-  controller: ReturnType<typeof useMCPWorkspaceController>;
+  controller: MCPWorkspaceController;
 };
 
+/** MCP pane: Demo settings-sheet style — scope toolbar, provider-style server list, editor column. */
 export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
   const {
     configs,
@@ -40,130 +42,159 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
     refreshTools,
   } = controller;
 
+  // "Add server" clears the selection; track that intent so an empty catalogue still
+  // switches the editor column from the empty state to the creation form.
+  const [creating, setCreating] = useState(false);
+  const startNew = () => {
+    beginNew();
+    setCreating(true);
+  };
+  const select = (id: string) => {
+    setSelectedId(id);
+    setCreating(false);
+  };
+
+  const running = Boolean(selectedStatus?.running);
+  const showEditor = Boolean(selectedId) || creating || configs.length > 0;
+
   return (
     <>
-      <div className="extensions-layout">
-        <aside className="mcp-server-list">
-          <div className="mcp-list-head">
-            <strong>{labels.mcpServers}</strong>
-            <Button icon={<Plus size={12} />} onClick={beginNew}>{labels.addServer}</Button>
-          </div>
+      <div className="pane-toolbar">
+        <SegmentedControl
+          ariaLabel={labels.mcpServers}
+          value={scope}
+          onChange={setScope}
+          options={[
+            { value: "global", label: labels.globalScope, title: labels.globalScope },
+            { value: "project", label: labels.projectScope, title: labels.projectScope },
+          ]}
+        />
+        <span className="pane-hint">{scope === "global" ? labels.globalScopeHint : labels.projectScopeHint}</span>
+      </div>
 
-          <div className="mcp-list-body">
-            {configs.map((config) => {
-              const status = statusById.get(config.id);
-              return (
+      <div className="provider-layout">
+        <ul className="provider-list">
+          {configs.map((config) => {
+            const status = statusById.get(config.id);
+            const isRunning = Boolean(status?.running && !config.disabled);
+            return (
+              <li key={config.id}>
                 <button
                   type="button"
-                  key={config.id}
-                  className={config.id === selectedId ? "selected" : ""}
-                  onClick={() => setSelectedId(config.id)}
+                  className={`provider-row ${config.id === selectedId ? "is-selected" : ""}`}
+                  onClick={() => select(config.id)}
                 >
-                  <span className={`mcp-server-dot ${status?.running ? "running" : ""} ${config.disabled ? "disabled" : ""}`} />
-                  <span>
-                    <strong>{config.name || config.id}</strong>
-                    <small>
-                      {config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}
-                      {" · "}
-                      {projectConfigs.some((item) => item.id === config.id) ? labels.projectSource : labels.globalSource}
-                    </small>
+                  <span className="provider-row-name">
+                    <span className={`run-dot ${isRunning ? "is-on" : ""}`} aria-hidden />
+                    {config.name || config.id}
                   </span>
-                  <code>{status?.tools ?? 0}</code>
+                  <span className="provider-row-sub">
+                    {config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}
+                    {" · "}
+                    {projectConfigs.some((item) => item.id === config.id) ? labels.projectSource : labels.globalSource}
+                    {" · "}
+                    {status?.tools ?? 0} {labels.tools}
+                  </span>
                 </button>
-              );
-            })}
-
-            {!configs.length && (
-              <EmptyState
-                icon={<Server size={20} />}
-                title={labels.noServers}
-                body={labels.noAutoStart}
-              />
-            )}
-          </div>
-        </aside>
-
-        <div className="mcp-detail">
-          <div className="mcp-scope-bar">
+              </li>
+            );
+          })}
+          <li>
             <button
               type="button"
-              className={scope === "global" ? "active" : ""}
-              onClick={() => setScope("global")}
+              className={`provider-row is-add ${!selectedId && creating ? "is-selected" : ""}`}
+              onClick={startNew}
             >
-              <span>{labels.globalScope}</span>
-              <small>{labels.globalScopeHint}</small>
+              <Icon name="plus" size={14} />
+              {labels.addServer}
             </button>
-            <button
-              type="button"
-              className={scope === "project" ? "active" : ""}
-              onClick={() => setScope("project")}
-            >
-              <span>{labels.projectScope}</span>
-              <small>{labels.projectScopeHint}</small>
-            </button>
-          </div>
+          </li>
+        </ul>
 
-          <section className="mcp-config-section">
-            <div className="mcp-section-head">
-              <div>
+        {!showEditor ? (
+          <div className="empty-state">
+            <Icon name="mcp" size={22} />
+            <h3>{labels.noServers}</h3>
+            <p>{labels.noAutoStart}</p>
+            <Button variant="secondary" size="sm" icon={<Icon name="plus" size={14} />} onClick={startNew}>
+              {labels.addServer}
+            </Button>
+          </div>
+        ) : (
+          <div className="extensions-editor">
+            <div className="extensions-editor-head">
+              <div className="extensions-editor-id">
                 <strong>{selectedId || labels.addServer}</strong>
-                <span>{inherited ? labels.inherited : labels.noAutoStart}</span>
+                <span className="mono">
+                  {selectedId && inherited ? labels.inherited : labels.noAutoStart}
+                </span>
               </div>
-              <div>
-                {selectedId && selectedScopedConfig && (
+              {selectedId && selectedScopedConfig && (
+                <div className="extensions-editor-actions">
                   <Button
-                    variant="danger"
-                    icon={<Trash2 size={12} />}
+                    variant="ghost"
+                    size="sm"
+                    className="is-danger"
+                    aria-label={labels.delete}
+                    title={labels.delete}
                     disabled={busy}
                     onClick={() => setDeleteOpen(true)}
                   >
-                    {labels.delete}
+                    <Icon name="delete" size={13} />
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            <div className="mcp-form-grid">
-              <label>
-                <span>{labels.serverId}</span>
+            <div className="form-grid">
+              <label className="field">
+                <span className="field-label">{labels.serverId}</span>
                 <input
+                  className="input mono"
                   value={draft.id}
                   disabled={Boolean(selectedId)}
                   onChange={(event) => setDraft((current) => ({ ...current, id: event.target.value }))}
                 />
               </label>
-              <label>
-                <span>{labels.serverName}</span>
+              <label className="field">
+                <span className="field-label">{labels.serverName}</span>
                 <input
+                  className="input"
                   value={draft.name || ""}
                   onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
                 />
               </label>
-              <label className="wide">
-                <span>{labels.command}</span>
+              <label className="field span-2">
+                <span className="field-label">{labels.command}</span>
                 <input
+                  className="input mono"
                   value={draft.command}
                   onChange={(event) => setDraft((current) => ({ ...current, command: event.target.value }))}
                 />
               </label>
-              <label className="wide">
-                <span>{labels.args}</span>
-                <input value={argsText} onChange={(event) => setArgsText(event.target.value)} />
+              <label className="field span-2">
+                <span className="field-label">{labels.args}</span>
+                <input
+                  className="input mono"
+                  value={argsText}
+                  onChange={(event) => setArgsText(event.target.value)}
+                />
               </label>
-              <label>
-                <span>{labels.enabled}</span>
+              <label className="field">
+                <span className="field-label">{labels.enabled}</span>
                 <button
                   type="button"
-                  className={`mcp-enable-toggle ${draft.disabled ? "off" : "on"}`}
-                  aria-pressed={!draft.disabled}
+                  className="switch"
+                  role="switch"
+                  aria-checked={!draft.disabled}
+                  aria-label={labels.enabled}
                   onClick={() => setDraft((current) => ({ ...current, disabled: !current.disabled }))}
                 >
                   <span />
-                  <strong>{draft.disabled ? labels.disabled : labels.enabled}</strong>
                 </button>
               </label>
-              <label>
-                <span>{labels.protocol}</span>
+              <label className="field">
+                <span className="field-label">{labels.protocol}</span>
                 <DesktopSelect
                   ariaLabel={labels.protocol}
                   value={draft.protocolMode || "legacy"}
@@ -176,93 +207,94 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
                     ...current,
                     protocolMode: value as MCPProtocolMode,
                   }))}
-                  className="settings-desktop-select"
                 />
               </label>
             </div>
 
-            <div className="mcp-form-actions">
+            <footer className="editor-actions">
               <Button
                 variant="primary"
+                size="sm"
                 disabled={busy || !workspace || !draft.id.trim() || !draft.command.trim()}
                 onClick={() => void saveConfig()}
               >
                 {labels.save}
               </Button>
-            </div>
-          </section>
+            </footer>
 
-          {selectedId ? (
-            <>
-              <section className="mcp-runtime-section">
-                <div className="mcp-section-head">
-                  <div>
-                    <strong>{selectedStatus?.running ? labels.running : labels.stopped}</strong>
-                    <span>{selectedStatus?.protocolVersion || draft.protocolMode || "legacy"}</span>
-                  </div>
-                  <div className="mcp-runtime-actions">
-                    {selectedStatus?.running && (
-                      <Button
-                        icon={<RefreshCw size={12} />}
-                        disabled={busy}
-                        onClick={() => void refreshTools()}
-                      >
-                        {labels.refresh}
-                      </Button>
-                    )}
+            {selectedId ? (
+              <>
+                <h5 className="subhead">{running ? labels.running : labels.stopped}</h5>
+                <div className="extensions-runtime-row">
+                  <span className={`badge ${running ? "tone-ok" : ""} mono`}>
+                    {selectedStatus?.protocolVersion || draft.protocolMode || "legacy"}
+                  </span>
+                  <span className="toolbar-spacer" />
+                  {running && (
                     <Button
-                      variant={selectedStatus?.running ? "danger" : "primary"}
-                      icon={selectedStatus?.running ? <Square size={11} /> : <Server size={12} />}
-                      disabled={busy || Boolean(draft.disabled)}
-                      onClick={() => void toggleServer()}
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon name="refresh" size={13} />}
+                      disabled={busy}
+                      onClick={() => void refreshTools()}
                     >
-                      {selectedStatus?.running ? labels.stop : labels.start}
+                      {labels.refresh}
                     </Button>
-                  </div>
+                  )}
+                  <Button
+                    variant={running ? "secondary" : "primary"}
+                    size="sm"
+                    icon={<Icon name={running ? "stop" : "send"} size={13} />}
+                    disabled={busy || Boolean(draft.disabled)}
+                    onClick={() => void toggleServer()}
+                  >
+                    {running ? labels.stop : labels.start}
+                  </Button>
                 </div>
 
-                <dl className="mcp-runtime-stats">
-                  <div><dt>{labels.pid}</dt><dd>{selectedStatus?.pid || "—"}</dd></div>
-                  <div><dt>{labels.pending}</dt><dd>{selectedStatus?.pendingRequests ?? 0}</dd></div>
-                  <div><dt>{labels.tools}</dt><dd>{selectedStatus?.tools ?? 0}</dd></div>
+                <dl className="extensions-stats">
+                  <div><dt>{labels.pid}</dt><dd className="mono">{selectedStatus?.pid || "—"}</dd></div>
+                  <div><dt>{labels.pending}</dt><dd className="mono">{selectedStatus?.pendingRequests ?? 0}</dd></div>
+                  <div><dt>{labels.tools}</dt><dd className="mono">{selectedStatus?.tools ?? 0}</dd></div>
                 </dl>
 
                 {selectedStatus?.lastError && (
-                  <p className="mcp-runtime-error">
-                    <strong>{labels.lastError}</strong> {selectedStatus.lastError}
+                  <p className="extensions-error">
+                    <Icon name="failed" size={13} />
+                    <span><strong>{labels.lastError}</strong> {selectedStatus.lastError}</span>
                   </p>
                 )}
-              </section>
 
-              <section className="mcp-tools-section">
-                <div className="mcp-section-head">
-                  <div>
-                    <strong>{labels.tools}</strong>
-                    <span>{selectedTools.length}</span>
-                  </div>
-                </div>
-                <div className="mcp-tools-list">
-                  {selectedTools.map((tool) => (
-                    <div className="mcp-tool-row" key={tool.name}>
-                      <div>
-                        <code>{tool.toolName}</code>
-                        {tool.description && <span>{tool.description}</span>}
-                      </div>
-                      <small className={tool.readOnly ? "read-only" : "side-effect"}>
-                        {tool.readOnly ? labels.readOnly : labels.sideEffect}
-                      </small>
-                    </div>
-                  ))}
-                  {!selectedTools.length && (
-                    <div className="mcp-tools-empty">{labels.noTools}</div>
-                  )}
-                </div>
-              </section>
-            </>
-          ) : (
-            <EmptyState icon={<Server size={20} />} title={labels.selectServer} />
-          )}
-        </div>
+                <h5 className="subhead">
+                  {labels.tools}
+                  <span className="muted"> · {selectedTools.length}</span>
+                </h5>
+                {selectedTools.length ? (
+                  <ul className="setting-list">
+                    {selectedTools.map((tool) => (
+                      <li key={tool.name} className="setting-list-row">
+                        <span className="mono extensions-tool-name">{tool.toolName}</span>
+                        {tool.description && <span className="extensions-tool-desc">{tool.description}</span>}
+                        <span className="toolbar-spacer" />
+                        <span className={`badge ${tool.readOnly ? "" : "tone-warn"}`}>
+                          {tool.readOnly ? labels.readOnly : labels.sideEffect}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="pane-intro">{labels.noTools}</p>
+                )}
+              </>
+            ) : !creating ? (
+              <div className="empty-state">
+                <Icon name="mcp" size={22} />
+                <h3>{labels.selectServer}</h3>
+                <p>{labels.noAutoStart}</p>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <Dialog
@@ -272,8 +304,10 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
         onOpenChange={setDeleteOpen}
         footer={
           <>
-            <Button onClick={() => setDeleteOpen(false)}>{labels.cancel}</Button>
-            <Button variant="danger" disabled={busy} onClick={() => void deleteConfig()}>
+            <Button variant="secondary" size="sm" onClick={() => setDeleteOpen(false)}>
+              {labels.cancel}
+            </Button>
+            <Button variant="danger" size="sm" disabled={busy} onClick={() => void deleteConfig()}>
               {labels.delete}
             </Button>
           </>

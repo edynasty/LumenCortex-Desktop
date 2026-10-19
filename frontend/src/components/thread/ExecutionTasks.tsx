@@ -1,25 +1,18 @@
-import {
-  CircleAlert,
-  CircleDashed,
-  CirclePause,
-  CircleX,
-  Eye,
-  GitBranch,
-  LoaderCircle,
-  Play,
-  ShieldAlert,
-  Square,
-  SquareArrowOutUpRight,
-} from "lucide-react";
 import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
 import type { TaskNotice } from "../../app/hooks/useThreadTasks";
 import { findNode, runningNodes, taskPhase, verification, type TaskPhase, type Verification } from "../../lib/execution-tasks";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { SubagentNode, TaskResult, ThreadTask } from "../../types";
+import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
+import type { IconName } from "../primitives/icons";
 
 export type ExecutionTaskLabels = Pick<
   AppCopy,
   | "tasksTitle"
+  | "taskKicker"
+  | "proposalKicker"
   | "taskProposed"
   | "taskStarting"
   | "taskRunning"
@@ -64,16 +57,29 @@ type Props = {
   onOpen: (sessionId: string) => void;
 };
 
-const phaseIcon: Record<TaskPhase, ReactNode> = {
-  proposed: <CircleDashed size={13} strokeWidth={1.8} aria-hidden />,
-  starting: <LoaderCircle size={13} strokeWidth={1.8} aria-hidden className="spin" />,
-  running: <LoaderCircle size={13} strokeWidth={1.8} aria-hidden className="spin" />,
-  running_elsewhere: <LoaderCircle size={13} strokeWidth={1.8} aria-hidden />,
-  waiting_gate: <ShieldAlert size={13} strokeWidth={1.8} aria-hidden />,
-  interrupted: <CirclePause size={13} strokeWidth={1.8} aria-hidden />,
-  failed: <CircleX size={13} strokeWidth={1.8} aria-hidden />,
-  finished: <Eye size={13} strokeWidth={1.8} aria-hidden />,
-  unknown: <CircleAlert size={13} strokeWidth={1.8} aria-hidden />,
+const phaseIcon: Record<TaskPhase, IconName> = {
+  proposed: "idle",
+  starting: "task",
+  running: "task",
+  running_elsewhere: "task",
+  waiting_gate: "gate",
+  interrupted: "interrupted",
+  failed: "failed",
+  finished: "review",
+  unknown: "failed",
+};
+
+/** The tone of the run state chip; unknown states stay quiet. */
+const phaseTone: Record<TaskPhase, string> = {
+  proposed: "",
+  starting: "tone-running",
+  running: "tone-running",
+  running_elsewhere: "tone-info",
+  waiting_gate: "tone-waiting_gate",
+  interrupted: "tone-failed",
+  failed: "tone-failed",
+  finished: "tone-completed",
+  unknown: "",
 };
 
 function phaseLabel(labels: ExecutionTaskLabels, phase: TaskPhase): string {
@@ -123,7 +129,7 @@ export function ResultFacts({ result, labels }: { result: TaskResult; labels: Ex
   );
 }
 
-function TaskRow({
+function TaskCard({
   task,
   node,
   result,
@@ -154,63 +160,70 @@ function TaskRow({
   const stopping = childId ? pending[childId] === true : false;
 
   return (
-    <li className={`task-row phase-${phase}`}>
-      <span className="task-row-icon">{phaseIcon[phase]}</span>
-      <div className="task-row-body">
-        <p className="task-row-objective" title={task.objective}>{task.objective}</p>
-        <div className="task-row-meta">
-          <span className="task-phase">{phaseLabel(labels, phase)}</span>
-          {branch && (
-            <span className="task-fact mono" title={node?.runtime?.path}>
-              <GitBranch size={10} strokeWidth={1.8} aria-hidden />
-              {branch}
-            </span>
+    <li className={`block task-block phase-${phase}`}>
+      <header className="block-head">
+        <span className="block-icon">
+          {phase === "starting" || phase === "running" ? (
+            <LoaderCircle size={16} strokeWidth={1.8} aria-hidden className="spin" />
+          ) : (
+            <Icon name={phaseIcon[phase]} size={16} />
           )}
-          {current && <ResultFacts result={current} labels={labels} />}
-        </div>
-        {phase === "proposed" && <p className="task-row-hint">{parentBusy ? labels.taskStartWhileRunning : labels.taskStartHint}</p>}
-        {phase === "finished" && !current && <p className="task-row-hint">{labels.taskReviewHint}</p>}
-        {phase === "waiting_gate" && <p className="task-row-hint">{labels.taskGateHint}</p>}
-        {current?.error && (phase === "failed" || phase === "interrupted") && (
-          <p className="task-row-error">{current.error}</p>
+        </span>
+        <span className="block-kicker">{phase === "proposed" ? labels.proposalKicker : labels.taskKicker}</span>
+        <h3 className="task-objective" title={task.objective}>{task.objective}</h3>
+        <span className={`task-state ${phaseTone[phase]}`}>{phaseLabel(labels, phase)}</span>
+      </header>
+      <div className="task-meta">
+        {branch && (
+          <span className="task-branch" title={node?.runtime?.path}>
+            <Icon name="worktree" size={12} />
+            {branch}
+          </span>
         )}
+        {current && <ResultFacts result={current} labels={labels} />}
       </div>
-      <div className="task-row-actions">
+      {phase === "proposed" && <p className="task-row-hint">{parentBusy ? labels.taskStartWhileRunning : labels.taskStartHint}</p>}
+      {phase === "finished" && !current && <p className="task-row-hint">{labels.taskReviewHint}</p>}
+      {phase === "waiting_gate" && <p className="task-row-hint">{labels.taskGateHint}</p>}
+      {current?.error && (phase === "failed" || phase === "interrupted") && (
+        <pre className="block-code">{current.error}</pre>
+      )}
+      <footer className="block-actions">
         {phase === "proposed" && (
-          <button
-            type="button"
-            className="task-action primary"
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Icon name="task" size={12} />}
             disabled={starting || parentBusy}
             onClick={() => onStart(task.id)}
           >
-            {starting ? <LoaderCircle size={11} strokeWidth={1.9} aria-hidden className="spin" /> : <Play size={11} strokeWidth={1.9} aria-hidden />}
             {labels.taskStart}
-          </button>
+          </Button>
         )}
         {phase === "running" && childId && (
-          <button
-            type="button"
-            className="task-action"
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="stop" size={12} />}
             disabled={stopping}
             aria-label={`${labels.taskStop}: ${task.objective}`}
             onClick={() => onStop(childId)}
           >
-            <Square size={10} strokeWidth={2} aria-hidden />
             {labels.taskStop}
-          </button>
+          </Button>
         )}
         {childId && (
-          <button
-            type="button"
-            className="task-action ghost"
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Icon name="expand" size={12} />}
             aria-label={`${labels.taskOpen}: ${task.objective}`}
             onClick={() => onOpen(childId)}
           >
-            <SquareArrowOutUpRight size={11} strokeWidth={1.8} aria-hidden />
             {labels.taskOpen}
-          </button>
+          </Button>
         )}
-      </div>
+      </footer>
     </li>
   );
 }
@@ -244,11 +257,11 @@ export function ExecutionTasks({
         {here.length > 1 && parentId && !parentBusy && (
           <button
             type="button"
-            className="task-action"
+            className="btn btn-ghost btn-sm"
             disabled={pending[parentId] === true}
             onClick={() => onStop(parentId)}
           >
-            <Square size={10} strokeWidth={2} aria-hidden />
+            <Icon name="stop" size={12} />
             {labels.taskStopAll}
           </button>
         )}
@@ -258,7 +271,7 @@ export function ExecutionTasks({
         {ordered.map((task) => {
           const node = task.sessionId ? findNode(nodes, task.sessionId) : undefined;
           return (
-            <TaskRow
+            <TaskCard
               key={task.id}
               task={task}
               node={node}

@@ -166,8 +166,8 @@ export function WorkspaceRouteContent({
   if (!current) {
     return (
       <NewTaskComposer
-        title={labels.buildTitle}
-        subtitle={labels.newTaskSubtitle}
+        title={workspace ? labels.newThreadTitle : labels.buildTitle}
+        subtitle={labels.newThreadSubtitle}
         placeholder={labels.composerPlaceholder}
         workspace={workspace}
         workspaceName={workspace ? basename(workspace) : ""}

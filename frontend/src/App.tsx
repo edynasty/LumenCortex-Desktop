@@ -114,12 +114,14 @@ export default function App() {
   const [settings, setSettings] = useState<SettingsState>({ open: false, pane: "general", mounted: false });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("activity");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("task");
   const [worktreeCleanupTarget, setWorktreeCleanupTarget] = useState<WorktreeCleanupTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     localStorage.setItem("lcx-locale", locale);
+    // Screen readers, CJK glyph selection and `:lang()` rules read the document language.
+    document.documentElement.lang = locale;
   }, [locale]);
 
   const current = useMemo(() => state.sessions.find((session) => session.id === selected), [state.sessions, selected]);

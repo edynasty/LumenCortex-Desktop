@@ -73,10 +73,9 @@ describe("ProviderSettingsPanel", () => {
     const { unmount } = renderPanel({ workspace: "/repo/demo" });
 
     await waitFor(() => expect(mocks.providerCatalogScope).toHaveBeenCalledWith("global"));
-    await user.click(screen.getByRole("button", { name: /Project.*Overrides this project only/i }));
+    await user.click(screen.getByRole("radio", { name: "Project" }));
     await waitFor(() => expect(mocks.providerCatalogScope).toHaveBeenCalledWith("workspace"));
     unmount();
-
     mocks.providerCatalogScope.mockClear();
     renderPanel({ workspace: "/repo/demo" });
 
@@ -93,7 +92,7 @@ describe("ProviderSettingsPanel", () => {
   it("keeps project scope disabled until a workspace is open", async () => {
     renderPanel();
 
-    expect(await screen.findByRole("button", { name: /Project.*Overrides this project only/i })).toBeDisabled();
+    expect(await screen.findByRole("radio", { name: "Project" })).toBeDisabled();
   });
 
   it("saves with the digest it read and adopts the digest Core returns", async () => {
@@ -139,7 +138,8 @@ describe("ProviderSettingsPanel", () => {
     mocks.saveProviderCatalogScope.mockImplementation(async (_scope, sent: ProviderCatalogDocument) => ({ ...sent, digest: "sha256:next" }));
     renderPanel();
 
-    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    const [providerEdit] = await screen.findAllByRole("button", { name: "Edit" });
+    await user.click(providerEdit);
     const providerId = screen.getByLabelText("Provider ID");
     await user.clear(providerId);
     await user.type(providerId, "new");

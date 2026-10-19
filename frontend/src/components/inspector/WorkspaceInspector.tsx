@@ -12,7 +12,8 @@ import type { SelectOption } from "../primitives/Select";
 import { ChecksPanel } from "./ChecksPanel";
 import { Inspector } from "./Inspector";
 import { TaskStatePanel } from "./TaskStatePanel";
-import type { InspectorPolicy, InspectorTab } from "./inspector-types";
+import { WindowPane } from "./WindowPane";
+import type { InspectorLabels, InspectorPolicy, InspectorTab } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
@@ -113,8 +114,6 @@ export function WorkspaceInspector({
       models={models}
       policy={policy}
       maxSteps={maxSteps}
-      health={health}
-      pressure={pressure}
       command={command}
       lspCommand={lspCommand}
       lspArgs={lspArgs}
@@ -123,12 +122,31 @@ export function WorkspaceInspector({
       lspDiagnosticPath={lspDiagnosticPath}
       lspDiagnostics={lspDiagnostics}
       subagents={subagents}
-      checkpoints={checkpoints}
       workspaceOpen={workspaceOpen}
       selectedSessionId={selectedSessionId}
       running={running}
       busy={busy}
-      taskPanel={<TaskStatePanel sessionId={selectedSessionId} running={running} events={events} labels={labels} />}
+      taskPanel={
+        <TaskStatePanel
+          pane="task"
+          sessionId={selectedSessionId}
+          running={running}
+          events={events}
+          labels={labels}
+          onOpenTask={onOpenSubagent}
+        />
+      }
+      windowPanel={
+        <WindowPane
+          sessionId={selectedSessionId}
+          running={running}
+          events={events}
+          health={health}
+          pressure={pressure}
+          checkpoints={checkpoints}
+          labels={labels}
+        />
+      }
       checksPanel={
         <ChecksPanel
           sessionId={selectedSessionId}
@@ -139,75 +157,7 @@ export function WorkspaceInspector({
           onTrust={onTrustWorkspace}
         />
       }
-      labels={{
-        activity: labels.activity,
-        task: labels.task,
-        checks: labels.checks,
-        run: labels.run,
-        terminal: labels.terminal,
-        close: labels.close,
-        noActivity: labels.noActivity,
-        provider: labels.provider,
-        modelSelect: labels.modelSelect,
-        modelSearch: labels.modelSearch,
-        noModelMatches: labels.noModelMatches,
-        noModels: modelPlaceholder,
-        providerConfig: labels.providerConfig,
-        runSettingsNote: labels.runSettingsNote,
-        policy: labels.policy,
-        readOnly: labels.readOnly,
-        readOnlyDescription: labels.readOnlyDescription,
-        workspace: labels.workspace,
-        workspaceDescription: labels.workspaceDescription,
-        full: labels.full,
-        fullDescription: labels.fullDescription,
-        maxSteps: labels.maxSteps,
-        runtime: labels.runtime,
-        workingMemory: labels.workingMemory,
-        softBudget: labels.softBudget,
-        hardBudget: labels.hardBudget,
-        maxAgents: labels.maxAgents,
-        shellCommand: labels.shellCommand,
-        runCommand: labels.runCommand,
-        shellHint: labels.shellHint,
-        lsp: labels.lsp,
-        lspCommand: labels.lspCommand,
-        lspArgs: labels.lspArgs,
-        lspLanguage: labels.lspLanguage,
-        lspStart: labels.lspStart,
-        lspStop: labels.lspStop,
-        lspRunning: labels.lspRunning,
-        lspStopped: labels.lspStopped,
-        lspPid: labels.lspPid,
-        lspPending: labels.lspPending,
-        lspDiagnostics: labels.lspDiagnostics,
-        lspDiagnosticPath: labels.lspDiagnosticPath,
-        lspDiagnosticRefresh: labels.lspDiagnosticRefresh,
-        lspNoDiagnostics: labels.lspNoDiagnostics,
-        lspSeverityError: labels.lspSeverityError,
-        lspSeverityWarning: labels.lspSeverityWarning,
-        lspSeverityInfo: labels.lspSeverityInfo,
-        lspSeverityHint: labels.lspSeverityHint,
-        lspLastError: labels.lspLastError,
-        milestoneAgentStarted: labels.milestoneAgentStarted,
-        milestoneAgentStopped: labels.milestoneAgentStopped,
-        milestoneToolCompleted: labels.milestoneToolCompleted,
-        milestoneApprovalRequired: labels.milestoneApprovalRequired,
-        milestoneApprovalGranted: labels.milestoneApprovalGranted,
-        milestoneSubagentStarted: labels.milestoneSubagentStarted,
-        milestoneSubagentStopped: labels.milestoneSubagentStopped,
-        milestoneWorktreeCreated: labels.milestoneWorktreeCreated,
-        milestoneWorktreeApplied: labels.milestoneWorktreeApplied,
-        milestoneTaskCompleted: labels.milestoneTaskCompleted,
-        milestoneTaskInterrupted: labels.milestoneTaskInterrupted,
-        milestoneWorkflowAdvanced: labels.milestoneWorkflowAdvanced,
-        subagents: labels.subagents,
-        noSubagents: labels.noSubagents,
-        subagentActive: labels.subagentActive,
-        subagentCompleted: labels.subagentCompleted,
-        subagentInterrupted: labels.subagentInterrupted,
-        subagentCheckpoint: labels.subagentCheckpoint,
-      }}
+      labels={{ ...labels, noModels: modelPlaceholder } satisfies InspectorLabels}
       onTabChange={onTabChange}
       onClose={onClose}
       onModelChange={onModelChange}

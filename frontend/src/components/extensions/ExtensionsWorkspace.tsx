@@ -23,11 +23,11 @@ export function ExtensionsWorkspace({ tab, workspace, sessionId, runtime, labels
   const mcp = useMCPWorkspaceController({ workspace, sessionId, onError });
 
   return (
-    <section className="extensions-workspace">
-      <div className="extensions-runtime">
+    <section className="pane">
+      <p className="extensions-runtime">
         <span>{labels.currentRuntime}</span>
         <RuntimeIdentity runtime={runtime} localLabel={labels.localRuntime} worktreeLabel={labels.worktreeRuntime} />
-      </div>
+      </p>
 
       {tab === "mcp" ? (
         <MCPWorkspacePanel

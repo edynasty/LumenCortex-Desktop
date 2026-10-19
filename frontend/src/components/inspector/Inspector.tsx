@@ -1,11 +1,11 @@
-import type { ChangeEvent, FormEvent, ReactNode } from "react";
-import { SquareTerminal, X } from "lucide-react";
-import type { Health, LSPDiagnostic, LSPStatus, RuntimeEvent, SessionCheckpoint, SubagentNode } from "../../types";
+import type { FormEvent, ReactNode } from "react";
+import type { LSPDiagnostic, LSPStatus, RuntimeEvent, SubagentNode } from "../../types";
+import { Icon } from "../primitives/Icon";
+import { IconButton } from "../primitives/IconButton";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import type { SelectOption } from "../primitives/Select";
-import { MilestoneList } from "./MilestoneList";
 import { RunSettingsPanel } from "./RunSettingsPanel";
-
-import type { InspectorPolicy, InspectorTab } from "./inspector-types";
+import type { InspectorLabels, InspectorPolicy, InspectorTab } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
@@ -14,8 +14,6 @@ type Props = {
   models: SelectOption[];
   policy: InspectorPolicy;
   maxSteps: number;
-  health?: Health;
-  pressure: number;
   command: string;
   lspCommand: string;
   lspArgs: string;
@@ -24,83 +22,15 @@ type Props = {
   lspDiagnosticPath: string;
   lspDiagnostics: LSPDiagnostic[];
   subagents: SubagentNode[];
-  checkpoints: SessionCheckpoint[];
   workspaceOpen: boolean;
   selectedSessionId: string;
   running: boolean;
   busy: boolean;
-  // The Task State and Checks panels; each loads and edits its own data.
+  // The Task, Window and Checks panes; each loads and edits its own data.
   taskPanel: ReactNode;
+  windowPanel: ReactNode;
   checksPanel: ReactNode;
-  labels: {
-    activity: string;
-    task: string;
-    checks: string;
-    run: string;
-    terminal: string;
-    close: string;
-    noActivity: string;
-    provider: string;
-    modelSelect: string;
-    modelSearch: string;
-    noModelMatches: string;
-    noModels: string;
-    providerConfig: string;
-    runSettingsNote: string;
-    policy: string;
-    readOnly: string;
-    readOnlyDescription: string;
-    workspace: string;
-    workspaceDescription: string;
-    full: string;
-    fullDescription: string;
-    maxSteps: string;
-    runtime: string;
-    workingMemory: string;
-    softBudget: string;
-    hardBudget: string;
-    maxAgents: string;
-    shellCommand: string;
-    runCommand: string;
-    shellHint: string;
-    lsp: string;
-    lspCommand: string;
-    lspArgs: string;
-    lspLanguage: string;
-    lspStart: string;
-    lspStop: string;
-    lspRunning: string;
-    lspStopped: string;
-    lspPid: string;
-    lspPending: string;
-    lspDiagnostics: string;
-    lspDiagnosticPath: string;
-    lspDiagnosticRefresh: string;
-    lspNoDiagnostics: string;
-    lspSeverityError: string;
-    lspSeverityWarning: string;
-    lspSeverityInfo: string;
-    lspSeverityHint: string;
-    lspLastError: string;
-    subagents: string;
-    noSubagents: string;
-    subagentActive: string;
-    subagentCompleted: string;
-    subagentInterrupted: string;
-    subagentCheckpoint: string;
-    milestoneAgentStarted: string;
-    milestoneAgentStopped: string;
-    milestoneToolCompleted: string;
-    milestoneApprovalRequired: string;
-    milestoneApprovalGranted: string;
-    milestoneSubagentStarted: string;
-    milestoneSubagentStopped: string;
-    milestoneWorktreeCreated: string;
-    milestoneWorktreeApplied: string;
-    milestoneTaskCompleted: string;
-    milestoneTaskInterrupted: string;
-    milestoneWorkflowAdvanced: string;
-  };
+  labels: InspectorLabels;
   onTabChange: (tab: InspectorTab) => void;
   onClose: () => void;
   onModelChange: (value: string) => void;
@@ -119,6 +49,8 @@ type Props = {
   onRunShell: (event: FormEvent<HTMLFormElement>) => void;
 };
 
+// Inspector is the thread panel (Demo "Lumen Glass"): a compact segmented tab strip — Task ·
+// Window · Checks · Run — and a scrollable body of quiet sections. Legacy tab ids stay valid:
 export function Inspector({
   tab,
   events,
@@ -126,8 +58,6 @@ export function Inspector({
   models,
   policy,
   maxSteps,
-  health,
-  pressure,
   command,
   lspCommand,
   lspArgs,
@@ -136,12 +66,12 @@ export function Inspector({
   lspDiagnosticPath,
   lspDiagnostics,
   subagents,
-  checkpoints,
   workspaceOpen,
   selectedSessionId,
   running,
   busy,
   taskPanel,
+  windowPanel,
   checksPanel,
   labels,
   onTabChange,
@@ -161,55 +91,38 @@ export function Inspector({
   onOpenSubagent,
   onRunShell,
 }: Props) {
+  const tabs: { value: InspectorTab; label: string }[] = [
+    { value: "task", label: labels.task },
+    { value: "window", label: labels.windowTab },
+    { value: "checks", label: labels.checks },
+    { value: "run", label: labels.run },
+  ];
   return (
-    <aside className="inspector">
-      <div className="inspector-head">
-        <div className="inspector-tabs">
-          <button className={tab === "activity" ? "active" : ""} onClick={() => onTabChange("activity")}>{labels.activity}</button>
-          <button className={tab === "task" ? "active" : ""} onClick={() => onTabChange("task")}>{labels.task}</button>
-          <button className={tab === "checks" ? "active" : ""} onClick={() => onTabChange("checks")}>{labels.checks}</button>
-          <button className={tab === "run" ? "active" : ""} onClick={() => onTabChange("run")}>{labels.run}</button>
-          <button className={tab === "terminal" ? "active" : ""} onClick={() => onTabChange("terminal")}>{labels.terminal}</button>
-        </div>
-        <button className="icon-button inspector-close" onClick={onClose} aria-label={labels.close}>
-          <X size={14} strokeWidth={1.7} aria-hidden />
-        </button>
-      </div>
-
+    <aside className="sheet inspector" aria-label={labels.inspector}>
+      <header className="inspector-head">
+        <SegmentedControl
+          size="sm"
+          ariaLabel={labels.inspector}
+          value={tab}
+          options={tabs}
+          onChange={onTabChange}
+        />
+        <span className="toolbar-spacer" />
+        <IconButton label={labels.close} size="sm" icon={<Icon name="close" size={14} />} onClick={onClose} />
+      </header>
       <div className="inspector-body">
-        {tab === "activity" && (
-          <MilestoneList
-            events={events}
-            labels={{
-              empty: labels.noActivity,
-              agentStarted: labels.milestoneAgentStarted,
-              agentStopped: labels.milestoneAgentStopped,
-              toolCompleted: labels.milestoneToolCompleted,
-              approvalRequired: labels.milestoneApprovalRequired,
-              approvalGranted: labels.milestoneApprovalGranted,
-              subagentStarted: labels.milestoneSubagentStarted,
-              subagentStopped: labels.milestoneSubagentStopped,
-              worktreeCreated: labels.milestoneWorktreeCreated,
-              worktreeApplied: labels.milestoneWorktreeApplied,
-              taskCompleted: labels.milestoneTaskCompleted,
-              taskInterrupted: labels.milestoneTaskInterrupted,
-              workflowAdvanced: labels.milestoneWorkflowAdvanced,
-            }}
-          />
-        )}
-
-        {tab === "task" && taskPanel}
-
-        {tab === "checks" && checksPanel}
-
+        {tab === "task" && <div className="tp-pane">{taskPanel}</div>}
+        {tab === "window" && windowPanel}
+        {tab === "checks" && <div className="tp-pane">{checksPanel}</div>}
         {tab === "run" && (
           <RunSettingsPanel
             modelRef={modelRef}
             models={models}
             policy={policy}
             maxSteps={maxSteps}
-            health={health}
-            pressure={pressure}
+            command={command}
+            running={running}
+            events={events}
             lspCommand={lspCommand}
             lspArgs={lspArgs}
             lspLanguage={lspLanguage}
@@ -217,7 +130,6 @@ export function Inspector({
             lspDiagnosticPath={lspDiagnosticPath}
             lspDiagnostics={lspDiagnostics}
             subagents={subagents}
-            checkpoints={checkpoints}
             workspaceOpen={workspaceOpen}
             selectedSessionId={selectedSessionId}
             busy={busy}
@@ -226,6 +138,7 @@ export function Inspector({
             onOpenProviders={onOpenProviders}
             onPolicyChange={onPolicyChange}
             onMaxStepsChange={onMaxStepsChange}
+            onCommandChange={onCommandChange}
             onLSPCommandChange={onLSPCommandChange}
             onLSPArgsChange={onLSPArgsChange}
             onLSPLanguageChange={onLSPLanguageChange}
@@ -234,29 +147,8 @@ export function Inspector({
             onStartLSP={onStartLSP}
             onStopLSP={onStopLSP}
             onOpenSubagent={onOpenSubagent}
+            onRunShell={onRunShell}
           />
-        )}
-
-        {tab === "terminal" && (
-          <form className="terminal-pane" onSubmit={onRunShell}>
-            <div className="terminal-title">
-              <SquareTerminal size={15} strokeWidth={1.7} aria-hidden />
-              {labels.shellCommand}
-            </div>
-            <textarea
-              value={command}
-              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onCommandChange(event.target.value)}
-              rows={7}
-              disabled={!selectedSessionId || running}
-            />
-            <button
-              className="secondary-action"
-              disabled={busy || !selectedSessionId || running || !command.trim()}
-            >
-              {labels.runCommand}
-            </button>
-            <p>{labels.shellHint}</p>
-          </form>
         )}
       </div>
     </aside>

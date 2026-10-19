@@ -17,6 +17,8 @@ type Input = {
   route: WorkspaceRoute;
   current?: Session;
   selectedSessionId: string;
+  /** Ids of the loaded sessions: a deleted thread is not reopened. */
+  sessionIds: ReadonlySet<string>;
   workspace: string;
   locale: Locale;
   labels: AppCopy;
@@ -50,12 +52,20 @@ export function useWorkspaceCommands(input: Input) {
   };
   const closeSettings = () => input.onSettingsChange({ ...settings, open: false });
 
+  // Each rail page reopens what it last showed: the Threads page its thread, Source Control its checkout.
+  const lastThread = useRef("");
+  if (input.selectedSessionId) lastThread.current = input.selectedSessionId;
+  if (lastThread.current && !input.sessionIds.has(lastThread.current)) lastThread.current = "";
+  const lastCheckout = useRef<"main" | string>("main");
+  if (route.kind === "scm") lastCheckout.current = route.checkout;
+  if (lastCheckout.current !== "main" && !input.sessionIds.has(lastCheckout.current)) lastCheckout.current = "main";
+
   const navigate = (page: WorkspacePage) => {
     if (settings.open) closeSettings();
     if (page === "threads") {
-      input.onSetRoute(input.selectedSessionId ? { kind: "thread", sessionId: input.selectedSessionId } : { kind: "new-task" });
+      input.onSetRoute(lastThread.current ? { kind: "thread", sessionId: lastThread.current } : { kind: "new-task" });
     } else if (page === "scm") {
-      input.onSetRoute({ kind: "scm", checkout: route.kind === "scm" ? route.checkout : "main" });
+      input.onSetRoute({ kind: "scm", checkout: lastCheckout.current });
     } else {
       input.onSetRoute({ kind: "context" });
     }

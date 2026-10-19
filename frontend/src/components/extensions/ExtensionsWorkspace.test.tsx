@@ -193,7 +193,7 @@ describe("ExtensionsWorkspace", () => {
     const user = userEvent.setup();
     renderWorkspace("session-1", "permissions");
 
-    const shellRow = await screen.findByRole("button", { name: /shell/i });
+    const shellRow = await screen.findByRole("switch", { name: /shell/i });
     await user.click(shellRow);
     await user.click(screen.getByRole("button", { name: "Save" }));
 

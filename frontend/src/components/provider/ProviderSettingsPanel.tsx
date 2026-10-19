@@ -1,8 +1,10 @@
-import { ChevronDown, ChevronRight, FileJson2, Plus } from "lucide-react";
 import { Dialog } from "../primitives/Dialog";
 import { copy } from "../../lib/i18n/app-copy";
 import type { ConfigState } from "../../types";
 import { ConfigWarnings } from "../config/ConfigWarnings";
+import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
+import { SegmentedControl } from "../primitives/SegmentedControl";
 import { ProviderCatalogList } from "./ProviderCatalogList";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { providerPresets } from "./provider-presets";
@@ -39,7 +41,6 @@ export function ProviderSettingsPanel({
   const {
     scope,
     setScope,
-    catalog,
     loading,
     saving,
     advancedOpen,
@@ -57,13 +58,22 @@ export function ProviderSettingsPanel({
   } = controller;
 
   return (
-    <div className="provider-settings">
-      <div className="provider-settings-header">
-        <p>{t.subtitle}</p>
-        <button className="provider-primary-button" type="button" onClick={() => startAddProvider()}>
-          <Plus size={14} strokeWidth={1.8} aria-hidden />
-          {t.addProvider}
-        </button>
+    <div className="pane">
+      <div className="pane-toolbar">
+        <SegmentedControl
+          ariaLabel={t.title}
+          value={scope}
+          onChange={setScope}
+          options={[
+            { value: "global", label: t.global, title: t.global },
+            { value: "workspace", label: t.project, title: t.project, disabled: !workspace },
+          ]}
+        />
+        <span className="pane-hint">
+          {scope === "global" ? t.globalHint : t.projectHint}
+          {" · "}
+          <span className="mono">{scope === "global" ? t.globalPath : t.projectPath}</span>
+        </span>
       </div>
 
       <ConfigWarnings labels={copy[locale]} warnings={config.warnings} trusting={trusting} onTrust={onTrust} />
@@ -71,36 +81,17 @@ export function ProviderSettingsPanel({
       <div className="provider-presets" aria-label={t.presets}>
         <span>{t.presets}</span>
         {providerPresets.map((preset) => (
-          <button key={preset.id} type="button" onClick={() => startAddProvider(preset)}>
-            {preset.name}
+          <button key={preset.id} type="button" className="chip" onClick={() => startAddProvider(preset)}>
+            <span className="chip-label">{preset.name}</span>
           </button>
         ))}
-        <button type="button" onClick={() => startAddProvider()}>{t.custom}</button>
-      </div>
-
-      <div className="provider-scope-bar">
-        <button
-          type="button"
-          className={scope === "global" ? "active" : ""}
-          onClick={() => setScope("global")}
-        >
-          <span>{t.global}</span>
-          <small>{t.globalHint}</small>
+        <button type="button" className="chip" onClick={() => startAddProvider()}>
+          <span className="chip-label">{t.custom}</span>
         </button>
-        <button
-          type="button"
-          disabled={!workspace}
-          className={scope === "workspace" ? "active" : ""}
-          onClick={() => workspace && setScope("workspace")}
-        >
-          <span>{t.project}</span>
-          <small>{t.projectHint}</small>
-        </button>
-        <code>{scope === "global" ? t.globalPath : t.projectPath}</code>
       </div>
 
       {loading ? (
-        <div className="provider-loading">{t.loading}</div>
+        <p className="pane-intro">{t.loading}</p>
       ) : (
         <>
           <ProviderCatalogList
@@ -117,12 +108,11 @@ export function ProviderSettingsPanel({
               onClick={() => {
                 setAdvancedOpen((value) => !value);
                 if (!advancedOpen && !advancedDirty) {
-                  setAdvancedJSON(JSON.stringify(catalog, null, 2));
+                  setAdvancedJSON(JSON.stringify(controller.catalog, null, 2));
                 }
               }}
             >
-              {advancedOpen ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
-              <FileJson2 size={14} strokeWidth={1.7} aria-hidden />
+              <Icon name={advancedOpen ? "collapse" : "expand"} size={14} />
               {t.advanced}
             </button>
 
@@ -140,9 +130,9 @@ export function ProviderSettingsPanel({
                 />
                 <div className="provider-advanced-footer">
                   <span>{t.inherited}</span>
-                  <button type="button" disabled={!advancedDirty || saving} onClick={() => void saveAdvancedJSON()}>
+                  <Button variant="secondary" size="sm" disabled={!advancedDirty || saving} onClick={() => void saveAdvancedJSON()}>
                     {t.saveJson}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -160,17 +150,12 @@ export function ProviderSettingsPanel({
         }}
         footer={
           <>
-            <button
-              type="button"
-              className="provider-dialog-button secondary"
-              disabled={saving}
-              onClick={() => setDeleteTarget(null)}
-            >
+            <Button variant="secondary" size="sm" disabled={saving} onClick={() => setDeleteTarget(null)}>
               {t.cancel}
-            </button>
-            <button
-              type="button"
-              className="provider-dialog-button danger"
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
               disabled={saving}
               onClick={() => {
                 if (!deleteTarget) return;
@@ -184,7 +169,7 @@ export function ProviderSettingsPanel({
               }}
             >
               {t.remove}
-            </button>
+            </Button>
           </>
         }
       />

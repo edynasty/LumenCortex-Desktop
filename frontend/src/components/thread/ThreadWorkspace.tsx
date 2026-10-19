@@ -1,22 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type {
   FormEvent,
   KeyboardEvent,
   ReactNode,
   Ref,
 } from "react";
-import { Check, CircleCheck, Copy, RotateCcw } from "lucide-react";
-import { copyText } from "../../lib/clipboard";
 import type { Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import type { SelectOption } from "../primitives/Select";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { EmptyState } from "../primitives/EmptyState";
 import { LoadingState } from "../primitives/LoadingState";
+import { Icon } from "../primitives/Icon";
 import { ApprovalCard } from "./ApprovalCard";
-import { Markdown } from "./Markdown";
 import { MessageItem } from "./MessageItem";
+import { ThreadOutcome } from "./ThreadOutcome";
 import { ThreadProgress } from "./ThreadProgress";
 import { ThreadComposer } from "./ThreadComposer";
+import { WorkGroup } from "./WorkGroup";
 
 type Props = {
   session: Session;
@@ -77,6 +77,11 @@ type Props = {
     copy: string;
     copied: string;
     retry: string;
+    failureTitle: string;
+    workTitle: string;
+    workCalls: string;
+    showOutput: string;
+    hideOutput: string;
     runningElsewhereNotice: string;
     runtimeNotice: string;
     originToolInterrupted: string;
@@ -95,6 +100,39 @@ type Props = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
 };
+
+type Entry = { kind: "message"; message: Message } | { kind: "work"; messages: Message[]; live: boolean };
+
+function messageOrigin(message: Message): string {
+  const value = message.json;
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const origin = (value as Record<string, unknown>).origin;
+    if (typeof origin === "string") return origin;
+  }
+  return "";
+}
+
+// Consecutive tool calls without an origin fold into one work group. The group that ends the
+// transcript while the run is live stays open and carries the running indicator.
+function groupEntries(messages: Message[], running: boolean, overrides: Map<Message, ReactNode>): Entry[] {
+  const entries: Entry[] = [];
+  let work: Message[] = [];
+  const flush = (live: boolean) => {
+    if (work.length) entries.push({ kind: "work", messages: work, live });
+    work = [];
+  };
+  for (const message of messages) {
+    const isWork = message.role === "tool" && !messageOrigin(message) && !overrides.has(message);
+    if (isWork) {
+      work.push(message);
+      continue;
+    }
+    flush(false);
+    entries.push({ kind: "message", message });
+  }
+  flush(running);
+  return entries;
+}
 
 export function ThreadWorkspace({
   session,
@@ -134,7 +172,6 @@ export function ThreadWorkspace({
 }: Props) {
   const threadViewRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
-  const [finalCopied, setFinalCopied] = useState(false);
 
   useEffect(() => {
     const element = threadViewRef.current;
@@ -145,26 +182,34 @@ export function ThreadWorkspace({
     return () => window.cancelAnimationFrame(frame);
   }, [historicalMessages, messages.length, running]);
 
+  // Rows the layer presents itself (task_result) are rendered by their own components.
+  const overrides = new Map<Message, ReactNode>();
+  for (const message of messages) {
+    if (renderRuntimeRow) {
+      const row = renderRuntimeRow(message);
+      if (row) overrides.set(message, row);
+    }
+  }
+  const entries = groupEntries(messages, running, overrides);
+
   return (
-    <>
+    <div className="thread-view">
       <div
-        className="thread-view"
+        className="ledger-scroll"
         ref={threadViewRef}
         onScroll={(event) => {
           const element = event.currentTarget;
           stickToBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 120;
         }}
       >
-        <div className="thread-content">
+        <div className="ledger">
           <section className="task-intro">
-            <div className="task-icon" aria-hidden>LC</div>
-            <div>
-              <span>{labels.newTask}</span>
+            <div className="task-intro-copy">
               <h1>{session.goal}</h1>
               <div className="task-meta">
                 <span className={`status-pill ${running ? "running" : session.status}`}>{statusLabel}</span>
                 {resolution && (
-                  <span className={`resolution-pill ${resolution.tone}`} title={resolution.title}>{resolution.label}</span>
+                  <span className={`resolution-pill view-${resolution.tone}`} title={resolution.title}>{resolution.label}</span>
                 )}
                 {statusDetail && <span>{statusDetail}</span>}
                 {session.provider && <span>{session.provider}</span>}
@@ -181,7 +226,7 @@ export function ThreadWorkspace({
 
           {notice}
 
-          {runningElsewhere && <p className="thread-notice" role="status">{labels.runningElsewhereNotice}</p>}
+          {runningElsewhere && <p className="notice-line tone-info" role="status"><Icon name="local" size={14} />{labels.runningElsewhereNotice}</p>}
 
           <ThreadProgress
             running={running}
@@ -202,12 +247,12 @@ export function ThreadWorkspace({
                 {historicalMessages && <span>{labels.historyWindow}</span>}
                 <div>
                   {hasOlderMessages && (
-                    <button type="button" disabled={loadingOlderMessages} onClick={onLoadOlderMessages}>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={loadingOlderMessages} onClick={onLoadOlderMessages}>
                       {labels.loadEarlier}
                     </button>
                   )}
                   {historicalMessages && (
-                    <button type="button" disabled={loadingOlderMessages} onClick={onJumpToLatest}>
+                    <button type="button" className="btn btn-ghost btn-sm" disabled={loadingOlderMessages} onClick={onJumpToLatest}>
                       {labels.backToLatest}
                     </button>
                   )}
@@ -215,26 +260,24 @@ export function ThreadWorkspace({
               </div>
             )}
 
-            {messages.map((message) => renderRuntimeRow?.(message) ?? (
-              <MessageItem
-                key={`${message.seq}-${message.role}`}
-                message={message}
-                labels={{
-                  roleUser: labels.roleUser,
-                  roleAssistant: labels.roleAssistant,
-                  roleTool: labels.roleTool,
-                  roleSystem: labels.roleSystem,
-                  copy: labels.copy,
-                  copied: labels.copied,
-                  runtimeNotice: labels.runtimeNotice,
-                  originToolInterrupted: labels.originToolInterrupted,
-                  originToolInterruptedBody: labels.originToolInterruptedBody,
-                  originCompletionBlocked: labels.originCompletionBlocked,
-                  originResume: labels.originResume,
-                  originTurn: labels.originTurn,
-                }}
-              />
-            ))}
+            {entries.map((entry) =>
+              entry.kind === "work" ? (
+                <WorkGroup
+                  key={`work-${entry.messages[0].seq}`}
+                  messages={entry.messages}
+                  live={entry.live}
+                  labels={labels}
+                />
+              ) : (
+                overrides.get(entry.message) ?? (
+                  <MessageItem
+                    key={`${entry.message.seq}-${entry.message.role}`}
+                    message={entry.message}
+                    labels={labels}
+                  />
+                )
+              ),
+            )}
 
             {!messages.length && (
               running
@@ -255,39 +298,15 @@ export function ThreadWorkspace({
             />
           )}
 
-          {session.final && (
-            <section className={`final-result${resolution?.tone === "done" ? " settled" : ""}`}>
-              <div className="final-label">
-                <span>
-                  <CircleCheck size={14} strokeWidth={1.7} aria-hidden />
-                  {labels.finalAnswer}
-                </span>
-                <button
-                  type="button"
-                  className="thread-inline-action"
-                  onClick={async () => {
-                    if (await copyText(session.final || "")) {
-                      setFinalCopied(true);
-                      window.setTimeout(() => setFinalCopied(false), 1200);
-                    }
-                  }}
-                >
-                  {finalCopied ? <Check size={11} strokeWidth={1.8} aria-hidden /> : <Copy size={11} strokeWidth={1.7} aria-hidden />}
-                  {finalCopied ? labels.copied : labels.copy}
-                </button>
-              </div>
-              <Markdown text={session.final} />
-            </section>
-          )}
-
-          {!running && (session.status === "interrupted" || session.status === "failed") && (
-            <div className="thread-retry-row">
-              <button type="button" disabled={busy} onClick={onRetry}>
-                <RotateCcw size={12} strokeWidth={1.7} aria-hidden />
-                {labels.retry}
-              </button>
-            </div>
-          )}
+          <ThreadOutcome
+            session={session}
+            running={running}
+            busy={busy}
+            settled={resolution?.tone === "done"}
+            failureHeadline={statusDetail || statusLabel}
+            labels={labels}
+            onRetry={onRetry}
+          />
         </div>
       </div>
 
@@ -319,6 +338,6 @@ export function ThreadWorkspace({
         onSubmit={onSubmit}
         onKeyDown={onKeyDown}
       />
-    </>
+    </div>
   );
 }

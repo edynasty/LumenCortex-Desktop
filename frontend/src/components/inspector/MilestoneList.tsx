@@ -1,6 +1,6 @@
-import { Bot, CheckCircle2, CircleDot, GitBranch, ShieldCheck, Wrench } from "lucide-react";
 import type { RuntimeEvent } from "../../types";
 import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
 import { milestonesFromEvents } from "./milestones";
 
 type Labels = Parameters<typeof milestonesFromEvents>[1] & {
@@ -23,19 +23,19 @@ function formatClock(value: string) {
 
 function MilestoneIcon({ kind }: { kind: string }) {
   switch (kind) {
-    case "tool": return <Wrench size={12} strokeWidth={1.7} aria-hidden />;
-    case "approval": return <ShieldCheck size={12} strokeWidth={1.7} aria-hidden />;
-    case "subagent": return <Bot size={12} strokeWidth={1.7} aria-hidden />;
-    case "worktree": return <GitBranch size={12} strokeWidth={1.7} aria-hidden />;
-    case "result": return <CheckCircle2 size={12} strokeWidth={1.7} aria-hidden />;
-    default: return <CircleDot size={12} strokeWidth={1.7} aria-hidden />;
+    case "tool": return <Icon name="tool" size={12} />;
+    case "approval": return <Icon name="permission" size={12} />;
+    case "subagent": return <Icon name="subagent" size={12} />;
+    case "worktree": return <Icon name="worktree" size={12} />;
+    case "result": return <Icon name="done" size={12} />;
+    default: return <Icon name="review" size={12} />;
   }
 }
 
 export function MilestoneList({ events, labels }: Props) {
   const items = milestonesFromEvents(events, labels);
   if (!items.length) {
-    return <EmptyState compact icon={<CircleDot size={18} />} title={labels.empty} />;
+    return <EmptyState compact icon={<Icon name="review" size={18} />} title={labels.empty} />;
   }
 
   return (

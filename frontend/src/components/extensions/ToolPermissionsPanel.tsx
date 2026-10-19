@@ -1,9 +1,8 @@
-import { ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { bridge } from "../../lib/bridge";
 import type { MCPAgentTool, ToolPermissions } from "../../types";
 import { Button } from "../primitives/Button";
-import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
 
 type Labels = {
   title: string;
@@ -61,6 +60,7 @@ const subagentTools: ToolEntry[] = [
   ["wait_subagent", "Wait for a child agent result"],
 ].map(([name, description]) => ({ name, description, category: "subagents" as const }));
 
+/** Permissions pane: Demo settings-sheet style — intro, per-category setting lists with switches. */
 export function ToolPermissionsPanel({ workspace, mcpTools, labels, onError }: Props) {
   const [permissions, setPermissions] = useState<ToolPermissions>({ disabled: [] });
   const [saved, setSaved] = useState<ToolPermissions>({ disabled: [] });
@@ -147,56 +147,54 @@ export function ToolPermissionsPanel({ workspace, mcpTools, labels, onError }: P
   ];
 
   return (
-    <div className="tool-permissions-panel">
-      <header className="tool-permissions-head">
-        <div>
-          <strong>{labels.title}</strong>
-          <p>{labels.description}</p>
-        </div>
-        <Button variant="primary" disabled={busy || !dirty} onClick={() => void save()}>
+    <>
+      <div className="pane-toolbar">
+        <p className="pane-intro">{labels.description}</p>
+        <span className="toolbar-spacer" />
+        <Button variant="primary" size="sm" disabled={busy || !dirty} onClick={() => void save()}>
           {labels.save}
         </Button>
-      </header>
+      </div>
 
       {!entries.length ? (
-        <EmptyState icon={<ShieldCheck size={20} />} title={labels.empty} />
+        <div className="empty-state">
+          <Icon name="permission" size={22} />
+          <h3>{labels.empty}</h3>
+        </div>
       ) : (
-        <div className="tool-permission-groups">
-          {categories.map(([category, title]) => {
-            const items = entries.filter((entry) => entry.category === category);
-            if (!items.length) return null;
-            return (
-              <section className="tool-permission-group" key={category}>
-                <div className="tool-permission-group-title">
-                  <strong>{title}</strong>
-                  <span>{items.length}</span>
-                </div>
-                <div className="tool-permission-list">
-                  {items.map((entry) => {
-                    const isDisabled = disabled.has(entry.name);
-                    return (
+        categories.map(([category, title]) => {
+          const items = entries.filter((entry) => entry.category === category);
+          if (!items.length) return null;
+          return (
+            <section className="pane-section" key={category}>
+              <h4>{title} <span className="muted">· {items.length}</span></h4>
+              <ul className="setting-list">
+                {items.map((entry) => {
+                  const isDisabled = disabled.has(entry.name);
+                  return (
+                    <li key={entry.name} className="setting-list-row">
+                      <span className="mono extensions-tool-name">{entry.name}</span>
+                      <span className="extensions-tool-desc">{entry.description}</span>
+                      <span className="toolbar-spacer" />
                       <button
                         type="button"
-                        className={"tool-permission-row " + (isDisabled ? "disabled" : "enabled")}
-                        key={entry.name}
-                        aria-pressed={!isDisabled}
+                        className="switch"
+                        role="switch"
+                        aria-checked={!isDisabled}
+                        aria-label={entry.name}
+                        title={isDisabled ? labels.disabled : labels.enabled}
                         onClick={() => toggle(entry.name)}
                       >
-                        <span className="tool-permission-toggle"><span /></span>
-                        <span className="tool-permission-copy">
-                          <code>{entry.name}</code>
-                          <small>{entry.description}</small>
-                        </span>
-                        <strong>{isDisabled ? labels.disabled : labels.enabled}</strong>
+                        <span />
                       </button>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })
       )}
-    </div>
+    </>
   );
 }

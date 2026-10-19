@@ -1,6 +1,7 @@
-import { ShieldCheck } from "lucide-react";
 import type { WorkflowSummary } from "../../types";
 import { Button } from "../primitives/Button";
+import { Icon } from "../primitives/Icon";
+import { Markdown } from "./Markdown";
 
 type Props = {
   summary: WorkflowSummary;
@@ -10,30 +11,34 @@ type Props = {
   onApprove: (gateId: string) => void;
 };
 
+// The approval gate (Lumen Glass gate block): a warn-tinted card that asks the reader for a
+// decision. One block per pending human gate; approving is the only writer Core offers here.
 export function ApprovalCard({ summary, busy, approveLabel, titleLabel, onApprove }: Props) {
   const humanGates = (summary.pendingGates || []).filter((gate) => gate.type === "human");
   if (!humanGates.length) return null;
 
   return (
-    <section className="thread-approval-card" aria-label={titleLabel}>
-      <div className="thread-approval-heading">
-        <ShieldCheck size={16} strokeWidth={1.7} aria-hidden />
-        <div>
-          <strong>{summary.currentTitle || titleLabel}</strong>
-          <span>{summary.title}</span>
-        </div>
-      </div>
+    <>
       {humanGates.map((gate) => (
-        <div className="thread-approval-gate" key={gate.id}>
-          <div>
-            <strong>{gate.title || gate.id}</strong>
-            {gate.description && <p>{gate.description}</p>}
-          </div>
-          <Button variant="primary" disabled={busy} onClick={() => onApprove(gate.id)}>
-            {approveLabel}
-          </Button>
-        </div>
+        <section className="block gate-block" key={gate.id} aria-live="polite" aria-label={titleLabel}>
+          <header className="block-head">
+            <Icon name="gate" size={16} className="block-icon" />
+            <span className="block-kicker">{titleLabel}</span>
+            <h3>{gate.title || gate.id}</h3>
+          </header>
+          {gate.description && <div className="block-body"><Markdown text={gate.description} /></div>}
+          <footer className="block-actions">
+            <Button
+              variant="primary"
+              icon={<Icon name="checkmark" size={13} />}
+              disabled={busy}
+              onClick={() => onApprove(gate.id)}
+            >
+              {approveLabel}
+            </Button>
+          </footer>
+        </section>
       ))}
-    </section>
+    </>
   );
 }

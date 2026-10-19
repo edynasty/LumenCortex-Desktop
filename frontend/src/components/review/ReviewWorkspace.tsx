@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { SessionRuntime } from "../../types";
-import { GitBranch, MessageSquareText, RotateCcw, Upload } from "lucide-react";
+import { MessageSquareText, RotateCcw, Upload } from "lucide-react";
 import { languageFromPath } from "../../lib/syntax";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
 import { Button } from "../primitives/Button";
 import { Dialog } from "../primitives/Dialog";
-import { EmptyState } from "../primitives/EmptyState";
+import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { PathLabel } from "../primitives/PathLabel";
 import { CheckSummary } from "./CheckSummary";
 import { diffStats, parseUnifiedDiff, splitDiffRows } from "./diff";
-import { ReviewDiffViewer } from "./ReviewDiffViewer";
-import { useReviewState, type DiffScope } from "./useReviewState";
+import { ReviewDiffViewer, DiffCount, useSplitDiffAvailable } from "./ReviewDiffViewer";
+import { statusLabel, useReviewState, type DiffScope } from "./useReviewState";
 import { WorktreeHandoffCard } from "./WorktreeHandoffCard";
 import { useWorktreeHandoff } from "./useWorktreeHandoff";
 import "./review.css";
@@ -72,33 +73,6 @@ type Props = {
   };
 };
 
-function statusLabel(index: string, worktree: string) {
-  if (index === "?" && worktree === "?") return "U";
-  if (index !== " " && index !== "?") return index;
-  return worktree === " " ? "M" : worktree;
-}
-
-function useSplitDiffAvailable() {
-  const query = "(min-width: 1025px)";
-  const [available, setAvailable] = useState(() =>
-    typeof window === "undefined" || typeof window.matchMedia !== "function"
-      ? true
-      : window.matchMedia(query).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-
-    const media = window.matchMedia(query);
-    const sync = () => setAvailable(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  return available;
-}
-
 export function ReviewWorkspace({ sessionId, runtime, agentBusy, agentRunning, onSendInstruction, labels }: Props) {
   const review = useReviewState(sessionId);
   const [mode, setMode] = useState<"unified" | "split">("unified");
@@ -127,6 +101,7 @@ export function ReviewWorkspace({ sessionId, runtime, agentBusy, agentRunning, o
   );
   const canStage = Boolean(review.selectedFile && (review.selectedFile.worktree !== " " || review.selectedFile.index === "?"));
   const canUnstage = Boolean(review.selectedFile && review.selectedFile.index !== " " && review.selectedFile.index !== "?");
+  const selectedStatus = review.selectedFile ? statusLabel(review.selectedFile.index, review.selectedFile.worktree) : "";
 
   const handoff = useWorktreeHandoff({
     sessionId,
@@ -138,180 +113,189 @@ export function ReviewWorkspace({ sessionId, runtime, agentBusy, agentRunning, o
   });
 
   return (
-    <section className="review-workspace">
-      <aside className="review-files">
-        <div className="review-files-head">
-          <strong>{labels.changedFiles}</strong>
-          <span>{review.status.files.length}</span>
+    <section className="changes-view">
+      {runtime.kind === "worktree" && (
+        <WorktreeHandoffCard
+          plan={handoff.plan}
+          loading={handoff.loading}
+          busy={handoff.busy || agentBusy || agentRunning}
+          notice={handoff.notice}
+          labels={{
+            title: labels.handoffTitle,
+            target: labels.handoffTarget,
+            commits: labels.handoffCommits,
+            ready: labels.handoffReady,
+            sourceDirty: labels.handoffSourceDirty,
+            targetDirty: labels.handoffTargetDirty,
+            noCommits: labels.handoffNoCommits,
+            overlap: labels.handoffOverlap,
+            apply: labels.handoffApply,
+            refresh: labels.handoffRefresh,
+            confirmTitle: labels.handoffConfirmTitle,
+            confirmBody: labels.handoffConfirmBody,
+            cancel: labels.cancel,
+            applied: labels.handoffApplied,
+          }}
+          onRefresh={() => void handoff.refresh()}
+          onApply={handoff.apply}
+        />
+      )}
+      {handoff.error && <div className="review-error">{handoff.error}</div>}
+
+      {!review.status.files.length && !review.loading ? (
+        <div className="changes-empty">
+          <Icon name="changes" size={22} />
+          <p>{labels.noChanges}</p>
         </div>
-        <div className="review-file-list">
-          {review.status.files.map((file) => (
-            <button
-              type="button"
-              key={file.path}
-              className={file.path === review.selectedPath ? "selected" : ""}
-              onClick={() => review.setSelectedPath(file.path)}
-            >
-              <span className="review-file-status">{statusLabel(file.index, file.worktree)}</span>
-              <span>{file.path}</span>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <div className="review-main">
-        {runtime.kind === "worktree" && (
-          <WorktreeHandoffCard
-            plan={handoff.plan}
-            loading={handoff.loading}
-            busy={handoff.busy || agentBusy || agentRunning}
-            notice={handoff.notice}
-            labels={{
-              title: labels.handoffTitle,
-              target: labels.handoffTarget,
-              commits: labels.handoffCommits,
-              ready: labels.handoffReady,
-              sourceDirty: labels.handoffSourceDirty,
-              targetDirty: labels.handoffTargetDirty,
-              noCommits: labels.handoffNoCommits,
-              overlap: labels.handoffOverlap,
-              apply: labels.handoffApply,
-              refresh: labels.handoffRefresh,
-              confirmTitle: labels.handoffConfirmTitle,
-              confirmBody: labels.handoffConfirmBody,
-              cancel: labels.cancel,
-              applied: labels.handoffApplied,
-            }}
-            onRefresh={() => void handoff.refresh()}
-            onApply={handoff.apply}
-          />
-        )}
-        {handoff.error && <div className="review-error">{handoff.error}</div>}
-
-        {!review.status.files.length && !review.loading ? (
-          <EmptyState icon={<GitBranch size={22} />} title={labels.noChanges} />
-        ) : (
-          <>
-            <header className="review-toolbar">
-              <div className="review-file-title">
-                <strong>{review.selectedPath || labels.title}</strong>
-                <span>+{stats.additions} −{stats.deletions}</span>
-                <RuntimeIdentity
-                  runtime={runtime}
-                  localLabel={labels.localRuntime}
-                  worktreeLabel={labels.worktreeRuntime}
-                />
-              </div>
-              <div className="review-toolbar-actions">
-                <SegmentedControl<DiffScope>
-                  value={review.scope}
-                  ariaLabel="Diff scope"
-                  options={[
-                    { value: "worktree", label: labels.worktree },
-                    { value: "staged", label: labels.staged },
-                  ]}
-                  onChange={review.setScope}
-                />
-                {splitDiffAvailable && (
-                  <SegmentedControl
-                    value={mode}
-                    ariaLabel="Diff layout"
-                    options={[
-                      { value: "unified", label: labels.unified },
-                      { value: "split", label: labels.split },
-                    ]}
-                    onChange={setMode}
-                  />
-                )}
-                {canStage && <Button onClick={() => void review.stage()} disabled={review.actionBusy}>{labels.stage}</Button>}
-                {canUnstage && <Button onClick={() => void review.unstage()} disabled={review.actionBusy}>{labels.unstage}</Button>}
-                <Button variant="danger" icon={<RotateCcw size={12} />} disabled={!review.selectedPath || review.actionBusy} onClick={() => setRevertOpen(true)}>
-                  {labels.revert}
-                </Button>
-              </div>
-            </header>
-
-            {review.diff.truncated && <div className="review-warning">{labels.truncated}</div>}
-            {review.error && <div className="review-error">{review.error}</div>}
-            {review.notice && <div className="review-notice">{review.notice}</div>}
-            {relevantConflicts.length > 0 && (
-              <div className="review-conflicts">
-                <strong>{labels.conflictTitle}</strong>
-                <span>{labels.conflictHint}</span>
-                <div>
-                  {relevantConflicts.map((conflict) => (
-                    <code key={conflict.path}>{conflict.path}</code>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <CheckSummary sessionId={sessionId} revision={review.revision} running={agentRunning} labels={labels} />
-
-            <ReviewDiffViewer
-              loading={review.loading}
-              binary={binaryDiff}
-              selectedPath={review.selectedPath}
-              contentKey={`${review.selectedPath}:${review.scope}:${review.diff.bytes}:${review.revision}`}
-              mode={mode}
-              lines={lines}
-              rows={rows}
-              language={language}
-              loadingLabel={labels.loading}
-              binaryLabel={labels.binaryDiff}
-              loadMoreLabel={labels.loadMoreDiff}
+      ) : (
+        <>
+          <header className="changes-toolbar">
+            <span className="changes-summary">
+              <span className="changes-summary-text">{labels.changedFiles} · {review.status.files.length}</span>
+              <DiffCount added={stats.additions} removed={stats.deletions} />
+            </span>
+            <RuntimeIdentity
+              runtime={runtime}
+              localLabel={labels.localRuntime}
+              worktreeLabel={labels.worktreeRuntime}
             />
+            <span className="toolbar-spacer" />
+            <div className="review-toolbar-actions">
+              <SegmentedControl<DiffScope>
+                size="sm"
+                value={review.scope}
+                ariaLabel="Diff scope"
+                options={[
+                  { value: "worktree", label: labels.worktree },
+                  { value: "staged", label: labels.staged },
+                ]}
+                onChange={review.setScope}
+              />
+              {splitDiffAvailable && (
+                <SegmentedControl
+                  size="sm"
+                  value={mode}
+                  ariaLabel="Diff layout"
+                  options={[
+                    { value: "unified", label: labels.unified },
+                    { value: "split", label: labels.split },
+                  ]}
+                  onChange={setMode}
+                />
+              )}
+              {canStage && <Button size="sm" variant="ghost" onClick={() => void review.stage()} disabled={review.actionBusy}>{labels.stage}</Button>}
+              {canUnstage && <Button size="sm" variant="ghost" onClick={() => void review.unstage()} disabled={review.actionBusy}>{labels.unstage}</Button>}
+              <Button size="sm" variant="danger" icon={<RotateCcw size={12} />} disabled={!review.selectedPath || review.actionBusy} onClick={() => setRevertOpen(true)}>
+                {labels.revert}
+              </Button>
+            </div>
+          </header>
 
-            <section className="review-feedback">
-              <div className="review-feedback-label">
-                <MessageSquareText size={13} strokeWidth={1.7} aria-hidden />
-                <span>{labels.reviewInstruction}</span>
+          {review.diff.truncated && <div className="review-warning">{labels.truncated}</div>}
+          {review.error && <div className="review-error">{review.error}</div>}
+          {review.notice && <div className="review-notice">{review.notice}</div>}
+          {relevantConflicts.length > 0 && (
+            <div className="review-conflicts">
+              <strong>{labels.conflictTitle}</strong>
+              <span>{labels.conflictHint}</span>
+              <div>
+                {relevantConflicts.map((conflict) => (
+                  <code key={conflict.path}>{conflict.path}</code>
+                ))}
               </div>
-              <textarea
-                rows={2}
-                value={instruction}
-                onChange={(event) => setInstruction(event.target.value)}
-                placeholder={labels.reviewInstructionPlaceholder}
-                disabled={agentBusy || agentRunning || !review.selectedPath}
-              />
-              <Button
-                variant="primary"
-                disabled={agentBusy || agentRunning || !review.selectedPath || !instruction.trim()}
-                onClick={async () => {
-                  const value = instruction.trim();
-                  if (!value) return;
-                  await onSendInstruction(review.selectedPath, value);
-                  setInstruction("");
-                }}
-              >
-                {agentRunning ? labels.agentRunning : labels.sendToAgent}
-              </Button>
-            </section>
+            </div>
+          )}
 
-            <footer className="review-footer">
-              <input
-                value={commitMessage}
-                onChange={(event) => setCommitMessage(event.target.value)}
-                placeholder={labels.commitPlaceholder}
-                aria-label={labels.commitPlaceholder}
+          <CheckSummary sessionId={sessionId} revision={review.revision} running={agentRunning} labels={labels} />
+
+          <div className="changes-body">
+            <ul className="file-list" role="listbox" aria-label={labels.changedFiles}>
+              {review.status.files.map((file) => (
+                <li
+                  key={file.path}
+                  role="option"
+                  aria-selected={file.path === review.selectedPath}
+                  className={`file-row ${file.path === review.selectedPath ? "is-selected" : ""}`}
+                  onClick={() => review.setSelectedPath(file.path)}
+                >
+                  <span className={`file-status st-${statusLabel(file.index, file.worktree)}`}>
+                    {statusLabel(file.index, file.worktree)}
+                  </span>
+                  <PathLabel path={file.path} />
+                </li>
+              ))}
+            </ul>
+            <div className="diff-view">
+              <header className="diff-file-head">
+                <span className={`file-status st-${selectedStatus}`}>{selectedStatus}</span>
+                <PathLabel path={review.selectedPath} />
+                <DiffCount added={stats.additions} removed={stats.deletions} />
+              </header>
+              <ReviewDiffViewer
+                loading={review.loading}
+                binary={binaryDiff}
+                selectedPath={review.selectedPath}
+                contentKey={`${review.selectedPath}:${review.scope}:${review.diff.bytes}:${review.revision}`}
+                mode={mode}
+                lines={lines}
+                rows={rows}
+                language={language}
+                loadingLabel={labels.loading}
+                binaryLabel={labels.binaryDiff}
+                loadMoreLabel={labels.loadMoreDiff}
               />
-              <Button
-                variant="primary"
-                disabled={!commitMessage.trim() || review.actionBusy}
-                onClick={() => {
-                  void review.commit(commitMessage.trim());
-                  setCommitMessage("");
-                }}
-              >
-                {labels.commit}
-              </Button>
-              <Button icon={<Upload size={12} />} disabled={review.actionBusy} onClick={() => void review.push()}>
-                {labels.push}
-              </Button>
-            </footer>
-          </>
-        )}
-      </div>
+            </div>
+          </div>
+
+          <section className="review-feedback">
+            <div className="review-feedback-label">
+              <MessageSquareText size={13} strokeWidth={1.7} aria-hidden />
+              <span>{labels.reviewInstruction}</span>
+            </div>
+            <textarea
+              rows={2}
+              value={instruction}
+              onChange={(event) => setInstruction(event.target.value)}
+              placeholder={labels.reviewInstructionPlaceholder}
+              disabled={agentBusy || agentRunning || !review.selectedPath}
+            />
+            <Button
+              variant="primary"
+              disabled={agentBusy || agentRunning || !review.selectedPath || !instruction.trim()}
+              onClick={async () => {
+                const value = instruction.trim();
+                if (!value) return;
+                await onSendInstruction(review.selectedPath, value);
+                setInstruction("");
+              }}
+            >
+              {agentRunning ? labels.agentRunning : labels.sendToAgent}
+            </Button>
+          </section>
+
+          <footer className="review-footer">
+            <input
+              value={commitMessage}
+              onChange={(event) => setCommitMessage(event.target.value)}
+              placeholder={labels.commitPlaceholder}
+              aria-label={labels.commitPlaceholder}
+            />
+            <Button
+              variant="primary"
+              disabled={!commitMessage.trim() || review.actionBusy}
+              onClick={() => {
+                void review.commit(commitMessage.trim());
+                setCommitMessage("");
+              }}
+            >
+              {labels.commit}
+            </Button>
+            <Button icon={<Upload size={12} />} disabled={review.actionBusy} onClick={() => void review.push()}>
+              {labels.push}
+            </Button>
+          </footer>
+        </>
+      )}
 
       <Dialog
         open={revertOpen}

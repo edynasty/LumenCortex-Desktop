@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type Option<T extends string> = { value: T; label: ReactNode; title?: string };
+type Option<T extends string> = { value: T; label: ReactNode; title?: string; disabled?: boolean };
 
 type Props<T extends string> = {
   value: T;
@@ -22,6 +22,7 @@ export function SegmentedControl<T extends string>({ value, options, ariaLabel, 
           aria-checked={value === option.value}
           aria-label={option.title}
           title={option.title}
+          disabled={option.disabled}
           className={value === option.value ? "is-on" : ""}
           onClick={() => onChange(option.value)}
         >
