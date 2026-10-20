@@ -26,6 +26,11 @@ const baseProps: ComponentProps<typeof SettingsSheet> = {
     warnings: [],
     globalPath: "/home/lumencortex.json",
     globalDigest: "sha256:g",
+    concurrency: {
+      current: { maxAgents: 4, maxChildrenPerParent: 3 },
+      default: { maxAgents: 4, maxChildrenPerParent: 3 },
+      max: { maxAgents: 16, maxChildrenPerParent: 8 },
+    },
   },
   trusting: false,
   sessionId: "",

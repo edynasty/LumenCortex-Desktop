@@ -19,6 +19,7 @@ import type {
   MCPStatus,
   Message,
   MessagePage,
+  AgentConcurrency,
   ConfigState,
   CredentialStatus,
   ProviderCatalogDocument,
@@ -75,6 +76,7 @@ export type AppAPI = {
   TestProviderConnection(providerId: string): Promise<ProviderConnectionResult>;
   GetConfigState(): Promise<ConfigState>;
   TrustWorkspace(globalDigest: string): Promise<ConfigState>;
+  SaveConcurrency(globalDigest: string, limits: AgentConcurrency): Promise<ConfigState>;
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalogDocument>;
   GetProviderCredentialStatus(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
   SaveProviderCredential(scope: ProviderCatalogScope, providerID: string, apiKey: string): Promise<CredentialStatus>;
@@ -186,6 +188,7 @@ export const bridge = {
   testProviderConnection: (providerId: string) => api().TestProviderConnection(providerId),
   configState: () => api().GetConfigState(),
   trustWorkspace: (globalDigest: string) => api().TrustWorkspace(globalDigest),
+  saveConcurrency: (globalDigest: string, limits: AgentConcurrency) => api().SaveConcurrency(globalDigest, limits),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
   providerCredentialStatus: (scope: ProviderCatalogScope, providerId: string) => api().GetProviderCredentialStatus(scope, providerId),
   saveProviderCredential: (scope: ProviderCatalogScope, providerId: string, apiKey: string) => api().SaveProviderCredential(scope, providerId, apiKey),

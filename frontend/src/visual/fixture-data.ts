@@ -80,6 +80,11 @@ export const visualConfigState: ConfigState = {
   ],
   globalPath: "/home/.config/lumencortex/lumencortex.json",
   globalDigest: "sha256:visual",
+  concurrency: {
+    current: { maxAgents: 4, maxChildrenPerParent: 3 },
+    default: { maxAgents: 4, maxChildrenPerParent: 3 },
+    max: { maxAgents: 16, maxChildrenPerParent: 8 },
+  },
 };
 
 export const providerCatalog: ProviderCatalog = {

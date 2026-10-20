@@ -25,6 +25,12 @@ const emptyConfig: ConfigState = {
   warnings: [],
   globalPath: "",
   globalDigest: "",
+  // Zero limits mark the placeholder before Core's first answer; Core's bounds start at 1.
+  concurrency: {
+    current: { maxAgents: 0, maxChildrenPerParent: 0 },
+    default: { maxAgents: 0, maxChildrenPerParent: 0 },
+    max: { maxAgents: 0, maxChildrenPerParent: 0 },
+  },
 };
 
 type Options = {

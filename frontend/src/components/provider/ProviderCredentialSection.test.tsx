@@ -36,6 +36,11 @@ const config: ConfigState = {
   warnings: [],
   globalPath: "/home/.config/lumencortex/lumencortex.json",
   globalDigest: "sha256:g",
+  concurrency: {
+    current: { maxAgents: 4, maxChildrenPerParent: 3 },
+    default: { maxAgents: 4, maxChildrenPerParent: 3 },
+    max: { maxAgents: 16, maxChildrenPerParent: 8 },
+  },
 };
 
 function fileDoc(digest: string, providers: ProviderCatalogDocument["catalog"]["providers"] = {}): ProviderCatalogDocument {

@@ -11,12 +11,14 @@ describe("configuration warnings", () => {
       { code: "legacy_global_path", path: "/old/lumencortex.json", moveTo: "/new/lumencortex.json", message: "m" },
       { code: "cognition_profile", path: "/repo/.lumencortex/cognition.json", message: "m" },
       { code: "default_limit", key: "a/b.output", message: "m" },
+      { code: "global_only", key: "concurrency", message: "m" },
       { code: "from_the_future", message: "Core says hello" },
     ]);
     expect(view.lines).toEqual([
       "Found /old/lumencortex.json in a legacy location; it is not read. Move it to /new/lumencortex.json.",
       "Found /repo/.lumencortex/cognition.json. Its provider, category and health settings are ignored; configure models in lumencortex.json.",
       "a/b.output is not set; the default is used.",
+      "concurrency in the project file is ignored: it is read from the global lumencortex.json only.",
       "Core says hello",
     ]);
     expect(viewWarnings(copy.en, [{ code: "default_limit", key: "a/b.output", message: "m" }], true).lines).toEqual([]);

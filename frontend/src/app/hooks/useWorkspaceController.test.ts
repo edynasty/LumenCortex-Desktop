@@ -25,6 +25,11 @@ function configFor(workspace: string, model: string, overrides: Partial<ConfigSt
     warnings: [],
     globalPath: "/home/.config/lumencortex/lumencortex.json",
     globalDigest: "sha256:one",
+    concurrency: {
+      current: { maxAgents: 4, maxChildrenPerParent: 3 },
+      default: { maxAgents: 4, maxChildrenPerParent: 3 },
+      max: { maxAgents: 16, maxChildrenPerParent: 8 },
+    },
     ...overrides,
   };
 }

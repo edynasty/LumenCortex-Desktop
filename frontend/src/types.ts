@@ -492,6 +492,20 @@ export type ConfigState = {
   warnings: ConfigWarning[];
   globalPath: string;
   globalDigest: string;
+  concurrency: ConcurrencyState;
+};
+
+// Core's global agent concurrency (ADR-0008), read at every run start.
+export type AgentConcurrency = {
+  maxAgents: number;
+  maxChildrenPerParent: number;
+};
+
+// The effective limits with Core's defaults and schema bounds.
+export type ConcurrencyState = {
+  current: AgentConcurrency;
+  default: AgentConcurrency;
+  max: AgentConcurrency;
 };
 
 // A per-model reasoning level, or "auto" (Core classifies each turn and resolves one level; the

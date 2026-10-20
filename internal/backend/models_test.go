@@ -272,6 +272,7 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"taskProposalStarted":   lcx.ErrTaskProposalStarted,
 		"taskNeedsCommit":       lcx.ErrExecutionTaskNeedsCommit,
 		"childLimit":            lcx.ErrSubagentLimitExceeded,
+		"agentLimit":            lcx.ErrAgentLimitExceeded,
 	}
 	got := map[string]string{}
 	for key, err := range want {

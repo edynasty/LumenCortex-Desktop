@@ -14,5 +14,6 @@
   "taskProposalNotFound": "execution task proposal not found",
   "taskProposalStarted": "execution task proposal was already started",
   "taskNeedsCommit": "execution tasks need a git workspace with at least one commit",
-  "childLimit": "subagent concurrency limit exceeded for parent session"
+  "childLimit": "subagent concurrency limit exceeded for parent session",
+  "agentLimit": "runtime agent concurrency limit exceeded"
 }

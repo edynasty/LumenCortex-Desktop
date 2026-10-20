@@ -150,6 +150,49 @@ func TestConfigStateWithoutWorkspaceUsesGlobalConfigOnly(t *testing.T) {
 	}
 }
 
+// Settings saves concurrency into the global file, keeping every other key, and the next state
+// reports it. A stale digest and an out-of-bounds value write nothing.
+func TestSaveConcurrencyWritesTheGlobalFileOnly(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeFile(t, configPath, fmt.Sprintf(unmanagedFileFmt, `["test/b"]`, `{"X-Title": "keep"}`))
+	r := New()
+	state, err := r.ConfigState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Concurrency.Current != (AgentConcurrency{MaxAgents: 7, MaxChildrenPerParent: 5}) ||
+		state.Concurrency.Default != (AgentConcurrency{MaxAgents: config.DefaultMaxAgents, MaxChildrenPerParent: config.DefaultMaxChildrenPerParent}) ||
+		state.Concurrency.Max != (AgentConcurrency{MaxAgents: config.MaxMaxAgents, MaxChildrenPerParent: config.MaxMaxChildrenPerParent}) {
+		t.Fatalf("concurrency=%+v", state.Concurrency)
+	}
+	before := readFile(t, configPath)
+
+	if _, err := r.SaveConcurrency("sha256:stale", AgentConcurrency{MaxAgents: 2, MaxChildrenPerParent: 1}); !errors.Is(err, config.ErrConflict) {
+		t.Fatalf("stale digest err=%v", err)
+	}
+	if _, err := r.SaveConcurrency(state.GlobalDigest, AgentConcurrency{MaxAgents: config.MaxMaxAgents + 1, MaxChildrenPerParent: 1}); !errors.Is(err, config.ErrInvalidConfig) {
+		t.Fatalf("out of bounds err=%v", err)
+	}
+	if readFile(t, configPath) != before {
+		t.Fatal("a refused save changed the file")
+	}
+
+	next, err := r.SaveConcurrency(state.GlobalDigest, AgentConcurrency{MaxAgents: 2, MaxChildrenPerParent: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.Concurrency.Current != (AgentConcurrency{MaxAgents: 2, MaxChildrenPerParent: 1}) || next.GlobalDigest == state.GlobalDigest {
+		t.Fatalf("after save: %+v", next)
+	}
+	saved, err := config.ReadDocument(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saved.File.SubagentModel != "test/b" || len(saved.File.Checks) != 1 || len(saved.File.TrustedWorkspaces) != 1 || saved.File.Effort == nil {
+		t.Fatalf("save dropped unrelated keys: %+v", saved.File)
+	}
+}
+
 // A global file with every field outside the editing DTO. A DTO save must change only the DTO's fields.
 const unmanagedFileFmt = `{
   "$schema": "https://example.invalid/custom-schema.json",
@@ -157,6 +200,7 @@ const unmanagedFileFmt = `{
   "failover": %s,
   "subagentModel": "test/b",
   "effort": {"default": "medium", "escalation": {"sameFailure": 2, "noProgressSteps": 3, "max": "high"}},
+  "concurrency": {"maxAgents": 7, "maxChildrenPerParent": 5},
   "checks": {"go-test": {"kind": "test", "command": "go test ./...", "timeoutSeconds": 60, "required": true}},
   "trustedWorkspaces": ["/trusted/one"],
   "providers": {

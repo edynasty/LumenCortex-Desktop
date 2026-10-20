@@ -87,6 +87,8 @@ export function SettingsSheet(props: Props) {
               onLocaleChange={props.onLocaleChange}
               onThemePreferenceChange={props.onThemePreferenceChange}
               onOpenModels={() => props.onPaneChange("models")}
+              onConfigChanged={props.onConfigChanged}
+              onError={props.onError}
             />
           )}
           {/* Mounted once opened and hidden on other panes: unsaved provider edits survive pane switches. */}

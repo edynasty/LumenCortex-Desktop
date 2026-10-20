@@ -3,7 +3,7 @@ import type { ConfigWarning } from "../../types";
 
 export type WarningLabels = Pick<
   AppCopy,
-  "configWarningLegacyPath" | "configWarningCognition" | "configWarningDefaultLimit"
+  "configWarningLegacyPath" | "configWarningCognition" | "configWarningDefaultLimit" | "configWarningGlobalOnly"
 >;
 
 export type WarningView = {
@@ -35,6 +35,9 @@ export function viewWarnings(labels: WarningLabels, warnings: ConfigWarning[], h
         break;
       case "default_limit":
         if (!hideDefaultLimit) view.lines.push(fill(labels.configWarningDefaultLimit, { key: warning.key }));
+        break;
+      case "global_only":
+        view.lines.push(fill(labels.configWarningGlobalOnly, { key: warning.key }));
         break;
       default:
         view.lines.push(warning.message);

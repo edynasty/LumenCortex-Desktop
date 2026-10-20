@@ -53,6 +53,18 @@ type ConfigState struct {
 	Warnings      []ConfigWarning `json:"warnings"`
 	GlobalPath    string          `json:"globalPath"`
 	GlobalDigest  string          `json:"globalDigest"`
+	Concurrency   Concurrency     `json:"concurrency"`
+}
+
+// AgentConcurrency is Core's concurrency object (ADR-0008): global only, read at every run start.
+type AgentConcurrency = config.Concurrency
+
+// Concurrency is the effective agent concurrency with Core's defaults and schema bounds, so the
+// Settings page never hard-codes them.
+type Concurrency struct {
+	Current AgentConcurrency `json:"current"`
+	Default AgentConcurrency `json:"default"`
+	Max     AgentConcurrency `json:"max"`
 }
 
 // ProviderCatalogDocument is one configuration file as the provider panel edits it. Digest is the
@@ -152,6 +164,11 @@ func configState(cfg *config.Config) ConfigState {
 		Warnings:      append([]ConfigWarning{}, eff.Warnings...),
 		GlobalPath:    global.Path,
 		GlobalDigest:  global.Digest,
+		Concurrency: Concurrency{
+			Current: eff.Concurrency,
+			Default: (*config.Concurrency)(nil).Limits(),
+			Max:     AgentConcurrency{MaxAgents: config.MaxMaxAgents, MaxChildrenPerParent: config.MaxMaxChildrenPerParent},
+		},
 	}
 	for _, ref := range eff.Failover {
 		state.Failover = append(state.Failover, string(ref))
@@ -193,6 +210,29 @@ func (r *Runtime) TrustWorkspace(globalDigest string) (ConfigState, error) {
 		if _, err := config.Save(global.Path, file, globalDigest); err != nil {
 			return ConfigState{}, err
 		}
+	}
+	return r.ConfigState()
+}
+
+// SaveConcurrency writes concurrency to the global file; Core validates the bounds and reads the
+// limits at the next run start. globalDigest is the GlobalDigest the UI last saw: a changed file is
+// config.ErrConflict and nothing is written. Every other key of the file is kept.
+func (r *Runtime) SaveConcurrency(globalDigest string, limits AgentConcurrency) (ConfigState, error) {
+	cfg, err := config.Load(r.currentWorkspace())
+	if err != nil {
+		return ConfigState{}, err
+	}
+	global := cfg.Global()
+	if global.Digest != globalDigest {
+		return ConfigState{}, fmt.Errorf("%w: %s", config.ErrConflict, global.Path)
+	}
+	file := global.File
+	file.Concurrency = &limits
+	if file.Schema == "" {
+		file.Schema = ProviderConfigSchema
+	}
+	if _, err := config.Save(global.Path, file, globalDigest); err != nil {
+		return ConfigState{}, err
 	}
 	return r.ConfigState()
 }

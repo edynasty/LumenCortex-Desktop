@@ -257,6 +257,7 @@ export function visualApp(projectOpen: boolean): AppAPI {
     },
     RecentMessages: async (id, limit) => (transcripts[id] ?? []).slice(-limit),
     TrustWorkspace: async () => visualAppStub().GetConfigState(),
+    SaveConcurrency: async () => visualAppStub().GetConfigState(),
     StartAgent: async (id, cfg) => replace(pinModel({ ...find(id) }, cfg, "running")),
     ContinueAgent: async (id, content, cfg) => {
       const rows = transcripts[id] ?? [];

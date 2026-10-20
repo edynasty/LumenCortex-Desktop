@@ -23,6 +23,7 @@ const order: CoreErrorKey[] = [
   "taskProposalStarted",
   "taskNeedsCommit",
   "childLimit",
+  "agentLimit",
 ];
 
 export function coreErrorKey(error: string): CoreErrorKey | null {

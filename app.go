@@ -198,6 +198,10 @@ func (a *App) TrustWorkspace(globalDigest string) (backend.ConfigState, error) {
 	return a.backend.TrustWorkspace(globalDigest)
 }
 
+func (a *App) SaveConcurrency(globalDigest string, limits backend.AgentConcurrency) (backend.ConfigState, error) {
+	return a.backend.SaveConcurrency(globalDigest, limits)
+}
+
 func (a *App) GetProviderCatalogScope(scope string) (backend.ProviderCatalogDocument, error) {
 	return a.backend.ProviderCatalogScope(scope)
 }

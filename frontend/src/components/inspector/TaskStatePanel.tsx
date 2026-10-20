@@ -66,6 +66,7 @@ export type TaskStateLabels = Pick<
   | "errTaskProposalStarted"
   | "errTaskNeedsCommit"
   | "errChildLimit"
+  | "errAgentLimit"
 >;
 
 type Props = {
