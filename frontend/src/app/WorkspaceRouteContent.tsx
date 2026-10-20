@@ -3,6 +3,7 @@ import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import type { ComposerAgent, ComposerCopy } from "../components/composer/Composer";
 import { agentName } from "./agent-catalog";
 import { AgentsPage } from "../components/agents/AgentsPage";
+import { ModelFallbackNotice } from "../components/thread/ModelFallbackNotice";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
@@ -274,7 +275,7 @@ export function WorkspaceRouteContent({
           onPickContextFolder={onPickContextFolder}
           onRemoveContextPath={onRemoveContextPath}
           contextPaths={contextPaths}
-          notice={configNotice}
+          notice={<>{configNotice}<ModelFallbackNotice events={events} sessionId={current.id} labels={labels} /></>}
           goal={goal}
           busy={busy}
           workflowSummary={workflowSummary}

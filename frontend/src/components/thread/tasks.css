@@ -56,7 +56,8 @@
 .task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: var(--text-xs); color: var(--fg-3); font-variant-numeric: tabular-nums; }
 .task-branch { display: inline-flex; align-items: center; gap: 4px; max-width: 240px; overflow: hidden; font-family: var(--font-mono); font-size: var(--text-3xs); color: var(--fg-2); text-overflow: ellipsis; white-space: nowrap; }
 .task-fact { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-fact + .task-fact::before, .task-branch + .task-fact::before { content: "·"; margin-right: 6px; color: var(--fg-4); }
+.task-agent { display: inline-flex; align-items: center; gap: 4px; max-width: 200px; overflow: hidden; font-size: var(--text-3xs); color: var(--fg-2); text-overflow: ellipsis; white-space: nowrap; }
+.task-fact + .task-fact::before, .task-branch + .task-fact::before, .task-agent + .task-branch::before, .task-agent + .task-fact::before { content: "·"; margin-right: 6px; color: var(--fg-4); }
 .task-fact.verify-passed { color: var(--ok); }
 .task-fact.verify-failed, .task-fact.verify-error, .task-fact.warn { color: var(--bad); }
 .task-fact.verify-pending { color: var(--warn); }

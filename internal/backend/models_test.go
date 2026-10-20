@@ -276,6 +276,7 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"subagentModelRetired":    config.ErrSubagentModelRetired,
 		"unknownAgent":            lcx.ErrUnknownAgent,
 		"agentNotForConversation": lcx.ErrAgentNotForConversation,
+		"agentUseMismatch":        lcx.ErrAgentUseMismatch,
 	}
 	got := map[string]string{}
 	for key, err := range want {

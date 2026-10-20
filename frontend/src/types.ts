@@ -234,6 +234,8 @@ export type SubagentNode = {
   sessionId: string;
   parentSessionId?: string;
   kind: "subagent" | "execution" | string;
+  // The catalog agent the child pinned (ADR-0009 A3); absent before its first Start.
+  agent?: string;
   goal: string;
   status: string;
   final?: string;
@@ -278,6 +280,8 @@ export type ThreadTask = {
   id: string;
   objective: string;
   state: "proposed" | "started" | string;
+  // The catalog agent the task runs (ADR-0009 A3); absent in tasks recorded before it.
+  agent?: string;
   sessionId?: string;
   proposedAt?: string;
   startedAt?: string;
@@ -287,6 +291,7 @@ export type ThreadTask = {
 export type TaskResult = {
   taskId?: string;
   sessionId: string;
+  agent?: string;
   objective: string;
   status: string;
   errorKind?: string;

@@ -63,6 +63,7 @@ export type TaskStateLabels = Pick<
   | "errSubagentModelRetired"
   | "errUnknownAgent"
   | "errAgentNotForConversation"
+  | "errAgentUseMismatch"
   | "errNoFingerprint"
   | "errUnknownCheck"
   | "errTaskProposalNotFound"

@@ -13,6 +13,7 @@ export type ExecutionTaskLabels = Pick<
   | "tasksTitle"
   | "taskKicker"
   | "proposalKicker"
+  | "taskAgent"
   | "taskProposed"
   | "taskStarting"
   | "taskRunning"
@@ -156,6 +157,8 @@ function TaskCard({
   // still has that status, so a resumed child never shows its previous outcome.
   const current = result && node && result.status === node.status ? result : undefined;
   const branch = node?.runtime?.branch;
+  // The proposal names its agent before a child exists; the child's pin after.
+  const agentId = node?.agent || task.agent;
   const starting = pending[task.id] === true;
   const stopping = childId ? pending[childId] === true : false;
 
@@ -174,6 +177,12 @@ function TaskCard({
         <span className={`task-state ${phaseTone[phase]}`}>{phaseLabel(labels, phase)}</span>
       </header>
       <div className="task-meta">
+        {agentId && (
+          <span className="task-agent" title={labels.taskAgent} aria-label={`${labels.taskAgent}: ${agentId}`}>
+            <Icon name="agents" size={12} />
+            {agentId}
+          </span>
+        )}
         {branch && (
           <span className="task-branch" title={node?.runtime?.path}>
             <Icon name="worktree" size={12} />

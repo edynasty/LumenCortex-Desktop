@@ -20,6 +20,7 @@ const order: CoreErrorKey[] = [
   "unknownModel",
   "unknownAgent",
   "agentNotForConversation",
+  "agentUseMismatch",
   "runHeld",
   "worktreeBusy",
   "noFingerprint",

@@ -24,6 +24,7 @@ function node(id: string, goal: string, status: string, active: boolean): Subage
     sessionId: id,
     parentSessionId: taskSession.id,
     kind: "execution",
+    agent: "worker",
     goal,
     status,
     active,
@@ -38,7 +39,7 @@ export const visualTasks: ThreadTask[] = [
   { id: "task-failed", objective: "Migrate legacy provider notes into docs/configuration.md and delete the old file", state: "started", sessionId: "task-b", proposedAt: "2026-09-22T01:12:00Z", startedAt: "2026-09-22T01:12:30Z" },
   { id: "task-gate", objective: "Rename ProviderPane props to match the catalog wire names", state: "started", sessionId: "task-c", proposedAt: "2026-09-22T01:13:00Z", startedAt: "2026-09-22T01:13:30Z" },
   { id: "task-running", objective: "Extract the provider connection test into its own hook with focused unit tests", state: "started", sessionId: "task-d", proposedAt: "2026-09-22T01:14:00Z", startedAt: "2026-09-22T01:14:30Z" },
-  { id: "task-proposed", objective: "Split ProviderSettingsPanel.tsx below the 350-line component threshold without changing behaviour", state: "proposed", proposedAt: "2026-09-22T01:30:00Z" },
+  { id: "task-proposed", objective: "Split ProviderSettingsPanel.tsx below the 350-line component threshold without changing behaviour", state: "proposed", agent: "worker", proposedAt: "2026-09-22T01:30:00Z" },
 ];
 
 export const visualTaskNodes: SubagentNode[] = [

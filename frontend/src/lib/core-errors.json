@@ -10,6 +10,7 @@
   "subagentModelRetired": "subagentModel is retired: set \"agents\": {\"explore\": {\"models\": [{\"model\": \"<ref>\"}]}, \"worker\": {\"models\": [{\"model\": \"<ref>\"}]}} instead",
   "unknownAgent": "agent is not in the catalog",
   "agentNotForConversation": "agent runs only as a delegated child",
+  "agentUseMismatch": "agent cannot run this kind of child",
   "runHeld": "run is active in another process or engine",
   "worktreeBusy": "session worktree is in use",
   "noFingerprint": "workspace has no fingerprint (not a git repository with a commit)",

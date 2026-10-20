@@ -18,7 +18,7 @@ import type {
   AgentCatalog,
   AgentEntry,
 } from "../types";
-import { cancelVisualSubtree, startVisualTask } from "./task-fixture";
+import { cancelVisualSubtree, startVisualTask, taskSession } from "./task-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
 
@@ -240,6 +240,10 @@ export const visualEvents: RuntimeEvent[] = [
   { seq: 4, at: "2026-09-22T01:08:00Z", type: "workflow.transition", sessionId: session.id, data: { title: "Refactor provider settings" } },
   { seq: 5, at: "2026-09-22T01:11:00Z", type: "subagent.spawned", sessionId: session.id, data: { goal: "Review provider tests" } },
   { seq: 6, at: "2026-09-22T01:16:00Z", type: "tool.end", sessionId: session.id, data: { name: "shell", command: "npm test", exitCode: 0 } },
+  // The task thread's last run fell back down its agent's model list (ADR-0009): Core's event shapes.
+  { seq: 7, at: "2026-09-22T01:50:00Z", type: "run.started", sessionId: taskSession.id, data: {} },
+  { seq: 8, at: "2026-09-22T01:50:02Z", type: "provider.failover", sessionId: taskSession.id, data: { step: 1, modelRef: "openai/gpt-5.6", nextModelRef: "deepseek/deepseek-v4", class: "availability", error: "status 503" } },
+  { seq: 9, at: "2026-09-22T01:50:09Z", type: "llm.complete", sessionId: taskSession.id, data: { step: 1, modelRef: "deepseek/deepseek-v4" } },
 ];
 
 export const health: Health = {

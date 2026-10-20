@@ -1,7 +1,7 @@
 # Agent catalog on Desktop (ADR-0009 A2)
 
 - **Date:** 2026-10-20
-- **Scope:** LumenCortex Desktop only. Core is pinned at `8998c25` (already in `go.mod`/`go.sum`; not changed here).
+- **Scope:** LumenCortex Desktop only. Core was pinned at `8998c25` for A2 and is now at `6935aa2` (A3); see the follow-up section.
 - **Supersedes:** [`agent-profiles-2026-10-19.md`](agent-profiles-2026-10-19.md) (Desktop `agents.json` profiles and the Ask/Agent switch).
 - **Core authority:** `docs/adr/0009-agent-catalog-and-model-lists.md`, `docs/go-provider.md` ("Agents", "Agents at Start"), `docs/lumencortex.schema.json` (`agents`, `$defs/agent`, `$defs/agentModel`).
 
@@ -159,4 +159,36 @@ Docs: `docs/architecture.md`, `docs/screen-specs.md`, `docs/interaction-spec.md`
 - A legacy profile whose instructions exceed 16 KiB is not imported; that is reported, but the user
   must shorten it by hand.
 - A workspace-defined agent is read-only in the page; editing the workspace file stays a manual act.
-- A3 (agent choice inside `spawn_subagent`/`start_task`) and N3 are out of scope.
+- The fallback notice is built from live events only. A thread reopened after a restart shows no
+  "answered by" line for its earlier runs; the decision log in Core still records the failover.
+- N3 (auth-error failover) is out of scope.
+
+## Follow-up: fallback notice, child agents, Core A3 pin
+
+Core is now pinned at `6935aa2` (ADR-0009 A3: `spawn_subagent`/`start_task` take an optional `agent`;
+proposals record the agent and the proposing run's bounds). The pin was resolved from the local Core
+checkout through a temporary `git url.insteadOf`, which was removed afterwards; Core must be pushed
+before a clean module download works.
+
+- `lib/model-fallback.ts` `currentFallback(events, sessionId)` reads Core's `provider.failover`
+  (with `nextModelRef`) and `llm.complete` events of the thread's latest run (reset at
+  `run.started`). `components/thread/ModelFallbackNotice.tsx` renders "Answered by B: A was
+  unavailable, so the agent's model list moved on. The next turn starts with A again." in the
+  thread's notice slot (`WorkspaceRouteContent.tsx`). Nothing is shown when the first model answered
+  or when no candidate answered (the run's error shows instead). This covers A2 acceptance 7.
+- `types.ts`: `SubagentNode.agent`, `ThreadTask.agent`, `TaskResult.agent`. `ExecutionTasks.tsx`
+  shows the agent on each task card: the proposal's before a child exists, the child's pin after.
+- New Core error marker `agentUseMismatch` ("agent cannot run this kind of child") with
+  `errAgentUseMismatch` copy (zh-CN + en). It appears when a proposal's agent is no longer eligible
+  at Start. `TestCoreErrorMarkersMatchCore` checks it against `lcx.ErrAgentUseMismatch`.
+- Visual fixtures: the task scene's nodes and proposal run `worker`; `visualEvents` carry one
+  fallback for the task thread.
+
+Verification for this follow-up:
+- `go build ./...`, `go vet ./...`, `go test -count=1 ./...` all pass.
+- `npx tsc --noEmit` passes. `npx vitest run`: 58 files, 265 tests, pass. New:
+  `ModelFallbackNotice.test.tsx` covers the fixture event render, another thread, a reset at the
+  next run, no answer, and a chain.
+- Playwright: 75 passed. New spec: "a run that fell back names the model that answered; task cards
+  name their agent", which also checks that another thread shows no notice. A screenshot of the
+  thread head was inspected; the notice sits under the config notice in the info tone.

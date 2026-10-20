@@ -343,6 +343,19 @@ test("no console errors across pages, themes and locales", async ({ page }) => {
 
 // Behaviour that crosses the bridge: every assertion follows what the in-memory Core answers.
 test.describe("Core-backed interactions", () => {
+  test("a run that fell back names the model that answered; task cards name their agent", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Provider settings in tasks");
+    await expect(page.getByRole("status").filter({ hasText: "Answered by" })).toHaveText(
+      "Answered by deepseek/deepseek-v4: openai/gpt-5.6 was unavailable, so the agent's model list moved on. The next turn starts with openai/gpt-5.6 again.",
+    );
+    const tasks = page.getByRole("region", { name: "Execution tasks" });
+    await expect(tasks.getByLabel("Agent running it: worker")).toHaveCount(5);
+    // Another thread's run did not fall back.
+    await openThread(page, "Provider settings refactor");
+    await expect(page.getByRole("status").filter({ hasText: "Answered by" })).toHaveCount(0);
+  });
+
   test("a proposal runs only after Core reports it started; Stop ends just that subtree", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings in tasks");
