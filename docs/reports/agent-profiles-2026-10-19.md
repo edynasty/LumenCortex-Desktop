@@ -1,5 +1,7 @@
 # Agent profiles and the Agents page (2026-10-19)
 
+> **Superseded by [`agent-catalog-desktop-2026-10-20.md`](agent-catalog-desktop-2026-10-20.md):** Desktop `agents.json` profiles and the Ask/Agent switch were replaced by Core's agent catalog (ADR-0009 A2).
+
 ## Design
 
 - Core (`f7ffc18`): `runtime.AgentOptions.Instructions` (json `instructions,omitempty`), validated

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { FormEvent, ReactNode, Ref } from "react";
-import type { AgentEffort, Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
-import type { AgentMode, AgentPolicy } from "../../app/agent-config";
+import type { AgentEffort, AgentPolicy, Message, Session, SessionRuntime, WorkflowSummary } from "../../types";
 import type { ComposerAgent, ComposerCopy } from "../composer/Composer";
 import type { PickerOption } from "../composer/ComposerPickers";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
@@ -34,7 +33,6 @@ type Props = {
   onOpenProviders: () => void;
   effort?: AgentEffort;
   effortOptions: string[];
-  mode: AgentMode;
   agent: ComposerAgent;
   policy: AgentPolicy;
   onPolicyChange: (policy: AgentPolicy) => void;
@@ -141,7 +139,6 @@ export function ThreadWorkspace({
   onOpenProviders,
   effort,
   effortOptions,
-  mode,
   agent,
   policy,
   onPolicyChange,
@@ -323,7 +320,6 @@ export function ThreadWorkspace({
         onOpenProviders={onOpenProviders}
         effort={effort}
         effortOptions={effortOptions}
-        mode={mode}
         agent={agent}
         policy={policy}
         delegationControl={delegationControl}

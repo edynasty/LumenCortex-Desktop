@@ -1,0 +1,197 @@
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { copy } from "../../lib/i18n/app-copy";
+import type { AgentCatalog, AgentEntry } from "../../types";
+import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
+import { AgentsPage } from "./AgentsPage";
+
+const t = copy.en;
+
+function entry(overrides: Partial<AgentEntry> & { id: string }): AgentEntry {
+  return {
+    name: overrides.id, description: "", use: "conversation", policy: "full", delegation: "isolated",
+    instructions: "", models: null, builtin: false, source: "global", digest: `sha256:${overrides.id}`,
+    forConversation: true, editable: true, ...overrides,
+  };
+}
+
+const builtins = [
+  entry({
+    id: "ask", name: "Ask", description: "Answers questions.", policy: "read-only", delegation: "none",
+    builtin: true, source: "builtin",
+  }),
+  entry({ id: "agent", name: "Agent", description: "Works on the task.", builtin: true, source: "builtin" }),
+  entry({ id: "explore", name: "Explore", use: "delegation", forConversation: false, builtin: true, source: "builtin" }),
+  entry({ id: "worker", name: "Worker", use: "delegation", forConversation: false, builtin: true, source: "builtin" }),
+];
+
+const reviewer = entry({
+  id: "reviewer", name: "Code reviewer", description: "Reads diffs.",
+  policy: "read-only", delegation: "none", instructions: "Lead with the risk.",
+  models: [{ model: "openai/gpt-5.6", effort: "high" }],
+});
+
+const catalog = (agents: AgentEntry[]): AgentCatalog => ({
+  agents,
+  limits: { maxCustom: 16, name: 40, description: 280, instructions: 16 << 10, models: 8, idPattern: "^[a-z][a-z0-9-]{0,39}$" },
+  globalPath: "/home/lumencortex.json",
+  globalDigest: "sha256:g",
+});
+
+function controller(agents: AgentEntry[], overrides: Partial<AgentCatalogController> = {}): AgentCatalogController {
+  return {
+    agents,
+    limits: catalog(agents).limits,
+    loading: false,
+    agentId: "agent",
+    select: vi.fn(),
+    composerAgent: { agents, selectedId: "agent", onSelect: vi.fn() },
+    save: vi.fn(async (agent: AgentEntry) => catalog([...agents.filter((item) => item.id !== agent.id), agent])),
+    remove: vi.fn(async () => catalog(agents)),
+    reload: vi.fn(async () => catalog(agents)),
+    ...overrides,
+  };
+}
+
+const models = [
+  { value: "openai/gpt-5.6", label: "GPT-5.6" },
+  { value: "openai/gpt-5.6-mini", label: "GPT-5.6 mini" },
+];
+
+function renderPage(agents: AgentEntry[], overrides: Partial<AgentCatalogController> = {}) {
+  const agentsController = controller(agents, overrides);
+  render(
+    <AgentsPage
+      labels={t}
+      agents={agentsController}
+      models={models}
+      recentModelRefs={[]}
+      effortOptions={["low", "medium", "high"]}
+      onOpenProviders={vi.fn()}
+    />,
+  );
+  return agentsController;
+}
+
+describe("AgentsPage", () => {
+  it("lists the four built-ins with a badge and a custom agent", () => {
+    renderPage([...builtins, reviewer]);
+    const list = screen.getByRole("list", { name: t.agentsSelectHint });
+    expect(within(list).getByText(t.agentAskName)).toBeInTheDocument();
+    expect(within(list).getByText(t.agentAgentName)).toBeInTheDocument();
+    expect(within(list).getByText(t.agentExploreName)).toBeInTheDocument();
+    expect(within(list).getByText(t.agentWorkerName)).toBeInTheDocument();
+    expect(within(list).getByText("Code reviewer")).toBeInTheDocument();
+    expect(within(list).getAllByText(t.agentsBuiltin)).toHaveLength(4);
+  });
+
+  it("shows a built-in's fixed fields read-only and cannot delete it", async () => {
+    const user = userEvent.setup();
+    renderPage([...builtins, reviewer]);
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t.agentAskName}`) }));
+
+    const editor = screen.getByRole("region", { name: t.agentAskName });
+    expect(within(editor).getByDisplayValue(t.agentAskName)).toBeDisabled();
+    expect(within(editor).getByDisplayValue("Answers questions.")).toBeDisabled();
+    expect(within(editor).queryByRole("button", { name: t.agentsDelete })).toBeNull();
+    expect(within(editor).getByRole("button", { name: t.agentsReset })).toBeInTheDocument();
+  });
+
+  it("edits a custom agent's instructions and saves it", async () => {
+    const user = userEvent.setup();
+    const agentsController = renderPage([...builtins, reviewer]);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+    const instructions = within(editor).getByRole("textbox", { name: new RegExp(t.agentsInstructions) });
+    await user.clear(instructions);
+    await user.type(instructions, "Name the regression first.");
+    expect(within(editor).getByText(t.agentsUnsaved)).toBeInTheDocument();
+
+    await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
+    expect(agentsController.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: "reviewer",
+      instructions: "Name the regression first.",
+    }));
+  });
+
+  it("reorders and removes model candidates, and adds one up to the bound", async () => {
+    const user = userEvent.setup();
+    const twoModels = { ...reviewer, models: [{ model: "openai/gpt-5.6" }, { model: "openai/gpt-5.6-mini", effort: "low" as const }] };
+    const agentsController = renderPage([...builtins, twoModels]);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+
+    await user.click(within(editor).getByRole("button", { name: `${t.agentsModelDown} 1` }));
+    await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
+    expect(agentsController.save).toHaveBeenCalledWith(expect.objectContaining({
+      models: [{ model: "openai/gpt-5.6-mini", effort: "low" }, { model: "openai/gpt-5.6" }],
+    }));
+  });
+
+  it("refuses a duplicate name before it writes anything", async () => {
+    const user = userEvent.setup();
+    const agentsController = renderPage([...builtins, reviewer]);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+    const name = within(editor).getByDisplayValue("Code reviewer");
+    await user.clear(name);
+    await user.type(name, "ask");
+    await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
+    expect(screen.getByRole("alert")).toHaveTextContent(t.agentNameTaken);
+    expect(agentsController.save).not.toHaveBeenCalled();
+  });
+
+  it("asks before deleting a custom agent", async () => {
+    const user = userEvent.setup();
+    const agentsController = renderPage([...builtins, reviewer]);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    await user.click(screen.getByRole("button", { name: t.agentsDelete }));
+    expect(agentsController.remove).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: t.agentsDeleteConfirm }));
+    expect(agentsController.remove).toHaveBeenCalledWith("reviewer");
+  });
+
+  it("keeps a dirty editor until the user chooses", async () => {
+    const user = userEvent.setup();
+    renderPage([...builtins, reviewer]);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+    await user.type(within(editor).getByRole("textbox", { name: new RegExp(t.agentsInstructions) }), " more");
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t.agentAskName}`) }));
+    expect(screen.getByText(new RegExp(t.agentsDirtyTitle))).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: t.agentsDirtyStay }));
+    expect(screen.getByRole("region", { name: "Code reviewer" })).toBeInTheDocument();
+  });
+
+  it("reports what the agents.json import skipped", () => {
+    renderPage([...builtins, reviewer], {
+      warning: "agents.json was imported with 1 warning(s).",
+      importResult: {
+        imported: true,
+        alreadyImported: false,
+        renamedTo: "/home/agents.json.imported",
+        custom: 2,
+        builtinOverrides: ["ask"],
+        skipped: 1,
+        warnings: ["profile \"Planner\": model gone/model is not in the catalog; it was dropped"],
+      },
+    });
+    expect(screen.getByText(new RegExp(t.agentsWarning))).toBeInTheDocument();
+    const panel = screen.getByRole("region", { name: t.agentsImportTitle });
+    expect(panel).toHaveTextContent("/home/agents.json.imported");
+    expect(panel).toHaveTextContent(t.agentsImportSkipped.replace("{count}", "1"));
+    expect(panel).toHaveTextContent("gone/model");
+  });
+
+  it("marks a workspace definition read-only", async () => {
+    const user = userEvent.setup();
+    const local = entry({ id: "local-helper", name: "Local helper", source: "workspace", editable: false });
+    renderPage([...builtins, local]);
+    await user.click(screen.getByRole("button", { name: /Local helper/ }));
+    const editor = screen.getByRole("region", { name: "Local helper" });
+    expect(within(editor).getByText(t.agentsWorkspaceLocked)).toBeInTheDocument();
+    expect(within(editor).getByRole("button", { name: t.agentsSave })).toBeDisabled();
+  });
+});

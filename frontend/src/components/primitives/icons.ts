@@ -5,6 +5,7 @@
  */
 import {
   Archive,
+  ArrowDown,
   ArrowLeft,
   ArrowUp,
   ArrowUpRight,
@@ -203,6 +204,9 @@ export const Icons = {
   addFolder: FolderPlus,
   // extension panes (ExtensionsSlice)
   plus: Plus,
+  /** Reordering an ordered list (an agent's model candidates). */
+  moveUp: ArrowUp,
+  moveDown: ArrowDown,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof Icons;

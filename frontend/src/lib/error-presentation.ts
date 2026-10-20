@@ -13,6 +13,9 @@ type ErrorLabels = Pick<
   | "errInvalidEffort"
   | "errConflict"
   | "errInvalidConfig"
+  | "errSubagentModelRetired"
+  | "errUnknownAgent"
+  | "errAgentNotForConversation"
   | "errNoFingerprint"
   | "errUnknownCheck"
   | "errTaskProposalNotFound"
@@ -31,6 +34,9 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   invalidEffort: "errInvalidEffort",
   conflict: "errConflict",
   invalidConfig: "errInvalidConfig",
+  subagentModelRetired: "errSubagentModelRetired",
+  unknownAgent: "errUnknownAgent",
+  agentNotForConversation: "errAgentNotForConversation",
   runHeld: "runningElsewhereError",
   worktreeBusy: "errWorktreeBusy",
   noFingerprint: "errNoFingerprint",

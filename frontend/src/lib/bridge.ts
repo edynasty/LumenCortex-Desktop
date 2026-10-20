@@ -1,7 +1,8 @@
 import type {
+  AgentCatalog,
   AgentConfig,
-  AgentProfile,
-  AgentProfilesState,
+  AgentEntry,
+  SubagentModelMigration,
   DiscoveredModel,
   FileResult,
   GitActionResult,
@@ -138,10 +139,10 @@ export type AppAPI = {
   SetSkillEnabled(scope: SkillScope, id: string, enabled: boolean): Promise<void>;
   GetToolPermissions(): Promise<ToolPermissions>;
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
-  ListAgentProfiles(): Promise<AgentProfilesState>;
-  SaveAgentProfile(profile: AgentProfile): Promise<AgentProfilesState>;
-  DeleteAgentProfile(id: string): Promise<AgentProfilesState>;
-  ResetAgentProfile(id: string): Promise<AgentProfilesState>;
+  GetAgents(): Promise<AgentCatalog>;
+  SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
+  DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
+  MigrateSubagentModel(): Promise<SubagentModelMigration>;
   TitleBarDoubleClick(): Promise<void>;
 };
 
@@ -248,10 +249,10 @@ export const bridge = {
   setSkillEnabled: (scope: SkillScope, id: string, enabled: boolean) => api().SetSkillEnabled(scope, id, enabled),
   toolPermissions: () => api().GetToolPermissions(),
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
-  listAgentProfiles: () => api().ListAgentProfiles(),
-  saveAgentProfile: (profile: AgentProfile) => api().SaveAgentProfile(profile),
-  deleteAgentProfile: (id: string) => api().DeleteAgentProfile(id),
-  resetAgentProfile: (id: string) => api().ResetAgentProfile(id),
+  agents: () => api().GetAgents(),
+  saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
+  deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
+  migrateSubagentModel: () => api().MigrateSubagentModel(),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit),
   titleBarDoubleClick: () => api().TitleBarDoubleClick()

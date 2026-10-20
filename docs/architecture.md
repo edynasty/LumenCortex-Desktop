@@ -77,28 +77,46 @@ Key rule:
 - Core owns execution state.
 - `runtime.RunSupervisor` is the only source of truth for live agent runs.
 
-## Agent profiles
+## Agents
 
-The Agents page (rail item `agents`, route `{ kind: "agents" }`) owns a Desktop-specific preset
-catalog. A profile is `{ id, name, description, base: "ask" | "agent", instructions, modelRef?,
-effort?, policy?, builtin }`; the two built-ins `ask` and `agent` always exist, cannot be deleted
-or renamed, and have a fixed base. The catalog is `agents.json` (`{version: 1, profiles: [...]}`)
-in the global configuration directory next to `credentials.json`, written atomically through a
-temporary file and rename, at most 16 profiles, names 1–40 characters and unique, instructions up
-to 8000 characters. A corrupt file falls back to the built-ins with a warning and is not
-rewritten until the user saves.
+Core owns the agent catalog (ADR-0009): the `agents` key of `lumencortex.json`. The four built-ins
+`ask` (conversation, read-only, no delegation), `agent` (conversation, no cap, the default),
+`explore` (read-only children) and `worker` (workspace children) always exist; a file may set only
+their `instructions`, `effort` and `models`. A custom agent adds `name`, `description`, `use`
+(`conversation`/`delegation`/`both`), `policy` and `delegation` ceilings, instructions and an
+ordered `models` list of at most 8 `{model, effort?}` candidates. Desktop keeps no catalog of its
+own: `internal/backend/agents.go` translates `config.Effective().Agents` into the DTO the page
+edits and writes the global file through `config.Save` with the digest it read, exactly like the
+concurrency and provider saves. A stale digest or an invalid agent writes nothing.
 
-Profiles are a Desktop preset of `runtime.AgentOptions`, not a second runtime. Core owns the
-default system prompt, the safety and authority text, the policy and the tool set. The Start path
-maps a profile id — never its text — from the composer to `AgentOptions.Instructions`, which Core
-appends as the last system message after its default prompt and the skills prompt. Core bounds it
-(16 KiB, valid UTF-8) and records only a SHA-256 and length in the decision log. The frontend sends
-only `profileId`; the backend resolves the instructions from the file, so the text is never forged
-by the renderer or stored in the session. A profile's `base` is the same guard the composer's
-Ask/Agent switch used: `ask` forces Core's read-only policy and no delegation whatever the request
-carries; a profile `policy` is only a default the user can still change and is clamped by the base.
-Model and effort defaults are adopted by the composer when the profile is picked and remain
-user-changeable.
+The Agents page (rail item `agents`, route `{ kind: "agents" }`) lists the merged catalog with each
+entry's `source` (`builtin`, `global` or `workspace`) and `digest`. Built-ins carry a badge, cannot
+be deleted, and their name, description, use and ceilings are read-only; instructions (with a 16 KiB
+counter), effort and the ordered model list stay editable, and Reset clears that override. A custom
+agent is written whole. A workspace definition is shown read-only, because the page writes the
+global file: it is changed where it lives.
 
-Wails APIs: `ListAgentProfiles`, `SaveAgentProfile`, `DeleteAgentProfile`, `ResetAgentProfile`
-(`internal/backend/agent_profiles.go`), with typed bridge methods in `frontend/src/lib/bridge.ts`.
+The run path names an agent, never its text. `AgentConfig.agent` becomes `AgentOptions.Agent`, and
+Core applies the agent's instructions and caps `Policy` and `Delegation` by its ceilings; Desktop
+sends only the user's grant, so the Ask/Agent composer switch and the Desktop-side cap are gone.
+Switching agent re-pins the model to the agent's first model unless the same Start names one, which
+is why the composer's model picker sends a model only when the user explicitly picks one.
+`SessionInfo.Agent` reports the thread's pinned agent, and the composer shows it; `ErrUnknownAgent`
+(a removed pin) and `ErrAgentNotForConversation` are mapped to copy that asks the user to pick an
+agent.
+
+The retired `agents.json` (`{version: 1, profiles: [...]}`) is imported once, the first time the
+catalog is read: custom profiles become custom agents (id derived from the name, `base: ask` →
+read-only/no delegation, `base: agent` → no ceilings, the legacy `policy` default dropped per
+ADR-0009 D6), built-in Ask/Agent edits become overrides of `ask`/`agent`, and a model outside the
+catalog is dropped with a warning. The write is one `config.Save`; then the file is renamed to
+`agents.json.imported` (never deleted) and the outcome is recorded in `agents.import.json` so the
+page keeps reporting what was skipped, including entries beyond the 16-agent limit.
+
+`subagentModel` is retired: a file that still sets it fails to load with
+`config.ErrSubagentModelRetired`, and the error toast offers a one-click Migrate
+(`App.MigrateSubagentModel`) that calls `config.MigrateSubagentModel` on the global file and the
+open workspace file, then reloads.
+
+Wails APIs: `GetAgents`, `SaveAgent`, `DeleteAgent`, `MigrateSubagentModel`
+(`internal/backend/agents.go`), with typed bridge methods in `frontend/src/lib/bridge.ts`.

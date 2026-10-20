@@ -11,14 +11,12 @@ import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { LayoutPreference } from "../lib/layout-preference";
 import type { ThemePreference } from "../lib/theme";
 import type {
-  ConfigState, Delegation, Health, LSPDiagnostic, LSPStatus, Message,
+  AgentEffort, AgentPolicy, ConfigState, Delegation, Health, LSPDiagnostic, LSPStatus, Message,
   RuntimeEvent, RuntimeKind, Session, SessionCheckpoint, SessionRuntime,
   SubagentNode, WorkflowSummary,
 } from "../types";
-import type { AgentMode, AgentPolicy } from "./agent-config";
-import type { AgentProfilesController } from "./hooks/useAgentProfiles";
+import type { AgentCatalogController } from "./hooks/useAgentCatalog";
 import type { ConfiguredModelOption, ModelPickerOption } from "./model-selection";
-import type { AgentEffort } from "../types";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
@@ -51,13 +49,12 @@ type Props = {
   paletteOpen: boolean;
   events: RuntimeEvent[];
   config: ConfigState;
-  agents: AgentProfilesController;
+  agents: AgentCatalogController;
   trusting: boolean;
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
   pickerModels: ModelPickerOption[];
   recentModelRefs: string[];
-  mode: AgentMode;
   effort?: AgentEffort;
   effortOptions: string[];
   maxSteps: number;
@@ -102,6 +99,7 @@ type Props = {
   onThemePreferenceChange: (theme: ThemePreference) => void;
   onConfigChanged: () => void;
   onTrustWorkspace: () => void;
+  onMigrateSubagentModel: () => void;
   onModelChange: (value: string) => void;
   onEffortChange: (effort: AgentEffort | undefined) => void;
   onError: (message: string) => void;
@@ -298,7 +296,6 @@ export function WorkspaceView(props: Props) {
         modelRef={props.modelRef}
         pickerModels={props.pickerModels}
         recentModelRefs={props.recentModelRefs}
-        mode={props.mode}
         agent={props.agents.composerAgent}
         effort={props.effort}
         effortOptions={props.effortOptions}

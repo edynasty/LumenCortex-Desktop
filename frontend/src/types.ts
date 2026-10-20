@@ -332,6 +332,8 @@ export type Session = {
   provider?: string;
   model?: string;
   modelRef?: string;
+  // The catalog agent the session is pinned to (ADR-0009), empty before its first Start.
+  agent?: string;
   goal: string;
   metadata?: unknown;
   final?: string;
@@ -486,7 +488,6 @@ export type ConfigState = {
   workspace: string;
   trusted: boolean;
   model: string;
-  subagentModel?: string;
   failover: string[];
   models: ModelInfo[];
   warnings: ConfigWarning[];
@@ -522,34 +523,76 @@ export type AgentConfig = {
   maxTokens?: number;
   temperature?: number;
   delegation?: Delegation;
-  // The composer's Ask/Agent switch. Ask caps the turn to Core's read-only policy with no
-  // delegation before it reaches Core; the backend guard enforces the same cap.
-  mode?: "ask" | "agent";
-  // The Desktop agent profile the turn uses. The backend resolves its instructions from the
-  // profile store and applies its base as the same guard; the frontend never sends the text.
-  profileId?: string;
+  // The Core catalog agent the turn runs (ADR-0009). Empty keeps the session's pinned agent. The
+  // agent's instructions and ceilings are Core's: the composer names an agent, never its text.
+  agent?: string;
 };
 
-// A Desktop agent profile: a named preset of composer choices plus extra instructions appended
-// after Core's default system prompt. `base` decides the runtime semantics and can never be
-// widened: an Ask-based profile is always read-only with no delegation.
-export type AgentBase = "ask" | "agent";
+export type AgentUse = "conversation" | "delegation" | "both";
+export type AgentPolicy = "read-only" | "workspace" | "full";
+export type AgentDelegation = "none" | "propose" | "isolated";
+export type AgentSource = "builtin" | "global" | "workspace";
 
-export type AgentProfile = {
+// One ordered model candidate: the agent's failover chain. `effort` is that candidate's own level.
+export type AgentModelItem = {
+  model: string;
+  effort?: AgentEffort;
+};
+
+// One agent of Core's merged catalog. `models` null means the agent inherits a list. `source` is
+// where the definition came from; a workspace definition is shown but edited in that file.
+export type AgentEntry = {
   id: string;
   name: string;
   description?: string;
-  base: AgentBase;
+  use: AgentUse;
+  policy: AgentPolicy;
+  delegation: AgentDelegation;
   instructions: string;
-  modelRef?: string;
   effort?: AgentEffort;
-  policy?: "read-only" | "workspace" | "full";
+  models: AgentModelItem[] | null;
   builtin: boolean;
+  source: AgentSource;
+  digest: string;
+  forConversation: boolean;
+  editable: boolean;
 };
 
-export type AgentProfilesState = {
-  profiles: AgentProfile[];
+// Core's catalog bounds, so the page explains a refusal while typing; Core validates again.
+export type AgentLimits = {
+  maxCustom: number;
+  name: number;
+  description: number;
+  instructions: number;
+  models: number;
+  idPattern: string;
+};
+
+// What the one-time import of the retired Desktop agents.json did. Warnings name what was dropped
+// (an unknown model, an over-limit entry), so nothing disappears silently.
+export type AgentImportResult = {
+  imported: boolean;
+  alreadyImported: boolean;
+  renamedTo?: string;
+  custom: number;
+  builtinOverrides: string[] | null;
+  skipped: number;
+  warnings: string[] | null;
+};
+
+export type AgentCatalog = {
+  agents: AgentEntry[];
+  limits: AgentLimits;
+  globalPath: string;
+  globalDigest: string;
   warning?: string;
+  import?: AgentImportResult;
+};
+
+// Which files the one-click subagentModel migration rewrote.
+export type SubagentModelMigration = {
+  globalChanged: boolean;
+  workspaceChanged: boolean;
 };
 
 // Task State (Core runtime.TaskStateInfo, ADR-0006). The host view already includes queued edits.

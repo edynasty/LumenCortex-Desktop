@@ -209,7 +209,7 @@ func TestRejectedStartsReportCoreSentinelsAndLeaveTheSessionUnpinned(t *testing.
 // Auto is a request value, not a level: the bridge passes it to Core untouched and Core resolves
 // one level per turn. The guard still refuses an unknown string before any run starts.
 func TestAutoEffortReachesCoreUnchanged(t *testing.T) {
-	if got := agentOptionsFor(AgentConfig{Effort: " auto "}, "", "", nil, "").Effort; got != config.EffortAuto {
+	if got := agentOptionsFor(AgentConfig{Effort: " auto "}, nil, "").Effort; got != config.EffortAuto {
 		t.Fatalf("Effort=%q, want %q", got, config.EffortAuto)
 	}
 	configPath := useConfigDir(t)
@@ -256,23 +256,26 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]error{
-		"databaseInUse":         lcx.ErrDatabaseInUse,
-		"schemaTooNew":          lcx.ErrSchemaTooNew,
-		"legacyNodeDatabase":    lcx.ErrLegacyNodeDatabase,
-		"unknownModel":          config.ErrUnknownModel,
-		"modelWithoutToolCalls": lcx.ErrModelWithoutToolCalling,
-		"invalidEffort":         lcx.ErrInvalidEffort,
-		"conflict":              config.ErrConflict,
-		"invalidConfig":         config.ErrInvalidConfig,
-		"runHeld":               lcx.ErrRunHeld,
-		"worktreeBusy":          lcx.ErrWorktreeBusy,
-		"noFingerprint":         lcx.ErrNoFingerprint,
-		"unknownCheck":          lcx.ErrUnknownCheck,
-		"taskProposalNotFound":  lcx.ErrTaskProposalNotFound,
-		"taskProposalStarted":   lcx.ErrTaskProposalStarted,
-		"taskNeedsCommit":       lcx.ErrExecutionTaskNeedsCommit,
-		"childLimit":            lcx.ErrSubagentLimitExceeded,
-		"agentLimit":            lcx.ErrAgentLimitExceeded,
+		"databaseInUse":           lcx.ErrDatabaseInUse,
+		"schemaTooNew":            lcx.ErrSchemaTooNew,
+		"legacyNodeDatabase":      lcx.ErrLegacyNodeDatabase,
+		"unknownModel":            config.ErrUnknownModel,
+		"modelWithoutToolCalls":   lcx.ErrModelWithoutToolCalling,
+		"invalidEffort":           lcx.ErrInvalidEffort,
+		"conflict":                config.ErrConflict,
+		"invalidConfig":           config.ErrInvalidConfig,
+		"runHeld":                 lcx.ErrRunHeld,
+		"worktreeBusy":            lcx.ErrWorktreeBusy,
+		"noFingerprint":           lcx.ErrNoFingerprint,
+		"unknownCheck":            lcx.ErrUnknownCheck,
+		"taskProposalNotFound":    lcx.ErrTaskProposalNotFound,
+		"taskProposalStarted":     lcx.ErrTaskProposalStarted,
+		"taskNeedsCommit":         lcx.ErrExecutionTaskNeedsCommit,
+		"childLimit":              lcx.ErrSubagentLimitExceeded,
+		"agentLimit":              lcx.ErrAgentLimitExceeded,
+		"subagentModelRetired":    config.ErrSubagentModelRetired,
+		"unknownAgent":            lcx.ErrUnknownAgent,
+		"agentNotForConversation": lcx.ErrAgentNotForConversation,
 	}
 	got := map[string]string{}
 	for key, err := range want {

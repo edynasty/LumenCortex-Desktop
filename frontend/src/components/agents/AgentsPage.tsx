@@ -1,36 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
-import type { AgentEffort, AgentProfile } from "../../types";
-import { AGENT_PROFILE_LIMITS, agentProfileName, duplicateAgentName, validateAgentDraft } from "../../app/agent-profiles";
-import type { AgentProfilesController } from "../../app/hooks/useAgentProfiles";
-import type { AgentPolicy } from "../../app/agent-config";
+import type { AgentEntry } from "../../types";
+import { AGENT_LIMITS, agentName, copyAgentName, emptyAgent, sameAgentDraft, validateAgentDraft } from "../../app/agent-catalog";
+import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
-import { AgentProfileEditor } from "./AgentProfileEditor";
+import { AgentEditor } from "./AgentEditor";
 import type { PickerOption } from "../composer/ComposerPickers";
 import "./agents.css";
 
-const EMPTY_PROFILE: AgentProfile = {
-  id: "",
-  name: "",
-  description: "",
-  base: "agent",
-  instructions: "",
-  builtin: false,
-};
-
-const EFFORT_LABEL: Record<AgentEffort, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax" | "effortAuto"> = {
-  none: "effortNone",
-  low: "effortLow",
-  medium: "effortMedium",
-  high: "effortHigh",
-  max: "effortMax",
-  auto: "effortAuto",
-};
-
 type Props = {
   labels: AppCopy;
-  agents: AgentProfilesController;
+  agents: AgentCatalogController;
   models: PickerOption[];
   recentModelRefs: string[];
   effortOptions: string[];
@@ -41,46 +22,46 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function sameDraft(a: AgentProfile, b: AgentProfile): boolean {
-  return a.name === b.name && (a.description ?? "") === (b.description ?? "") && a.base === b.base
-    && a.instructions === b.instructions && (a.modelRef ?? "") === (b.modelRef ?? "")
-    && (a.effort ?? "") === (b.effort ?? "") && (a.policy ?? "") === (b.policy ?? "");
+function agentIcon(agent: AgentEntry): "discussion" | "agents" {
+  return agent.policy === "read-only" ? "discussion" : "agents";
 }
 
 /**
- * Agents page: the profile catalog (built-ins first) and the editor for the selected profile.
- * Instructions are additional text after Core's default prompt, so the page says that explicitly
- * and never presents them as a replacement; the base decides the run semantics and is fixed for the
- * built-ins. A dirty editor guards every selection change with an inline confirm.
+ * Agents page: Core's merged catalog (the four built-ins first) and the editor for the selected
+ * agent. Built-ins keep their name, description, use and ceilings; their instructions, effort and
+ * models are editable. A workspace definition is shown read-only, because this page writes the
+ * global file. A dirty editor guards every selection change with an inline confirm, and the result
+ * of the one-time agents.json import is reported here rather than dropped.
  */
 export function AgentsPage({ labels, agents, models, recentModelRefs, effortOptions, onOpenProviders }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>("ask");
-  const [draft, setDraft] = useState<AgentProfile>(() => ({ ...agents.profiles[0] }));
-  const [baseline, setBaseline] = useState<AgentProfile>(() => ({ ...agents.profiles[0] }));
+  const first = agents.agents[0];
+  const [selectedId, setSelectedId] = useState<string | null>(first?.id ?? null);
+  const [draft, setDraft] = useState<AgentEntry>(() => first ?? emptyAgent());
+  const [baseline, setBaseline] = useState<AgentEntry>(() => first ?? emptyAgent());
   const [creating, setCreating] = useState(false);
   const [pending, setPending] = useState<string | null | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const dirty = useMemo(() => !sameDraft(draft, baseline), [baseline, draft]);
-  const builtin = Boolean(draft.builtin);
-  const counter = Array.from(draft.instructions).length;
+  const dirty = useMemo(() => !sameAgentDraft(draft, baseline), [baseline, draft]);
+  const custom = agents.agents.filter((agent) => !agent.builtin).length;
+  const importResult = agents.importResult;
 
-  // A save/delete elsewhere (another pane, a reset) refreshes an editor that has no local edits.
+  // A save or delete elsewhere (another pane, a reload) refreshes an editor that has no local edits.
   useEffect(() => {
     if (dirty || creating || !selectedId) return;
-    const current = agents.profiles.find((profile) => profile.id === selectedId);
-    if (current && !sameDraft(current, baseline)) {
-      setDraft({ ...current });
-      setBaseline({ ...current });
+    const current = agents.agents.find((agent) => agent.id === selectedId);
+    if (current && !sameAgentDraft(current, baseline)) {
+      setDraft(current);
+      setBaseline(current);
     }
-  }, [agents.profiles, baseline, creating, dirty, selectedId]);
+  }, [agents.agents, baseline, creating, dirty, selectedId]);
 
-  function load(profile: AgentProfile) {
-    setSelectedId(profile.id);
-    setDraft({ ...profile });
-    setBaseline({ ...profile });
+  function load(agent: AgentEntry) {
+    setSelectedId(agent.id);
+    setDraft(agent);
+    setBaseline(agent);
     setCreating(false);
     setPending(undefined);
     setDeleteConfirm(false);
@@ -89,17 +70,18 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
 
   function open(id: string | null) {
     if (id === null) {
+      const fresh = emptyAgent();
       setSelectedId(null);
-      setDraft({ ...EMPTY_PROFILE });
-      setBaseline({ ...EMPTY_PROFILE });
+      setDraft(fresh);
+      setBaseline(fresh);
       setCreating(true);
       setPending(undefined);
       setDeleteConfirm(false);
       setError("");
       return;
     }
-    const profile = agents.profiles.find((item) => item.id === id);
-    if (profile) load(profile);
+    const agent = agents.agents.find((item) => item.id === id);
+    if (agent) load(agent);
   }
 
   function requestOpen(id: string | null) {
@@ -111,7 +93,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
   }
 
   async function save() {
-    const problem = validateAgentDraft(draft, agents.profiles, labels);
+    const problem = validateAgentDraft(draft, agents.agents, labels);
     if (problem) {
       setError(problem);
       return;
@@ -123,14 +105,15 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
         ...draft,
         name: draft.name.trim(),
         description: draft.description?.trim(),
-        modelRef: draft.modelRef?.trim() || undefined,
+        instructions: draft.instructions,
         effort: draft.effort || undefined,
-        policy: draft.policy || undefined,
+        models: draft.models?.length ? draft.models : null,
       });
       const saved = draft.id
-        ? next.profiles.find((profile) => profile.id === draft.id)
-        : next.profiles.find((profile) => profile.name === draft.name.trim());
+        ? next.agents.find((agent) => agent.id === draft.id)
+        : next.agents.find((agent) => !agent.builtin && agent.name === draft.name.trim());
       if (saved) load(saved);
+      else setBaseline(draft);
     } catch (failure) {
       setError(errorText(failure));
     } finally {
@@ -143,7 +126,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
     setSaving(true);
     try {
       const next = await agents.remove(draft.id);
-      const fallback = next.profiles.find((profile) => profile.id === "agent") ?? next.profiles[0];
+      const fallback = next.agents.find((agent) => agent.id === "agent") ?? next.agents[0];
       if (fallback) load(fallback);
     } catch (failure) {
       setError(errorText(failure));
@@ -156,8 +139,11 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
     if (!draft.id) return;
     setSaving(true);
     try {
-      const next = await agents.reset(draft.id);
-      const current = next.profiles.find((profile) => profile.id === draft.id);
+      // A built-in's override is removed by saving it empty; Core then has nothing to override.
+      const next = await agents.save({
+        ...draft, instructions: "", effort: undefined, models: null,
+      });
+      const current = next.agents.find((agent) => agent.id === draft.id);
       if (current) load(current);
     } catch (failure) {
       setError(errorText(failure));
@@ -170,9 +156,12 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
     setSaving(true);
     setError("");
     try {
-      const name = duplicateAgentName(draft, agents.profiles, labels);
-      const next = await agents.save({ ...draft, id: "", name, builtin: false });
-      const copy = next.profiles.find((profile) => profile.name === name);
+      const name = copyAgentName(draft, agents.agents, labels);
+      const next = await agents.save({
+        ...draft, id: "", name, builtin: false, source: "global",
+        instructions: draft.instructions, models: draft.models,
+      });
+      const copy = next.agents.find((agent) => !agent.builtin && agent.name === name);
       if (copy) load(copy);
     } catch (failure) {
       setError(errorText(failure));
@@ -192,24 +181,47 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
             <span>{labels.agentsWarning}{agents.warning}</span>
           </p>
         )}
+        {importResult && (importResult.imported || importResult.alreadyImported) && (
+          <section className="agents-import" aria-label={labels.agentsImportTitle}>
+            <strong>{labels.agentsImportTitle}</strong>
+            <p>
+              {importResult.imported
+                ? labels.agentsImportBody.replace("{file}", importResult.renamedTo ?? "agents.json.imported")
+                : labels.agentsImportAlready.replace("{file}", importResult.renamedTo ?? "agents.json.imported")}
+            </p>
+            {importResult.skipped > 0 && (
+              <p>{labels.agentsImportSkipped.replace("{count}", String(importResult.skipped))}</p>
+            )}
+            {importResult.warnings?.length ? (
+              <>
+                <p>{labels.agentsImportWarnings}</p>
+                <ul>
+                  {importResult.warnings.map((line, index) => <li key={index}>{line}</li>)}
+                </ul>
+              </>
+            ) : null}
+          </section>
+        )}
       </header>
 
       <div className="agents-layout">
         <ul className="agents-list" aria-label={labels.agentsSelectHint}>
-          {agents.profiles.map((profile) => (
-            <li key={profile.id}>
+          {agents.agents.map((agent) => (
+            <li key={agent.id}>
               <button
                 type="button"
-                className={`agents-row ${!creating && profile.id === selectedId ? "is-selected" : ""}`}
-                aria-current={!creating && profile.id === selectedId ? "true" : undefined}
-                title={agentProfileName(profile, labels)}
-                onClick={() => requestOpen(profile.id)}
+                className={`agents-row ${!creating && agent.id === selectedId ? "is-selected" : ""}`}
+                aria-current={!creating && agent.id === selectedId ? "true" : undefined}
+                title={agentName(agent, labels)}
+                onClick={() => requestOpen(agent.id)}
               >
                 <span className="agents-row-name">
-                  <Icon name={profile.base === "ask" ? "discussion" : "agents"} size={14} />
-                  <span>{agentProfileName(profile, labels)}</span>
+                  <Icon name={agentIcon(agent)} size={14} />
+                  <span>{agentName(agent, labels)}</span>
                 </span>
-                {profile.builtin && <span className="agents-badge">{labels.agentsBuiltin}</span>}
+                {agent.builtin
+                  ? <span className="agents-badge">{labels.agentsBuiltin}</span>
+                  : agent.source === "workspace" && <span className="agents-badge">{labels.agentsSourceWorkspace}</span>}
               </button>
             </li>
           ))}
@@ -217,8 +229,8 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
             <button
               type="button"
               className={`agents-row is-add ${creating ? "is-selected" : ""}`}
-              disabled={agents.profiles.length >= AGENT_PROFILE_LIMITS.total}
-              title={agents.profiles.length >= AGENT_PROFILE_LIMITS.total ? labels.agentLimitReached : labels.agentsNew}
+              disabled={custom >= AGENT_LIMITS.maxCustom}
+              title={custom >= AGENT_LIMITS.maxCustom ? labels.agentLimitReached : labels.agentsNew}
               onClick={() => requestOpen(null)}
             >
               <Icon name="plus" size={14} />
@@ -227,7 +239,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
           </li>
         </ul>
 
-        <AgentProfileEditor
+        <AgentEditor
           labels={labels}
           draft={draft}
           creating={creating}
@@ -242,7 +254,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
           onOpenProviders={onOpenProviders}
           onChange={setDraft}
           onSave={() => void save()}
-          onDiscard={() => { setDraft({ ...baseline }); setError(""); }}
+          onDiscard={() => { setDraft(baseline); setError(""); }}
           onDuplicate={() => void duplicate()}
           onReset={() => void reset()}
           onDeleteRequest={() => setDeleteConfirm(true)}

@@ -1,12 +1,14 @@
 import type { FormEvent, ReactNode, Ref } from "react";
 import { NewTaskComposer } from "../components/composer/NewTaskComposer";
 import type { ComposerAgent, ComposerCopy } from "../components/composer/Composer";
+import { agentName } from "./agent-catalog";
 import { AgentsPage } from "../components/agents/AgentsPage";
 import { ThreadWorkspace } from "../components/thread/ThreadWorkspace";
 import type { AppCopy } from "../lib/i18n/app-copy";
 import { ConfigWarnings } from "../components/config/ConfigWarnings";
 import type {
   AgentEffort,
+  AgentPolicy,
   ConfigState,
   Delegation,
   Message,
@@ -17,8 +19,7 @@ import type {
   SubagentNode,
   WorkflowSummary,
 } from "../types";
-import type { AgentMode, AgentPolicy } from "./agent-config";
-import type { AgentProfilesController } from "./hooks/useAgentProfiles";
+import type { AgentCatalogController } from "./hooks/useAgentCatalog";
 import { pickerPlaceholder, type ModelPickerOption } from "./model-selection";
 import { isRunningElsewhere, kindLabel, sessionCause } from "../lib/session-status";
 import { sessionStatusLabel, threadWorkspaceLabels } from "./presentation-model";
@@ -37,12 +38,11 @@ type Props = {
   labels: AppCopy;
   workspace: string;
   config: ConfigState;
-  agents: AgentProfilesController;
+  agents: AgentCatalogController;
   trusting: boolean;
   modelRef: string;
   pickerModels: ModelPickerOption[];
   recentModelRefs: string[];
-  mode: AgentMode;
   agent: ComposerAgent;
   effort?: AgentEffort;
   effortOptions: string[];
@@ -101,7 +101,6 @@ export function WorkspaceRouteContent({
   modelRef,
   pickerModels,
   recentModelRefs,
-  mode,
   agent,
   effort,
   effortOptions,
@@ -198,7 +197,6 @@ export function WorkspaceRouteContent({
         recentModelRefs={recentModelRefs}
         effort={effort}
         effortOptions={effortOptions}
-        mode={mode}
         agent={agent}
         policy={policy}
         contextPaths={contextPaths}
@@ -229,6 +227,7 @@ export function WorkspaceRouteContent({
       ? kindLabel(labels, cause.kind)
       : "";
 
+  const threadAgent = agent.agents.find((entry) => entry.id === agent.selectedId);
   return (
     <ThreadTasksLayer
       key={current.id}
@@ -238,12 +237,12 @@ export function WorkspaceRouteContent({
       messages={messages}
       running={running}
       busy={busy}
-      controlsCapped={mode === "ask"}
-      controlsCappedReason={labels.askCapsControls}
       labels={labels}
       onRefreshThread={onRefreshThread}
       onOpenSession={onOpenSession}
       onDelegationChange={onDelegationChange}
+      delegationCeiling={threadAgent?.delegation ?? "isolated"}
+      delegationCappedReason={threadAgent ? labels.agentCapsControls.replace("{agent}", agentName(threadAgent, labels)) : undefined}
     >
       {(extras) => (
         <ThreadWorkspace
@@ -267,10 +266,9 @@ export function WorkspaceRouteContent({
           onOpenProviders={onOpenProviders}
           effort={effort}
           effortOptions={effortOptions}
-          mode={mode}
           agent={agent}
           policy={policy}
-            onPolicyChange={onPolicyChange}
+          onPolicyChange={onPolicyChange}
           onEffortChange={onEffortChange}
           onPickContextFiles={onPickContextFiles}
           onPickContextFolder={onPickContextFolder}

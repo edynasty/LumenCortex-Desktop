@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { InspectorTab } from "./components/inspector/inspector-types";
 import { WorkspaceView } from "./app/WorkspaceView";
 import type { SettingsState } from "./app/useWorkspaceCommands";
-import { buildAgentConfig, resolveTurnOptions } from "./app/agent-config";
+import { buildAgentConfig } from "./app/agent-config";
 import { useAgentActions } from "./app/hooks/useAgentActions";
 import { useContextAttachments } from "./app/hooks/useContextAttachments";
 import { useLSPController } from "./app/hooks/useLSPController";
@@ -14,7 +14,7 @@ import { useModelSelection } from "./app/hooks/useModelSelection";
 
 import { executableModels, modelOptions } from "./app/model-selection";
 import { useComposerPreferences } from "./app/hooks/useComposerPreferences";
-import { useAgentProfiles } from "./app/hooks/useAgentProfiles";
+import { useAgentCatalog } from "./app/hooks/useAgentCatalog";
 import { useComposerModelControls } from "./app/hooks/useComposerModelControls";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -47,6 +47,7 @@ export default function App() {
     config,
     refreshConfig,
     trustWorkspace,
+    migrateSubagentModel,
     trusting,
     opening,
     pickWorkspace: pickWorkspaceState,
@@ -139,8 +140,7 @@ export default function App() {
   // Picker options, effort support and the bounded recent list for the composer.
   const { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort } =
     useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef, onModelChosen: rememberModel });
-  const agents = useAgentProfiles({ onModel: selectModelFromPicker, onEffort: setEffort, onPolicy: setPolicy });
-  const mode = agents.selected?.base ?? "agent";
+  const agents = useAgentCatalog({ sessionId: selected || "", pinnedAgent: current?.agent, onAgentSelected: resetModelChoice });
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
@@ -167,10 +167,9 @@ export default function App() {
     contextPaths,
     runtimeKind,
     contextLabel: t.followUpContext,
-    getAgentConfig: () => {
-      const turn = resolveTurnOptions(mode, policy, current ? sessionUI(current).delegation : "none");
-      return buildAgentConfig(agentModelRef(), turn.policy, maxSteps, turn.delegation, mode, effectiveEffort, agents.agentId);
-    },
+    // The turn names the agent and carries the user's grant; Core applies the agent's ceilings.
+    getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps,
+      current ? sessionUI(current).delegation : "none", agents.agentId, effectiveEffort),
     setWorkspaceState: setState,
     setRoute,
     setGoal,
@@ -264,7 +263,6 @@ export default function App() {
       configuredModels={configuredModels}
       pickerModels={pickerModels}
       recentModelRefs={recentModelRefs}
-      mode={mode}
       effort={effectiveEffort}
       effortOptions={effortOptions}
       contextPaths={contextPaths}
@@ -309,6 +307,7 @@ export default function App() {
       onThemePreferenceChange={setThemePreference}
       onConfigChanged={() => void refreshConfig()}
       onTrustWorkspace={() => void trustWorkspace()}
+      onMigrateSubagentModel={() => void migrateSubagentModel()}
       onModelChange={selectModelFromPicker}
       onEffortChange={setEffort}
       onError={setError}

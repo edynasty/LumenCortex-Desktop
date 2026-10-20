@@ -1,11 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ConfigState } from "../../types";
-import type { AgentPolicy } from "../agent-config";
+import type { AgentPolicy, ConfigState } from "../../types";
 import { readComposerPreferences, saveComposerPreferences } from "../composer-preferences";
 import { executableModels } from "../model-selection";
 
 // Permission and the last chosen model: App-level so they survive thread switches, and remembered
-// so they survive a restart. The agent selection and effort are remembered by useAgentProfiles and
+// so they survive a restart. The agent selection is remembered by useAgentCatalog and the effort by
 // useComposerModelControls.
 export function useComposerPreferences(models: ConfigState["models"]) {
   const [policy, setPolicyState] = useState<AgentPolicy>(() => readComposerPreferences().policy);

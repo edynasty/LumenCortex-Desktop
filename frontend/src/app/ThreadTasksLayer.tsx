@@ -24,13 +24,13 @@ type Props = {
   messages: Message[];
   running: boolean;
   busy: boolean;
-  // Ask mode caps the turn to read-only/none; the grant control shows why instead of switching off.
-  controlsCapped?: boolean;
-  controlsCappedReason?: string;
   labels: AppCopy;
   onRefreshThread: (sessionId: string) => Promise<void>;
   onOpenSession: (sessionId: string) => void;
   onDelegationChange: (sessionId: string, delegation: Delegation) => void;
+  // The thread agent's delegation ceiling and the explanation shown when it leaves no choice.
+  delegationCeiling: Delegation;
+  delegationCappedReason?: string;
   children: (extras: ThreadTaskExtras) => ReactNode;
 };
 
@@ -44,12 +44,12 @@ export function ThreadTasksLayer({
   messages,
   running,
   busy,
-  controlsCapped,
-  controlsCappedReason,
   labels,
   onRefreshThread,
   onOpenSession,
   onDelegationChange,
+  delegationCeiling,
+  delegationCappedReason,
   children,
 }: Props) {
   const ui = sessionUI(session);
@@ -104,8 +104,9 @@ export function ThreadTasksLayer({
           <DelegationControl
             value={ui.delegation}
             fixed={Boolean(ui.parentSessionId)}
-            disabled={busy || Boolean(controlsCapped)}
-            cappedReason={controlsCapped ? controlsCappedReason : undefined}
+            disabled={busy}
+            ceiling={delegationCeiling}
+            cappedReason={delegationCappedReason}
             labels={labels}
             onChange={(value) => onDelegationChange(session.id, value)}
           />

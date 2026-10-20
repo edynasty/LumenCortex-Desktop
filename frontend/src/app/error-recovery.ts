@@ -1,6 +1,6 @@
 import { coreErrorKey } from "../lib/core-errors";
 
-export type ErrorRecoveryKind = "provider" | "permissions" | "workspace";
+export type ErrorRecoveryKind = "provider" | "permissions" | "workspace" | "migrate";
 
 const providerPatterns = [
   "provider",
@@ -40,6 +40,8 @@ export function errorRecoveryKind(error: string): ErrorRecoveryKind | null {
   const core = coreErrorKey(error);
   // Opening again retries the migration once the other process released the database.
   if (core === "databaseInUse") return "workspace";
+  // The retired key has a one-call repair; the toast offers it instead of a settings detour.
+  if (core === "subagentModelRetired") return "migrate";
   if (core === "unknownModel" || core === "modelWithoutToolCalls" || core === "invalidConfig" || core === "conflict") return "provider";
   if (core) return null;
   if (providerPatterns.some((pattern) => value.includes(pattern))) return "provider";

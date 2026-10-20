@@ -157,6 +157,18 @@ export function useWorkspaceController({ setError }: Options) {
     }
   }, [config.globalDigest, refreshConfig, setError]);
 
+  // The one-click repair for a retired subagentModel (ADR-0009): Core rewrites the global file and,
+  // when one is open, the workspace file, then the app reads the configuration again.
+  const migrateSubagentModel = useCallback(async (): Promise<void> => {
+    try {
+      await bridge.migrateSubagentModel();
+    } catch (err) {
+      setError(String(err));
+      return;
+    }
+    await refreshConfig();
+  }, [refreshConfig, setError]);
+
   return {
     state,
     setState,
@@ -164,6 +176,7 @@ export function useWorkspaceController({ setError }: Options) {
     config,
     refreshConfig,
     trustWorkspace,
+    migrateSubagentModel,
     trusting,
     opening,
     pickWorkspace,

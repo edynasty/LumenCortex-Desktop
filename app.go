@@ -448,24 +448,27 @@ func (a *App) SaveToolPermissions(value backend.ToolPermissions) (backend.ToolPe
 	return a.backend.SaveToolPermissions(value)
 }
 
-// ListAgentProfiles returns the Desktop agent profile catalog: the two built-ins first, then the
-// user's profiles. A corrupt agents.json falls back to the built-ins with a warning.
-func (a *App) ListAgentProfiles() (backend.AgentProfiles, error) {
-	return a.backend.ListAgentProfiles()
+// GetAgents returns Core's merged agent catalog: the four built-ins first, then the custom agents.
+// The retired Desktop agents.json is imported the first time this is read; the result rides along
+// so the page can report what the import skipped.
+func (a *App) GetAgents() (backend.AgentCatalog, error) {
+	return a.backend.Agents()
 }
 
-// SaveAgentProfile creates a profile (empty id) or updates one. Built-ins keep their id, name and
-// base; only their instructions and composer defaults can change.
-func (a *App) SaveAgentProfile(profile backend.AgentProfile) (backend.AgentProfiles, error) {
-	return a.backend.SaveAgentProfile(profile)
+// SaveAgent creates a custom agent (empty id) or updates one in the global file. A built-in keeps
+// its name, description, use and ceilings; only its instructions, effort and models are written.
+// globalDigest is the digest the page last read: a changed file is a conflict and nothing is written.
+func (a *App) SaveAgent(globalDigest string, agent backend.AgentEntry) (backend.AgentCatalog, error) {
+	return a.backend.SaveAgent(globalDigest, agent)
 }
 
-// DeleteAgentProfile removes a custom profile; built-ins cannot be deleted.
-func (a *App) DeleteAgentProfile(id string) (backend.AgentProfiles, error) {
-	return a.backend.DeleteAgentProfile(id)
+// DeleteAgent removes a custom agent from the global file; built-ins cannot be deleted.
+func (a *App) DeleteAgent(globalDigest, id string) (backend.AgentCatalog, error) {
+	return a.backend.DeleteAgent(globalDigest, id)
 }
 
-// ResetAgentProfile clears a profile's instructions (and a custom profile's defaults).
-func (a *App) ResetAgentProfile(id string) (backend.AgentProfiles, error) {
-	return a.backend.ResetAgentProfile(id)
+// MigrateSubagentModel rewrites the retired subagentModel key in the global file and, when a
+// workspace is open, in its lumencortex.json. It is the repair behind the load error that names it.
+func (a *App) MigrateSubagentModel() (backend.SubagentModelMigration, error) {
+	return a.backend.MigrateSubagentModel()
 }

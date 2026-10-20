@@ -34,6 +34,8 @@ type Input = {
   error: string;
   onClearError: () => void;
   onOpenWorkspace: (path: string) => void;
+  /** Repairs a configuration file that still sets the retired subagentModel, then reloads. */
+  onMigrateSubagentModel: () => void;
   onInspectorTabChange: (tab: InspectorTab) => void;
   onInspectorOpenChange: (open: boolean) => void;
 };
@@ -104,10 +106,13 @@ export function useWorkspaceCommands(input: Input) {
   const recovery = recoveryKind ? {
     label: recoveryKind === "provider" ? labels.providerConfig
       : recoveryKind === "permissions" ? labels.permissions
-        : workspace ? labels.reopenProject : labels.openProject,
+        : recoveryKind === "migrate" ? labels.subagentModelMigrate
+          : workspace ? labels.reopenProject : labels.openProject,
     run: () => {
       input.onClearError();
-      if (recoveryKind === "provider") {
+      if (recoveryKind === "migrate") {
+        input.onMigrateSubagentModel();
+      } else if (recoveryKind === "provider") {
         openSettings("models");
       } else if (recoveryKind === "permissions") {
         if (route.kind !== "new-task" && route.kind !== "thread") {

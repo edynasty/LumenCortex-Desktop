@@ -1,6 +1,5 @@
 import type { FormEvent, ReactNode, Ref } from "react";
-import type { AgentEffort, SessionRuntime } from "../../types";
-import type { AgentMode, AgentPolicy } from "../../app/agent-config";
+import type { AgentEffort, AgentPolicy, SessionRuntime } from "../../types";
 import type { PickerOption } from "../composer/ComposerPickers";
 import { Composer, type ComposerAgent, type ComposerCopy } from "../composer/Composer";
 import { EnvironmentStrip } from "../composer/EnvironmentStrip";
@@ -18,7 +17,6 @@ type Props = {
   onOpenProviders: () => void;
   effort?: AgentEffort;
   effortOptions: string[];
-  mode: AgentMode;
   agent: ComposerAgent;
   policy: AgentPolicy;
   // The thread's delegation grant control; absent where a thread cannot hold one.
@@ -54,7 +52,6 @@ export function ThreadComposer({
   onOpenProviders,
   effort,
   effortOptions,
-  mode,
   agent,
   policy,
   delegationControl,
@@ -90,7 +87,6 @@ export function ThreadComposer({
         onPickContextFiles={onPickContextFiles}
         onPickContextFolder={onPickContextFolder}
         onRemoveContextPath={onRemoveContextPath}
-        mode={mode}
         agent={agent}
         policy={policy}
         onPolicyChange={onPolicyChange}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent } from "@testing-library/react";
@@ -9,10 +9,22 @@ import { ThreadComposer } from "./ThreadComposer";
 const t = copy.en;
 const labels: ComposerCopy = Object.assign({} as AppCopy, t, { noModels: "No model configured" });
 
-const agentProfiles = [
-  { id: "ask", name: "Ask", base: "ask" as const, instructions: "", policy: "read-only" as const, builtin: true },
-  { id: "agent", name: "Agent", base: "agent" as const, instructions: "", policy: "workspace" as const, builtin: true },
-  { id: "reviewer", name: "Code reviewer", description: "Reads diffs", base: "ask" as const, instructions: "Lead with risk.", builtin: false },
+const agentCatalog = [
+  {
+    id: "ask", name: "Ask", description: "Answers without changing anything.", use: "conversation" as const,
+    policy: "read-only" as const, delegation: "none" as const, instructions: "", models: null,
+    builtin: true, source: "builtin" as const, digest: "sha256:ask", forConversation: true, editable: true,
+  },
+  {
+    id: "agent", name: "Agent", description: "Works on the task.", use: "conversation" as const,
+    policy: "full" as const, delegation: "isolated" as const, instructions: "", models: null,
+    builtin: true, source: "builtin" as const, digest: "sha256:agent", forConversation: true, editable: true,
+  },
+  {
+    id: "reviewer", name: "Code reviewer", description: "Reads diffs", use: "conversation" as const,
+    policy: "read-only" as const, delegation: "none" as const, instructions: "Lead with risk.", models: null,
+    builtin: false, source: "global" as const, digest: "sha256:reviewer", forConversation: true, editable: true,
+  },
 ];
 
 function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]> = {}) {
@@ -25,8 +37,7 @@ function renderComposer(overrides: Partial<Parameters<typeof ThreadComposer>[0]>
     models: [],
     recentModelRefs: [],
     effortOptions: [],
-    mode: "agent" as const,
-    agent: { profiles: agentProfiles, selectedId: "agent", onSelect: vi.fn() },
+    agent: { agents: agentCatalog, selectedId: "agent", onSelect: vi.fn() },
     policy: "workspace" as const,
     contextPaths: [],
     goal: "",
@@ -96,19 +107,27 @@ describe("ThreadComposer", () => {
     expect(screen.queryByRole("button", { name: t.configureEnvironment })).toBeNull();
   });
 
-  it("offers the built-in and custom agents and selects by id", async () => {
+  it("offers the conversation agents and selects by id without touching the model", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
-    renderComposer({ agent: { profiles: agentProfiles, selectedId: "agent", onSelect } });
+    const props = renderComposer({ agent: { agents: agentCatalog, selectedId: "agent", onSelect } });
 
     await user.click(screen.getByRole("button", { name: new RegExp(`^${t.agentSelector}:`) }));
     expect(screen.getByRole("menuitemradio", { name: new RegExp(t.agentAskName) })).toBeInTheDocument();
     await user.click(screen.getByRole("menuitemradio", { name: /Code reviewer/ }));
     expect(onSelect).toHaveBeenCalledWith("reviewer");
+    // Switching agent never sends a model: Core re-pins to the new agent's first model.
+    expect(props.onModelChange).not.toHaveBeenCalled();
   });
 
-  it("caps the permission control when the selected agent's base is Ask", () => {
-    renderComposer({ mode: "ask" });
-    expect(screen.getByRole("button", { name: `${t.policy}: ${t.workspace}` })).toBeDisabled();
+  it("shows the permission Core will run under the agent's ceiling, and explains a cap that leaves no choice", () => {
+    renderComposer({ agent: { agents: agentCatalog, selectedId: "ask", onSelect: vi.fn() } });
+    const capped = screen.getByRole("button", { name: `${t.policy}: ${t.readOnly}` });
+    expect(capped).toBeDisabled();
+    expect(capped).toHaveAttribute("title", t.agentCapsControls.replace("{agent}", t.agentAskName));
+    cleanup();
+    // No ceiling: the user's own grant, editable.
+    renderComposer();
+    expect(screen.getByRole("button", { name: `${t.policy}: ${t.workspace}` })).toBeEnabled();
   });
 });

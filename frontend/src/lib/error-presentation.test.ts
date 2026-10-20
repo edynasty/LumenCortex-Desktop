@@ -13,6 +13,13 @@ const cases: Array<[string, string, keyof typeof copy.en]> = [
   ["Error: config file changed since it was read: /home/lumencortex.json", "conflict", "errConflict"],
   ["Error: run is active in another process or engine", "runHeld", "runningElsewhereError"],
   ["Error: session worktree is in use: /repo/.lumencortex-worktrees/session_1 (wt_session_1)", "worktreeBusy", "errWorktreeBusy"],
+  ["Error: agent is not in the catalog: removed", "unknownAgent", "errUnknownAgent"],
+  ["Error: agent runs only as a delegated child: explore", "agentNotForConversation", "errAgentNotForConversation"],
+  [
+    'Error: invalid configuration: /home/lumencortex.json: subagentModel is retired: set "agents": {"explore": {"models": [{"model": "<ref>"}]}, "worker": {"models": [{"model": "<ref>"}]}} instead',
+    "subagentModelRetired",
+    "errSubagentModelRetired",
+  ],
 ];
 
 describe("Core error presentation", () => {
@@ -44,5 +51,21 @@ describe("Core error presentation", () => {
     expect(errorRecoveryKind(cases[4][0])).toBe("provider");
     expect(errorRecoveryKind(cases[6][0])).toBe("provider");
     expect(errorRecoveryKind(cases[7][0])).toBeNull();
+  });
+
+  it("offers the one-click migration for a retired subagentModel", () => {
+    const retired = cases.find(([, marker]) => marker === "subagentModelRetired")![0];
+    expect(errorRecoveryKind(retired)).toBe("migrate");
+  });
+
+  it("tells the user to pick an agent when Core refuses the one the thread names", () => {
+    for (const locale of ["zh-CN", "en"] as const) {
+      for (const marker of ["unknownAgent", "agentNotForConversation"] as const) {
+        const raw = cases.find(([, name]) => name === marker)![0];
+        expect(presentError(copy[locale], raw), marker).toMatch(/agent|智能体/);
+        // Neither refusal offers a misleading settings detour.
+        expect(errorRecoveryKind(raw)).toBeNull();
+      }
+    }
   });
 });

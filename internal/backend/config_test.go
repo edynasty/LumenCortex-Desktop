@@ -188,7 +188,8 @@ func TestSaveConcurrencyWritesTheGlobalFileOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if saved.File.SubagentModel != "test/b" || len(saved.File.Checks) != 1 || len(saved.File.TrustedWorkspaces) != 1 || saved.File.Effort == nil {
+	if entry := saved.File.Agents["explore"]; len(entry.Models) != 1 || entry.Models[0].Model != "test/a" ||
+		len(saved.File.Checks) != 1 || len(saved.File.TrustedWorkspaces) != 1 || saved.File.Effort == nil {
 		t.Fatalf("save dropped unrelated keys: %+v", saved.File)
 	}
 }
@@ -198,7 +199,7 @@ const unmanagedFileFmt = `{
   "$schema": "https://example.invalid/custom-schema.json",
   "model": "test/a",
   "failover": %s,
-  "subagentModel": "test/b",
+  "agents": {"explore": {"models": [{"model": "test/a"}]}},
   "effort": {"default": "medium", "escalation": {"sameFailure": 2, "noProgressSteps": 3, "max": "high"}},
   "concurrency": {"maxAgents": 7, "maxChildrenPerParent": 5},
   "checks": {"go-test": {"kind": "test", "command": "go test ./...", "timeoutSeconds": 60, "required": true}},

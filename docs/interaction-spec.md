@@ -6,7 +6,8 @@
 - Project selected.
 - Composer focused.
 - Effective default model selected.
-- Workspace permission profile selected.
+- Agent selected (Agent by default); its ceilings cap the permission and delegation grant.
+- Workspace permission selected.
 - Local run environment selected.
 
 ### Submit
@@ -23,6 +24,20 @@
 - Session creation failure: remain in composer, preserve draft.
 - Agent start failure after session creation: keep created thread and show actionable error.
 - Missing model: show direct link to Models & Providers.
+
+## 1a. Agent picker
+
+Display:
+- the conversation agents of Core's catalog, built-ins first, each with a one-line description.
+
+Behaviour:
+- An open thread shows its pinned agent (`SessionInfo.Agent`); picking another one sends `agent`
+  with the next turn.
+- Switching agent sends no model: Core re-pins to that agent's first model.
+- The model picker sends a model only when the user explicitly picks one.
+- Delegation-only agents (Explore, Worker) are not offered for a conversation.
+- `ErrUnknownAgent` (the pinned agent was removed) and `ErrAgentNotForConversation` ask the user to
+  pick an agent; nothing is written.
 
 ## 2. Model picker
 

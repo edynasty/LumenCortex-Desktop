@@ -72,7 +72,7 @@ Needs:
 ## 4. Primary jobs to be done
 
 ### JTBD-01 Start a coding task
-When I know what I want changed, I want to select a project, model, permission profile, and run environment, so I can start the task in one place.
+When I know what I want changed, I want to select a project, model, agent, and run environment, so I can start the task in one place.
 
 ### JTBD-02 Supervise execution
 When an agent is running, I want to understand progress and blockers without reading raw logs.
@@ -107,7 +107,7 @@ When I need a different model or extension, I want to configure providers, MCP, 
 ### Run Environment
 - model,
 - provider,
-- permission profile,
+- agent and its permission/delegation ceilings,
 - Local/Worktree,
 - branch/base,
 - process/tool state.
@@ -132,7 +132,7 @@ When I need a different model or extension, I want to configure providers, MCP, 
 1. Open/select project.
 2. Enter task.
 3. Select model.
-4. Select permission profile.
+4. Select agent (permission and delegation are capped by the agent's ceilings).
 5. Select Local/Worktree when supported.
 6. Run.
 7. Thread appears in sidebar and becomes active.

@@ -20,7 +20,6 @@ var (
 	// run. Start wrote nothing; the UI shows "running elsewhere".
 	ErrRunHeld       = lcx.ErrRunHeld
 	ErrInvalidPolicy = errors.New("invalid agent policy")
-	ErrInvalidMode   = errors.New("invalid agent mode")
 	ErrArchiveActive = errors.New("cannot archive an active agent run")
 )
 
@@ -31,8 +30,9 @@ type Runtime struct {
 	workspace  string
 	// credentials is Core's file-backed secret store behind {secret:NAME} provider references.
 	credentials credentialStore
-	// agentProfilesMu serializes read-modify-write of the Desktop agent profile catalog.
-	agentProfilesMu sync.Mutex
+	// agentsMu serializes read-modify-write of the Core agent catalog in the global file, and the
+	// one-time import of the retired agents.json.
+	agentsMu sync.Mutex
 }
 
 type Health = lcx.Health
@@ -62,17 +62,14 @@ type AgentConfig struct {
 	MaxTokens           int      `json:"maxTokens,omitempty"`
 	Temperature         *float64 `json:"temperature,omitempty"`
 	// Delegation is the thread's grant for start_task: "" or none, propose, isolated (ADR-0006 D4).
-	// Core validates it and enforces it; Desktop only passes the user's choice.
+	// Core validates it and enforces it; Desktop only passes the user's choice. The thread's agent
+	// caps it further (ADR-0009), so this is the grant, never the effective authority.
 	Delegation string `json:"delegation,omitempty"`
-	// Mode is the composer's Ask/Agent switch: "ask" forces the turn to Core's read-only policy
-	// with no delegation (a read-only conversation turn), "agent" or "" keeps the user's choices.
-	// The frontend maps the same rule; this guard is what actually reaches Core.
-	Mode string `json:"mode,omitempty"`
-	// ProfileID names the Desktop agent profile the turn uses. The backend resolves its
-	// instructions from the profile store (the frontend never sends the text) and uses its base as
-	// the guard: base=ask forces read-only/no delegation whatever Mode, Policy or Delegation say.
-	// Empty keeps the pre-profile behavior. Unknown ids are refused before anything reaches Core.
-	ProfileID string `json:"profileId,omitempty"`
+	// Agent names the Core catalog agent the turn runs (ADR-0009). Empty keeps the session's pinned
+	// agent, or pins "agent" on a session that has none. Switching agent re-pins the model to the
+	// agent's first model unless ModelRef names one in the same Start. The agent's instructions and
+	// ceilings are Core's: the frontend names an agent, it never sends their text.
+	Agent string `json:"agent,omitempty"`
 }
 
 type WorkspaceState struct {
@@ -380,21 +377,8 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 	if !validPolicy(cfg.Policy) {
 		return Session{}, ErrInvalidPolicy
 	}
-	if !validMode(cfg.Mode) {
-		return Session{}, ErrInvalidMode
-	}
 	if !validEffort(cfg.Effort) {
 		return Session{}, fmt.Errorf("%w: %q", lcx.ErrInvalidEffort, strings.TrimSpace(cfg.Effort))
-	}
-	// A named profile's instructions and base come from the store, never from the request: the
-	// frontend can only name a profile, not forge its text or widen its base.
-	instructions, profileBase := "", ""
-	if id := strings.TrimSpace(cfg.ProfileID); id != "" {
-		resolved, base, err := profileInstructions(id)
-		if err != nil {
-			return Session{}, err
-		}
-		instructions, profileBase = resolved, base
 	}
 	permissions, err := loadToolPermissions(workspace)
 	if err != nil {
@@ -402,47 +386,31 @@ func (r *Runtime) startAgent(ctx context.Context, sessionID, input string, cfg A
 	}
 	toolDenylist := mergeToolDenylists(permissions.Disabled, cfg.ToolDenylist)
 
-	return supervisor.Start(ctx, sessionID, agentOptionsFor(cfg, profileBase, instructions, toolDenylist, input))
+	return supervisor.Start(ctx, sessionID, agentOptionsFor(cfg, toolDenylist, input))
 }
 
-// agentOptionsFor maps the bridge's AgentConfig onto Core's AgentOptions. The guard is the profile's
-// base when a profile was named, Mode otherwise: "ask" hands Core a read-only policy and no
-// delegation whatever the request carries, so an Ask-based turn can never reach Core write-capable.
-// Instructions are Core's additional system text, appended after its default prompt.
-func agentOptionsFor(cfg AgentConfig, profileBase, instructions string, toolDenylist []string, input string) lcx.AgentOptions {
-	policy := normalizedPolicy(cfg.Policy)
-	delegation := strings.TrimSpace(cfg.Delegation)
-	capped := strings.TrimSpace(cfg.Mode) == "ask" || profileBase == AgentBaseAsk
-	if capped {
-		policy = "read-only"
-		delegation = ""
-	}
+// agentOptionsFor maps the bridge's AgentConfig onto Core's AgentOptions. The agent is named, never
+// described: Core applies its instructions and caps Policy and Delegation by its ceilings
+// (ADR-0009), which is why a read-only agent such as Ask needs no Desktop-side guard. What is sent
+// here is the user's own grant; the effective authority is the lower of it and the agent's ceiling.
+func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.AgentOptions {
 	return lcx.AgentOptions{
-		// Empty ModelRef continues the session on its pinned model; Core resolves everything else.
+		// Empty Agent keeps the session's pinned agent; empty ModelRef continues it on its pinned
+		// model. Core resolves everything else.
+		Agent:               strings.TrimSpace(cfg.Agent),
 		ModelRef:            config.ModelRef(strings.TrimSpace(cfg.ModelRef)),
 		Effort:              config.Effort(strings.TrimSpace(cfg.Effort)),
 		Input:               input,
-		Policy:              policy,
-		Instructions:        instructions,
+		Policy:              normalizedPolicy(cfg.Policy),
 		MaxSteps:            cfg.MaxSteps,
 		MaxToolCallsPerStep: cfg.MaxToolCallsPerStep,
 		ToolDenylist:        toolDenylist,
 		MaxTokens:           cfg.MaxTokens,
 		Temperature:         cfg.Temperature,
-		Delegation:          delegation,
+		Delegation:          strings.TrimSpace(cfg.Delegation),
 		// Every Desktop thread is a conversation (ADR-0006 D3): an answer ends the turn, and the thread's
-		// resolution, not the run status, says whether the task is done. An Ask turn is the read-only
-		// conversation case of the same rule.
+		// resolution, not the run status, says whether the task is done.
 		Interactive: true,
-	}
-}
-
-func validMode(mode string) bool {
-	switch strings.TrimSpace(mode) {
-	case "", "ask", "agent":
-		return true
-	default:
-		return false
 	}
 }
 

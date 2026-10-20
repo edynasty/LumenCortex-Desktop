@@ -8,6 +8,8 @@ github.com/edynasty/LumenCortex v0.0.0-20261019140858-f7ffc18332d7 h1:L/KCqOv37a
 github.com/edynasty/LumenCortex v0.0.0-20261019140858-f7ffc18332d7/go.mod h1:J5ETVD+dc7oGFEbzmz7DTYJ56ES8nTBDLfbplq224bg=
 github.com/edynasty/LumenCortex v0.0.0-20261020084713-efe9b66bd6fe h1:hJ1TwNK6b73Hy3dnpe4PTPJdN/ifUWIu0Z7wtBa4ulg=
 github.com/edynasty/LumenCortex v0.0.0-20261020084713-efe9b66bd6fe/go.mod h1:J5ETVD+dc7oGFEbzmz7DTYJ56ES8nTBDLfbplq224bg=
+github.com/edynasty/LumenCortex v0.0.0-20261020145738-8998c25d26dd h1:jxII6OvQWIMxgnM0VYjA8xc+FPLfv2NDMKS42QaSi80=
+github.com/edynasty/LumenCortex v0.0.0-20261020145738-8998c25d26dd/go.mod h1:J5ETVD+dc7oGFEbzmz7DTYJ56ES8nTBDLfbplq224bg=
 github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
 github.com/go-ole/go-ole v1.3.0/go.mod h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=
 github.com/godbus/dbus/v5 v5.1.0 h1:4KLkAxT3aOY8Li4FRJe/KvhoNFFxo0m6fNuFUO8QJUk=

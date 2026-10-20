@@ -122,7 +122,7 @@ describe("model selection and session pinning", () => {
       maxSteps: 24,
       maxToolCallsPerStep: 8,
       delegation: "none",
-      mode: "agent",
+      agent: undefined,
     });
     // The thread's grant is sent as the user set it; Core enforces it for that Start.
     expect(buildAgentConfig("test/a", "read-only", 24, "isolated").delegation).toBe("isolated");

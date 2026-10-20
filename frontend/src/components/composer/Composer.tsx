@@ -7,9 +7,8 @@ import {
   type Ref,
 } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
-import type { AgentEffort } from "../../types";
-import type { AgentMode, AgentPolicy } from "../../app/agent-config";
-import { agentProfileName, type ComposerAgent } from "../../app/agent-profiles";
+import type { AgentEffort, AgentPolicy } from "../../types";
+import { agentDescription, agentName, POLICY_ORDER, underCeiling, type ComposerAgent } from "../../app/agent-catalog";
 import { AUTO_EFFORT } from "../../app/model-selection";
 import { ContextAttachments, ContextAttachTrigger } from "./ContextAttachments";
 import { ModelPicker, type ModelPickerHandle, type PickerOption } from "./ComposerPickers";
@@ -44,10 +43,9 @@ type Props = {
   onPickContextFiles: () => void;
   onPickContextFolder: () => void;
   onRemoveContextPath: (path: string) => void;
-  // The selected profile's base: Ask caps the turn to read-only/none and disables the Core controls.
-  mode: AgentMode;
+  // The catalog agents the thread may run; the thread's pinned agent is the selection.
   agent: ComposerAgent;
-  // The user's authorization policy and delegation grant, applied unchanged in Agent mode.
+  // The user's authorization policy and delegation grant; the agent's ceiling caps them in Core.
   policy: AgentPolicy;
   onPolicyChange: (policy: AgentPolicy) => void;
   delegationControl?: ReactNode;
@@ -91,7 +89,7 @@ const effortLabelKey: Record<AgentEffort, "effortNone" | "effortLow" | "effortMe
 
 // The shared composer surface (Codex / Copilot Chat pattern over Lumen Glass): one rounded glass
 // card with an environment strip above the input, an auto-growing textarea, attachment chips, and
-// one compact toolbar — left: attach, permission, Ask/Agent, delegation; right: model, effort,
+// one compact toolbar — left: attach, permission, agent, delegation; right: model, effort,
 // Send/Stop. The same component renders the new-task card and the thread follow-up so both stay
 // consistent.
 export function Composer({
@@ -111,7 +109,6 @@ export function Composer({
   onPickContextFiles,
   onPickContextFolder,
   onRemoveContextPath,
-  mode,
   agent,
   policy,
   onPolicyChange,
@@ -130,7 +127,6 @@ export function Composer({
 }: Props) {
   const innerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const modelPickerRef = useRef<ModelPickerHandle>(null);
-  const ask = mode === "ask";
 
   // The caller's ref (the app focuses the composer on new task) and the internal one share the node.
   const setTextarea = (element: HTMLTextAreaElement | null) => {
@@ -197,6 +193,11 @@ export function Composer({
       ]
     : [];
 
+  // The selected agent's ceiling caps the permission chip to what Core will actually run (ADR-0009).
+  const selectedAgent = agent.agents.find((entry) => entry.id === agent.selectedId);
+  const policyCap = underCeiling(POLICY_ORDER, policy, selectedAgent?.policy ?? "full");
+  const capReason = selectedAgent ? copy.agentCapsControls.replace("{agent}", agentName(selectedAgent, copy)) : undefined;
+
   return (
     <form
       className={`composer ${variant === "new" ? "is-new" : ""} ${running ? "is-running" : ""}`}
@@ -227,19 +228,19 @@ export function Composer({
           onPickFiles={onPickContextFiles}
           onPickFolder={onPickContextFolder}
         />
-        <span className={`composer-policy ${policy === "full" ? "is-full" : ""}`}>
+        <span className={`composer-policy ${policyCap.effective === "full" ? "is-full" : ""}`}>
           <MenuPicker
             ariaLabel={copy.policy}
             collapsible
-            value={policy}
+            value={policyCap.effective}
             placeholder={copy.workspace}
-            disabled={busy || ask}
-            disabledReason={ask ? copy.askCapsControls : undefined}
+            disabled={busy || policyCap.allowed.length === 1}
+            disabledReason={policyCap.allowed.length === 1 ? capReason : undefined}
             options={[
               { value: "read-only", label: copy.readOnly, description: copy.readOnlyDescription, icon: policyIcon["read-only"] },
               { value: "workspace", label: copy.workspace, description: copy.workspaceDescription, icon: policyIcon.workspace },
               { value: "full", label: copy.full, description: copy.fullDescription, icon: policyIcon.full },
-            ]}
+            ].filter((option) => policyCap.allowed.includes(option.value as AgentPolicy))}
             onChange={(next) => onPolicyChange(next as AgentPolicy)}
           />
         </span>
@@ -249,13 +250,11 @@ export function Composer({
           value={agent.selectedId}
           placeholder={copy.agentAgentName}
           disabled={busy}
-          options={agent.profiles.map((profile) => ({
-            value: profile.id,
-            label: agentProfileName(profile, copy),
-            description: profile.builtin
-              ? (profile.base === "ask" ? copy.agentsBaseAskDescription : copy.agentsBaseAgentDescription)
-              : profile.description,
-            icon: profile.base === "ask" ? "discussion" : "agents",
+          options={agent.agents.map((entry) => ({
+            value: entry.id,
+            label: agentName(entry, copy),
+            description: agentDescription(entry, copy),
+            icon: entry.policy === "read-only" ? "readOnly" : "agents",
           }))}
           onChange={agent.onSelect}
         />

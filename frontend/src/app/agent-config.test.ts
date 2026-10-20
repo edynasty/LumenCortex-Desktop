@@ -1,38 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentConfig, composeFollowUpInput, resolveTurnOptions } from "./agent-config";
+import { buildAgentConfig, composeFollowUpInput } from "./agent-config";
 
-describe("Ask/Agent turn mapping", () => {
-  it("Ask forces read-only and no delegation, never widening a higher policy", () => {
-    expect(resolveTurnOptions("ask", "full", "isolated")).toEqual({ policy: "read-only", delegation: "none" });
-    expect(resolveTurnOptions("ask", "workspace", "propose")).toEqual({ policy: "read-only", delegation: "none" });
-    expect(resolveTurnOptions("ask", "read-only", "none")).toEqual({ policy: "read-only", delegation: "none" });
-  });
-
-  it("Agent keeps the user's policy and delegation grant unchanged", () => {
-    expect(resolveTurnOptions("agent", "workspace", "propose")).toEqual({ policy: "workspace", delegation: "propose" });
-    expect(resolveTurnOptions("agent", "full", "isolated")).toEqual({ policy: "full", delegation: "isolated" });
-  });
-
-  it("buildAgentConfig sends the mapped turn and the mode for the backend guard", () => {
-    expect(buildAgentConfig("test/a", "full", 24, "isolated", "ask", undefined, "reviewer")).toEqual({
+describe("turn mapping", () => {
+  it("names the agent and keeps the user's policy and delegation grant unchanged", () => {
+    expect(buildAgentConfig("test/a", "full", 24, "isolated", "reviewer", "high")).toEqual({
       modelRef: "test/a",
-      effort: undefined,
-      policy: "read-only",
-      maxSteps: 24,
-      maxToolCallsPerStep: 8,
-      delegation: "none",
-      mode: "ask",
-      profileId: "reviewer",
-    });
-    expect(buildAgentConfig(undefined, "workspace", 24, "propose", "agent", "high", "agent")).toEqual({
       effort: "high",
-      policy: "workspace",
+      policy: "full",
       maxSteps: 24,
       maxToolCallsPerStep: 8,
-      delegation: "propose",
-      mode: "agent",
-      profileId: "agent",
+      delegation: "isolated",
+      agent: "reviewer",
     });
+  });
+
+  it("never sends a model the user did not pick, so a switched agent keeps its first model", () => {
+    const config = buildAgentConfig(undefined, "workspace", 24, "propose", "ask");
+    expect(config.modelRef).toBeUndefined();
+    expect(config.agent).toBe("ask");
+    expect(Object.keys(JSON.parse(JSON.stringify(config)))).toEqual([
+      "policy", "maxSteps", "maxToolCallsPerStep", "delegation", "agent",
+    ]);
+  });
+
+  it("carries no Desktop-side cap or mode: Core applies the agent's ceilings", () => {
+    const config = buildAgentConfig(undefined, "read-only", 3, "none", "ask");
+    expect(config.policy).toBe("read-only");
+    expect(config.delegation).toBe("none");
+    expect(config).not.toHaveProperty("mode");
+    expect(config).not.toHaveProperty("profileId");
+    expect(config).not.toHaveProperty("instructions");
   });
 
   it("composeFollowUpInput appends the attached context paths as a visible block", () => {

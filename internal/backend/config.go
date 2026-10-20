@@ -44,16 +44,15 @@ type ConfigWarning = config.Warning
 
 // ConfigState is what the UI needs to pick a model and to explain what Core ignored.
 type ConfigState struct {
-	Workspace     string          `json:"workspace"`
-	Trusted       bool            `json:"trusted"`
-	Model         string          `json:"model"`
-	SubagentModel string          `json:"subagentModel,omitempty"`
-	Failover      []string        `json:"failover"`
-	Models        []ModelInfo     `json:"models"`
-	Warnings      []ConfigWarning `json:"warnings"`
-	GlobalPath    string          `json:"globalPath"`
-	GlobalDigest  string          `json:"globalDigest"`
-	Concurrency   Concurrency     `json:"concurrency"`
+	Workspace    string          `json:"workspace"`
+	Trusted      bool            `json:"trusted"`
+	Model        string          `json:"model"`
+	Failover     []string        `json:"failover"`
+	Models       []ModelInfo     `json:"models"`
+	Warnings     []ConfigWarning `json:"warnings"`
+	GlobalPath   string          `json:"globalPath"`
+	GlobalDigest string          `json:"globalDigest"`
+	Concurrency  Concurrency     `json:"concurrency"`
 }
 
 // AgentConcurrency is Core's concurrency object (ADR-0008): global only, read at every run start.
@@ -77,9 +76,9 @@ type ProviderCatalogDocument struct {
 }
 
 // ProviderCatalog is the editable subset of a configuration file. Fields outside it (failover,
-// subagentModel, effort, checks, trustedWorkspaces, headers, timeouts, reasoning, toolCalling,
-// modalities) are never part of the DTO and survive every save. Providers is always sent, as {}
-// for a file without providers: the panel indexes it directly.
+// agents, effort, checks, trustedWorkspaces, headers, timeouts, reasoning, toolCalling, modalities)
+// are never part of the DTO and survive every save. Providers is always sent, as {} for a file
+// without providers: the panel indexes it directly.
 type ProviderCatalog struct {
 	Schema    string                        `json:"$schema,omitempty"`
 	Model     string                        `json:"model,omitempty"`
@@ -155,15 +154,14 @@ func configState(cfg *config.Config) ConfigState {
 	eff := cfg.Effective()
 	global := cfg.Global()
 	state := ConfigState{
-		Workspace:     eff.Workspace,
-		Trusted:       eff.Trusted,
-		Model:         string(eff.Model),
-		SubagentModel: string(eff.SubagentModel),
-		Failover:      make([]string, 0, len(eff.Failover)),
-		Models:        cfg.Catalog(),
-		Warnings:      append([]ConfigWarning{}, eff.Warnings...),
-		GlobalPath:    global.Path,
-		GlobalDigest:  global.Digest,
+		Workspace:    eff.Workspace,
+		Trusted:      eff.Trusted,
+		Model:        string(eff.Model),
+		Failover:     make([]string, 0, len(eff.Failover)),
+		Models:       cfg.Catalog(),
+		Warnings:     append([]ConfigWarning{}, eff.Warnings...),
+		GlobalPath:   global.Path,
+		GlobalDigest: global.Digest,
 		Concurrency: Concurrency{
 			Current: eff.Concurrency,
 			Default: (*config.Concurrency)(nil).Limits(),
@@ -450,10 +448,19 @@ func checkReferences(edited, other config.File) error {
 		}
 	}
 	for _, f := range []config.File{edited, other} {
-		refs := append([]config.ModelRef{f.Model, f.SubagentModel}, f.Failover...)
+		refs := append([]config.ModelRef{f.Model}, f.Failover...)
 		for _, ref := range refs {
 			if ref != "" && !defined[ref] {
-				return fmt.Errorf("%w: model %s is still used as the default, subagent or failover model", config.ErrInvalidConfig, ref)
+				return fmt.Errorf("%w: model %s is still used as the default or failover model", config.ErrInvalidConfig, ref)
+			}
+		}
+		// An agent's list is a reference too (ADR-0009): Core refuses to load a file that names a
+		// model the merged catalog no longer has, so a provider edit must not orphan one.
+		for id, agent := range f.Agents {
+			for i, candidate := range agent.Models {
+				if !defined[candidate.Model] {
+					return fmt.Errorf("%w: model %s is still listed by agent %s (models[%d])", config.ErrInvalidConfig, candidate.Model, id, i)
+				}
 			}
 		}
 	}

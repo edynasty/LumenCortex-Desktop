@@ -15,19 +15,50 @@ import type {
   SessionRuntime,
   SubagentNode,
   TaskStateInfo,
-  AgentProfile,
+  AgentCatalog,
+  AgentEntry,
 } from "../types";
 import { cancelVisualSubtree, startVisualTask } from "./task-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
 
-// The Agents page's catalog in the visual harness. Mutable, so create/edit/delete flows behave
-// like the Desktop backend without a file.
-const visualAgentProfiles: AgentProfile[] = [
-  { id: "ask", name: "Ask", base: "ask" as const, instructions: "", policy: "read-only" as const, builtin: true },
-  { id: "agent", name: "Agent", base: "agent" as const, instructions: "", policy: "workspace" as const, builtin: true },
-  { id: "reviewer", name: "Code reviewer", description: "Reads diffs and names risks.", base: "ask" as const, instructions: "Lead with the risk, then the evidence.", modelRef: "openai/gpt-5.6", effort: "high" as const, policy: "read-only" as const, builtin: false },
+// The Agents page's catalog in the visual harness: Core's four built-ins plus one custom agent.
+// Mutable, so create/edit/delete flows behave like the Desktop backend without a file.
+const visualAgents: AgentEntry[] = [
+  {
+    id: "ask", name: "Ask", description: "Answers questions about the workspace without changing anything.",
+    use: "conversation", policy: "read-only", delegation: "none", instructions: "", models: null,
+    builtin: true, source: "builtin", digest: "sha256:ask", forConversation: true, editable: true,
+  },
+  {
+    id: "agent", name: "Agent", description: "Works on the task with the access the thread grants.",
+    use: "conversation", policy: "full", delegation: "isolated", instructions: "", models: null,
+    builtin: true, source: "builtin", digest: "sha256:agent", forConversation: true, editable: true,
+  },
+  {
+    id: "explore", name: "Explore", description: "Read-only research: searches and reads the workspace and reports what it found.",
+    use: "delegation", policy: "read-only", delegation: "none", instructions: "", models: null,
+    builtin: true, source: "builtin", digest: "sha256:explore", forConversation: false, editable: true,
+  },
+  {
+    id: "worker", name: "Worker", description: "Changes files in its own isolated worktree to finish one bounded objective; the user applies the result.",
+    use: "delegation", policy: "workspace", delegation: "none", instructions: "", models: null,
+    builtin: true, source: "builtin", digest: "sha256:worker", forConversation: false, editable: true,
+  },
+  {
+    id: "reviewer", name: "Code reviewer", description: "Reads diffs and names risks.",
+    use: "conversation", policy: "read-only", delegation: "none",
+    instructions: "Lead with the risk, then the evidence.", effort: "high",
+    models: [{ model: "openai/gpt-5.6", effort: "high" }],
+    builtin: false, source: "global", digest: "sha256:reviewer", forConversation: true, editable: true,
+  },
 ];
+const visualAgentCatalog = (): AgentCatalog => ({
+  agents: structuredClone(visualAgents),
+  limits: { maxCustom: 16, name: 40, description: 280, instructions: 16 << 10, models: 8, idPattern: "^[a-z][a-z0-9-]{0,39}$" },
+  globalPath: "/home/.config/lumencortex/lumencortex.json",
+  globalDigest: "sha256:visual",
+});
 export const localRuntime: SessionRuntime = { kind: "local", path: workspace, branch: "main", head: "0f6c33a" };
 export const runtime: SessionRuntime = {
   kind: "worktree",
@@ -482,32 +513,26 @@ export function visualAppStub() {
     SetSkillEnabled: async () => undefined,
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
-    ListAgentProfiles: async () => ({ profiles: structuredClone(visualAgentProfiles) }),
-    SaveAgentProfile: async (profile) => {
-      const saved = { ...profile, id: profile.id || `profile-${visualAgentProfiles.length - 1}`, builtin: false };
-      const index = visualAgentProfiles.findIndex((item) => item.id === saved.id);
-      if (index >= 0) visualAgentProfiles[index] = saved;
-      else visualAgentProfiles.push(saved);
-      return { profiles: structuredClone(visualAgentProfiles) };
+    GetAgents: async () => visualAgentCatalog(),
+    SaveAgent: async (_digest, agent) => {
+      const saved: AgentEntry = {
+        ...agent,
+        id: agent.id || agent.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+        builtin: agent.builtin,
+        source: agent.source,
+        digest: `sha256:${agent.name}`,
+      };
+      const index = visualAgents.findIndex((item) => item.id === saved.id);
+      if (index >= 0) visualAgents[index] = saved;
+      else visualAgents.push(saved);
+      return visualAgentCatalog();
     },
-    DeleteAgentProfile: async (id) => {
-      const index = visualAgentProfiles.findIndex((item) => item.id === id);
-      if (index >= 0) visualAgentProfiles.splice(index, 1);
-      return { profiles: structuredClone(visualAgentProfiles) };
+    DeleteAgent: async (_digest, id) => {
+      const index = visualAgents.findIndex((item) => item.id === id && !item.builtin);
+      if (index >= 0) visualAgents.splice(index, 1);
+      return visualAgentCatalog();
     },
-    ResetAgentProfile: async (id) => {
-      const profile = visualAgentProfiles.find((item) => item.id === id);
-      if (profile) {
-        profile.instructions = "";
-        if (profile.builtin) profile.policy = profile.base === "ask" ? "read-only" : "workspace";
-        else {
-          profile.modelRef = undefined;
-          profile.effort = undefined;
-          profile.policy = undefined;
-        }
-      }
-      return { profiles: structuredClone(visualAgentProfiles) };
-    },
+    MigrateSubagentModel: async () => ({ globalChanged: false, workspaceChanged: false }),
     TitleBarDoubleClick: async () => undefined,
 
     GetTaskState: async (sessionId) => ({ ...structuredClone(visualTaskState), sessionId }),

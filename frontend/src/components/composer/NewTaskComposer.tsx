@@ -1,8 +1,7 @@
 import type { FormEvent, Ref } from "react";
 import { BrandMark } from "../brand/A1Mark";
 import type { AppCopy } from "../../lib/i18n/app-copy";
-import type { AgentEffort, RuntimeKind } from "../../types";
-import type { AgentMode, AgentPolicy } from "../../app/agent-config";
+import type { AgentEffort, AgentPolicy, RuntimeKind } from "../../types";
 import { Composer, type ComposerAgent, type ComposerCopy } from "./Composer";
 import { EnvironmentStrip } from "./EnvironmentStrip";
 import { type PickerOption } from "./ComposerPickers";
@@ -23,7 +22,6 @@ type Props = {
   busy: boolean;
   textareaRef: Ref<HTMLTextAreaElement>;
   contextPaths: string[];
-  mode: AgentMode;
   agent: ComposerAgent;
   policy: ComposerPolicy;
   models: PickerOption[];
@@ -61,7 +59,6 @@ export function NewTaskComposer({
   busy,
   textareaRef,
   contextPaths,
-  mode,
   agent,
   policy,
   models,
@@ -108,7 +105,6 @@ export function NewTaskComposer({
           onPickContextFiles={onPickContextFiles}
           onPickContextFolder={onPickContextFolder}
           onRemoveContextPath={onRemoveContextPath}
-          mode={mode}
           agent={agent}
           policy={policy}
           onPolicyChange={onPolicyChange}

@@ -411,31 +411,32 @@ test.describe("Core-backed interactions", () => {
   }
 
 
-  // ————— Stage A composer: Ask/Agent, effort, model picker, execution environment —————
+  // ————— Stage A composer: agent, effort, model picker, execution environment —————
 
-  test("an Ask-based agent caps the permission and delegation controls and survives thread switching", async ({ page }) => {
+  test("the Ask agent's ceiling caps the permission and delegation controls; Agent restores them", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings refactor");
-    const agent = page.getByRole("button", { name: /^Agent:/ });
-    await agent.click();
+    await page.getByRole("button", { name: /^Agent:/ }).click();
     await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Ask/ }).click();
     await expect(page.getByRole("button", { name: /^Agent:/ })).toHaveAccessibleName("Agent: Ask");
 
-    // The two Core controls keep their state but are capped with an explanation under an Ask base.
+    // The chips show what Core will run (min(grant, ceiling)) and say why they cannot change.
     const policy = page.getByRole("button", { name: /^Permissions:/ });
     await expect(policy).toBeDisabled();
-    await expect(policy).toHaveAttribute("title", /Ask is always read-only/);
+    await expect(policy).toHaveAccessibleName("Permissions: Read only");
+    await expect(policy).toHaveAttribute("title", /Ask is capped here by its ceiling/);
     const delegation = page.getByRole("button", { name: /^Delegation:/ });
     await expect(delegation).toBeDisabled();
+    await expect(delegation).toHaveAccessibleName("Delegation: None");
 
-    // The selection is app-level: switching threads keeps it.
-    await openThread(page, "Upgrade SQLite driver");
-    await expect(page.getByRole("button", { name: /^Agent:/ })).toHaveAccessibleName("Agent: Ask");
-
-    // Switching back to the Agent built-in restores the controls.
+    // The grant itself was kept: the Agent built-in (no ceiling) offers every level again.
     await page.getByRole("button", { name: /^Agent:/ }).click();
     await page.getByRole("menu", { name: "Agent" }).getByRole("menuitemradio", { name: /^Agent/ }).click();
     await expect(page.getByRole("button", { name: /^Permissions:/ })).toBeEnabled();
+    await expect(page.getByRole("button", { name: /^Delegation:/ })).toBeEnabled();
+    await page.getByRole("button", { name: /^Permissions:/ }).click();
+    await expect(page.getByRole("menu", { name: "Permissions" }).getByRole("menuitemradio")).toHaveCount(3);
+    await page.keyboard.press("Escape");
   });
 
   test("opens Agents from the rail, edits a built-in's instructions and saves", async ({ page }) => {
@@ -457,12 +458,13 @@ test.describe("Core-backed interactions", () => {
     await expect(page.locator(".agents-instructions")).toHaveValue("Lead with the conclusion, then the evidence.");
   });
 
-  test("creates a custom Ask-based agent and the composer sends its id with the Ask cap", async ({ page }) => {
+  test("creates a read-only custom agent and the composer sends its id with the user's grant", async ({ page }) => {
     await open(page, "", 1180);
     await goToPage(page, /^Agents$/);
     await page.getByRole("button", { name: "New agent" }).click();
     await page.getByLabel("Name").fill("Release reviewer");
-    await page.getByRole("radio", { name: /Read-only conversation/ }).click();
+    await page.getByRole("button", { name: /^Permission ceiling:/ }).click();
+    await page.getByRole("menu", { name: "Permission ceiling" }).getByRole("menuitemradio", { name: /^Read only/ }).click();
     await page.locator(".agents-instructions").fill("Only flag release-blocking risks.");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByRole("button", { name: /^Release reviewer$/ })).toBeVisible();
@@ -471,11 +473,11 @@ test.describe("Core-backed interactions", () => {
     await page.evaluate(() => {
       const app = window.go?.main?.App;
       if (!app) throw new Error("stub bridge is not installed");
-      const recorded: { profileId?: string; policy?: string; mode?: string }[] = [];
-      (window as Window & { __lcxAgents?: { profileId?: string; policy?: string; mode?: string }[] }).__lcxAgents = recorded;
+      const recorded: { agent?: string; policy?: string; modelRef?: string }[] = [];
+      (window as Window & { __lcxAgents?: typeof recorded }).__lcxAgents = recorded;
       const original = app.StartAgent.bind(app);
       app.StartAgent = async (id, cfg) => {
-        recorded.push({ profileId: cfg.profileId, policy: cfg.policy, mode: cfg.mode });
+        recorded.push({ agent: cfg.agent, policy: cfg.policy, modelRef: cfg.modelRef });
         return original(id, cfg);
       };
     });
@@ -487,10 +489,10 @@ test.describe("Core-backed interactions", () => {
     await page.getByRole("textbox", { name: /Describe a coding task/ }).fill("Review the release branch");
     await page.keyboard.press("Enter");
     await expect.poll(() => page.evaluate(() => (window as Window & { __lcxAgents?: unknown[] }).__lcxAgents?.length ?? 0)).toBe(1);
-    const sent = await page.evaluate(() => (window as Window & { __lcxAgents?: { profileId?: string; policy?: string; mode?: string }[] }).__lcxAgents?.[0]);
-    expect(sent?.profileId).toMatch(/^profile-\d+$/);
-    expect(sent?.policy).toBe("read-only");
-    expect(sent?.mode).toBe("ask");
+    const sent = await page.evaluate(() => (window as Window & { __lcxAgents?: { agent?: string; policy?: string }[] }).__lcxAgents?.[0]);
+    // The id is Core's; the policy is the user's grant, which Core caps by the agent's ceiling.
+    expect(sent?.agent).toMatch(/^release-reviewer/);
+    expect(sent?.policy).toBeTruthy();
   });
 
   test("the effort picker offers Auto and only the selected model's levels, and disables when fixed", async ({ page }) => {

@@ -130,6 +130,36 @@ User can answer:
 - what files/commands are involved?
 - how do I stop/continue?
 
+## 3a. Agents
+
+### Purpose
+Edit Core's agent catalog (ADR-0009): the four built-ins and the user's custom agents.
+
+### Layout
+- catalog list (built-ins first, each with a `Built-in` or `From this project` badge),
+- editor for the selected agent,
+- the one-time `agents.json` import report, when there was one.
+
+### Editor fields
+- name and description (fixed for a built-in),
+- use: conversation, delegated child, or both (fixed for a built-in),
+- permission ceiling and delegation ceiling (fixed for a built-in; a delegated agent never delegates),
+- instructions with a 16 KiB counter,
+- default effort,
+- ordered model candidates: add, remove, reorder, per-entry effort, at most 8.
+
+### States
+- saved, unsaved (inline confirm before switching),
+- read-only: a built-in's fixed fields, or a definition from the project's lumencortex.json,
+- refused save: stale digest (conflict) or an invalid agent; nothing is written,
+- import report: imported, renamed to `agents.json.imported`, skipped entries and warnings.
+
+### Acceptance
+User can answer:
+- which agents exist and where each one comes from?
+- what may this agent do, and which models does it try in order?
+- did my save apply, and did the old profile file import without losing anything?
+
 ## 4. Review / Diff
 
 ### Purpose

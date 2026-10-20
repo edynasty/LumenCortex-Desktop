@@ -10,11 +10,16 @@ const order: CoreErrorKey[] = [
   "databaseInUse",
   "schemaTooNew",
   "legacyNodeDatabase",
+  // A retired subagentModel loads as ErrInvalidConfig wrapping ErrSubagentModelRetired, so it is
+  // matched before the generic invalid-configuration text.
+  "subagentModelRetired",
   "invalidConfig",
   "conflict",
   "modelWithoutToolCalls",
   "invalidEffort",
   "unknownModel",
+  "unknownAgent",
+  "agentNotForConversation",
   "runHeld",
   "worktreeBusy",
   "noFingerprint",

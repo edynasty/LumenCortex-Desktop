@@ -112,14 +112,14 @@ describe("MenuPicker", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(<MenuPicker
-      ariaLabel={t.mode} value="agent" placeholder={t.modeAgent}
+      ariaLabel={t.agentsPolicy} value="workspace" placeholder={t.workspace}
       options={[
-        { value: "ask", label: t.modeAsk },
-        { value: "agent", label: t.modeAgent },
+        { value: "read-only", label: t.readOnly },
+        { value: "workspace", label: t.workspace },
       ]}
       onChange={onChange}
     />);
-    await user.click(screen.getByRole("button", { name: `${t.mode}: ${t.modeAgent}` }));
+    await user.click(screen.getByRole("button", { name: `${t.agentsPolicy}: ${t.workspace}` }));
     fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
     const items = screen.getAllByRole("menuitemradio");
     expect(items[0]).toHaveFocus();
@@ -128,16 +128,16 @@ describe("MenuPicker", () => {
     fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowUp" });
     expect(items[0]).toHaveFocus();
     await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith("ask");
+    expect(onChange).toHaveBeenCalledWith("read-only");
   });
 
   it("shows why a capped control is disabled", () => {
     render(<MenuPicker
-      ariaLabel={t.policy} value="full" placeholder={t.full} disabled disabledReason={t.askCapsControls}
+      ariaLabel={t.policy} value="full" placeholder={t.full} disabled disabledReason={t.agentsDelegationFixed}
       options={[{ value: "full", label: t.full }]} onChange={() => undefined}
     />);
     const chip = screen.getByRole("button", { name: `${t.policy}: ${t.full}` });
     expect(chip).toBeDisabled();
-    expect(chip).toHaveAttribute("title", t.askCapsControls);
+    expect(chip).toHaveAttribute("title", t.agentsDelegationFixed);
   });
 });
