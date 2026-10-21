@@ -17,8 +17,8 @@ type Props = {
   worktrees: ScmGraphWorktree[];
   baseBranch: string;
   baseHead?: string;
-  /** Change count of the project checkout from Core's git status; undefined while loading. */
-  changeCount: number | undefined;
+  /** Change count of the project checkout from Core's git status; undefined while loading, null when Core could not read it. */
+  changeCount: number | null | undefined;
   /** The page's revision counter; a change re-queries Core. */
   revision: number;
   labels: AppCopy;
@@ -44,10 +44,13 @@ export function ScmCheckoutView({ workspace, worktrees, baseBranch, baseHead, ch
         <div><dt>{labels.scmWorktrees}</dt><dd>{worktrees.length}</dd></div>
         <div className="is-wide">
           <dt>{labels.scmState}</dt>
-          <dd className={changeCount === undefined ? "is-pending" : changeCount > 0 ? "is-warn" : "is-ok"}>
+          <dd className={changeCount == null ? "is-pending" : changeCount > 0 ? "is-warn" : "is-ok"}>
             {changeCount === undefined ? (
               // The count is still being read: a blank cell would read as "no state".
               <span role="status">{labels.loading}</span>
+            ) : changeCount === null ? (
+              // The read failed (the error toast says why): never leave "loading" up forever.
+              labels.unknown
             ) : (
               <>
                 <Icon name={changeCount > 0 ? "stale" : "done"} size={13} />

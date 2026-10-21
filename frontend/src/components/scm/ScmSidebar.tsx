@@ -21,7 +21,7 @@ type Props = {
   /** Pending counts per session id from Core's worktree inspections; absent while loading. */
   counts: Record<string, { ahead: number; dirty: number }> | undefined;
   /** Change count of the project checkout from Core's git status; undefined while loading. */
-  mainCount: number | undefined;
+  mainCount: number | null | undefined;
   labels: AppCopy;
   onSelectCheckout: (checkout: "main" | string) => void;
 };
@@ -40,7 +40,7 @@ export function ScmSidebar({ workspace, checkout, worktrees, counts, mainCount, 
       >
         <span className="scm-row-icon"><Icon name="local" size={15} /></span>
         <span className="scm-row-branch">{workspace.replace(/\\/g, "/").split("/").filter(Boolean).pop() || labels.scmCheckout}</span>
-        {mainCount === undefined ? null : (
+        {mainCount == null ? null : (
           <span className={`scm-row-state ${mainCount > 0 ? "is-dirty" : ""}`}>
             {mainCount > 0 ? labels.scmDirtyCount(mainCount) : labels.wtClean}
           </span>

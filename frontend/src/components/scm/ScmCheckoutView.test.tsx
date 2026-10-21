@@ -22,4 +22,10 @@ describe("ScmCheckoutView state cell", () => {
     rerender(<ScmCheckoutView {...props} changeCount={3} />);
     expect(screen.getByText(labels.scmTargetDirty)).toBeInTheDocument();
   });
+
+  it("stops saying loading when Core could not read the status", () => {
+    render(<ScmCheckoutView {...props} changeCount={null} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText(labels.unknown)).toBeInTheDocument();
+  });
 });

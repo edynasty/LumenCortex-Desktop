@@ -37,7 +37,7 @@ export function useSourceControlPage(input: {
 }): { sidebar: ReactNode; content: ReactNode } {
   const { enabled, workspace, sessions, checkout, labels, onSelectCheckout, onOpenThread, onCleanupWorktree, onError } = input;
 
-  const [mainCount, setMainCount] = useState<number | undefined>(undefined);
+  const [mainCount, setMainCount] = useState<number | null | undefined>(undefined);
   const [inspections, setInspections] = useState<Record<string, WorktreeInspection>>({});
   const [revision, setRevision] = useState(0);
 
@@ -86,7 +86,10 @@ export function useSourceControlPage(input: {
         setInspections((current) => ({ ...current, ...next }));
         if (failed) onError(labels.contextStateError);
       } catch {
-        if (!cancelled) onError(labels.contextStateError);
+        if (cancelled) return;
+        // A failed read leaves no count to show; a stale one would read as current.
+        setMainCount(null);
+        onError(labels.contextStateError);
       }
     })();
     return () => {

@@ -136,6 +136,14 @@ describe("useSourceControlPage", () => {
     expect(onSelectCheckout).toHaveBeenCalledWith("s-wt");
   });
 
+  it("replaces the loading state with unknown when Core cannot read the checkout status", async () => {
+    mocks.gitStatus.mockRejectedValue(new Error("not a git repository"));
+    render(<Host checkout="main" />);
+
+    await waitFor(() => expect(screen.getAllByText(labels.unknown).length).toBeGreaterThan(0));
+    expect(screen.queryByText(labels.loading)).not.toBeInTheDocument();
+  });
+
   it("makes no bridge call while disabled", async () => {
     render(<Host enabled={false} />);
 
