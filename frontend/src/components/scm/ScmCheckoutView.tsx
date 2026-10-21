@@ -44,8 +44,11 @@ export function ScmCheckoutView({ workspace, worktrees, baseBranch, baseHead, ch
         <div><dt>{labels.scmWorktrees}</dt><dd>{worktrees.length}</dd></div>
         <div className="is-wide">
           <dt>{labels.scmState}</dt>
-          <dd className={changeCount && changeCount > 0 ? "is-warn" : "is-ok"}>
-            {changeCount === undefined ? null : (
+          <dd className={changeCount === undefined ? "is-pending" : changeCount > 0 ? "is-warn" : "is-ok"}>
+            {changeCount === undefined ? (
+              // The count is still being read: a blank cell would read as "no state".
+              <span role="status">{labels.loading}</span>
+            ) : (
               <>
                 <Icon name={changeCount > 0 ? "stale" : "done"} size={13} />
                 {changeCount > 0 ? labels.scmTargetDirty : labels.scmTargetClean}

@@ -122,3 +122,4 @@ button.scm-graph-row:hover { background: var(--state-hover); }
 .is-compact .scm-head.is-bar { padding: 14px 12px 0; }
 .is-compact .scm-facts { margin: 14px 0 0; padding: 0 14px 12px; gap: 10px 20px; }
 .is-compact .scm-tabs { padding: 12px 12px 8px; }
+.scm-facts dd.is-pending { color: var(--fg-3); }
