@@ -48,7 +48,7 @@ function CommitList({ commits, labels }: { commits: string[]; labels: AppCopy })
         return (
           <li key={commit}>
             <Icon name="commit" size={14} />
-            <span className="scm-commit-msg">{message || sha}</span>
+            <span className="scm-commit-msg" title={message || sha}>{message || sha}</span>
             <span className="scm-tag is-pending">{labels.scmPendingTag}</span>
             <span className="mono scm-commit-sha">{sha}</span>
           </li>

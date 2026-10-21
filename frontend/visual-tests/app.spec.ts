@@ -171,6 +171,33 @@ test.describe("window shell", () => {
     await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
   });
 
+  test("a 300-column diff line is readable by scrolling, in unified and split views", async ({ page }) => {
+    await open(page, "", 1440);
+    await openThread(page, "Provider settings refactor");
+    await page.getByRole("radio", { name: "Changes" }).click();
+    const long = page.locator(".diff-line code", { hasText: "longLine" });
+    await expect(long).toBeVisible();
+    const probe = () => page.evaluate(() => {
+      const code = [...document.querySelectorAll<HTMLElement>(".diff-line code, .split-cell code")].find((el) => el.textContent?.includes("longLine"))!;
+      const scroller = code.closest<HTMLElement>(".diff-scroll")!;
+      const style = getComputedStyle(code);
+      return {
+        // The line is whole (no ellipsis clipping) and the scroller scrolls to reach its end.
+        clipped: style.textOverflow === "ellipsis" && code.scrollWidth > code.clientWidth,
+        scrolls: scroller.scrollWidth > scroller.clientWidth,
+        codeFits: code.scrollWidth <= code.clientWidth + 1,
+      };
+    });
+    const unified = await probe();
+    expect(unified).toEqual({ clipped: false, scrolls: true, codeFits: true });
+    await page.evaluate(() => { const s = document.querySelector<HTMLElement>(".diff-scroll")!; s.scrollLeft = s.scrollWidth; });
+    await expect(long).toContainText("0123456789\";");
+    expect(await long.evaluate((el) => { const r = el.getBoundingClientRect(); const s = el.closest(".diff-scroll")!.getBoundingClientRect(); return r.right <= s.right + 1; })).toBe(true);
+
+    await page.getByRole("radio", { name: /Split/ }).click();
+    expect(await probe()).toEqual({ clipped: false, scrolls: true, codeFits: true });
+  });
+
   test("material: a drawer is solid, at most two layers blur, chrome is not selectable and content is", async ({ page }) => {
     await open(page, "", 820);
     await openThread(page, "Provider settings refactor");

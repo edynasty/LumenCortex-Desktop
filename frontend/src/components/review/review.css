@@ -76,15 +76,18 @@
 
 .review-diff { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; }
 .diff-scroll { flex: 1; min-height: 0; overflow: auto; }
-.review-unified { min-width: max-content; padding: 4px 0 40px; tab-size: 4; }
-.review-split { min-width: max-content; padding-bottom: 40px; }
+/* One column as wide as the longest line (and at least the pane), so every row shares one background
+   width and the scroller, not an ellipsis, carries long lines. */
+.review-unified, .review-split { display: grid; grid-template-columns: minmax(max-content, 1fr); align-content: start; }
+.review-unified { padding: 4px 0 40px; tab-size: 4; }
+.review-split { padding-bottom: 40px; }
 
 .diff-line {
   min-height: 20px; display: grid; grid-template-columns: 46px 46px minmax(0, 1fr); align-items: start;
   font-family: var(--font-mono); font-size: var(--mono-size); line-height: 20px; table-layout: fixed;
 }
 .diff-num { padding: 0 8px; text-align: right; color: var(--fg-3); user-select: none; vertical-align: top; font-variant-numeric: tabular-nums; }
-.diff-line code { padding: 0 12px; white-space: pre; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.diff-line code { padding: 0 12px; white-space: pre; color: var(--fg); }
 .diff-line.k-add { background: var(--diff-add-bg); }
 .diff-line.k-add .diff-num:last-of-type { background: var(--diff-add-mark); color: var(--fg-3); }
 .diff-line.k-delete { background: var(--diff-del-bg); }
@@ -99,7 +102,7 @@
   border-right: 1px solid var(--line);
 }
 .split-row .split-cell:last-child { border-right: none; }
-.split-cell code { padding: 0 12px; white-space: pre; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.split-cell code { padding: 0 12px; white-space: pre; color: var(--fg); }
 .split-cell.k-add { background: var(--diff-add-bg); }
 .split-cell.k-add .diff-num { background: var(--diff-add-mark); color: var(--fg-3); }
 .split-cell.k-delete { background: var(--diff-del-bg); }

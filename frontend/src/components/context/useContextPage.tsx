@@ -258,7 +258,7 @@ export function useContextPage(input: {
           >
             <Icon name={node.finished ? "done" : node.pinned ? "pin" : "discussion"} size={15} />
             <span className="context-row-body">
-              <span className="context-row-title">{node.title}</span>
+              <span className="context-row-title" title={node.title}>{node.title}</span>
               <span className="context-row-meta">
                 <span className="context-row-kind">
                   {node.finished ? labels.taskResolutionDone : labels.taskResolutionOpen}

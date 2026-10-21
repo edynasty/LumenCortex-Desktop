@@ -8,7 +8,7 @@ export function PathLabel({ path }: { path: string }) {
   const name = parts.pop() || path;
   const dir = parts.join("/");
   return (
-    <span className="path">
+    <span className="path" title={path}>
       {dir && <span className="path-dir"><bdi>{dir}/</bdi></span>}
       <span className="path-name">{name}</span>
     </span>

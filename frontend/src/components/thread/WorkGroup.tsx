@@ -83,7 +83,7 @@ function ToolRow({ name, content, labels }: { name: string; content: string; lab
           <span className="tool-verb">{name}</span>
           {meta.isPath
             ? <PathLabel path={meta.target} />
-            : <code className="tool-target mono">{meta.target}</code>}
+            : <code className="tool-target mono" title={meta.target}>{meta.target}</code>}
           {meta.detail && <span className={`tool-detail ${meta.failed ? "is-bad" : ""}`}>{meta.detail}</span>}
           <span className="tool-spacer" />
           {hasOutput && (

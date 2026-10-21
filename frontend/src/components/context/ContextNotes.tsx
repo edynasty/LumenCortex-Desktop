@@ -30,7 +30,7 @@ export function ContextNoteRows({ rows, selected, labels, onSelect }: {
         >
           <Icon name={row.by === "user" ? "human" : "note"} size={15} />
           <span className="context-row-body">
-            <span className="context-row-title">{row.text}</span>
+            <span className="context-row-title" title={row.text}>{row.text}</span>
             <span className="context-row-meta">
               <span className="context-row-kind">{row.by === "user" ? labels.taskNoteByUser : labels.taskNoteByAgent}</span>
               <span className="context-row-kind">{row.title}</span>
