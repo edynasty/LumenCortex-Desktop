@@ -219,6 +219,41 @@ test.describe("window shell", () => {
     }
   });
 
+  test("the wheel over a code block that only scrolls sideways still scrolls the thread", async ({ page }) => {
+    await open(page, "", 1180);
+    await openThread(page, "Provider settings refactor");
+    const pre = page.locator(".thread-code-block pre").first();
+    await expect(pre).toBeVisible();
+    // Make the thread scrollable whatever the fixture length, and start from the top.
+    await page.evaluate(() => {
+      const filler = document.createElement("div");
+      filler.style.height = "3000px";
+      document.querySelector(".ledger")!.append(filler);
+      document.querySelector<HTMLElement>(".ledger-scroll")!.scrollTop = 0;
+    });
+    await pre.scrollIntoViewIfNeeded();
+    const before = await page.evaluate(() => document.querySelector<HTMLElement>(".ledger-scroll")!.scrollTop);
+    const box = (await pre.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => page.evaluate(() => document.querySelector<HTMLElement>(".ledger-scroll")!.scrollTop)).toBeGreaterThan(before + 100);
+  });
+
+  test("a branch or path in a toolbar popover can be selected", async ({ page }) => {
+    await open(page, "", 1440);
+    await openThread(page, "Provider settings refactor");
+    await page.locator(".wt-pill").click();
+    const head = page.locator(".wt-pop-head span").first();
+    await expect(head).toBeVisible();
+    const box = (await head.boundingBox())!;
+    // Along the first line of the (wrapping) branch and path text.
+    await page.mouse.move(box.x + 2, box.y + 6);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 2, box.y + 6, { steps: 8 });
+    await page.mouse.up();
+    expect(await page.evaluate(() => window.getSelection()?.toString() ?? "")).not.toBe("");
+  });
+
   test("material: a drawer is solid, at most two layers blur, chrome is not selectable and content is", async ({ page }) => {
     await open(page, "", 820);
     await openThread(page, "Provider settings refactor");

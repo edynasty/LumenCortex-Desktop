@@ -84,7 +84,7 @@ export const messages: Message[] = [
   { sessionId: session.id, seq: 0, role: "user", json: { content: "Refactor provider settings and add tests." } },
   { sessionId: session.id, seq: 1, role: "assistant", json: { content: "I’ll inspect the provider configuration and existing tests first." } },
   { sessionId: session.id, seq: 2, role: "tool", json: { name: "search_text", content: JSON.stringify({ path: "internal/backend/provider_config.go", ok: true }) } },
-  { sessionId: session.id, seq: 3, role: "assistant", json: { content: "The project already separates global and project scopes. I’ll preserve that contract." } },
+  { sessionId: session.id, seq: 3, role: "assistant", json: { content: `The project already separates global and project scopes. I’ll preserve that contract.\n\n\`\`\`ts\nexport const scopeOrder = ["global", "project"] as const; // ${"precedence ".repeat(24)}\n\`\`\`` } },
 ];
 
 // Runtime-authored rows (origin) render as notices; the thread scene shows each kind.

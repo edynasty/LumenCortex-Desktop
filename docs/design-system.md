@@ -186,8 +186,11 @@ Float glass (`--surface-float` plus a 28 px backdrop blur) is for the composer, 
 sheet. Drawers and the error toast use `--surface-float-solid` with no blur: a drawer sits over a scrim
 and a toast lives seconds, so blur there costs a full-pane layer for no readable gain. At most two
 layers blur at once. Native chrome (toolbar, rail, thread rows, section labels, chips, buttons) is
-`user-select: none`; message text, code, diffs and paths stay selectable. Every scroller contains
-its overscroll. Under `prefers-contrast: more` the content and float surfaces turn solid, hairlines
+`user-select: none`; message text, code, diffs and paths stay selectable, and so does the content of a
+popover (a branch or path shown there is something to copy). The window itself never rubber-bands
+(`html, body { overscroll-behavior: none }`); pane scrollers contain their overscroll, and scrollers
+nested in content (code blocks, tool output) keep the default so the wheel over them still scrolls
+the thread. Under `prefers-contrast: more` the content and float surfaces turn solid, hairlines
 use the strong line and `--fg-4` takes `--fg-3`.
 
 ## 12. Core components

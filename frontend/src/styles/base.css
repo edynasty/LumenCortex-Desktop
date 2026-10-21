@@ -17,12 +17,20 @@ body {
 button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: default; }
 /* Native chrome is not selectable; message text, code, diffs and paths in content stay selectable.
-   WKWebView needs the prefixed property. */
+   WKWebView needs the prefixed property. Popovers render inline (inside the toolbar, for one), so
+   they opt back in: a branch or path in a popover is something to copy. */
 button, .toolbar, .rail, .thread-row, .section-label, .chip, .kbd, .list-row {
   -webkit-user-select: none; user-select: none;
 }
-/* Scrolling inside a pane never chains to the window, as in a native app. */
-* { overscroll-behavior: contain; }
+.popover, .desktop-popover-content { -webkit-user-select: text; user-select: text; }
+:is(.popover, .desktop-popover-content) button { -webkit-user-select: none; user-select: none; }
+/* The window never rubber-bands, and a pane scroller does not chain into it. Scrollers nested in
+   content (code blocks, tool output) keep the default so the wheel over them still scrolls the
+   thread once they cannot scroll further. */
+html, body { overscroll-behavior: none; }
+.ledger-scroll, .sidebar-scroll, .diff-scroll, .file-list, .scm-scroll, .context-list, .context-detail,
+.agents-page, .new-thread, .model-list, .desktop-select-list, .palette-list, .settings-nav, .settings-scroll,
+.dialog, .welcome, .project-menu-popover { overscroll-behavior: contain; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 h1, h2, h3, h4, h5, p, figure, dl, dd, blockquote, pre { margin: 0; }
