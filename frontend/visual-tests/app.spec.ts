@@ -171,6 +171,34 @@ test.describe("window shell", () => {
     await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
   });
 
+  test("with the native menu installed, menu commands act once and the webview keys stand down", async ({ page }) => {
+    await open(page, "menu=native");
+    const emit = (command: string) => page.evaluate((name) => (window as Window & { __lcxEmit: (n: string, p: unknown) => void }).__lcxEmit("menu:command", name), command);
+    const palette = page.getByRole("dialog", { name: "Command palette" });
+    await expect(page.locator(".sidebar")).toBeVisible();
+
+    // The menu bar owns the keys: the same press that opens the palette in a browser does nothing here.
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(palette).toHaveCount(0);
+    await emit("palette");
+    await expect(palette).toBeVisible();
+    await emit("palette");
+    await expect(palette).toBeHidden();
+
+    await emit("settings");
+    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+    await expect(page.locator(".settings-nav-item.is-selected")).toBeFocused(); // the focus trap is armed
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "Settings" })).toHaveCount(0);
+
+    await emit("toggle-sidebar");
+    await expect(page.locator(".sidebar")).toBeHidden();
+    await page.keyboard.press("ControlOrMeta+b");
+    await expect(page.locator(".sidebar")).toBeHidden();
+    await emit("toggle-sidebar");
+    await expect(page.locator(".sidebar")).toBeVisible();
+  });
+
   test("welcome shows the A1 mark and opens a project", async ({ page }) => {
     await open(page, "project=none");
     await expect(page.getByRole("img", { name: "LumenCortex" }).first()).toBeVisible();

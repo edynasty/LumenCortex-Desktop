@@ -7,6 +7,8 @@ import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { ThemePreference } from "../lib/theme";
 import type { Session } from "../types";
 import type { InspectorTab } from "../components/inspector/inspector-types";
+import { installNativeMenu, menuOwnsKey } from "../lib/native-menu";
+import { onMenuCommand } from "../lib/bridge";
 import { errorRecoveryKind } from "./error-recovery";
 import type { WorkspacePage, WorkspaceRoute } from "./workspace-route";
 
@@ -136,6 +138,7 @@ export function useWorkspaceCommands(input: Input) {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
       const { input: now, navigate: go, openSettings: settingsAt } = latest.current;
       const key = event.key.toLowerCase();
+      if (menuOwnsKey(key)) return;
       const hasProject = Boolean(now.workspace);
       let handled = true;
       if (key === "k") now.onPaletteOpenChange(!now.paletteOpen);
@@ -151,6 +154,15 @@ export function useWorkspaceCommands(input: Input) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // The native menu bar (macOS) sends the same commands the keys above would.
+  useEffect(() => onMenuCommand((command) => {
+    const { input: now, openSettings: settingsAt } = latest.current;
+    if (command === "palette") now.onPaletteOpenChange(!now.paletteOpen);
+    else if (command === "settings") settingsAt("general");
+    else if (command === "new-thread" && now.workspace) now.onNewTask();
+  }), []);
+  useEffect(() => { void installNativeMenu(input.locale); }, [input.locale]);
 
   return { navigate, openSettings, closeSettings, paletteActions, recovery };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { setWindowBackground } from "./bridge";
 
 export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
@@ -19,10 +20,31 @@ function systemPrefersDark() {
   return typeof window.matchMedia === "function" && window.matchMedia(DARK_QUERY).matches;
 }
 
-export function applyThemePreference(preference: ThemePreference) {
-  const resolved = resolveTheme(preference, systemPrefersDark());
+/** "#rrggbb" to its channels; anything else (rgba(), empty before the stylesheet loads) is null. */
+export function parseHexColour(value: string): [number, number, number] | null {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value.trim());
+  return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : null;
+}
+
+/**
+ * Paints the native window with the theme's own ground (--bg-window), the colour that shows where
+ * the webview has not painted: launch, live resize, overscroll. The token is the single source, so
+ * the native colour cannot drift from the CSS.
+ */
+function syncWindowGround() {
+  const ground = parseHexColour(getComputedStyle(document.documentElement).getPropertyValue("--bg-window"));
+  if (ground) setWindowBackground(...ground);
+}
+
+function setResolvedTheme(resolved: ResolvedTheme) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.style.colorScheme = resolved;
+  syncWindowGround();
+}
+
+export function applyThemePreference(preference: ThemePreference) {
+  const resolved = resolveTheme(preference, systemPrefersDark());
+  setResolvedTheme(resolved);
   return resolved;
 }
 
@@ -33,9 +55,7 @@ export function useThemePreference() {
     localStorage.setItem(STORAGE_KEY, preference);
     const media = typeof window.matchMedia === "function" ? window.matchMedia(DARK_QUERY) : null;
     const sync = () => {
-      const resolved = resolveTheme(preference, Boolean(media?.matches));
-      document.documentElement.dataset.theme = resolved;
-      document.documentElement.style.colorScheme = resolved;
+      setResolvedTheme(resolveTheme(preference, Boolean(media?.matches)));
     };
 
     sync();

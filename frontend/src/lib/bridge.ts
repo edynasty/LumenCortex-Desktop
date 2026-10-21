@@ -148,6 +148,7 @@ export type AppAPI = {
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
   MigrateSubagentModel(): Promise<SubagentModelMigration>;
   TitleBarDoubleClick(): Promise<void>;
+  SetMenuLocale(locale: string): Promise<boolean>;
 };
 
 declare global {
@@ -156,6 +157,7 @@ declare global {
     runtime?: {
       EventsOn?: (name: string, callback: (...args: unknown[]) => void) => unknown;
       EventsOff?: (name: string) => void;
+      WindowSetBackgroundColour?: (r: number, g: number, b: number, a: number) => void;
     };
   }
 }
@@ -261,8 +263,25 @@ export const bridge = {
   migrateSubagentModel: () => api().MigrateSubagentModel(),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit),
-  titleBarDoubleClick: () => api().TitleBarDoubleClick()
+  titleBarDoubleClick: () => api().TitleBarDoubleClick(),
+  /** Rebuilds the native menu bar in the app language; true when a native menu is installed. */
+  setMenuLocale: (locale: string) => api().SetMenuLocale(locale)
 };
+
+/** The native window's background, shown wherever the webview has not painted (launch, live resize). */
+export function setWindowBackground(r: number, g: number, b: number): void {
+  window.runtime?.WindowSetBackgroundColour?.(r, g, b, 255);
+}
+
+/** Commands the native menu bar sends: see menu.go. */
+export type MenuCommand = "new-thread" | "settings" | "palette" | "toggle-sidebar";
+
+export function onMenuCommand(callback: (command: MenuCommand) => void): () => void {
+  const eventsOn = window.runtime?.EventsOn;
+  if (!eventsOn) return () => undefined;
+  const cancel = eventsOn("menu:command", (...args: unknown[]) => callback(args[0] as MenuCommand));
+  return typeof cancel === "function" ? (cancel as () => void) : () => undefined;
+}
 
 export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => void {
   const eventsOn = window.runtime?.EventsOn;

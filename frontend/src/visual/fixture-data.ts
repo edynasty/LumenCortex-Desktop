@@ -542,6 +542,8 @@ export function visualAppStub() {
     },
     MigrateSubagentModel: async () => ({ globalChanged: false, workspaceChanged: false }),
     TitleBarDoubleClick: async () => undefined,
+    // No native menu in the visual harness: the webview handles its own shortcuts.
+    SetMenuLocale: async () => false,
 
     GetTaskState: async (sessionId) => ({ ...structuredClone(visualTaskState), sessionId }),
     StartProposedTask: async (_parentId, taskId) => startVisualTask(taskId),

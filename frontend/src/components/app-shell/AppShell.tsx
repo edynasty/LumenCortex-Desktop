@@ -14,6 +14,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import { INSPECTOR_WIDTH, SIDEBAR_WIDTH, type LayoutPreference } from "../../lib/layout-preference";
+import { onMenuCommand } from "../../lib/bridge";
+import { menuOwnsKey } from "../../lib/native-menu";
 import { Drawer } from "../primitives/Drawer";
 import { Icon } from "../primitives/Icon";
 import { IconButton } from "../primitives/IconButton";
@@ -120,6 +122,7 @@ export function AppShell({
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
       const key = event.key.toLowerCase();
+      if (menuOwnsKey(key)) return;
       const current = stateRef.current;
       if (key === "b") {
         event.preventDefault();
@@ -132,6 +135,9 @@ export function AppShell({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+  useEffect(() => onMenuCommand((command) => {
+    if (command === "toggle-sidebar") stateRef.current.toggleSidebar();
+  }), []);
 
   const style = {
     "--sidebar-current": `${sidebarInline ? sidebarW : 0}px`,

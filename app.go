@@ -13,6 +13,9 @@ type App struct {
 	backend    *backend.Runtime
 	eventMu    sync.Mutex
 	stopEvents func()
+
+	menuMu     sync.Mutex
+	menuLocale string
 }
 
 func NewApp() *App {

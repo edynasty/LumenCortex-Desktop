@@ -98,7 +98,8 @@ have an enter motion only. Reduced motion collapses every duration to 1 ms.
 ### Running
 
 Allowed:
-- three-dot thinking indicator,
+- the A1 turn (`.lumen-indicator`) as the single agent-running glyph, always beside a text label
+  (status text, "Work" title, task state). It holds still under reduced motion; the label carries the state,
 - subtle determinate progress when real progress exists.
 
 Not allowed:
