@@ -15,7 +15,7 @@
 .scm-row.is-selected .scm-row-icon { color: var(--accent-fg); }
 .scm-row-branch { grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); color: var(--fg); }
 .scm-row-branch.mono { font-size: var(--text-xs); }
-.scm-row-state, .scm-row-clean { grid-row: 1; font-size: var(--text-2xs); color: var(--fg-4); white-space: nowrap; }
+.scm-row-state, .scm-row-clean { grid-row: 1; font-size: var(--text-2xs); color: var(--fg-3); white-space: nowrap; }
 .scm-row-state.is-dirty { color: var(--warn); }
 .scm-row-counts { grid-row: 1; display: inline-flex; gap: 6px; font-size: var(--text-2xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .scm-row-counts > span { display: inline-flex; align-items: center; gap: 2px; }
@@ -28,7 +28,7 @@
 .scm-row-sub.mono { font-size: var(--text-3xs); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scm-row-sub > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scm-row-sub .status-glyph, .scm-row-sub > svg { flex: none; }
-.scm-list-hint { margin: 14px 8px 0; font-size: var(--text-2xs); line-height: 1.55; color: var(--fg-4); }
+.scm-list-hint { margin: 14px 8px 0; font-size: var(--text-2xs); line-height: 1.55; color: var(--fg-3); }
 
 /* —— Main —— */
 .scm-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -100,7 +100,7 @@ button.scm-graph-row:hover { background: var(--state-hover); }
 
 /* —— Worktree tabs —— */
 .scm-tabs { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 16px 20px 10px; flex: none; border-bottom: 1px solid var(--line); }
-.scm-ignored { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-2xs); color: var(--fg-4); }
+.scm-ignored { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-2xs); color: var(--fg-3); }
 .scm-ignored .mono { font-size: var(--text-3xs); }
 .scm-tab-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .scm-tab-body .scm-scroll { padding: 12px 20px 20px; }

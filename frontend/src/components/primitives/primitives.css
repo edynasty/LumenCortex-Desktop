@@ -24,7 +24,7 @@
 .desktop-select-trigger:disabled { opacity: .5; }
 .desktop-select-trigger-copy { min-width: 0; display: flex; align-items: center; gap: 6px; }
 .desktop-select-trigger-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.desktop-select-trigger-copy small { color: var(--fg-4); font-size: var(--text-2xs); white-space: nowrap; }
+.desktop-select-trigger-copy small { color: var(--fg-3); font-size: var(--text-2xs); white-space: nowrap; }
 .desktop-select-trigger-copy em, .desktop-select-option-title em {
   flex: none; padding: 0 5px; border-radius: var(--r-pill); background: var(--surface-control); color: var(--fg-3);
   font-size: var(--text-2xs); font-style: normal; font-weight: var(--weight-medium); line-height: 16px;
@@ -39,7 +39,7 @@
 .desktop-select-search:focus-within { box-shadow: inset 0 0 0 1px var(--accent-line), 0 0 0 3px var(--accent-soft); }
 .desktop-select-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; color: var(--fg); font-size: var(--text-sm); }
 .desktop-select-search input:focus { outline: none; }
-.desktop-select-search input::placeholder { color: var(--fg-4); }
+.desktop-select-search input::placeholder { color: var(--fg-3); }
 .desktop-select-list { max-height: 320px; overflow: auto; padding: 6px; }
 .desktop-select-group { padding: 8px 8px 4px; color: var(--fg-3); font-size: var(--text-2xs); font-weight: var(--weight-semibold); }
 .desktop-select-option {

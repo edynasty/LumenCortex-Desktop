@@ -38,4 +38,4 @@
 .env-setting-name > svg { color: var(--fg-3); flex: none; }
 .env-setting-sub { color: var(--fg-3); font-size: var(--text-2xs); line-height: 1.45; }
 .env-setting-value { margin-left: auto; color: var(--fg-2); font-size: var(--text-xs); white-space: nowrap; }
-.env-popover-note { margin: 0; padding: var(--sp-1) var(--sp-1) 0; color: var(--fg-4); font-size: var(--text-2xs); line-height: 1.5; }
+.env-popover-note { margin: 0; padding: var(--sp-1) var(--sp-1) 0; color: var(--fg-3); font-size: var(--text-2xs); line-height: 1.5; }

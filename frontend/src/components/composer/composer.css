@@ -49,7 +49,7 @@
 .composer-bar .chip { flex: none; min-width: 0; }
 .composer-bar .chip .chip-label, .composer-bar .chip .chip-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .composer-spacer { flex: 1 1 auto; min-width: var(--sp-1); }
-.composer-hint { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px; overflow: hidden; white-space: nowrap; color: var(--fg-4); font-size: var(--text-2xs); }
+.composer-hint { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px; overflow: hidden; white-space: nowrap; color: var(--fg-3); font-size: var(--text-2xs); }
 .composer-hint > svg { flex: none; }
 .composer-hint-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* The keyboard hint is a nicety: show it whole or not at all. It needs ~160px beyond the chips,

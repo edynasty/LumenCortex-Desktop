@@ -32,7 +32,7 @@
 .agents-editor .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .agents-editor .input { width: 100%; }
 .agents-instructions { min-height: 190px; font-family: var(--font-mono); font-size: var(--mono-size); line-height: 1.55; resize: vertical; }
-.agents-counter { margin-left: 8px; color: var(--fg-4); font-variant-numeric: tabular-nums; font-weight: var(--weight-medium); }
+.agents-counter { margin-left: 8px; color: var(--fg-3); font-variant-numeric: tabular-nums; font-weight: var(--weight-medium); }
 .agents-counter.is-over { color: var(--bad); }
 .agents-note { font-size: var(--text-2xs); line-height: 1.5; color: var(--fg-3); }
 .agents-defaults { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -55,7 +55,7 @@
 .agents-model-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(96px, 132px) auto; align-items: center; gap: 6px; }
 .agents-model-row .popover-anchor { display: block; min-width: 0; }
 .agents-model-row .chip, .agents-model-row .model-chip { max-width: 100%; }
-.agents-model-index { color: var(--fg-4); font-size: var(--text-2xs); font-variant-numeric: tabular-nums; text-align: right; }
+.agents-model-index { color: var(--fg-3); font-size: var(--text-2xs); font-variant-numeric: tabular-nums; text-align: right; }
 .agents-model-actions { display: flex; align-items: center; gap: 1px; }
 .agents-model-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; border-radius: var(--r-sm); background: transparent; color: var(--fg-3); }
 .agents-model-btn:hover:not(:disabled) { background: var(--state-hover); color: var(--fg); }

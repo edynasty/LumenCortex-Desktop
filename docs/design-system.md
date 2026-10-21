@@ -244,8 +244,19 @@ Semantic only:
 - Destructive actions distinct.
 - Semantic color not sole signal.
 - Keyboard navigation preserved.
-- Minimum readable contrast.
+- Minimum readable contrast: see the rule below.
 
+### Contrast rule
+
+- `--fg-3` is the lightest colour any readable text (labels, timestamps, placeholders, hints, diff
+  markers, code comments) may use. It passes 4.5:1 on content, card hover, control, selected row and
+  float, in both themes.
+- `--fg-4` is for non-text only: icons, chevrons, separators, status dots, strike lines, disabled
+  controls. It passes 3:1 on content, card hover and float. Never set text in it.
+- Semantic text (`--ok`, `--warn`, `--bad`, `--accent-fg`) passes 4.5:1 on its own `-soft` tint; the
+  label on the primary gradient (`--fg-on-accent`) passes 4.5:1 at both gradient stops.
+- `visual-tests/app.spec.ts` ("text and non-text contrast hold in the … theme") computes these ratios
+  from the live tokens in both themes. Change a colour token and that test tells you whether it holds.
 
 ## 15. Motion
 

@@ -83,7 +83,7 @@
   min-height: 20px; display: grid; grid-template-columns: 46px 46px minmax(0, 1fr); align-items: start;
   font-family: var(--font-mono); font-size: var(--mono-size); line-height: 20px; table-layout: fixed;
 }
-.diff-num { padding: 0 8px; text-align: right; color: var(--fg-4); user-select: none; vertical-align: top; font-variant-numeric: tabular-nums; }
+.diff-num { padding: 0 8px; text-align: right; color: var(--fg-3); user-select: none; vertical-align: top; font-variant-numeric: tabular-nums; }
 .diff-line code { padding: 0 12px; white-space: pre; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
 .diff-line.k-add { background: var(--diff-add-bg); }
 .diff-line.k-add .diff-num:last-of-type { background: var(--diff-add-mark); color: var(--fg-3); }
@@ -106,7 +106,7 @@
 .split-cell.k-delete .diff-num { background: var(--diff-del-mark); color: var(--fg-3); }
 .split-cell.k-meta { background: var(--accent-soft); color: var(--accent-fg); font-size: var(--text-2xs); }
 
-.diff-prefix { display: inline-block; width: 10px; color: var(--fg-4); user-select: none; }
+.diff-prefix { display: inline-block; width: 10px; color: var(--fg-3); user-select: none; }
 
 .review-loading { padding: 24px; color: var(--fg-3); font-size: var(--text-xs); }
 .review-diff-more {

@@ -113,8 +113,8 @@
 
   --fg: #e9eef7;
   --fg-2: #b6c0d1;
-  --fg-3: #8592a8;
-  --fg-4: #5c6880;
+  --fg-3: #98a4b9;   /* lightest readable text: >= 4.5:1 on content, card hover, control, selected, float */
+  --fg-4: #6f7b94;   /* non-text only (icons, separators, dots, strike lines): >= 3:1 */
   --fg-on-accent: #ffffff;
 
   --line: rgba(160, 190, 240, 0.09);
@@ -128,7 +128,7 @@
   --accent-fg: #8cbcff;
   --accent-soft: rgba(77, 151, 255, 0.14);
   --accent-line: rgba(102, 168, 255, 0.36);
-  --accent-gradient: linear-gradient(180deg, #5aa2ff 0%, #2f78ea 100%);
+  --accent-gradient: linear-gradient(180deg, #3172de 0%, #2563cc 100%);
 
   --ok: #4fd1a1;
   --ok-soft: rgba(79, 209, 161, 0.13);
@@ -157,7 +157,7 @@
   --syntax-keyword: #b493ff;
   --syntax-string: #e7b56a;
   --syntax-number: #8cbcff;
-  --syntax-comment: #5c6880;
+  --syntax-comment: var(--fg-3);
   --syntax-type: #5fd0e6;
 
   /* Elevation: soft and low-contrast; no coloured glow. */
@@ -197,8 +197,8 @@
 
   --fg: #17202e;
   --fg-2: #3f4b5e;
-  --fg-3: #6a768a;
-  --fg-4: #98a2b3;
+  --fg-3: #58647a;
+  --fg-4: #7a8597;
   --fg-on-accent: #ffffff;
 
   --line: rgba(30, 50, 90, 0.09);
@@ -209,18 +209,18 @@
   --accent: #2370e6;
   --accent-hover: #1a63d4;
   --accent-pressed: #1556bb;
-  --accent-fg: #1d66d8;
+  --accent-fg: #1a5fcb;
   --accent-soft: rgba(35, 112, 230, 0.10);
   --accent-line: rgba(35, 112, 230, 0.30);
-  --accent-gradient: linear-gradient(180deg, #3b84f2 0%, #1f68dc 100%);
+  --accent-gradient: linear-gradient(180deg, #2f6fd9 0%, #1d5fd0 100%);
 
-  --ok: #11946a;
+  --ok: #0a7050;
   --ok-soft: rgba(17, 148, 106, 0.10);
   --ok-line: rgba(17, 148, 106, 0.30);
-  --warn: #b26b00;
+  --warn: #8a4f00;
   --warn-soft: rgba(214, 140, 20, 0.12);
   --warn-line: rgba(178, 107, 0, 0.30);
-  --bad: #d23c3c;
+  --bad: #b02a2a;
   --bad-soft: rgba(210, 60, 60, 0.09);
   --bad-line: rgba(210, 60, 60, 0.28);
 
@@ -239,7 +239,7 @@
   --syntax-keyword: #7c4fe0;
   --syntax-string: #9a5d00;
   --syntax-number: #1d66d8;
-  --syntax-comment: #98a2b3;
+  --syntax-comment: var(--fg-3);
   --syntax-type: #0f7f9e;
 
   --shadow-control: 0 0 0 0.5px rgba(20, 40, 80, 0.10), 0 1px 2px rgba(20, 40, 80, 0.06);

@@ -321,6 +321,72 @@ test.describe("accessibility", () => {
       expect(unlabeled, `@${width}`).toEqual([]);
     }
   });
+
+  // Text rule (docs/design-system.md, Contrast): --fg-3 is the lightest readable text and passes 4.5:1
+  // on every surface text sits on; --fg-4 is non-text only and passes 3:1. Ratios are computed from
+  // the live custom properties, composited over the window ground, so a reverted token fails here.
+  for (const theme of ["dark", "light"] as const) {
+    test(`text and non-text contrast hold in the ${theme} theme`, async ({ page }) => {
+      await open(page, `theme=${theme}`);
+      const rows = await page.evaluate(() => {
+        type Rgba = [number, number, number, number];
+        const probe = document.createElement("span");
+        // A global `transition: color` would make getComputedStyle return the previous colour.
+        probe.style.transition = "none";
+        document.body.append(probe);
+        const read = (value: string): Rgba => {
+          probe.style.color = "";
+          probe.style.color = value;
+          const c = getComputedStyle(probe).color;
+          let m = c.match(/rgba?\(([^)]+)\)/);
+          if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p[3] ?? 1]; }
+          m = c.match(/color\(srgb ([^)]+)\)/);
+          if (m) { const p = m[1].split(/[ /]+/).filter(Boolean).map(Number); return [p[0] * 255, p[1] * 255, p[2] * 255, p[3] ?? 1]; }
+          throw new Error(`unreadable colour ${c} for ${value}`);
+        };
+        const root = getComputedStyle(document.documentElement);
+        const tok = (name: string) => root.getPropertyValue(name).trim();
+        const over = (fg: Rgba, bg: Rgba): Rgba => [0, 1, 2].map((i) => fg[i] * fg[3] + bg[i] * (1 - fg[3])).concat(1) as Rgba;
+        const lum = (c: Rgba) => {
+          const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+          return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+        };
+        const ratio = (a: Rgba, b: Rgba) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+
+        // The ground is a gradient; test against both ends of its linear layer and keep the worse ratio.
+        const stops = tok("--bg-ground").match(/#[0-9a-f]{6}/gi) ?? [];
+        const grounds = stops.slice(-2).map(read);
+        const worst = (fg: string, surface: (ground: Rgba) => Rgba) => Math.min(...grounds.map((g) => {
+          const bg = surface(g);
+          return ratio(over(read(fg), bg), bg);
+        }));
+        const content = (g: Rgba) => over(read(tok("--surface-content")), g);
+        const onContent = (name: string) => (g: Rgba) => over(read(tok(name)), content(g));
+        const gradient = (tok("--accent-gradient").match(/#[0-9a-f]{6}/gi) ?? []).map(read);
+
+        const table: [string, number, number][] = [];
+        const text = (label: string, color: string, surface: (g: Rgba) => Rgba) => table.push([label, worst(color, surface), 4.5]);
+        const nonText = (label: string, color: string, surface: (g: Rgba) => Rgba) => table.push([label, worst(color, surface), 3]);
+        text("fg on content", tok("--fg"), content);
+        text("fg-2 on content", tok("--fg-2"), content);
+        for (const [name, surface] of [
+          ["content", content], ["card hover", onContent("--surface-card-hover")], ["control", onContent("--surface-control")],
+          ["selected row", onContent("--state-selected")], ["float", onContent("--surface-float")],
+        ] as const) text(`fg-3 on ${name}`, tok("--fg-3"), surface);
+        text("accent-fg on accent-soft", tok("--accent-fg"), onContent("--accent-soft"));
+        for (const name of ["ok", "warn", "bad"]) text(`${name} on ${name}-soft`, tok(`--${name}`), onContent(`--${name}-soft`));
+        gradient.slice(0, 2).forEach((stop, i) => table.push([`white label on gradient stop ${i}`, ratio([255, 255, 255, 1], stop), 4.5]));
+        for (const [name, surface] of [
+          ["content", content], ["card hover", onContent("--surface-card-hover")], ["float", onContent("--surface-float")],
+        ] as const) nonText(`fg-4 on ${name}`, tok("--fg-4"), surface);
+        probe.remove();
+        return table;
+      });
+      const failing = rows.filter(([, got, min]) => got < min).map(([label, got, min]) => `${label}: ${got.toFixed(2)} < ${min}`);
+      expect(failing).toEqual([]);
+      expect(rows.length).toBeGreaterThan(10);
+    });
+  }
 });
 
 test("no console errors across pages, themes and locales", async ({ page }) => {

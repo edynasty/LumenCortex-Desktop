@@ -125,7 +125,7 @@
 .thread-row-glyph { grid-row: 1; display: grid; place-items: center; height: 18px; }
 .thread-row-title { grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); line-height: 18px; color: var(--fg-2); }
 .thread-row.is-selected .thread-row-title, .thread-row.is-unread .thread-row-title { color: var(--fg); font-weight: var(--weight-medium); }
-.thread-row-time { grid-row: 1; font-size: var(--text-2xs); color: var(--fg-4); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.thread-row-time { grid-row: 1; font-size: var(--text-2xs); color: var(--fg-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .thread-row-meta { grid-row: 2; grid-column: 2 / 4; display: flex; align-items: center; gap: 8px; min-width: 0; font-size: var(--text-2xs); line-height: 16px; }
 .thread-row-status { flex: none; white-space: nowrap; font-weight: var(--weight-medium); }
 .thread-row-status.is-quiet { color: var(--fg-3); font-weight: 400; }
@@ -137,7 +137,7 @@
 .core-status { display: inline-flex; align-items: center; gap: 7px; flex: 1; min-width: 0; font-size: var(--text-2xs); color: var(--fg-3); white-space: nowrap; overflow: hidden; }
 .core-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px var(--ok-soft); }
 .core-dot.is-busy { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.core-runs { margin-left: auto; color: var(--fg-4); overflow: hidden; text-overflow: ellipsis; }
+.core-runs { margin-left: auto; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; }
 
 /* —— Sheets: the two glass surfaces (main pane, inspector) share one material. —— */
 .sheet {
