@@ -49,7 +49,7 @@ describe("ModelPicker keyboard flow", () => {
   it("arrows skip disabled rows, Enter picks, Esc closes and returns focus to the chip", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const { rerender } = render(<ModelPicker
+    render(<ModelPicker
       ariaLabel={t.modelSelect} value="" options={options} placeholder={t.noModels}
       searchLabel={t.modelSearch} emptyLabel={t.noModelMatches} recentLabel={t.recentModels}
       recentRefs={[]} onChange={onChange}
@@ -65,13 +65,11 @@ describe("ModelPicker keyboard flow", () => {
     fireEvent.keyDown(search, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("other/chat");
 
-    fireEvent.keyDown(search, { key: "Escape" });
-    rerender(<ModelPicker
-      ariaLabel={t.modelSelect} value="" options={options} placeholder={t.noModels}
-      searchLabel={t.modelSearch} emptyLabel={t.noModelMatches} recentLabel={t.recentModels}
-      recentRefs={[]} onChange={onChange}
-    />);
-    await Promise.resolve();
+    // Picking closes the menu; reopen, then Esc must close it and put focus back on the chip.
+    await user.click(trigger);
+    fireEvent.keyDown(screen.getByRole("textbox", { name: t.modelSearch }), { key: "Escape" });
+    expect(screen.queryByRole("textbox", { name: t.modelSearch })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("marks the current model, shows the pending tag, and refuses disabled rows by click", async () => {
@@ -119,9 +117,12 @@ describe("MenuPicker", () => {
       ]}
       onChange={onChange}
     />);
-    await user.click(screen.getByRole("button", { name: `${t.agentsPolicy}: ${t.workspace}` }));
-    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
+    const chip = screen.getByRole("button", { name: `${t.agentsPolicy}: ${t.workspace}` });
+    await user.click(chip);
     const items = screen.getAllByRole("menuitemradio");
+    // Opening puts focus on the checked option.
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
     expect(items[0]).toHaveFocus();
     fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
     expect(items[1]).toHaveFocus();
@@ -129,6 +130,27 @@ describe("MenuPicker", () => {
     expect(items[0]).toHaveFocus();
     await user.keyboard("{Enter}");
     expect(onChange).toHaveBeenCalledWith("read-only");
+    expect(chip).toHaveFocus();
+  });
+
+  it("opens from the chip with ArrowDown and Esc returns focus to it", async () => {
+    const user = userEvent.setup();
+    render(<MenuPicker
+      ariaLabel={t.agentsPolicy} value="read-only" placeholder={t.readOnly}
+      options={[
+        { value: "read-only", label: t.readOnly },
+        { value: "workspace", label: t.workspace },
+      ]}
+      onChange={() => undefined}
+    />);
+    const chip = screen.getByRole("button", { name: `${t.agentsPolicy}: ${t.readOnly}` });
+    chip.focus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(screen.getAllByRole("menuitemradio")[0]).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(chip).toHaveFocus();
   });
 
   it("shows why a capped control is disabled", () => {

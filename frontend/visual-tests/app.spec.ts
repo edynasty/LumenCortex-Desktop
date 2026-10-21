@@ -704,6 +704,17 @@ test.describe("Core-backed interactions", () => {
     await page.getByRole("menu", { name: "Permissions" }).getByRole("menuitemradio", { name: /^Full access/ }).click();
     await expect(page.locator(".composer-policy")).toHaveClass(/is-full/);
 
+    // Keyboard only: ArrowDown on the chip opens the menu on the checked option, Up + Enter picks,
+    // and focus is back on the chip.
+    const chip = page.getByRole("button", { name: /^Permissions:/ });
+    await chip.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("menuitemradio", { name: /^Full access/ })).toBeFocused();
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".composer-policy")).not.toHaveClass(/is-full/);
+    await expect(chip).toBeFocused();
+
     // The gear opens the environment popover: New worktree is the Local/Worktree switch.
     const gear = page.getByRole("button", { name: "Configure environment" });
     await gear.click();

@@ -45,30 +45,32 @@ export function ContextAttachTrigger({
         {count > 0 && <span className="count-badge">{count}</span>}
       </button>
       <AnchoredPopover open={open} onClose={() => setOpen(false)} placement="above-start" label={labels.context} className="menu">
-        <button
-          type="button"
-          role="menuitem"
-          className="menu-item"
-          onClick={() => {
-            setOpen(false);
-            onPickFiles();
-          }}
-        >
-          <Icon name="addFile" size={15} />
-          <span className="menu-item-body"><span>{labels.files}</span></span>
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          className="menu-item"
-          onClick={() => {
-            setOpen(false);
-            onPickFolder();
-          }}
-        >
-          <Icon name="addFolder" size={15} />
-          <span className="menu-item-body"><span>{labels.folder}</span></span>
-        </button>
+        <div role="menu" aria-label={labels.context}>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            onClick={() => {
+              setOpen(false);
+              onPickFiles();
+            }}
+          >
+            <Icon name="addFile" size={15} />
+            <span className="menu-item-body"><span>{labels.files}</span></span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            onClick={() => {
+              setOpen(false);
+              onPickFolder();
+            }}
+          >
+            <Icon name="addFolder" size={15} />
+            <span className="menu-item-body"><span>{labels.folder}</span></span>
+          </button>
+        </div>
       </AnchoredPopover>
     </span>
   );
