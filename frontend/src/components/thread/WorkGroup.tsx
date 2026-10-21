@@ -136,7 +136,7 @@ export function WorkGroup({ messages, live, labels }: { messages: Message[]; liv
           <span className="work-head-icon">
             {live ? <LumenIndicator size={14} /> : <Icon name={expanded ? "collapse" : "expand"} size={14} />}
           </span>
-          <span className={`work-head-title ${live ? "shimmer" : ""}`}>{labels.workTitle}</span>
+          <span className="work-head-title">{labels.workTitle}</span>
           <span className="work-head-summary">{summary}</span>
         </button>
       </div>

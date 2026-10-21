@@ -225,13 +225,6 @@ code, .mono, kbd, pre { font-family: var(--font-mono); }
 .tone-running { color: var(--accent-fg); }
 .tone-info { color: var(--fg-3); }
 
-.shimmer {
-  background: linear-gradient(90deg, var(--fg-3) 0%, var(--fg-3) 40%, var(--fg) 50%, var(--fg-3) 60%, var(--fg-3) 100%);
-  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-  animation: shimmer 2.4s linear infinite;
-}
-@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) { .shimmer { color: var(--fg-2); background: none; } }
 
 /* ————————————————————————— Forms ————————————————————————— */
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

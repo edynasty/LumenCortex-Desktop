@@ -18,6 +18,7 @@ import type {
   SessionRuntime,
   SubagentNode,
 } from "../types";
+import { useRunAnnouncement } from "./hooks/useRunAnnouncement";
 import { pickerPlaceholder, type ConfiguredModelOption } from "./model-selection";
 import { routePage, type WorkspacePage, type WorkspaceRoute } from "./workspace-route";
 
@@ -108,6 +109,7 @@ export function WorkspaceChrome(props: Props) {
   const page = routePage(route);
   const inspectorAvailable = route.kind === "thread" || route.kind === "new-task";
   const closeDrawer = () => props.onSidebarDrawerOpenChange(false);
+  const announcement = useRunAnnouncement(props.groups);
 
   const models = configuredModels.map((item) => ({
     value: item.ref,
@@ -222,6 +224,7 @@ export function WorkspaceChrome(props: Props) {
   return (
     <AppShell
       overlays={props.overlays}
+      announcement={announcement}
       labels={labels}
       layout={props.layout}
       onLayoutChange={props.onLayoutChange}

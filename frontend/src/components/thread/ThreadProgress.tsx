@@ -1,4 +1,5 @@
 import { Bot, CircleDot, ListChecks, ShieldCheck } from "lucide-react";
+import { LumenIndicator } from "../brand/A1Mark";
 import type { WorkflowSummary } from "../../types";
 
 type Props = {
@@ -31,7 +32,7 @@ export function ThreadProgress({ running, status, workflow, activeSubagents, lab
           <strong>{labels.plan}</strong>
         </span>
         <span className="thread-progress-state">
-          <CircleDot size={10} strokeWidth={1.8} aria-hidden />
+          {waiting ? <CircleDot size={10} strokeWidth={1.8} aria-hidden /> : <LumenIndicator size={12} />}
           {waiting ? labels.waiting : labels.running}
         </span>
       </div>
@@ -41,7 +42,6 @@ export function ThreadProgress({ running, status, workflow, activeSubagents, lab
           <span><Bot size={10} strokeWidth={1.7} aria-hidden /> {activeSubagents} {labels.subagents}</span>
         </div>
       )}
-      {running && <div className="thread-progress-bar"><span /></div>}
     </section>
   );
 }

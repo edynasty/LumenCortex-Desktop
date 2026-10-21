@@ -151,16 +151,6 @@ code.tool-target { padding: 1px 6px; border-radius: var(--r-xs); background: var
 .thread-progress.waiting .thread-progress-state { color: var(--warn); }
 .thread-progress-action { overflow: hidden; color: var(--fg-2); font-size: var(--text-sm); font-weight: var(--weight-medium); text-overflow: ellipsis; white-space: nowrap; }
 .thread-progress-meta { display: flex; flex-wrap: wrap; gap: 7px; color: var(--fg-3); font-size: var(--text-2xs); }
-.thread-progress-bar { height: 2px; overflow: hidden; border-radius: var(--r-pill); background: var(--surface-sunken); }
-.thread-progress-bar span { width: 38%; height: 100%; display: block; border-radius: inherit; background: var(--accent); animation: thread-progress-slide 1.4s ease-in-out infinite; }
-@keyframes thread-progress-slide {
-  from { transform: translateX(-110%); }
-  55% { transform: translateX(140%); }
-  to { transform: translateX(270%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .thread-progress-bar span { width: 100%; animation: none; opacity: .65; }
-}
 
 /* —— History paging —— */
 .thread-history-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; padding: 2px 0; color: var(--fg-3); font-size: var(--text-2xs); }

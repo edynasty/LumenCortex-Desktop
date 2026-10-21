@@ -47,6 +47,8 @@ type Props = {
   children: ReactNode;
   /** Settings sheet, palette and dialogs: inside the window so the window container sizes them. */
   overlays?: ReactNode;
+  /** Run started, waiting at a gate, or ended: spoken through the one polite live region. */
+  announcement?: string;
 };
 
 function useWindowWidth() {
@@ -77,6 +79,7 @@ export function AppShell({
   toolbar,
   children,
   overlays,
+  announcement,
 }: Props) {
   const [ref, width] = useWindowWidth();
   const [resizing, setResizing] = useState(false);
@@ -226,6 +229,7 @@ export function AppShell({
         </Drawer>
       </div>
       {overlays}
+      <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { LoaderCircle } from "lucide-react";
 import type { TaskNotice } from "../../app/hooks/useThreadTasks";
 import { findNode, runningNodes, taskPhase, verification, type TaskPhase, type Verification } from "../../lib/execution-tasks";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { SubagentNode, TaskResult, ThreadTask } from "../../types";
+import { LumenIndicator } from "../brand/A1Mark";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import type { IconName } from "../primitives/icons";
@@ -167,7 +167,7 @@ function TaskCard({
       <header className="block-head">
         <span className="block-icon">
           {phase === "starting" || phase === "running" ? (
-            <LoaderCircle size={16} strokeWidth={1.8} aria-hidden className="spin" />
+            <LumenIndicator size={16} />
           ) : (
             <Icon name={phaseIcon[phase]} size={16} />
           )}

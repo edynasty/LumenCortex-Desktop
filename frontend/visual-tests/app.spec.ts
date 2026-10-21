@@ -132,6 +132,15 @@ test.describe("window shell", () => {
     await expect(page.locator(".drawer-end[role=dialog][aria-modal=true]")).toBeVisible();
   });
 
+  test("the shell has one polite live region and a running thread carries its label beside the A1 glyph", async ({ page }) => {
+    await open(page);
+    await expect(page.locator(".lc-window > [role=status][aria-live=polite]")).toHaveCount(1);
+    const running = page.locator(".thread-row", { has: page.locator(".lumen-indicator") }).first();
+    await expect(running).toBeVisible();
+    await expect(running.locator(".thread-row-status")).toHaveText(/\S/);
+    await expect(page.locator(".shimmer, .spin, .thread-progress-bar")).toHaveCount(0);
+  });
+
   test("a dismissed drawer plays its exit, stays inert, and returns focus at once", async ({ page }) => {
     await open(page, "", 820);
     await openThread(page, "Provider settings refactor");
@@ -640,9 +649,9 @@ test.describe("Core-backed interactions", () => {
     await expect(auto).toContainText("heuristic rules unless effort.auto.model");
     await page.keyboard.press("Escape");
 
-    // Keyboard: Tab into the menu, arrows walk Default → Auto, Enter picks.
+    // Keyboard: opening focuses the checked row (Default), ArrowDown walks to Auto, Enter picks.
     await chip.click();
-    await page.keyboard.press("Tab");
+    await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     await expect(chip).toHaveAccessibleName("Effort: Auto");
