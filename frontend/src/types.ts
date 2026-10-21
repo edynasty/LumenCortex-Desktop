@@ -624,6 +624,17 @@ export type TaskNote = {
 // The user adds a note (no id), rewrites one (id + text) or removes one (id + remove).
 export type TaskNoteEdit = { id?: string; text?: string; remove?: boolean };
 
+// One thread note as Core's read_thread reports it: the Task State note with each cite's freshness
+// checked against the main checkout (ADR-0010 D4). Stale notes are flagged, never hidden; a missing
+// `stale` means freshness is unknown.
+export type ThreadNoteView = {
+  id: string;
+  by: "agent" | "user" | string;
+  text: string;
+  cites?: { path: string; stale?: boolean }[];
+  stale?: boolean;
+};
+
 export type TaskResolutionState = "open" | "done" | "dropped";
 
 export type TaskResolution = {

@@ -4,8 +4,8 @@
 - **Scope:** the Desktop part of ADR-0010:
   - the Notes section in the Task pane (list, add as the user, remove);
   - "Remember" on a message (a user note);
+  - the Context page's notes (list, freshness, Forget);
   - the Core pin.
-  The Context page listing notes is not part of this change (see Open).
 - **Baseline:** Desktop `1714459` (pinned Core `6935aa2`).
 - **Core:** pinned `3e4f418` (ADR-0010 B1/B2, the review fixes and the B3 harness). Core report: `../LumenCortex/docs/reports/context-continuity-2026-10-21.md`. Pinned through the temporary `url.insteadOf` mechanism of earlier pins (`GOPROXY=direct GOPRIVATE=github.com/edynasty/*`), removed afterwards. No `replace`, no `go.work`. `docs/lumencortex.schema.json` is byte-identical to Core's (`cmp`).
 - **Status:** implemented and validated locally, including a native run (below); not pushed.
@@ -78,6 +78,37 @@ The packaged app (`scripts/build-macos.sh`) was launched with `XDG_CONFIG_HOME` 
   - `npx vitest run`: 292 tests pass. The first full run had one failure in `components/scm/useSourceControlPage.test.tsx` "lists Core's files for the main checkout"; it passed in four further full runs. It is a flaky test, unrelated to this change, and left as is.
   - `go build`, `go vet` and `go test -count=1 ./...` pass.
 
+## Context page notes (ADR-0010 B2, Desktop)
+
+Implemented by a subagent from a written contract, then reviewed here; one defect was fixed in review.
+
+- **Backend:**
+  - `Runtime.ThreadNotes` / `App.ThreadNotes` return Core's `ReadThread(...).Notes` (`lcx.ThreadNote`: id, by, text, cites with `stale`, note `stale`), never nil.
+  - Freshness is Core's (ADR-0010 D4), checked against the main checkout. Desktop computes nothing.
+- **Page:**
+  - A `笔记 / Notes` sidebar filter lists every note of the loaded threads (the existing 30-thread bound), newest first. Each row shows the author, source thread, cite count and a `已过期` badge. Search matches note text and thread title, and a row opens its thread.
+  - The thread detail gains a Notes section: author, text, cites (clicking one selects the file), a per-cite `文件已变更` marker, and Forget.
+  - Forget is a user removal through `EditTaskNote`; the returned Task State replaces the page's copy.
+  - Notes are not graph nodes. Files: `components/context/{ContextNotes.tsx, useContextNotes.ts}` (new), `ContextDetail.tsx`, `useContextPage.tsx`, `context-page-types.ts`, `context.css`, `types.ts`, `lib/bridge.ts`, `lib/i18n/app-copy.ts`, `visual/app-stub.ts`.
+- **Freshness cache:**
+  - Freshness is read lazily (the selected thread, plus every cited thread while the notes filter is on) and cached per Task State version.
+  - **Review fix:** files change without a Task State edit, so a version-keyed cache would have shown old freshness for the life of the app. The cache is now dropped when the page is left.
+  - A failed read shows no marker and does not block the list.
+- **Tests:**
+  - Go: `TestThreadNotesFreshness`. Fresh cite → not stale; changed file → note and cite stale; removed file → stale; empty thread → empty slice; unknown session → error.
+  - Vitest (`components/context/useContextPage.test.tsx`):
+    - notes from two threads newest first, search, open source thread;
+    - stale badge and cite, none for a fresh thread;
+    - Forget calls `editTaskNote({id, remove:true})` and the note disappears;
+    - a freshness failure still lists notes;
+    - "reads freshness again when the page is entered again…", which failed before the review fix and passes after.
+- **Run:**
+  - `go build`, `go vet` and `go test -count=1 ./...` pass.
+  - `npx tsc --noEmit` passes.
+  - `npx vitest run`: 60 files, 297 tests pass.
+  - Visual harness (Vite under Bun, headless Chromium 1440×900, zh-CN): the notes filter reads `笔记 3`, and the agent note citing `provider_config.go` shows `已过期`. Its thread detail shows the Notes section with `文件已变更` on the cite. Forget dropped the count to `笔记 2`.
+  - Not run natively: the native app's notes path was exercised earlier (Task pane, Remember), but the Context page was not.
+
 ## Unverified / limits
 
 - Remember on a child thread adds a user note to that child's Task State. This follows Core's rules. It was exercised natively once (above), with no dedicated test.
@@ -85,5 +116,5 @@ The packaged app (`scripts/build-macos.sh`) was launched with `XDG_CONFIG_HOME` 
 
 ## Open
 
-- The Context page does not list notes yet (ADR-0010 Consequences); it is a separate change.
+- The CLI `lcx-go context list|show|forget` from the proposal is not built. Hosts read notes through `ReadThread` and edit them through `EditTaskState`.
 - Neither repo is pushed; Core `3e4f418` must be pushed before this pin downloads cleanly.

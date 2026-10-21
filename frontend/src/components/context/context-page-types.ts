@@ -2,8 +2,8 @@
  * Project Context graph, adapted from the Lumen Glass Demo's ADR-0007 graph. Grounded only
  * in Core data the Desktop already holds: sessions and each thread's Task State references.
  * Threads are the entries; files and other threads become graph nodes only when a reference
- * names them. Nothing is inferred from content: Core has no notes yet, so the Demo's note
- * column, citations and typed note links are not drawn (documented in useContextPage).
+ * names them. Notes are not graph nodes: they are listed beside the graph and their cited
+ * files' freshness comes from Core's read_thread (ADR-0010 D4).
  *
  * Supported relations:
  *   thread→file   Task State references with kind "path" and state included (solid) or
@@ -11,7 +11,7 @@
  *   thread→thread references with kind "thread" (both ends inside the loaded bound), plus
  *                 the subagent parent/child relation Core records in session metadata.
  */
-import type { Session, TaskStateInfo } from "../../types";
+import type { Session, TaskStateInfo, ThreadNoteView } from "../../types";
 import { sessionUI } from "../../lib/session-ui";
 
 /** Loading bound: Task State is fetched for at most this many recent non-archived threads. */
@@ -47,8 +47,29 @@ export type ContextGraph = {
   truncatedFiles: number;
 };
 
-export type ContextFilter = "all" | "threads" | "files";
+export type ContextFilter = "all" | "threads" | "files" | "notes";
 export type ContextLens = "list" | "graph";
+
+/**
+ * One thread's note freshness, as Core's read_thread reported it for a Task State version. Keyed
+ * by version so a reply for an older state never replaces a newer one; a thread missing here has
+ * unknown freshness and shows no stale marker.
+ */
+export type NoteFreshness = { version: number; notes: Record<string, ThreadNoteView> };
+
+/** One note in the list lens: the Task State note joined with its source thread and freshness. */
+export type ContextNoteRow = {
+  id: string;
+  sessionId: string;
+  /** Title of the source thread, as the sidebar shows it. */
+  title: string;
+  text: string;
+  by: string;
+  at: string;
+  cites: number;
+  /** True only when Core's read_thread says a cited file changed or is gone. */
+  stale: boolean;
+};
 
 /** Route item for a file: files are graph nodes, not stored items. */
 export const fileItem = (path: string) => `file:${path}`;

@@ -5,14 +5,15 @@
  * from a Task State reference or the session list the Desktop already holds.
  */
 import type { ReactNode } from "react";
-import type { Session, TaskStateInfo } from "../../types";
+import type { Session, TaskNote, TaskStateInfo } from "../../types";
 import { sessionUI } from "../../lib/session-ui";
 import { formatRelative } from "../../lib/relative-time";
-import { citingThreads, fileItem, type ContextGraph } from "./context-page-types";
+import { citingThreads, fileItem, type ContextGraph, type NoteFreshness } from "./context-page-types";
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import { PathLabel } from "../primitives/PathLabel";
+import { NoteSection } from "./ContextNotes";
 
 function ReferenceRow({ labels, target, state, by, note, onSelectTarget }: {
   labels: AppCopy;
@@ -37,17 +38,21 @@ function ReferenceRow({ labels, target, state, by, note, onSelectTarget }: {
   );
 }
 
-/** One thread: identity, resolution, its references and the action to open it. */
-export function ThreadDetail({ session, state, threadTitle, labels, locale, now, onOpenThread, onSelectItem }: {
+/** One thread: identity, resolution, its references, its notes and the action to open it. */
+export function ThreadDetail({ session, state, notes, freshness, threadTitle, labels, locale, now, onOpenThread, onSelectItem, onForgetNote }: {
   session: Session;
   /** Title of a referenced thread the page holds; undefined when it is outside the bound. */
   threadTitle: (sessionId: string) => string | undefined;
   state?: TaskStateInfo;
+  notes: TaskNote[];
+  /** Core's read_thread freshness for this Task State version; undefined when unknown. */
+  freshness?: NoteFreshness;
   labels: AppCopy;
   locale: Locale;
   now: number;
   onOpenThread: (sessionId: string) => void;
   onSelectItem: (id: string) => void;
+  onForgetNote: (noteId: string) => Promise<void>;
 }) {
   const resolution = state?.state.resolution.state;
   const references = state?.state.references ?? [];
@@ -91,6 +96,13 @@ export function ThreadDetail({ session, state, threadTitle, labels, locale, now,
           </ul>
         )}
       </section>
+      <NoteSection
+        notes={notes}
+        freshness={freshness}
+        labels={labels}
+        onSelectItem={onSelectItem}
+        onForgetNote={onForgetNote}
+      />
       <div className="context-actions">
         <Button variant="primary" size="sm" onClick={() => onOpenThread(session.id)}>{labels.contextOpenThread}</Button>
       </div>

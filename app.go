@@ -264,6 +264,11 @@ func (a *App) EditTaskNote(sessionID string, edit backend.TaskNoteEdit) (backend
 	return a.backend.EditTaskNote(context.Background(), sessionID, edit)
 }
 
+// ThreadNotes returns one thread's notes with each cite's freshness (ADR-0010 D4).
+func (a *App) ThreadNotes(sessionID string) ([]backend.ThreadNote, error) {
+	return a.backend.ThreadNotes(context.Background(), sessionID)
+}
+
 func (a *App) ResolveThread(sessionID, state string) (backend.TaskStateInfo, error) {
 	return a.backend.ResolveThread(context.Background(), sessionID, state, "desktop-user")
 }

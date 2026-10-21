@@ -8,8 +8,8 @@
  *
  * Demo relations supported here: thread→file via Task State path references (included /
  * suggested; excluded never draws), thread→thread via "thread" references and Core's
- * subagent parent/child link. The Demo's note nodes, citations, typed note links and blob
- * freshness have no Core source today; until Core records notes, they are not drawn.
+ * subagent parent/child link. Notes are not graph nodes: the list lens lists them, and their
+ * cited files' freshness comes from Core's read_thread (ADR-0010 D4).
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session, TaskStateInfo } from "../../types";
@@ -21,6 +21,8 @@ import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { ContextGraphView } from "./ContextGraphView";
 import { FileDetail, ThreadDetail } from "./ContextDetail";
+import { ContextNoteRows } from "./ContextNotes";
+import { useContextNotes } from "./useContextNotes";
 import { PathLabel } from "../primitives/PathLabel";
 import {
   CONTEXT_THREAD_BOUND,
@@ -32,13 +34,19 @@ import {
 } from "./context-page-types";
 import "./context.css";
 
-const FILTERS: ContextFilter[] = ["all", "threads", "files"];
-const FILTER_LABELS: Record<ContextFilter, "contextFilterAll" | "contextFilterThreads" | "contextFilterFiles"> = {
+const FILTERS: ContextFilter[] = ["all", "threads", "files", "notes"];
+const FILTER_LABELS: Record<ContextFilter, "contextFilterAll" | "contextFilterThreads" | "contextFilterFiles" | "contextFilterNotes"> = {
   all: "contextFilterAll",
   threads: "contextFilterThreads",
   files: "contextFilterFiles",
+  notes: "contextFilterNotes",
 };
-const FILTER_ICONS: Record<ContextFilter, "context" | "discussion" | "file"> = { all: "context", threads: "discussion", files: "file" };
+const FILTER_ICONS: Record<ContextFilter, "context" | "discussion" | "file" | "note"> = {
+  all: "context",
+  threads: "discussion",
+  files: "file",
+  notes: "note",
+};
 
 export function useContextPage(input: {
   enabled: boolean;
@@ -99,13 +107,36 @@ export function useContextPage(input: {
 
   const threadNodes = useMemo(() => graph.nodes.filter((node) => node.kind === "thread"), [graph]);
   const fileNodes = useMemo(() => graph.nodes.filter((node) => node.kind === "file"), [graph]);
+  const byId = useMemo(() => new Map(sessions.map((session) => [session.id, session])), [sessions]);
+  const selectedFile = fileOf(selected);
+  const selectedThread = selected && !selectedFile ? byId.get(selected) : undefined;
+  const { freshnessFor, rows: noteRows } = useContextNotes({
+    enabled,
+    filter,
+    states,
+    threads,
+    selectedThread: selectedThread?.id ?? null,
+  });
   const counts: Record<ContextFilter, number> = {
     all: graph.nodes.length,
     threads: threadNodes.length,
     files: fileNodes.length,
+    notes: noteRows.length,
   };
 
   const select = (id: string | null) => setSelected(id);
+
+  // Forget removes the note through Core as the user; the returned state replaces the cached one.
+  const forgetNote = async (sessionId: string, noteId: string) => {
+    try {
+      const info = await bridge.editTaskNote(sessionId, { id: noteId, remove: true });
+      const next = { ...statesRef.current, [sessionId]: info };
+      statesRef.current = next;
+      setStates(next);
+    } catch {
+      onError(labels.contextNoteForgetError);
+    }
+  };
 
   /* —— Sidebar: filters over the same derivation as the page. —— */
   const sidebar = (
@@ -128,21 +159,24 @@ export function useContextPage(input: {
 
   /* —— Content —— */
   const now = Date.now();
-  const byId = useMemo(() => new Map(sessions.map((session) => [session.id, session])), [sessions]);
   const q = query.trim().toLowerCase();
 
   const threadRows = threadNodes.filter(
     (node) => !q || node.title.toLowerCase().includes(q) || node.sessionId.toLowerCase().includes(q),
   );
   const fileRows = fileNodes.filter((node) => !q || node.path.toLowerCase().includes(q));
+  const noteRowsFiltered = noteRows.filter(
+    (row) => !q || row.text.toLowerCase().includes(q) || row.title.toLowerCase().includes(q),
+  );
   const showFiles = filter === "files";
+  const showNotes = filter === "notes";
 
-  const selectedFile = fileOf(selected);
-  const selectedThread = selected && !selectedFile ? byId.get(selected) : undefined;
   const detail = selectedThread ? (
     <ThreadDetail
       session={selectedThread}
       state={states[selectedThread.id]}
+      notes={states[selectedThread.id]?.state.notes ?? []}
+      freshness={freshnessFor(selectedThread.id)}
       threadTitle={(sessionId) => {
         const session = byId.get(sessionId);
         return session ? sessionUI(session).title : undefined;
@@ -152,6 +186,7 @@ export function useContextPage(input: {
       now={now}
       onOpenThread={onOpenThread}
       onSelectItem={select}
+      onForgetNote={(noteId) => forgetNote(selectedThread.id, noteId)}
     />
   ) : selectedFile ? (
     <FileDetail
@@ -209,7 +244,7 @@ export function useContextPage(input: {
 
   const list = (
     <div className="context-list" role="list" aria-label={labels.contextPage}>
-      {!showFiles && threadRows.map((node) => {
+      {!showFiles && !showNotes && threadRows.map((node) => {
         const session = byId.get(node.sessionId)!;
         const refs = (states[node.sessionId]?.state.references ?? []).length;
         return (
@@ -258,7 +293,10 @@ export function useContextPage(input: {
           </span>
         </button>
       ))}
-      {(showFiles ? fileRows : threadRows).length === 0 && (
+      {showNotes && (
+        <ContextNoteRows rows={noteRowsFiltered} selected={selected} labels={labels} onSelect={select} />
+      )}
+      {(showFiles ? fileRows : showNotes ? noteRowsFiltered : threadRows).length === 0 && (
         <p className="context-none">{labels.contextNoResults}</p>
       )}
     </div>

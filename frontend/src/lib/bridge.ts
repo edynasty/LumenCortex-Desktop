@@ -40,6 +40,7 @@ import type {
   TaskReferenceEdit,
   TaskResolutionState,
   TaskStateInfo,
+  ThreadNoteView,
   ToolPermissions,
   SessionCheckpoint,
   WorkspaceState,
@@ -94,6 +95,7 @@ export type AppAPI = {
   SetTaskBrief(sessionId: string, brief: string): Promise<TaskStateInfo>;
   EditTaskReference(sessionId: string, edit: TaskReferenceEdit): Promise<TaskStateInfo>;
   EditTaskNote(sessionId: string, edit: TaskNoteEdit): Promise<TaskStateInfo>;
+  ThreadNotes(sessionId: string): Promise<ThreadNoteView[]>;
   ResolveThread(sessionId: string, state: TaskResolutionState): Promise<TaskStateInfo>;
   ResetContext(sessionId: string): Promise<TaskStateInfo>;
   GetSessionChecks(sessionId: string): Promise<ChecksInfo>;
@@ -207,6 +209,7 @@ export const bridge = {
   setTaskBrief: (sessionId: string, brief: string) => api().SetTaskBrief(sessionId, brief),
   editTaskReference: (sessionId: string, edit: TaskReferenceEdit) => api().EditTaskReference(sessionId, edit),
   editTaskNote: (sessionId: string, edit: TaskNoteEdit) => api().EditTaskNote(sessionId, edit),
+  threadNotes: (sessionId: string) => api().ThreadNotes(sessionId),
   resolveThread: (sessionId: string, state: TaskResolutionState) => api().ResolveThread(sessionId, state),
   resetContext: (sessionId: string) => api().ResetContext(sessionId),
   sessionChecks: (sessionId: string) => api().GetSessionChecks(sessionId),

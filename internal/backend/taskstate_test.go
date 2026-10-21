@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -242,5 +243,99 @@ func TestTaskNotes(t *testing.T) {
 	_, err = r.EditTaskNote(ctx, session.ID, TaskNoteEdit{Text: "one too many"})
 	if !errors.Is(err, lcx.ErrTooManyNotes) {
 		t.Fatalf("full thread: %v", err)
+	}
+}
+
+// commitTestFile writes and commits one file in a git workspace the test set up.
+func commitTestFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	writeFile(t, filepath.Join(dir, name), content)
+	for _, args := range [][]string{{"add", name}, {"commit", "-m", "add " + name}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+}
+
+// ADR-0010 D3/D4 through the Desktop adapter: the Context page reads a thread's notes with each
+// cite's freshness against the main checkout; a changed or removed file is flagged, never hidden,
+// and an unknown thread is an error. A thread without notes yields an empty, non-nil list.
+func TestThreadNotesFreshness(t *testing.T) {
+	root := setupGitWorkspace(t)
+	commitTestFile(t, root, "retry.go", "package retry\n")
+
+	var mu sync.Mutex
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		calls++
+		n := calls
+		mu.Unlock()
+		if n == 1 {
+			replyToolCall(w, "note-1", "note_write", `{"text":"Upload retries stay off: the storage backend is not idempotent.","cites":["retry.go"]}`)
+			return
+		}
+		replyText(w, "done")
+	}))
+	defer server.Close()
+	writeTestCatalog(t, useConfigDir(t), server.URL+"/v1", "test/a")
+
+	ctx := context.Background()
+	r := New()
+	defer r.Close()
+	if _, err := r.OpenWorkspace(ctx, root); err != nil {
+		t.Fatal(err)
+	}
+	session, err := r.CreateSession(ctx, "record why retries are off")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.StartAgent(ctx, session.ID, AgentConfig{Policy: "full", MaxSteps: 4}); err != nil {
+		t.Fatal(err)
+	}
+	waitIdle(t, r, ctx)
+
+	notes, err := r.ThreadNotes(ctx, session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(notes) != 1 || notes[0].By != "agent" || notes[0].Stale {
+		t.Fatalf("after the run: %+v", notes)
+	}
+	if len(notes[0].Cites) != 1 || notes[0].Cites[0].Path != "retry.go" || notes[0].Cites[0].Stale {
+		t.Fatalf("fresh cite: %+v", notes[0].Cites)
+	}
+
+	if err := os.WriteFile(filepath.Join(root, "retry.go"), []byte("package retry\n\nconst On = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if notes, err = r.ThreadNotes(ctx, session.ID); err != nil {
+		t.Fatal(err)
+	}
+	if len(notes) != 1 || !notes[0].Stale || !notes[0].Cites[0].Stale {
+		t.Fatalf("after the cited file changed: %+v", notes)
+	}
+
+	if err := os.Remove(filepath.Join(root, "retry.go")); err != nil {
+		t.Fatal(err)
+	}
+	if notes, err = r.ThreadNotes(ctx, session.ID); err != nil {
+		t.Fatal(err)
+	}
+	if len(notes) != 1 || !notes[0].Stale {
+		t.Fatalf("after the cited file was removed: %+v", notes)
+	}
+
+	empty, err := r.CreateSession(ctx, "no notes yet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if notes, err = r.ThreadNotes(ctx, empty.ID); err != nil || notes == nil || len(notes) != 0 {
+		t.Fatalf("thread without notes: %#v %v", notes, err)
+	}
+	if _, err := r.ThreadNotes(ctx, "no-such-thread"); err == nil {
+		t.Fatal("an unknown thread did not error")
 	}
 }

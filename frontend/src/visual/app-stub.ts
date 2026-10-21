@@ -64,6 +64,9 @@ const tasks: Session = { ...taskSession, metadata: { ui: { delegation: "propose"
 
 let sessions: Session[] = [session, tasks, gate, failed, recent];
 
+// The fixture cite the harness reports as changed since its note was written.
+const staleFixtureCites: Record<string, true> = { "internal/backend/provider_config.go": true };
+
 // Per-thread Task State for the Context page: each scene thread carries the references the
 // graph draws (thread→file, thread→thread, excluded rows that never draw). Wire shapes only.
 const contextTaskStates: Record<string, () => Promise<TaskStateInfo> | TaskStateInfo> = {
@@ -80,6 +83,9 @@ const contextTaskStates: Record<string, () => Promise<TaskStateInfo> | TaskState
       ],
       resolution: { state: "open" },
       windowStartSeq: 0,
+      notes: [
+        { id: "u3f0a", text: "The schema test is the only evidence the gate accepts; do not widen it.", by: "user", at: at(16) },
+      ],
     },
     obligations: ["tasks"],
     readyForReview: false,
@@ -270,6 +276,15 @@ export function visualApp(projectOpen: boolean): AppAPI {
       const info = await (contextTaskStates[id]?.() ?? visualAppStub().GetTaskState(id));
       if (id !== tasks.id) return info;
       return { ...info, state: { ...info.state, tasks: visualTaskList() }, obligations: [...(info.obligations ?? []), "tasks"] };
+    },
+    // The harness's freshness: this fixture cite changed after its note was written, so the Context
+    // page shows the stale marker (Core compares the main checkout's blobs).
+    ThreadNotes: async (id) => {
+      const info = await (contextTaskStates[id]?.() ?? visualAppStub().GetTaskState(id));
+      return (info.state.notes ?? []).map((note) => {
+        const cites = (note.cites ?? []).map((cite) => ({ path: cite.path, stale: staleFixtureCites[cite.path] === true }));
+        return { id: note.id, by: note.by, text: note.text, cites, stale: cites.some((cite) => cite.stale) };
+      });
     },
     SearchText: async () => ({ matches: [], truncated: false, engine: "visual" }),
     FindFiles: async () => ({ paths: [], truncated: false }),
