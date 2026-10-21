@@ -37,7 +37,7 @@
 
 /* Fields and the select fill their form column. */
 .extensions-editor .input, .extensions-editor .desktop-select-trigger { width: 100%; }
-.extensions-editor .desktop-select-trigger { min-height: var(--ctl-lg); box-shadow: inset 0 0 0 1px var(--line); background: var(--surface-sunken); }
+.extensions-editor .desktop-select-trigger { min-height: var(--ctl-field); box-shadow: inset 0 0 0 1px var(--line); background: var(--surface-sunken); }
 
 /* Tool rows in the MCP tools and permissions lists: name, quiet description, badge, switch. */
 .extensions-tool-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

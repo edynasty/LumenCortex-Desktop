@@ -51,10 +51,17 @@
   --r-pill: 999px;
 
   /* —— Control heights —— */
+  /* Semantic shape: a card is --r-card, a row or control inside one is --r-inset; a side-by-side
+     field (input, select) is --ctl-field tall; an icon-only button is --ctl-icon, or --ctl-icon-lg
+     in the toolbar and rail. Pick these, not the raw scale. */
+  --r-card: var(--r-lg);
+  --r-inset: var(--r-sm);
+  --ctl-field: var(--ctl-md);
+  --ctl-icon: var(--ctl-sm);
+  --ctl-icon-lg: var(--ctl-md);
   --ctl-xs: 22px;
   --ctl-sm: 26px;
   --ctl-md: 30px;
-  --ctl-lg: 34px;
 
   /* —— Layout —— */
   --toolbar-h: 48px;

@@ -37,7 +37,7 @@
 .file-row.is-selected { background: var(--state-selected); }
 .file-row .path { flex: 1; min-width: 0; }
 .file-row .diff-count { flex: none; }
-.file-row-revert { width: 22px; height: 22px; flex: none; opacity: 0; transition: opacity var(--dur-fast); }
+.file-row-revert { width: var(--ctl-icon); height: var(--ctl-icon); flex: none; opacity: 0; transition: opacity var(--dur-fast); }
 .file-row:hover .file-row-revert, .file-row:focus-within .file-row-revert, .file-row-revert:focus-visible { opacity: 1; }
 
 .changes-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px; color: var(--fg-3); font-size: var(--text-sm); }
@@ -123,19 +123,19 @@
 .review-feedback-label { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: var(--text-2xs); }
 .review-feedback textarea {
   min-width: 0; resize: vertical; max-height: 140px; padding: 7px 9px;
-  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  border: none; border-radius: var(--r-inset); box-shadow: inset 0 0 0 1px var(--line-strong);
   background: var(--surface-control); outline: 0; color: var(--fg);
   font-size: var(--text-xs); line-height: 1.5;
 }
-.review-feedback textarea:focus { border-color: var(--accent-line); }
+.review-feedback textarea:focus { box-shadow: inset 0 0 0 1px var(--accent-line); }
 
 .review-footer { display: flex; gap: 7px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); flex: none; }
 .review-footer input {
-  min-width: 0; flex: 1; height: var(--ctl-md); padding: 0 9px;
-  border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  min-width: 0; flex: 1; height: var(--ctl-field); padding: 0 9px;
+  border: none; border-radius: var(--r-inset); box-shadow: inset 0 0 0 1px var(--line-strong);
   background: var(--surface-control); outline: 0; color: var(--fg); font-size: var(--text-xs);
 }
-.review-footer input:focus { border-color: var(--accent-line); }
+.review-footer input:focus { box-shadow: inset 0 0 0 1px var(--accent-line); }
 
 .is-compact .review-feedback, .is-compact .review-footer { padding: 8px 10px; }
 .is-compact .review-feedback { grid-template-columns: 1fr; }

@@ -60,7 +60,7 @@
 .cleanup-reasons li > svg { flex: none; margin-top: 2px; }
 .cleanup-choices { display: flex; flex-direction: column; gap: 6px; }
 .cleanup-choice {
-  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--r-lg);
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--r-card);
   background: var(--surface-card); box-shadow: inset 0 0 0 1px var(--line);
   transition: background var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
 }

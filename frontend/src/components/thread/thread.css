@@ -73,7 +73,7 @@
 /* One card material for every block; tone variants only change the edge and the tint. */
 .block {
   display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
-  border-radius: var(--r-xl); background: var(--surface-card); box-shadow: var(--shadow-card);
+  border-radius: var(--r-card); background: var(--surface-card); box-shadow: var(--shadow-card);
 }
 .block-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .block-icon { align-self: center; flex: none; }
@@ -142,7 +142,7 @@ code.tool-target { padding: 1px 6px; border-radius: var(--r-xs); background: var
 .tool-row.is-error .tool-target { color: var(--fg-3); text-decoration: line-through; text-decoration-color: var(--fg-4); }
 
 /* —— Thread progress —— */
-.thread-progress { display: grid; gap: 6px; padding: 9px 12px; border-radius: var(--r-lg); background: var(--surface-card); box-shadow: var(--shadow-card); }
+.thread-progress { display: grid; gap: 6px; padding: 9px 12px; border-radius: var(--r-card); background: var(--surface-card); box-shadow: var(--shadow-card); }
 .thread-progress-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .thread-progress-head > span, .thread-progress-state, .thread-progress-meta span { display: inline-flex; align-items: center; gap: 5px; }
 .thread-progress-head strong { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--fg-2); }
@@ -190,7 +190,7 @@ code.tool-target { padding: 1px 6px; border-radius: var(--r-xs); background: var
   border-bottom: 1px solid var(--line); color: var(--fg-3); font-family: var(--font-mono); font-size: var(--text-2xs);
 }
 .thread-code-head button {
-  width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-sm);
+  width: var(--ctl-icon); height: var(--ctl-icon); display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-inset);
   background: transparent; color: var(--fg-3); cursor: pointer;
 }
 .thread-code-head button:hover { background: var(--state-hover); color: var(--fg); }

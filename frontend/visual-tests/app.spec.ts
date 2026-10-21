@@ -907,6 +907,26 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
     }
   });
 
+  test("side-by-side fields share one height: text input and select trigger", async ({ page }) => {
+    await open(page, "", 1440);
+    await openThread(page, "Provider settings refactor");
+    await page.keyboard.press("ControlOrMeta+k");
+    await page.keyboard.type("Settings");
+    await page.keyboard.press("Enter");
+    const pane = page.getByRole("dialog", { name: "Settings" });
+    await pane.getByRole("button", { name: /MCP servers/ }).click();
+    await pane.getByRole("button", { name: "Add server" }).first().click();
+    const heights = await pane.evaluate((root) => {
+      const h = (el: Element) => Math.round(el.getBoundingClientRect().height);
+      const fields = [...root.querySelectorAll(".extensions-editor input.input")].map(h);
+      const selects = [...root.querySelectorAll(".extensions-editor .desktop-select-trigger")].map(h);
+      return { fields, selects, token: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ctl-field")) };
+    });
+    expect(heights.fields.length).toBeGreaterThan(0);
+    expect(heights.selects.length).toBeGreaterThan(0);
+    expect([...new Set([...heights.fields, ...heights.selects])]).toEqual([heights.token]);
+  });
+
   test("single key field: placeholder input, literal storage, remove, and no leaks", async ({ page }) => {
     await open(page, "", 1180);
     await openThread(page, "Provider settings refactor");

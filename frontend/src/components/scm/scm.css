@@ -74,7 +74,7 @@
 .scm-empty { padding: 18px 0; font-size: var(--text-sm); color: var(--fg-3); }
 
 /* —— Branch graph —— */
-.scm-graph { position: relative; border-radius: var(--r-lg); background: var(--surface-card); box-shadow: var(--shadow-card); padding: 4px 0; }
+.scm-graph { position: relative; border-radius: var(--r-card); background: var(--surface-card); box-shadow: var(--shadow-card); padding: 4px 0; }
 .scm-graph-lanes { position: absolute; left: 0; top: 4px; overflow: visible; }
 .scm-graph-rows { display: flex; flex-direction: column; min-width: 0; }
 .scm-graph-row {

@@ -57,7 +57,7 @@
 .agents-model-row .chip, .agents-model-row .model-chip { max-width: 100%; }
 .agents-model-index { color: var(--fg-3); font-size: var(--text-2xs); font-variant-numeric: tabular-nums; text-align: right; }
 .agents-model-actions { display: flex; align-items: center; gap: 1px; }
-.agents-model-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; border-radius: var(--r-sm); background: transparent; color: var(--fg-3); }
+.agents-model-btn { display: inline-flex; align-items: center; justify-content: center; width: var(--ctl-icon); height: var(--ctl-icon); border: none; border-radius: var(--r-inset); background: transparent; color: var(--fg-3); }
 .agents-model-btn:hover:not(:disabled) { background: var(--state-hover); color: var(--fg); }
 .agents-model-btn:disabled { opacity: 0.4; }
 .agents-model-btn.is-danger:hover:not(:disabled) { color: var(--bad); }

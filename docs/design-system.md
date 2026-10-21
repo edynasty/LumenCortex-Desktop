@@ -69,6 +69,22 @@ The thresholds are `INSPECTOR_DOCK_MIN`, `SIDEBAR_DOCK_MIN` and `COMPACT_MAX` in
 
 Avoid pills unless representing status or compact metadata.
 
+### Semantic shape tokens
+
+Production CSS picks shape by role, from `frontend/src/styles/tokens.css`; the raw scale above is
+nominal and the tokens are the contract.
+
+| Token | Value | Use |
+|---|---:|---|
+| `--r-card` | 10 | any card: thread blocks, check cards, progress, graph, choices |
+| `--r-inset` | 6 | a row, segment or small button inside a card or control |
+| `--ctl-field` | 30 | every side-by-side field: `.input`, text field, select trigger |
+| `--ctl-icon` | 26 | icon-only button inside content (`.icon-btn.is-sm`, row actions) |
+| `--ctl-icon-lg` | 30 | icon-only button in the toolbar and rail (`.icon-btn`) |
+
+One edge convention: a 1 px edge on a box is an inset ring (`box-shadow: inset 0 0 0 1px`), never
+`border`, so it renders the same at 1x and 2x. `border-top/bottom` hairlines between sections stay.
+
 ## 6. Control heights
 
 | Token | Value |

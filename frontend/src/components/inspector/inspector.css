@@ -175,7 +175,7 @@
 
 /* —— Checks pane —— */
 .check-list, .check-history { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.check-card { min-width: 0; padding: 8px 9px; border-radius: var(--r-lg); background: var(--surface-card); box-shadow: var(--shadow-card); }
+.check-card { min-width: 0; padding: 8px 9px; border-radius: var(--r-card); background: var(--surface-card); box-shadow: var(--shadow-card); }
 .check-card-head, .check-row > div:first-child { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .check-card-head strong, .check-row strong { min-width: 0; overflow: hidden; color: var(--fg); font-size: var(--text-xs); font-weight: var(--weight-semibold); white-space: nowrap; text-overflow: ellipsis; }
 .check-dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--fg-4); }
@@ -199,7 +199,7 @@
 .check-artifact header .btn { margin-left: auto; }
 .check-artifact .tp-pane-muted { margin: 6px 10px 0; }
 .check-artifact pre { max-height: 260px; margin: 0; padding: 8px 10px; overflow: auto; color: var(--fg-2); font-size: var(--text-2xs); line-height: 1.55; white-space: pre; }
-.check-row { min-width: 0; padding: 6px 8px; border-radius: var(--r-md); background: var(--surface-card); }
+.check-row { min-width: 0; padding: 6px 8px; border-radius: var(--r-inset); background: var(--surface-card); }
 .check-row .check-dot { width: 6px; height: 6px; }
 .check-status { flex: 0 0 auto; color: var(--fg-3); font-size: var(--text-2xs); }
 .check-row.failed .check-status { color: var(--bad); }
