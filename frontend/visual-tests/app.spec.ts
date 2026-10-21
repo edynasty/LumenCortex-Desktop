@@ -198,6 +198,27 @@ test.describe("window shell", () => {
     expect(await probe()).toEqual({ clipped: false, scrolls: true, codeFits: true });
   });
 
+  test("Increase Contrast makes content and float surfaces solid in both themes", async ({ page }) => {
+    for (const theme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: theme, contrast: "more" });
+      await open(page, "", 1180);
+      await page.emulateMedia({ colorScheme: theme, contrast: "more", reducedMotion: "reduce" });
+      const tokens = await page.evaluate(() => {
+        const root = getComputedStyle(document.documentElement);
+        const v = (name: string) => root.getPropertyValue(name).trim();
+        return {
+          theme: document.documentElement.dataset.theme,
+          content: [v("--surface-content"), v("--surface-content-solid")],
+          float: [v("--surface-float"), v("--surface-float-solid")],
+          line: [v("--line"), v("--line-strong")],
+          fg4: [v("--fg-4"), v("--fg-3")],
+        };
+      });
+      expect(tokens.theme).toBe(theme);
+      for (const [value, solid] of [tokens.content, tokens.float, tokens.line, tokens.fg4]) expect(value).toBe(solid);
+    }
+  });
+
   test("material: a drawer is solid, at most two layers blur, chrome is not selectable and content is", async ({ page }) => {
     await open(page, "", 820);
     await openThread(page, "Provider settings refactor");

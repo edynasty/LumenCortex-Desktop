@@ -272,7 +272,8 @@
 
 /* macOS Accessibility > Display > Increase contrast: solid surfaces and stronger lines, nothing else. */
 @media (prefers-contrast: more) {
-  :root {
+  /* :root[data-theme] matches the theme blocks' specificity; later in the file, so it wins. */
+  :root, :root[data-theme] {
     --surface-content: var(--surface-content-solid);
     --surface-float: var(--surface-float-solid);
     --line: var(--line-strong);
