@@ -84,6 +84,15 @@ Use:
 | Approval appears | fade/translateY 4 px · 160 ms |
 | Diff line selection | background · 80 ms |
 
+### Exit
+
+Layers that are dismissed rather than chosen from play a short exit: Dialog, Drawer (with its scrim)
+and the error toast fade out (plus the same 4–12 px offset as their entrance) in `--dur-fast` with
+`--ease-in`. They stay mounted for that time (`usePresence`), are `inert` and click-through, and
+focus returns to the opener at the moment of dismissal, not after the exit. Reopening during the exit
+cancels it. Menus, popovers, Select and the project switcher close at once, as native menus do; they
+have an enter motion only. Reduced motion collapses every duration to 1 ms.
+
 ## 4. Agent activity motion
 
 ### Running

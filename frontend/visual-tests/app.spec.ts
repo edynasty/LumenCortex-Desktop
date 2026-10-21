@@ -132,6 +132,25 @@ test.describe("window shell", () => {
     await expect(page.locator(".drawer-end[role=dialog][aria-modal=true]")).toBeVisible();
   });
 
+  test("a dismissed drawer plays its exit, stays inert, and returns focus at once", async ({ page }) => {
+    await open(page, "", 820);
+    await openThread(page, "Provider settings refactor");
+    // Motion on: the suite default is reduced, which collapses the exit to 1 ms.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const toggle = page.getByRole("button", { name: /Toggle sidebar/ });
+    await toggle.focus();
+    await page.keyboard.press("ControlOrMeta+i");
+    const drawer = page.locator(".drawer-end");
+    await expect(drawer).toHaveAttribute("data-state", "open");
+    await page.keyboard.press("Escape");
+    // Right after Escape the layer is still mounted, closed, inert and click-through; focus is back.
+    await expect(drawer).toHaveAttribute("data-state", "closed");
+    await expect(drawer).toHaveAttribute("inert", "");
+    expect(await drawer.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe("none");
+    await expect(toggle).toBeFocused();
+    await expect(drawer).toHaveCount(0);
+  });
+
   test("command palette opens with the shortcut and runs an action", async ({ page }) => {
     await open(page);
     await page.keyboard.press("ControlOrMeta+k");
@@ -367,15 +386,19 @@ test.describe("accessibility", () => {
         const table: [string, number, number][] = [];
         const text = (label: string, color: string, surface: (g: Rgba) => Rgba) => table.push([label, worst(color, surface), 4.5]);
         const nonText = (label: string, color: string, surface: (g: Rgba) => Rgba) => table.push([label, worst(color, surface), 3]);
-        text("fg on content", tok("--fg"), content);
-        text("fg-2 on content", tok("--fg-2"), content);
         for (const [name, surface] of [
           ["content", content], ["card hover", onContent("--surface-card-hover")], ["control", onContent("--surface-control")],
           ["selected row", onContent("--state-selected")], ["float", onContent("--surface-float")],
-        ] as const) text(`fg-3 on ${name}`, tok("--fg-3"), surface);
+        ] as const) {
+          for (const token of ["--fg", "--fg-2", "--fg-3"]) text(`${token.slice(2)} on ${name}`, tok(token), surface);
+        }
+        text("syntax comment on a code block", tok("--syntax-comment"), onContent("--surface-code"));
         text("accent-fg on accent-soft", tok("--accent-fg"), onContent("--accent-soft"));
+        // Nested fill: an accent badge on the selected row of a menu (selected tint under the badge tint).
+        text("accent-fg on accent-soft over a selected row", tok("--accent-fg"), (g) => over(read(tok("--accent-soft")), over(read(tok("--state-selected")), content(g))));
+        table.push(["on-warn label on the solid warn fill", Math.min(...grounds.map(() => ratio(read(tok("--on-warn")), read(tok("--warn"))))), 4.5]);
         for (const name of ["ok", "warn", "bad"]) text(`${name} on ${name}-soft`, tok(`--${name}`), onContent(`--${name}-soft`));
-        gradient.slice(0, 2).forEach((stop, i) => table.push([`white label on gradient stop ${i}`, ratio([255, 255, 255, 1], stop), 4.5]));
+        gradient.slice(0, 2).forEach((stop, i) => table.push([`label on gradient stop ${i}`, ratio(read(tok("--fg-on-accent")), stop), 4.5]));
         for (const [name, surface] of [
           ["content", content], ["card hover", onContent("--surface-card-hover")], ["float", onContent("--surface-float")],
         ] as const) nonText(`fg-4 on ${name}`, tok("--fg-4"), surface);
@@ -384,7 +407,7 @@ test.describe("accessibility", () => {
       });
       const failing = rows.filter(([, got, min]) => got < min).map(([label, got, min]) => `${label}: ${got.toFixed(2)} < ${min}`);
       expect(failing).toEqual([]);
-      expect(rows.length).toBeGreaterThan(10);
+      expect(rows.length).toBeGreaterThan(20);
     });
   }
 });

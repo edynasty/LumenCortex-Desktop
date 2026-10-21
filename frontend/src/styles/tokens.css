@@ -73,6 +73,7 @@
   --dur-page: 220ms;     /* major workspace content */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
 
   /* —— Layers: window-level stacking only. Local order inside one component (1-6) stays a literal. —— */
   --z-scrim: 20;
@@ -137,6 +138,7 @@
   --ok-soft: rgba(79, 209, 161, 0.13);
   --ok-line: rgba(79, 209, 161, 0.32);
   --warn: #f2bd5c;
+  --on-warn: #1d1300;   /* label on a solid --warn fill (rail count) */
   --warn-soft: rgba(242, 189, 92, 0.13);
   --warn-line: rgba(242, 189, 92, 0.32);
   --bad: #ff7a7a;
@@ -212,7 +214,7 @@
   --accent: #2370e6;
   --accent-hover: #1a63d4;
   --accent-pressed: #1556bb;
-  --accent-fg: #1a5fcb;
+  --accent-fg: #1857c0;
   --accent-soft: rgba(35, 112, 230, 0.10);
   --accent-line: rgba(35, 112, 230, 0.30);
   --accent-gradient: linear-gradient(180deg, #2f6fd9 0%, #1d5fd0 100%);
@@ -221,6 +223,7 @@
   --ok-soft: rgba(17, 148, 106, 0.10);
   --ok-line: rgba(17, 148, 106, 0.30);
   --warn: #8a4f00;
+  --on-warn: #ffffff;
   --warn-soft: rgba(214, 140, 20, 0.12);
   --warn-line: rgba(178, 107, 0, 0.30);
   --bad: #b02a2a;

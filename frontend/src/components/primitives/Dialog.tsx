@@ -2,6 +2,7 @@ import { useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 import { useFocusTrap } from "./useFocusTrap";
+import { usePresence } from "./usePresence";
 
 type Props = {
   open: boolean;
@@ -13,20 +14,30 @@ type Props = {
   closeLabel?: string;
 };
 
-/** Confirmation / small form dialog on float glass, centred over the window. */
-export function Dialog({ open, title, description, children, onOpenChange, footer, closeLabel = "Close" }: Props) {
+/**
+ * Confirmation / small form dialog on float glass, centred over the window. Dismissing plays a short
+ * exit; the content is frozen at its last open value meanwhile, so a parent that clears its target
+ * does not blank the dialog mid-exit, and the layer is inert so nothing in it can be pressed.
+ */
+export function Dialog(props: Props) {
+  const { open, onOpenChange, closeLabel = "Close" } = props;
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const { present, state } = usePresence(open);
+  const lastOpen = useRef(props);
+  if (open) lastOpen.current = props;
+  const { title, description, children, footer } = open ? props : lastOpen.current;
   useFocusTrap(dialogRef, open, () => onOpenChange(false));
 
-  if (!open) return null;
+  if (!present) return null;
 
   return createPortal(
-    <div className="modal-layer is-fixed" onMouseDown={(event) => event.target === event.currentTarget && onOpenChange(false)}>
+    <div className="modal-layer is-fixed" data-state={state} {...(open ? {} : { inert: "" })} onMouseDown={(event) => event.target === event.currentTarget && onOpenChange(false)}>
       <div
         ref={dialogRef}
         className="modal dialog"
+        data-state={state}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

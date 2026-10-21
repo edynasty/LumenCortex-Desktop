@@ -16,7 +16,11 @@
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; background: var(--surface-float);
   backdrop-filter: blur(var(--blur-float)) saturate(140%); -webkit-backdrop-filter: blur(var(--blur-float)) saturate(140%);
 }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(4px) scale(.985); } }
+@keyframes sheet-out { to { opacity: 0; transform: translateY(4px) scale(.985); } }
+/* Dismissal (Dialog): a short exit while the layer stays mounted, inert and click-through. */
+.modal-layer[data-state="closed"] { pointer-events: none; animation: fade-out var(--dur-fast) var(--ease-in) forwards; }
+.modal[data-state="closed"] { animation: sheet-out var(--dur-fast) var(--ease-in) forwards; }
 
 /* —— Palette —— */
 .palette { flex-direction: column; width: 600px; max-height: 460px; }

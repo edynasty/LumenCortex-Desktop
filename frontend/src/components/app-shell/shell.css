@@ -69,7 +69,7 @@
 .rail-badge { position: absolute; pointer-events: none; box-shadow: 0 0 0 2px var(--bg-window); }
 .rail-badge.is-count {
   top: 1px; right: -1px; min-width: 14px; height: 14px; padding: 0 4px; border-radius: 7px;
-  background: var(--warn); color: #1d1300; font-size: 9px; font-weight: 700; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums;
+  background: var(--warn); color: var(--on-warn); font-size: 9px; font-weight: 700; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums;
 }
 .rail-badge.is-dot { top: 6px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 
@@ -171,6 +171,11 @@
 .drawer-end > * { flex: 1; min-width: 0; }
 @keyframes drawer-start { from { transform: translateX(-12px); opacity: 0; } }
 @keyframes drawer-end { from { transform: translateX(12px); opacity: 0; } }
+@keyframes drawer-start-out { to { transform: translateX(-12px); opacity: 0; } }
+@keyframes drawer-end-out { to { transform: translateX(12px); opacity: 0; } }
+.scrim[data-state="closed"] { pointer-events: none; animation: fade-out var(--dur-fast) var(--ease-in) forwards; }
+.drawer-start[data-state="closed"] { pointer-events: none; animation: drawer-start-out var(--dur-fast) var(--ease-in) forwards; }
+.drawer-end[data-state="closed"] { pointer-events: none; animation: drawer-end-out var(--dur-fast) var(--ease-in) forwards; }
 
 /* —— Compact window (< 640) —— */
 .is-compact .window-body { padding: 0; }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Dialog } from "./Dialog";
@@ -45,7 +45,27 @@ describe("Dialog", () => {
     expect(deleteButton).toHaveFocus();
 
     await user.keyboard("{Escape}");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // Focus returns the moment the dialog is dismissed; the layer unmounts after its exit.
     expect(opener).toHaveFocus();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("is inert during its exit, keeps its content, and reopening cancels the unmount", async () => {
+    const { rerender } = render(<Dialog open title="Delete provider" description="Gone for good." onOpenChange={() => {}} />);
+    expect(screen.getByRole("dialog", { name: "Delete provider" })).toBeVisible();
+
+    // The parent clears everything it passed (as a parent does when it drops its target).
+    rerender(<Dialog open={false} title="" onOpenChange={() => {}} />);
+    const layer = screen.getByRole("dialog", { hidden: true }).parentElement!;
+    expect(layer).toHaveAttribute("data-state", "closed");
+    expect(layer).toHaveAttribute("inert");
+    expect(screen.getByText("Gone for good.")).toBeInTheDocument();
+
+    // Reopen before the exit ends: the same layer returns, no longer inert.
+    rerender(<Dialog open title="Delete provider" description="Gone for good." onOpenChange={() => {}} />);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(screen.getByRole("dialog", { name: "Delete provider" })).toBeVisible();
+    expect(screen.getByRole("dialog").parentElement).not.toHaveAttribute("inert");
+    expect(screen.getByRole("dialog").parentElement).toHaveAttribute("data-state", "open");
   });
 });

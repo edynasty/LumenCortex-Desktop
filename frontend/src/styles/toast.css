@@ -32,3 +32,5 @@
 }
 
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 6px); } }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, 6px); } }
+.error-toast[data-state="closed"] { pointer-events: none; animation: toast-out var(--dur-fast) var(--ease-in) forwards; }
