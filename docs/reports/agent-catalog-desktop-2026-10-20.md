@@ -152,8 +152,7 @@ Docs: `docs/architecture.md`, `docs/screen-specs.md`, `docs/interaction-spec.md`
 
 ## Unverified / risks
 
-- The Wails desktop binary was not launched natively in this pass; the smoke test runs the real App
-  over the in-memory stub in Chromium.
+- The native app was launched after the review fixes (§ Native A3 run). The earlier smoke test ran the real App over the in-memory stub in Chromium.
 - The import's sidecar `agents.import.json` is new state next to `lumencortex.json`. It is a record
   only; a deleted sidecar loses the report, not data (the backup remains).
 - A legacy profile whose instructions exceed 16 KiB is not imported; that is reported, but the user
@@ -231,4 +230,31 @@ Fail-before evidence:
   - The Go tests for findings 1, 2, 4, 8 and 9 do not compile against the pre-fix `agents.go`, because they use the new `renameLegacyProfiles` seam. That they fail before the fix comes from reading the pre-fix code: it errors on the import, duplicates the profiles, or reports a false `imported`.
   - The vitest cases for findings 3, 5, 6, 7, 10 and 11 were not run against the pre-fix frontend.
 
+## Native A3 run (2026-10-21)
 
+The packaged app was run against an isolated configuration, at Desktop `f5389e6` plus the `MessageItem` fix recorded in `context-notes-desktop-2026-10-21.md`.
+
+**Setup:**
+- `XDG_CONFIG_HOME=/tmp/lcx-a3/config` and `scripts/build-macos.sh`, then `Contents/MacOS/LumenCortex`.
+- The private `lumencortex.json` holds:
+  - the owner-authorised model `local/deepseek-v4.1-flash`;
+  - that provider's entry (the `apiKey` stays a `{secret:…}` reference);
+  - a trusted scratch Go repository with one failing test (`Total` starts at index 1);
+  - one custom agent, `auditor`: `use: delegation`, `policy: read-only`, with a description and instructions.
+- `credentials.json` is a symlink to the user's store. No value was read or printed.
+- A synthetic `agents.json` holds the two built-ins, a custom `Explore` (`base: ask`) and `长描述` with a 300-byte CJK description.
+- Input went through the macOS Accessibility API: JXA, then a small Swift `AXUIElement` tool once JXA became too slow. Screen Recording is denied, so the evidence is the AX tree plus the session database.
+
+| Step | Observed |
+|---|---|
+| Agents page | The catalog lists 问答, 代理, 探查, 执行 (built-ins), `长描述`, `Auditor` and `Explore (2)`. The import panel names the backup `agents.json.imported` and both warnings: `Explore` was renamed `Explore (2)` (finding 1), and the description was shortened to 280 bytes (finding 2). Loading did not fail. |
+| Workspace | Opened through the native panel; trusted by the private config, so no trust prompt. |
+| Live turn, thread agent 代理 (`agent`), effort Auto | The prompt asks for "the most suitable specialist subagent" without naming one. The model called `spawn_subagent` with `"agent":"auditor"`; the tool card shows it, and the second assistant text says "the `auditor` agent is the right specialist". |
+| Child | `sessions.agent_id = auditor`; relation metadata `{"agent":"auditor","mode":"read-only"}`. Its tools were `list_dir`, `find_files`, `read_file`, `search_text`, `git_status`, `git_diff`, `recall` and `note_write`: no shell and no write. Its answer cites `billing/invoice.go:6`, as the agent's instructions require. Both sessions are `completed`; the scratch repository has no changes (`git status` empty). |
+| Child thread in the app (finding 5) | Opened from 运行 › 子 Agent. The composer shows `智能体: Auditor`, `权限: 只读` and "任务权限固定". The pin is shown, not Agent. |
+
+**Observations:**
+- The parent re-ran `go test` itself because the read-only auditor has no shell. That is the ceiling working as configured.
+- The Agents page shows the import warnings twice: as the `agentsWarning` line ("agents.json was imported with 2 warning(s).", English inside the zh-CN copy) and in the import panel. `AgentsPage.test.tsx` asserts this, so it is left for a copy decision.
+
+Not exercised natively: `start_task` (worktree child) and Stop of a running subtree. The Core A3 real-model probe covers `start_task` selection, and the C3 report covers Stop.

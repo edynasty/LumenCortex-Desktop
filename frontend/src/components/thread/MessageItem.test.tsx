@@ -106,4 +106,28 @@ describe("MessageItem runtime rows", () => {
     expect(container.querySelector(".work-group")).not.toBeNull();
     expect(container.querySelector(".notice-line")).toBeNull();
   });
+
+  it("shows nothing for an assistant row that only calls tools, so its JSON is neither text, copied nor remembered", () => {
+    const { container } = render(
+      <MessageItem
+        labels={labels}
+        onRemember={vi.fn()}
+        message={row("assistant", { role: "assistant", tool_calls: [{ id: "c1", name: "wait_subagent", arguments: "{}" }] })}
+      />,
+    );
+    expect(container.textContent).toBe("");
+    expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("keeps the text of an assistant row that also calls tools", () => {
+    render(
+      <MessageItem
+        labels={labels}
+        onRemember={vi.fn()}
+        message={row("assistant", { role: "assistant", content: "Handing this to the auditor.", tool_calls: [{ id: "c1", name: "spawn_subagent", arguments: "{}" }] })}
+      />,
+    );
+    expect(screen.getByText("Handing this to the auditor.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: t.rememberTitle })).toBeTruthy();
+  });
 });

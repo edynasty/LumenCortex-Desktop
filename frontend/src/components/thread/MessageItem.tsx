@@ -111,6 +111,11 @@ export function MessageItem({ message, labels, onRemember }: Props) {
     return <WorkGroup messages={[message]} labels={labels} />;
   }
 
+  // An assistant row that only calls tools has no text: its calls show in the work group that follows.
+  if (message.role === "assistant" && typeof payload.content !== "string" && Array.isArray(payload.tool_calls)) {
+    return null;
+  }
+
   if (message.role === "user") {
     return (
       <div className="msg-user" aria-label={labels.roleUser}>

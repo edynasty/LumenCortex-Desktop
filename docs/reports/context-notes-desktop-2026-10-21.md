@@ -8,7 +8,7 @@
   The Context page listing notes is not part of this change (see Open).
 - **Baseline:** Desktop `1714459` (pinned Core `6935aa2`).
 - **Core:** pinned `3e4f418` (ADR-0010 B1/B2, the review fixes and the B3 harness). Core report: `../LumenCortex/docs/reports/context-continuity-2026-10-21.md`. Pinned through the temporary `url.insteadOf` mechanism of earlier pins (`GOPROXY=direct GOPRIVATE=github.com/edynasty/*`), removed afterwards. No `replace`, no `go.work`. `docs/lumencortex.schema.json` is byte-identical to Core's (`cmp`).
-- **Status:** implemented and validated locally; not pushed.
+- **Status:** implemented and validated locally, including a native run (below); not pushed.
 
 ## Behaviour
 
@@ -18,7 +18,7 @@
   - The add field counts UTF-8 bytes against Core's 512-byte bound and disables Add above it.
   - Every edit goes through `EditTaskNote` → Core's Task State inbox, and the pane shows the view Core returns.
 - **"Remember" on a message:**
-  - User and assistant messages carry a note action next to Copy. Runtime notices (`origin` rows) and tool rows do not.
+  - User and assistant messages with text carry a note action next to Copy. Runtime notices (`origin` rows), tool rows, and assistant rows that only call tools do not.
   - It opens an editor seeded with the message, cut to 512 bytes on a code point boundary (`clipNote`) and saying so. The user keeps what matters and saves it as a user note of the thread.
   - Core's refusal (for example 32 user notes) is shown in the editor, which stays open.
   - On success the action shows "Saved as a note" briefly.
@@ -58,10 +58,30 @@
   - On an assistant message, Remember opened the editor seeded with the message. Edited and saved, the editor closed, the action read "已记为笔记", and the note was listed first when the pane was read again.
   - On a user message, the editor opens under the bubble, right-aligned, with a byte count, Cancel and Save note.
 
+## Native run (2026-10-21)
+
+The packaged app (`scripts/build-macos.sh`) was launched with `XDG_CONFIG_HOME` pointing at a private global configuration, on a scratch Go repository. The full setup is in `agent-catalog-desktop-2026-10-20.md` § Native A3 run. It was driven through the macOS Accessibility API. Screen Recording is denied to this process, so the evidence is the AX tree and the session database, not screenshots.
+
+- **Notes in the Task pane:** a child thread listed its own agent-written note (`note_write`), with the count `1`.
+- **Remember on a child's final answer:**
+  - The editor opened seeded with the answer and clipped: `511/512 字节` plus the clipping notice.
+  - Save closed the editor, and the action read `已记为笔记`.
+  - With no manual reload, the Notes count went to `2`, so the event-driven refresh works in the real app.
+- **Defect found and fixed:**
+  - **Symptom:** an assistant row that only carries `tool_calls`, with no `content`, rendered its raw JSON payload as message text, with Copy and Remember buttons. Remember would have offered to save tool-call JSON as a note.
+  - **Origin:** the raw-JSON text predates this change; Remember made it worse.
+  - **Fix:** `MessageItem` renders nothing for such a row, because its calls already show in the work group that follows.
+  - **Regression tests:** `MessageItem.test.tsx` "shows nothing for an assistant row that only calls tools…" fails before the fix and passes after; "keeps the text of an assistant row that also calls tools" guards the other case.
+  - **Native check:** on the same thread, the Remember buttons went from 8 to 6, one per row with text. `spawn_subagent`→`wait_subagent` and `shell`→`note_write` now sit next to each other.
+- **After the fix:**
+  - `npx tsc --noEmit` passes.
+  - `npx vitest run`: 292 tests pass. The first full run had one failure in `components/scm/useSourceControlPage.test.tsx` "lists Core's files for the main checkout"; it passed in four further full runs. It is a flaky test, unrelated to this change, and left as is.
+  - `go build`, `go vet` and `go test -count=1 ./...` pass.
+
 ## Unverified / limits
 
-- The native Wails app was not launched. In the app, the Task pane re-reads after Remember because Core publishes `task_state.edit_queued` and `app.go` forwards Core's events. That is read from the code, not observed. The visual stub emits no events, so in the harness the pane showed the note only after it was read again.
-- Remember on a child thread adds a user note to that child's Task State. This follows Core's rules and was not specially tested.
+- Remember on a child thread adds a user note to that child's Task State. This follows Core's rules. It was exercised natively once (above), with no dedicated test.
+- The scratch workspace path stays in the app's recent-projects list. That list is WebView `localStorage`, outside `XDG_CONFIG_HOME`, and the path no longer exists.
 
 ## Open
 
