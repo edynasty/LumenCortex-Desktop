@@ -191,8 +191,15 @@ func agentCatalogFrom(cfg *config.Config, record *AgentImportResult) AgentCatalo
 		}
 		catalog.Agents = append(catalog.Agents, entry)
 	}
-	if record != nil && len(record.Warnings) > 0 {
-		catalog.Warning = fmt.Sprintf("agents.json was imported with %d warning(s).", len(record.Warnings))
+	switch {
+	case record == nil:
+	case record.Imported || record.AlreadyImported:
+		if len(record.Warnings) > 0 {
+			catalog.Warning = fmt.Sprintf("agents.json was imported with %d warning(s).", len(record.Warnings))
+		}
+	default:
+		// The import did not run (unreadable or corrupt file): the warning says what happened.
+		catalog.Warning = strings.Join(record.Warnings, " ")
 	}
 	return catalog
 }
@@ -349,8 +356,9 @@ func agentForSave(agents map[string]config.Agent, cfg *config.Config, entry Agen
 	default:
 		return config.Agent{}, "", fmt.Errorf("%w: unknown delegation %q", ErrInvalidAgent, delegation)
 	}
-	if use == string(config.AgentUseDelegation) {
-		// A child never delegates further; the ceiling is fixed, not the user's to grant.
+	if use != string(config.AgentUseConversation) {
+		// Core treats every non-conversation use as delegation: the agent never delegates further
+		// (the field must be empty) and it caps its policy at read-only or workspace (ADR-0009 §2).
 		delegation = ""
 		if policy != config.PolicyReadOnly && policy != config.PolicyWorkspace {
 			return config.Agent{}, "", fmt.Errorf("%w: an agent used for delegation must cap its policy at read-only or workspace", ErrInvalidAgent)
@@ -358,9 +366,6 @@ func agentForSave(agents map[string]config.Agent, cfg *config.Config, entry Agen
 		if entry.Description == "" {
 			return config.Agent{}, "", fmt.Errorf("%w: an agent used for delegation needs a description: the model selects it by that text", ErrInvalidAgent)
 		}
-	}
-	if use == string(config.AgentUseBoth) && entry.Description == "" {
-		return config.Agent{}, "", fmt.Errorf("%w: an agent that can be delegated to needs a description", ErrInvalidAgent)
 	}
 
 	id := entry.ID
@@ -482,28 +487,37 @@ func slugifyAgentID(name string) string {
 	return slug
 }
 
+// renameLegacyProfiles renames the imported file; a test replaces it to exercise a failed rename.
+var renameLegacyProfiles = renameLegacyAgentProfiles
+
 // importLegacyAgentsLocked imports the retired agents.json once. The write goes through config.Save
 // with the digest that was read, so a concurrent change is config.ErrConflict and nothing is
-// written; the file is renamed to agents.json.imported only after the save succeeded.
+// written; the import record is written before the file is renamed to agents.json.imported, so the
+// record alone decides that the import is done.
 func (r *Runtime) importLegacyAgentsLocked(cfg *config.Config) (*AgentImportResult, error) {
+	if record := readAgentImportRecord(); record != nil {
+		// The record is the gate, not the file: an import whose rename failed, or one the process
+		// stopped in between, is still done. Without this the same profiles would be imported again
+		// as "Name (2)" entries.
+		return record, nil
+	}
 	dir, err := config.GlobalDir()
 	if err != nil {
-		return readAgentImportRecord(), nil
+		return nil, nil
 	}
 	path := filepath.Join(dir, legacyAgentProfilesFileName)
 	raw, err := readBoundedFile(path, maxLegacyProfilesFileBytes)
-	if errors.Is(err, os.ErrNotExist) {
-		return readAgentImportRecord(), nil
-	}
-	if err != nil {
-		return readAgentImportRecord(), nil
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return nil, nil
+	case err != nil:
+		// Unreadable or oversized: nothing was imported, and the page says why instead of claiming
+		// an import that never happened.
+		return agentImportNotRun(fmt.Sprintf("%s was not imported: %v", legacyAgentProfilesFileName, err)), nil
 	}
 	var doc legacyAgentProfilesDocument
 	if err := json.Unmarshal(raw, &doc); err != nil || doc.Version != 1 {
-		return &AgentImportResult{
-			Imported: true,
-			Warnings: []string{"agents.json is not a v1 profile catalog; it was left untouched and nothing was imported."},
-		}, nil
+		return agentImportNotRun(legacyAgentProfilesFileName + " is not a v1 profile catalog; it was left untouched and nothing was imported."), nil
 	}
 
 	global := cfg.Global()
@@ -521,15 +535,23 @@ func (r *Runtime) importLegacyAgentsLocked(cfg *config.Config) (*AgentImportResu
 	if _, err := config.Save(global.Path, next, global.Digest); err != nil {
 		return nil, err
 	}
-	renamed, err := renameLegacyAgentProfiles(path)
-	if err != nil {
-		// The catalog is written; say so and leave the file for the next read to notice.
-		record.Warnings = append(record.Warnings, fmt.Sprintf("the profile file could not be renamed: %v", err))
-	}
+	// The record is written before the rename, so a rename that fails (or a process that stops in
+	// between) leaves the import marked as done; the file itself is only the backup.
 	record.Imported = true
-	record.RenamedTo = renamed
+	writeAgentImportRecord(record)
+	if renamed, err := renameLegacyProfiles(path); err != nil {
+		record.Warnings = append(record.Warnings, fmt.Sprintf("the profile file could not be renamed: %v", err))
+	} else {
+		record.RenamedTo = renamed
+	}
 	writeAgentImportRecord(record)
 	return record, nil
+}
+
+// agentImportNotRun is the result for a legacy file the import could not use. It is never reported
+// as imported, and its warning reaches the page through AgentCatalog.Warning.
+func agentImportNotRun(warning string) *AgentImportResult {
+	return &AgentImportResult{Warnings: []string{warning}}
 }
 
 // importLegacyProfiles maps the retired profiles onto catalog entries. A built-in profile becomes
@@ -549,10 +571,11 @@ func importLegacyProfiles(profiles []legacyAgentProfile, agents map[string]confi
 		}
 	}
 	seenNames := map[string]bool{}
-	for _, stored := range agents {
-		if stored.Name != "" {
-			seenNames[strings.ToLower(stored.Name)] = true
-		}
+	// Every name the merged catalog already has is taken: the built-ins (their names are not in the
+	// global file, so the stored names alone miss them), the global agents and the workspace ones.
+	// Core refuses a duplicate name at load, so importing one would break every later load.
+	for _, info := range cfg.Effective().Agents {
+		seenNames[strings.ToLower(info.Name)] = true
 	}
 
 	for _, profile := range profiles {
@@ -638,7 +661,7 @@ func legacyAgentEntry(profile legacyAgentProfile, agents map[string]config.Agent
 	}
 	agent := config.Agent{
 		Name:         name,
-		Description:  strings.TrimSpace(profile.Description),
+		Description:  normalizedAgentDescription(profile.Description, label, record),
 		Use:          config.AgentUseConversation,
 		Instructions: profile.Instructions,
 	}
@@ -653,6 +676,31 @@ func legacyAgentEntry(profile legacyAgentProfile, agents map[string]config.Agent
 		agent.Effort = config.Effort(profile.Effort)
 	}
 	return legacyEntry{id: newAgentID(name, agents), agent: agent}, true
+}
+
+// normalizedAgentDescription clips a legacy description to Core's byte bound on a UTF-8 boundary.
+// The retired store counted characters and Core counts bytes, so a long CJK description would
+// otherwise fail the save and block every profile of the import.
+func normalizedAgentDescription(text, label string, record *AgentImportResult) string {
+	description := strings.TrimSpace(text)
+	if len(description) <= config.MaxAgentDescriptionSize {
+		return description
+	}
+	record.Warnings = append(record.Warnings, fmt.Sprintf(
+		"%s: the description was shortened to %d bytes", label, config.MaxAgentDescriptionSize))
+	return strings.TrimSpace(clipUTF8(description, config.MaxAgentDescriptionSize))
+}
+
+// clipUTF8 cuts s to at most limit bytes without splitting a rune.
+func clipUTF8(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+	cut := limit
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
 }
 
 // legacyAgentModel keeps a profile's model only when the merged catalog has it and it calls tools

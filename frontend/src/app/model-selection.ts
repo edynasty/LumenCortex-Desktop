@@ -120,10 +120,26 @@ export type ExplicitModel = { scope: string; ref: string };
 
 export const noExplicitModel: ExplicitModel = { scope: "", ref: "" };
 
-// The model a route starts from: a session shows the model it is pinned to; a new task shows
-// Effective.Model. Continuing never moves a session to the current default.
-export function baselineModel(session: Pick<Session, "modelRef"> | undefined, defaultRef: string): string {
-  return session?.modelRef || defaultRef;
+// What Core resolves the model from, besides the user's pick (internal/agent/policy.go
+// ResolveModelRef): the agent's own first model when it has a list, and whether the selected agent
+// differs from the thread's pinned one.
+export type ModelBaseline = {
+  /** The selected agent's first model; "" when the agent inherits a list. */
+  agentFirst?: string;
+  /** The selected agent is not the thread's pinned agent, so Core's model.agent rule applies. */
+  switched?: boolean;
+};
+
+// The model a route starts from, in Core's order: a switched agent takes its own first model (or
+// the default), an open session shows the model it is pinned to, and a new task shows the agent's
+// first model, else Effective.Model. Continuing never moves a session to the current default.
+export function baselineModel(
+  session: Pick<Session, "modelRef"> | undefined,
+  defaultRef: string,
+  baseline: ModelBaseline = {},
+): string {
+  if (baseline.switched) return baseline.agentFirst || defaultRef;
+  return session?.modelRef || baseline.agentFirst || defaultRef;
 }
 
 export function displayedModel(
@@ -131,9 +147,10 @@ export function displayedModel(
   scope: string,
   session: Pick<Session, "modelRef"> | undefined,
   defaultRef: string,
+  baseline: ModelBaseline = {},
 ): string {
   if (explicit.scope === scope && explicit.ref) return explicit.ref;
-  return baselineModel(session, defaultRef);
+  return baselineModel(session, defaultRef, baseline);
 }
 
 // Choosing the baseline again clears the choice: only a different model is sent.
@@ -142,8 +159,9 @@ export function chooseModel(
   scope: string,
   session: Pick<Session, "modelRef"> | undefined,
   defaultRef: string,
+  baseline: ModelBaseline = {},
 ): ExplicitModel {
-  return ref === baselineModel(session, defaultRef) ? noExplicitModel : { scope, ref };
+  return ref === baselineModel(session, defaultRef, baseline) ? noExplicitModel : { scope, ref };
 }
 
 // AgentOptions.ModelRef: set only for an intentional selection on this route that differs from the

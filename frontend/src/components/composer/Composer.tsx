@@ -249,7 +249,8 @@ export function Composer({
           collapsible
           value={agent.selectedId}
           placeholder={copy.agentAgentName}
-          disabled={busy}
+          disabled={busy || agent.locked}
+          disabledReason={agent.locked ? copy.agentsChildAgentFixed : undefined}
           options={agent.agents.map((entry) => ({
             value: entry.id,
             label: agentName(entry, copy),

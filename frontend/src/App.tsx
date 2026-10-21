@@ -10,11 +10,10 @@ import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
 import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
-import { useModelSelection } from "./app/hooks/useModelSelection";
 
 import { executableModels, modelOptions } from "./app/model-selection";
 import { useComposerPreferences } from "./app/hooks/useComposerPreferences";
-import { useAgentCatalog } from "./app/hooks/useAgentCatalog";
+import { useComposerAgents } from "./app/hooks/useComposerAgents";
 import { useComposerModelControls } from "./app/hooks/useComposerModelControls";
 import { buildSidebarGroups } from "./app/presentation-model";
 import { routeSessionId, type WorkspaceRoute } from "./app/workspace-route";
@@ -136,11 +135,12 @@ export default function App() {
   );
   const configuredModels = useMemo(() => modelOptions(config), [config]);
   const { policy, setPolicy, rememberModel, usableModel } = useComposerPreferences(config.models);
-  const { modelRef, selectModel, resetModelChoice, agentModelRef } = useModelSelection({ config, session: current, sessionId: selected || "", preferred: usableModel });
+  const { agents, modelRef, selectModel, resetModelChoice, agentModelRef } = useComposerAgents({
+    config, session: current, sessionId: selected || "", preferred: usableModel, workspace: state.workspace,
+  });
   // Picker options, effort support and the bounded recent list for the composer.
   const { pickerModels, effortOptions, effectiveEffort, recentModelRefs, selectModelFromPicker, setEffort } =
     useComposerModelControls({ config, session: current, labels: t, selectModel, modelRef, onModelChosen: rememberModel });
-  const agents = useAgentCatalog({ sessionId: selected || "", pinnedAgent: current?.agent, onAgentSelected: resetModelChoice });
   const sessionGroups = useMemo(() => buildSidebarGroups({
     sessions: state.sessions,
     activeRunIds,
@@ -167,9 +167,9 @@ export default function App() {
     contextPaths,
     runtimeKind,
     contextLabel: t.followUpContext,
-    // The turn names the agent and carries the user's grant; Core applies the agent's ceilings.
+    // The turn names the agent and carries the user's grant; a child keeps Core's pin, so none is sent.
     getAgentConfig: () => buildAgentConfig(agentModelRef(), policy, maxSteps,
-      current ? sessionUI(current).delegation : "none", agents.agentId, effectiveEffort),
+      current ? sessionUI(current).delegation : "none", agents.composerAgent.locked ? undefined : agents.agentId, effectiveEffort),
     setWorkspaceState: setState,
     setRoute,
     setGoal,
@@ -305,9 +305,9 @@ export default function App() {
       onArchiveSession={(sessionId, archived) => void updateSessionUI(sessionId, { archived })}
       onLocaleChange={setLocale}
       onThemePreferenceChange={setThemePreference}
-      onConfigChanged={() => void refreshConfig()}
-      onTrustWorkspace={() => void trustWorkspace()}
-      onMigrateSubagentModel={() => void migrateSubagentModel()}
+      onConfigChanged={() => { void refreshConfig(); void agents.reload().catch(() => undefined); }}
+      onTrustWorkspace={() => void trustWorkspace().then(() => agents.reload()).catch(() => undefined)}
+      onMigrateSubagentModel={() => void migrateSubagentModel().then(() => agents.reload()).catch(() => undefined)}
       onModelChange={selectModelFromPicker}
       onEffortChange={setEffort}
       onError={setError}

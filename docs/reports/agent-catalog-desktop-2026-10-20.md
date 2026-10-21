@@ -192,3 +192,43 @@ Verification for this follow-up:
 - Playwright: 75 passed. New spec: "a run that fell back names the model that answered; task cards
   name their agent", which also checks that another thread shows no notice. A screenshot of the
   thread head was inspected; the notice sits under the config notice in the info tone.
+
+## Review fixes (12 findings, `af4fcf9..1714459`)
+
+The review is `agent://DesktopReview`. Core is pinned at `3e4f418`; its `agentCatalog` clears the
+delegation of every non-conversation agent and `validateAgents` refuses a `delegation` field on it,
+names must be unique case-insensitively (built-ins included) at load, descriptions are 280 **bytes**,
+and `constrainChild` ignores the requested agent, policy and delegation for any child.
+
+| # | Finding | Fix | Regression test |
+|---|---|---|---|
+| 1 | A legacy profile named `Explore`/`Worker` broke every later `config.Load` | `importLegacyProfiles` takes the taken names from `cfg.Effective().Agents` (built-ins, global and workspace agents, case-insensitive), not only the names stored in the global file | Go `TestLegacyAgentProfilesImportSuffixesBuiltinAndWorkspaceNames` |
+| 2 | A 300-byte CJK description failed `config.Save` and blocked the whole import; nothing was said | `normalizedAgentDescription` clips to `MaxAgentDescriptionSize` on a UTF-8 boundary with a warning; an unreadable/oversized file is reported instead of ignored; `AgentCatalog.Warning` carries the reason and `useAgentCatalog` exposes `loadError`, which the page shows | Go `TestLegacyAgentProfilesImportClipsDescriptionToBytes`, `TestLegacyAgentProfilesOversizedFileIsReported`; vitest `useAgentCatalog` "keeps the remembered agent when the catalog cannot be read", `AgentsPage` "reports a catalog that could not be read" |
+| 3 | The catalog was read once; every agent Save/Delete conflicted after another global write, and a workspace switch kept the previous project's agents | `useAgentCatalog` re-reads when `workspace` changes (the previous catalog is dropped until the new read lands), `reload()` now has callers (Settings' `onConfigChanged` after a provider/concurrency save, trust, subagentModel migrate), and a Save/Delete conflict reloads before the page shows `errConflict` | vitest `useAgentCatalog` "reads the catalog again on a workspace switch and drops the previous agents", "reads the catalog again after a Save conflict so the next save carries the new digest"; `AgentsPage` "shows the conflict copy when a save raced another write" |
+| 4 | "Use: both" could never be saved (delegation `isolated`, policy `full`) | `agentForSave` clears delegation for every use but `conversation` and requires a read-only/workspace ceiling plus a description; the editor fixes the delegation picker for those uses and stops offering `full`; `validateAgentDraft` refuses both cases before the write | Go `TestSaveAgentBothUseClearsDelegation`; vitest `agent-catalog` "validateAgentDraft for a delegated agent", `AgentsPage` "locks delegation and refuses a full policy for an agent that can be delegated to" |
+| 5 | A child thread showed Agent, corrected its pin and sent `agent` | `useAgentCatalog` takes `isChild`: it shows the session's pin even when delegation-only, skips the correction effect, lists the pin in the selector and locks it; App sends no `agent` for a child | vitest `useAgentCatalog` "shows a child's pinned agent even when it cannot run a conversation", `agent-config` "sends no agent for a child thread, whose pin Core keeps" |
+| 6 | The model chip ignored the selected agent's own list | `ModelBaseline` (`agentFirst`, `switched`) feeds `baselineModel`/`displayedModel`/`chooseModel` with Core's `ResolveModelRef` order; `useModelSelection` takes it from the new `useComposerAgents`, so the chip and the effort options follow the model Core runs | vitest `model-selection` "shows an agent's own first model, which is what Core runs", "lets a switched agent's list win over the session pin"; `useModelSelection` "shows the selected agent's first model and measures a pick against it", "follows a switched agent's list over the session pin" |
+| 7 | A thread's pin was not re-adopted after visiting New task | The sync key resets when `sessionId` is empty | vitest `useAgentCatalog` "adopts a thread's pin again after visiting New task" |
+| 8 | A failed rename (or a crash after the save) imported the profiles again | The import record is written **before** the rename and is the gate on later reads, so the file's presence no longer decides | Go `TestLegacyAgentProfilesImportRunsOnceWhenTheRenameFails` |
+| 9 | A corrupt or oversized `agents.json` was reported as imported | `agentImportNotRun` returns `Imported:false` with the reason; `AgentCatalog.Warning` joins those warnings, and the page no longer shows the "imported and renamed" panel for them | Go `TestLegacyAgentProfilesCorruptFileIsLeftAlone` (extended), `TestLegacyAgentProfilesOversizedFileIsReported` |
+| 10 | A failed catalog load overwrote the remembered agent id | The correction effect is skipped while `loadError` is set; the built-ins still stand in for display | vitest `useAgentCatalog` "keeps the remembered agent when the catalog cannot be read" |
+| 11 | A workspace agent's effort, instructions and models were editable but unsavable | Every field, the model rows and Add model are disabled with the editor's `locked` flag (built-in or not editable), matching the disabled Save, so no dirty state can arise | vitest `AgentsPage` "disables every field of a workspace definition, so nothing can become dirty" |
+| 12 | No notice when a context-window overflow switched model | `currentFallback` treats `window.overflow` as a capacity failover (`modelRef`, no `nextModelRef`), so the existing notice covers it | vitest `lib/model-fallback.test.ts` (new) |
+
+Also in this pass: the composer's agent + model wiring moved to `app/hooks/useComposerAgents.ts`
+(`useAgentCatalog` + `useModelSelection` + the child flag), keeping `App.tsx` under the 350-line
+architecture threshold. New copy: `agentDelegationPolicy`, `agentDelegationNeedsDescription`,
+`agentsChildAgentFixed` (zh-CN + en, next to `agentsDelegationFixed`).
+
+Verification actually run:
+- `go test -count=1 ./...` — pass; `go vet ./...` — pass.
+- `npx vitest run` — 59 files, 287 tests, pass (includes the architecture threshold test).
+- `npx tsc --noEmit` — pass.
+
+Fail-before evidence:
+- Executed: finding 12's `lib/model-fallback.test.ts` fails 2 of 5 against the pre-fix `model-fallback.ts`, and passes 5 of 5 after the fix.
+- Not executed:
+  - The Go tests for findings 1, 2, 4, 8 and 9 do not compile against the pre-fix `agents.go`, because they use the new `renameLegacyProfiles` seam. That they fail before the fix comes from reading the pre-fix code: it errors on the import, duplicates the profiles, or reports a false `imported`.
+  - The vitest cases for findings 3, 5, 6, 7, 10 and 11 were not run against the pre-fix frontend.
+
+

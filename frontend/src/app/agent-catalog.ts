@@ -21,6 +21,8 @@ export const BUILTIN_AGENT_IDS = ["ask", "agent", "explore", "worker"] as const;
 export type ComposerAgent = {
   agents: AgentEntry[];
   selectedId: string;
+  /** The selection is Core's, not the user's: a child thread's pinned agent cannot be changed. */
+  locked?: boolean;
   onSelect: (id: string) => void;
 };
 
@@ -119,6 +121,13 @@ export function validateAgentDraft(draft: AgentEntry, agents: AgentEntry[], labe
   if (Array.from(name).length > AGENT_LIMITS.name) return labels.agentNameTooLong;
   if (utf8Bytes(draft.instructions) > AGENT_LIMITS.instructions) return labels.agentInstructionsTooLong;
   if (utf8Bytes(draft.description ?? "") > AGENT_LIMITS.description) return labels.agentDescriptionTooLong;
+  // Core treats every non-conversation use as delegation: it never delegates further (the backend
+  // clears that field), caps its policy at read-only or workspace, and needs a description the
+  // model selects it by.
+  if (draft.use !== "conversation") {
+    if (draft.policy === "full") return labels.agentDelegationPolicy;
+    if (!draft.description?.trim()) return labels.agentDelegationNeedsDescription;
+  }
   if ((draft.models?.length ?? 0) > AGENT_LIMITS.models) return labels.agentsModelsLimit;
   if (agents.some((item) => item.id !== draft.id && item.name.toLowerCase() === name.toLowerCase())) {
     return labels.agentNameTaken;

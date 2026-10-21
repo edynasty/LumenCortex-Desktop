@@ -63,7 +63,7 @@ export function AgentEditor({
     { value: "read-only", label: labels.readOnly, description: labels.readOnlyDescription },
     { value: "workspace", label: labels.workspace, description: labels.workspaceDescription },
     { value: "full", label: labels.full, description: labels.fullDescription },
-  ];
+  ].filter((choice) => draft.use === "conversation" || choice.value !== "full");
   const delegationChoices: PickerOption[] = [
     { value: "none", label: labels.delegationNone, description: labels.delegationNoneDescription },
     { value: "propose", label: labels.delegationPropose, description: labels.delegationProposeDescription },
@@ -71,7 +71,8 @@ export function AgentEditor({
   ];
   const title = creating ? labels.agentsNew : agentName(draft, labels);
   const candidates = draft.models ?? [];
-  const delegationFixed = draft.use === "delegation";
+  // Core clears the delegation of every non-conversation agent: it never delegates further.
+  const delegationFixed = draft.use !== "conversation";
 
   function setModels(next: AgentModelItem[]) {
     onChange({ ...draft, models: next.length ? next : null });
@@ -164,7 +165,13 @@ export function AgentEditor({
             { value: "delegation", label: labels.agentsUseDelegation, title: labels.agentsUseDelegationDescription, disabled: locked },
             { value: "both", label: labels.agentsUseBoth, title: labels.agentsUseBothDescription, disabled: locked },
           ]}
-          onChange={(use) => onChange({ ...draft, use: use as AgentUse, delegation: use === "delegation" ? "none" : draft.delegation })}
+          onChange={(use) => onChange({
+            ...draft,
+            use: use as AgentUse,
+            delegation: use === "conversation" ? draft.delegation : "none",
+            // A delegated agent caps its policy at read-only or workspace; full is not offered.
+            policy: use !== "conversation" && draft.policy === "full" ? "workspace" : draft.policy,
+          })}
         />
         <small className="agents-note">
           {builtin ? labels.agentsUseFixed : labels.agentsUseConversationDescription}
@@ -201,6 +208,7 @@ export function AgentEditor({
             ariaLabel={labels.agentsDefaultEffort}
             value={draft.effort ?? ""}
             placeholder={labels.effortDefault}
+            disabled={locked}
             options={effortChoices}
             onChange={(effort) => onChange({ ...draft, effort: (effort || undefined) as AgentEffort | undefined })}
           />
@@ -217,6 +225,7 @@ export function AgentEditor({
         <textarea
           className="input agents-instructions"
           value={draft.instructions}
+          disabled={locked}
           placeholder={labels.agentsInstructionsPlaceholder}
           onChange={(event) => onChange({ ...draft, instructions: event.target.value })}
         />
@@ -242,6 +251,7 @@ export function AgentEditor({
                 emptyLabel={labels.noModelMatches}
                 recentLabel={labels.recentModels}
                 recentRefs={recentModelRefs}
+                disabled={locked}
                 onChange={(model) => {
                   const next = [...candidates];
                   next[index] = { ...next[index], model };
@@ -253,6 +263,7 @@ export function AgentEditor({
                 ariaLabel={`${labels.agentsModelEffort} ${index + 1}`}
                 value={candidate.effort ?? ""}
                 placeholder={labels.effortDefault}
+                disabled={locked}
                 options={effortChoices}
                 onChange={(effort) => {
                   const next = [...candidates];
@@ -266,7 +277,7 @@ export function AgentEditor({
                   className="agents-model-btn"
                   aria-label={`${labels.agentsModelUp} ${index + 1}`}
                   title={labels.agentsModelUp}
-                  disabled={index === 0}
+                  disabled={locked || index === 0}
                   onClick={() => move(index, -1)}
                 >
                   <Icon name="moveUp" size={13} />
@@ -276,7 +287,7 @@ export function AgentEditor({
                   className="agents-model-btn"
                   aria-label={`${labels.agentsModelDown} ${index + 1}`}
                   title={labels.agentsModelDown}
-                  disabled={index === candidates.length - 1}
+                  disabled={locked || index === candidates.length - 1}
                   onClick={() => move(index, 1)}
                 >
                   <Icon name="moveDown" size={13} />
@@ -286,6 +297,7 @@ export function AgentEditor({
                   className="agents-model-btn is-danger"
                   aria-label={`${labels.agentsModelRemove} ${index + 1}`}
                   title={labels.agentsModelRemove}
+                  disabled={locked}
                   onClick={() => setModels(candidates.filter((_, at) => at !== index))}
                 >
                   <Icon name="delete" size={13} />
@@ -298,7 +310,7 @@ export function AgentEditor({
           <Button
             size="sm"
             variant="ghost"
-            disabled={candidates.length >= AGENT_LIMITS.models}
+            disabled={locked || candidates.length >= AGENT_LIMITS.models}
             title={candidates.length >= AGENT_LIMITS.models ? labels.agentsModelsLimit : labels.agentsModelAdd}
             onClick={() => setModels([...candidates, { model: models[0]?.value ?? "" }])}
           >

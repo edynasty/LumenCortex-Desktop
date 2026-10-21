@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/edynasty/LumenCortex/config"
 	lcx "github.com/edynasty/LumenCortex/runtime"
@@ -408,7 +409,8 @@ func TestLegacyAgentProfilesImportSuffixesNamesAndReportsTheOverLimit(t *testing
 	}
 }
 
-// A corrupt legacy file is left exactly as it was, and the catalog still loads.
+// A corrupt legacy file is left exactly as it was, the catalog still loads, and the result never
+// claims an import that did not happen.
 func TestLegacyAgentProfilesCorruptFileIsLeftAlone(t *testing.T) {
 	configPath := useCatalogDir(t)
 	r := New()
@@ -423,8 +425,215 @@ func TestLegacyAgentProfilesCorruptFileIsLeftAlone(t *testing.T) {
 	if len(catalog.Agents) != 4 || catalog.Import == nil || len(catalog.Import.Warnings) == 0 {
 		t.Fatalf("catalog = %v import = %+v", agentIDs(catalog), catalog.Import)
 	}
+	if catalog.Import.Imported || catalog.Import.AlreadyImported {
+		t.Fatalf("a corrupt file was reported as imported: %+v", catalog.Import)
+	}
+	if !strings.Contains(catalog.Warning, "not a v1 profile catalog") {
+		t.Fatalf("warning = %q", catalog.Warning)
+	}
 	if got := readFile(t, legacyPath); got != "{not a catalog" {
 		t.Fatalf("the corrupt file was rewritten: %s", got)
+	}
+}
+
+// A file over the read bound is reported the same way: not imported, with the reason, and untouched.
+func TestLegacyAgentProfilesOversizedFileIsReported(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	legacyPath := filepath.Join(filepath.Dir(configPath), legacyAgentProfilesFileName)
+	writeFile(t, legacyPath, strings.Repeat("x", maxLegacyProfilesFileBytes+1))
+
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Agents) != 4 {
+		t.Fatalf("catalog = %v", agentIDs(catalog))
+	}
+	if catalog.Import == nil || catalog.Import.Imported || len(catalog.Import.Warnings) == 0 {
+		t.Fatalf("import = %+v", catalog.Import)
+	}
+	if !strings.Contains(catalog.Warning, "larger than") {
+		t.Fatalf("warning = %q", catalog.Warning)
+	}
+	if got := len(readFile(t, legacyPath)); got != maxLegacyProfilesFileBytes+1 {
+		t.Fatalf("the oversized file changed: %d bytes", got)
+	}
+}
+
+// A legacy name that a built-in (or the workspace) already holds is suffixed: importing it as is
+// would make every later config.Load fail on the duplicate name.
+func TestLegacyAgentProfilesImportSuffixesBuiltinAndWorkspaceNames(t *testing.T) {
+	configPath := useCatalogDir(t)
+	workspace := canonicalDir(t)
+	// The workspace is trusted, so its agent name takes part in the merged catalog.
+	writeFile(t, filepath.Join(workspace, config.FileName), `{"agents": {"local-helper": {"name": "Local helper", "description": "Reads.", "use": "conversation"}}}`)
+	r := openRuntime(t, workspace)
+	state, err := r.ConfigState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.TrustWorkspace(state.GlobalDigest); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(filepath.Dir(configPath), legacyAgentProfilesFileName), `{
+  "version": 1,
+  "profiles": [
+    {"id": "p1", "name": "Explore", "base": "agent"},
+    {"id": "p2", "name": "Worker", "base": "agent"},
+    {"id": "p3", "name": "local helper", "base": "agent"}
+  ]
+}`)
+
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.Import == nil || !catalog.Import.Imported || catalog.Import.Custom != 3 {
+		t.Fatalf("import = %+v", catalog.Import)
+	}
+	names := map[string]bool{}
+	for _, agent := range catalog.Agents {
+		names[strings.ToLower(agent.Name)] = true
+	}
+	for _, want := range []string{"explore (2)", "worker (2)", "local helper (2)"} {
+		if !names[want] {
+			t.Fatalf("missing %q in %v", want, names)
+		}
+	}
+	// The file loads on its own too: no duplicate name is left behind.
+	if _, err := config.Load(workspace); err != nil {
+		t.Fatalf("load after import: %v", err)
+	}
+}
+
+// The retired store counted characters; Core counts bytes. A long CJK description is clipped on a
+// UTF-8 boundary with a warning instead of failing the save and blocking the whole import.
+func TestLegacyAgentProfilesImportClipsDescriptionToBytes(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	writeFile(t, filepath.Join(filepath.Dir(configPath), legacyAgentProfilesFileName), `{
+  "version": 1,
+  "profiles": [
+    {"id": "p1", "name": "Researcher", "description": "`+strings.Repeat("描", 100)+`", "base": "agent"},
+    {"id": "p2", "name": "Planner", "description": "Plans.", "base": "agent"}
+  ]
+}`)
+
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatalf("a long description blocked the import: %v", err)
+	}
+	researcher := findAgent(t, catalog, "researcher")
+	if len(researcher.Description) > config.MaxAgentDescriptionSize {
+		t.Fatalf("description is %d bytes", len(researcher.Description))
+	}
+	if !utf8.ValidString(researcher.Description) {
+		t.Fatal("the clip split a rune")
+	}
+	// The other profile still came through: one bad field never blocks the rest.
+	if findAgent(t, catalog, "planner").Description != "Plans." {
+		t.Fatalf("planner = %+v", findAgent(t, catalog, "planner"))
+	}
+	if !strings.Contains(strings.Join(catalog.Import.Warnings, "\n"), "description was shortened") {
+		t.Fatalf("warnings = %v", catalog.Import.Warnings)
+	}
+}
+
+// A failed rename (or a process that stopped between the save and the rename) must not import the
+// same profiles again: the record gates the import, not the file's existence.
+func TestLegacyAgentProfilesImportRunsOnceWhenTheRenameFails(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	legacyPath := filepath.Join(filepath.Dir(configPath), legacyAgentProfilesFileName)
+	writeFile(t, legacyPath, `{"version": 1, "profiles": [{"id": "p1", "name": "Planner", "base": "agent"}]}`)
+
+	original := renameLegacyProfiles
+	t.Cleanup(func() { renameLegacyProfiles = original })
+	renameLegacyProfiles = func(string) (string, error) { return "", errors.New("permission denied") }
+
+	first, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !first.Import.Imported || first.Import.Custom != 1 {
+		t.Fatalf("first import = %+v", first.Import)
+	}
+	if !strings.Contains(strings.Join(first.Import.Warnings, "\n"), "could not be renamed") {
+		t.Fatalf("warnings = %v", first.Import.Warnings)
+	}
+	if _, err := os.Stat(legacyPath); err != nil {
+		t.Fatalf("the file should be left as a backup: %v", err)
+	}
+
+	renameLegacyProfiles = original
+	second, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Import == nil || second.Import.Imported || !second.Import.AlreadyImported {
+		t.Fatalf("second import = %+v", second.Import)
+	}
+	custom := 0
+	for _, agent := range second.Agents {
+		if agent.Builtin {
+			continue
+		}
+		custom++
+		if strings.Contains(agent.Name, "(2)") {
+			t.Fatalf("the import ran twice: %v", agentIDs(second))
+		}
+	}
+	if custom != 1 {
+		t.Fatalf("custom agents = %d, want 1 (%v)", custom, agentIDs(second))
+	}
+}
+
+// "Use: both" is a delegation agent to Core: it never delegates further, caps its policy at
+// read-only or workspace, and needs a description. A save round-trips.
+func TestSaveAgentBothUseClearsDelegation(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved, err := r.SaveAgent(catalog.GlobalDigest, AgentEntry{
+		Name: "Hybrid", Description: "Runs a thread or a child.", Use: "both",
+		Policy: "read-only", Delegation: "isolated", Instructions: "Be brief.",
+	})
+	if err != nil {
+		t.Fatalf("a both agent could not be saved: %v", err)
+	}
+	hybrid := findAgent(t, saved, "hybrid")
+	if hybrid.Delegation != "none" || !hybrid.ForConversation || hybrid.Policy != "read-only" {
+		t.Fatalf("hybrid = %+v", hybrid)
+	}
+	document, err := config.ReadDocument(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry := document.File.Agents["hybrid"]; entry.Delegation != "" || entry.Use != config.AgentUseBoth {
+		t.Fatalf("file entry = %+v", entry)
+	}
+
+	// Saving the loaded entry again (what the editor does) also succeeds.
+	if _, err := r.SaveAgent(saved.GlobalDigest, hybrid); err != nil {
+		t.Fatalf("re-save: %v", err)
+	}
+
+	// Core refuses these, so the page refuses them before writing.
+	for _, entry := range []AgentEntry{
+		{Name: "Hybrid full", Description: "Runs both.", Use: "both", Policy: "full"},
+		{Name: "Hybrid bare", Use: "both", Policy: "read-only"},
+	} {
+		if _, err := r.SaveAgent(saved.GlobalDigest, entry); !errors.Is(err, ErrInvalidAgent) {
+			t.Fatalf("%q err = %v, want ErrInvalidAgent", entry.Name, err)
+		}
 	}
 }
 

@@ -194,4 +194,62 @@ describe("AgentsPage", () => {
     expect(within(editor).getByText(t.agentsWorkspaceLocked)).toBeInTheDocument();
     expect(within(editor).getByRole("button", { name: t.agentsSave })).toBeDisabled();
   });
+
+  it("disables every field of a workspace definition, so nothing can become dirty", async () => {
+    const user = userEvent.setup();
+    const local = entry({
+      id: "local-helper", name: "Local helper", description: "Reads.", source: "workspace", editable: false,
+      instructions: "Read only.", models: [{ model: "openai/gpt-5.6" }],
+    });
+    renderPage([...builtins, local]);
+    await user.click(screen.getByRole("button", { name: /Local helper/ }));
+    const editor = screen.getByRole("region", { name: "Local helper" });
+
+    expect(within(editor).getByRole("textbox", { name: new RegExp(t.agentsInstructions) })).toBeDisabled();
+    expect(within(editor).getByDisplayValue("Reads.")).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsDefaultEffort}`) })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsModels} 1`) })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: `${t.agentsModelUp} 1` })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: t.agentsModelAdd })).toBeDisabled();
+    expect(within(editor).getByRole("button", { name: t.agentsSave })).toBeDisabled();
+    expect(within(editor).queryByText(t.agentsUnsaved)).toBeNull();
+  });
+
+  it("locks delegation and refuses a full policy for an agent that can be delegated to", async () => {
+    const user = userEvent.setup();
+    const hybrid = entry({
+      id: "hybrid", name: "Hybrid", description: "Runs both.", use: "both", policy: "read-only", delegation: "none",
+    });
+    renderPage([...builtins, hybrid]);
+    await user.click(screen.getByRole("button", { name: /Hybrid/ }));
+    const editor = screen.getByRole("region", { name: "Hybrid" });
+
+    // Core clears the delegation of every non-conversation agent, so the picker is fixed.
+    expect(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsDelegation}`) })).toBeDisabled();
+    // And its policy can only be read-only or workspace.
+    await user.click(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsPolicy}`) }));
+    expect(screen.getByRole("menuitemradio", { name: new RegExp(t.workspace) })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitemradio", { name: new RegExp(`^${t.full}`) })).toBeNull();
+  });
+
+  it("shows the conflict copy when a save raced another write", async () => {
+    const user = userEvent.setup();
+    const save = vi.fn(async () => {
+      throw new Error("config file changed since it was read: /home/lumencortex.json");
+    });
+    renderPage([...builtins, reviewer], { save });
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+    await user.type(within(editor).getByRole("textbox", { name: new RegExp(t.agentsInstructions) }), " more");
+    await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(t.errConflict);
+  });
+
+  it("reports a catalog that could not be read", () => {
+    renderPage([...builtins], {
+      loadError: "invalid configuration: agents \"explore-2\" and \"explore\" have the same name",
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/have the same name/);
+  });
 });

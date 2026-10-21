@@ -57,4 +57,25 @@ describe("useModelSelection", () => {
     expect(result.current.modelRef).toBe("test/c");
     expect(result.current.agentModelRef()).toBeUndefined();
   });
+
+  it("shows the selected agent's first model and measures a pick against it", () => {
+    const { result } = renderHook(() => useModelSelection({
+      config: { model: "test/d" }, session: undefined, sessionId: "", agentFirst: "test/x",
+    }));
+    expect(result.current.modelRef).toBe("test/x");
+    // Picking the configured default is a real choice here: Core would have run test/x.
+    act(() => result.current.selectModel("test/d"));
+    expect(result.current.agentModelRef()).toBe("test/d");
+    act(() => result.current.selectModel("test/x"));
+    expect(result.current.agentModelRef()).toBeUndefined();
+  });
+
+  it("follows a switched agent's list over the session pin", () => {
+    const { result } = renderHook(() => useModelSelection({
+      config: { model: "test/d" }, session: { modelRef: "test/a" }, sessionId: "s1", agentFirst: "test/x", agentSwitched: true,
+    }));
+    expect(result.current.modelRef).toBe("test/x");
+    // The session's pin is not the model the next turn will run, so nothing is sent for it.
+    expect(result.current.agentModelRef()).toBeUndefined();
+  });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentEntry } from "../../types";
+import { coreErrorKey } from "../../lib/core-errors";
 import { AGENT_LIMITS, agentName, copyAgentName, emptyAgent, sameAgentDraft, validateAgentDraft } from "../../app/agent-catalog";
 import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
 import { Button } from "../primitives/Button";
@@ -92,6 +93,12 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
     open(id);
   }
 
+  // A conflict means the hook reloaded the catalog: the copy says so instead of the raw sentinel.
+  function failureText(failure: unknown): string {
+    const message = errorText(failure);
+    return coreErrorKey(message) === "conflict" ? labels.errConflict : message;
+  }
+
   async function save() {
     const problem = validateAgentDraft(draft, agents.agents, labels);
     if (problem) {
@@ -115,7 +122,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
       if (saved) load(saved);
       else setBaseline(draft);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(failureText(failure));
     } finally {
       setSaving(false);
     }
@@ -129,7 +136,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
       const fallback = next.agents.find((agent) => agent.id === "agent") ?? next.agents[0];
       if (fallback) load(fallback);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(failureText(failure));
     } finally {
       setSaving(false);
     }
@@ -146,7 +153,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
       const current = next.agents.find((agent) => agent.id === draft.id);
       if (current) load(current);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(failureText(failure));
     } finally {
       setSaving(false);
     }
@@ -164,7 +171,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
       const copy = next.agents.find((agent) => !agent.builtin && agent.name === name);
       if (copy) load(copy);
     } catch (failure) {
-      setError(errorText(failure));
+      setError(failureText(failure));
     } finally {
       setSaving(false);
     }
@@ -179,6 +186,12 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
           <p className="agents-warning" role="status">
             <Icon name="failed" size={13} />
             <span>{labels.agentsWarning}{agents.warning}</span>
+          </p>
+        )}
+        {agents.loadError && (
+          <p className="agents-warning" role="alert">
+            <Icon name="failed" size={13} />
+            <span>{labels.agentsWarning}{agents.loadError}</span>
           </p>
         )}
         {importResult && (importResult.imported || importResult.alreadyImported) && (

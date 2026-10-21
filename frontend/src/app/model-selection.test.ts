@@ -110,6 +110,23 @@ describe("model selection and session pinning", () => {
     expect(chooseModel("test/z", "", undefined, "test/z")).toEqual(noExplicitModel);
   });
 
+  it("shows an agent's own first model, which is what Core runs", () => {
+    expect(baselineModel(undefined, "test/d", { agentFirst: "test/x" })).toBe("test/x");
+    expect(displayedModel(noExplicitModel, "", undefined, "test/d", { agentFirst: "test/x" })).toBe("test/x");
+    // Picking the default is now a real choice, because Core would have run the agent's model.
+    expect(chooseModel("test/d", "", undefined, "test/d", { agentFirst: "test/x" })).toEqual({ scope: "", ref: "test/d" });
+    // Picking the agent's first model is the baseline again: nothing is sent.
+    expect(chooseModel("test/x", "", undefined, "test/d", { agentFirst: "test/x" })).toEqual(noExplicitModel);
+  });
+
+  it("lets a switched agent's list win over the session pin", () => {
+    expect(baselineModel(pinned, "test/d", { agentFirst: "test/x", switched: true })).toBe("test/x");
+    // A switched agent without a list of its own starts from the default.
+    expect(baselineModel(pinned, "test/d", { switched: true })).toBe("test/d");
+    // The pin still wins while the agent is the thread's.
+    expect(baselineModel(pinned, "test/d", { agentFirst: "test/x" })).toBe("test/a");
+  });
+
   it("does not resend a choice the session is already pinned to", () => {
     expect(explicitModelRef({ scope: "s1", ref: "test/b" }, "s1", { modelRef: "test/b" })).toBeUndefined();
   });

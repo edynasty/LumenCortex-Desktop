@@ -40,7 +40,7 @@ describe("useAgentCatalog", () => {
 
   it("starts on the four built-ins and replaces them with Core's catalog", async () => {
     mocks.agents.mockResolvedValue(catalog(agents));
-    const { result } = renderHook(() => useAgentCatalog({ sessionId: "" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
     expect(result.current.agents.map((agent) => agent.id)).toEqual(["ask", "agent", "explore", "worker"]);
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.agents.map((agent) => agent.id)).toEqual(["ask", "agent", "explore", "reviewer"]);
@@ -51,7 +51,7 @@ describe("useAgentCatalog", () => {
   it("falls back to Agent when the stored id is gone or delegation-only", async () => {
     mocks.agents.mockResolvedValue(catalog(agents));
     localStorage.setItem("lcx-composer", JSON.stringify({ agentId: "explore" }));
-    const { result } = renderHook(() => useAgentCatalog({ sessionId: "" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.agentId).toBe("agent");
     expect(JSON.parse(localStorage.getItem("lcx-composer") || "{}").agentId).toBe("agent");
@@ -61,7 +61,7 @@ describe("useAgentCatalog", () => {
     mocks.agents.mockResolvedValue(catalog(agents));
     const onAgentSelected = vi.fn();
     const { result, rerender } = renderHook(
-      ({ sessionId, pinnedAgent }) => useAgentCatalog({ sessionId, pinnedAgent, onAgentSelected }),
+      ({ sessionId, pinnedAgent }) => useAgentCatalog({ sessionId, pinnedAgent, workspace: "", onAgentSelected }),
       { initialProps: { sessionId: "s1", pinnedAgent: "ask" } },
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -90,7 +90,7 @@ describe("useAgentCatalog", () => {
     const saved = catalog([...agents, entry({ id: "planner", name: "Planner" })]);
     mocks.saveAgent.mockResolvedValue(saved);
     mocks.deleteAgent.mockResolvedValue(catalog(agents));
-    const { result } = renderHook(() => useAgentCatalog({ sessionId: "" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => { await result.current.save(entry({ id: "", name: "Planner" })); });
@@ -103,9 +103,90 @@ describe("useAgentCatalog", () => {
 
   it("keeps the built-ins when Core cannot be reached", async () => {
     mocks.agents.mockRejectedValue(new Error("Wails bridge is not available"));
-    const { result } = renderHook(() => useAgentCatalog({ sessionId: "" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.agents).toHaveLength(4);
     expect(result.current.agentId).toBe("agent");
+  });
+
+  it("keeps the remembered agent when the catalog cannot be read", async () => {
+    mocks.agents.mockRejectedValue(new Error("invalid configuration: agents has a duplicate name"));
+    localStorage.setItem("lcx-composer", JSON.stringify({ agentId: "reviewer" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    // The built-ins stand in for display, but the failure must not erase the user's choice.
+    expect(result.current.agentId).toBe("agent");
+    expect(result.current.loadError).toContain("duplicate name");
+    expect(JSON.parse(localStorage.getItem("lcx-composer") || "{}").agentId).toBe("reviewer");
+  });
+
+  it("adopts a thread's pin again after visiting New task", async () => {
+    mocks.agents.mockResolvedValue(catalog(agents));
+    const { result, rerender } = renderHook(
+      ({ sessionId, pinnedAgent }: { sessionId: string; pinnedAgent?: string }) =>
+        useAgentCatalog({ sessionId, pinnedAgent, workspace: "" }),
+      { initialProps: { sessionId: "s1", pinnedAgent: "ask" } as { sessionId: string; pinnedAgent?: string } },
+    );
+    await waitFor(() => expect(result.current.agentId).toBe("ask"));
+    act(() => result.current.select("reviewer"));
+    expect(result.current.agentId).toBe("reviewer");
+
+    rerender({ sessionId: "" });
+    // Reopening the same thread adopts its pin, not the pick left on New task.
+    rerender({ sessionId: "s1", pinnedAgent: "ask" });
+    expect(result.current.agentId).toBe("ask");
+  });
+
+  it("shows a child's pinned agent even when it cannot run a conversation", async () => {
+    mocks.agents.mockResolvedValue(catalog(agents));
+    localStorage.setItem("lcx-composer", JSON.stringify({ agentId: "reviewer" }));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "c1", pinnedAgent: "explore", isChild: true, workspace: "" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.agentId).toBe("explore");
+    expect(result.current.selected?.id).toBe("explore");
+    expect(result.current.composerAgent.locked).toBe(true);
+    expect(result.current.composerAgent.agents[0].id).toBe("explore");
+    // The pin is Core's, not the user's: it neither corrects nor replaces the remembered agent.
+    expect(JSON.parse(localStorage.getItem("lcx-composer") || "{}").agentId).toBe("reviewer");
+  });
+
+  it("reads the catalog again on a workspace switch and drops the previous agents", async () => {
+    mocks.agents.mockResolvedValueOnce(catalog(agents));
+    const { result, rerender } = renderHook(
+      ({ workspace }) => useAgentCatalog({ sessionId: "", workspace }),
+      { initialProps: { workspace: "/w1" } },
+    );
+    await waitFor(() => expect(result.current.agents.map((agent) => agent.id)).toContain("reviewer"));
+
+    let resolveSecond: (value: AgentCatalog) => void = () => {};
+    mocks.agents.mockReturnValueOnce(new Promise<AgentCatalog>((resolve) => { resolveSecond = resolve; }));
+    rerender({ workspace: "/w2" });
+    // The previous project's agents are neither shown nor sent while the new read is pending.
+    expect(result.current.agents.map((agent) => agent.id)).toEqual(["ask", "agent", "explore", "worker"]);
+    expect(result.current.agentId).toBe("agent");
+
+    await act(async () => {
+      resolveSecond(catalog(agents.filter((agent) => agent.id !== "reviewer")));
+    });
+    expect(mocks.agents).toHaveBeenCalledTimes(2);
+    expect(result.current.agents.map((agent) => agent.id)).toEqual(["ask", "agent", "explore"]);
+  });
+
+  it("reads the catalog again after a Save conflict so the next save carries the new digest", async () => {
+    mocks.agents.mockResolvedValueOnce(catalog(agents));
+    const { result } = renderHook(() => useAgentCatalog({ sessionId: "", workspace: "" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const reloaded = { ...catalog(agents), globalDigest: "sha256:g2" };
+    mocks.agents.mockResolvedValueOnce(reloaded);
+    mocks.saveAgent.mockRejectedValueOnce(new Error("config file changed since it was read: /home/lumencortex.json"));
+    await act(async () => {
+      await expect(result.current.save(entry({ id: "", name: "Planner" }))).rejects.toThrow("config file changed");
+    });
+    expect(mocks.agents).toHaveBeenCalledTimes(2);
+
+    mocks.saveAgent.mockResolvedValueOnce(reloaded);
+    await act(async () => { await result.current.save(entry({ id: "", name: "Planner" })); });
+    expect(mocks.saveAgent).toHaveBeenLastCalledWith("sha256:g2", expect.objectContaining({ name: "Planner" }));
   });
 });
