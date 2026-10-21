@@ -55,8 +55,13 @@
   opacity: 0; transition: opacity var(--dur-fast), background var(--dur-fast);
 }
 .msg-user-bubble .msg-action { position: absolute; right: 4px; top: 4px; background: var(--surface-sunken); }
-.msg-assistant:hover .msg-action, .msg-user-bubble:hover .msg-action, .msg-action:focus-visible { opacity: 1; }
+.msg-assistant:hover .msg-action, .msg-user:hover .msg-action, .msg-action:focus-visible { opacity: 1; }
 .msg-action:hover { background: var(--state-hover); color: var(--fg); }
+/* The user's turn: actions under the bubble, right-aligned like it. */
+.msg-user > .msg-actions { align-self: flex-end; }
+/* "Remember": the note editor opens under the message it was made from. */
+.remember-edit { align-self: stretch; max-width: min(640px, 100%); margin-top: -4px; }
+.msg-user > .remember-edit { align-self: flex-end; width: min(580px, 88%); }
 .notice-line { display: flex; align-items: flex-start; gap: 8px; font-size: var(--text-xs); color: var(--fg-3); line-height: 1.55; }
 .notice-line > svg { margin-top: 2px; flex: none; }
 .notice-line.tone-warn { color: var(--fg-2); }

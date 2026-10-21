@@ -611,6 +611,19 @@ export type TaskReference = {
   at: string;
 };
 
+// A note the agent (note_write) or the user wrote (ADR-0010 D1). Cites are workspace paths with the
+// git blob they had when the note was written; the Task pane shows them as written.
+export type TaskNote = {
+  id: string;
+  text: string;
+  by: "agent" | "user" | string;
+  cites?: { path: string; blob?: string }[];
+  at: string;
+};
+
+// The user adds a note (no id), rewrites one (id + text) or removes one (id + remove).
+export type TaskNoteEdit = { id?: string; text?: string; remove?: boolean };
+
 export type TaskResolutionState = "open" | "done" | "dropped";
 
 export type TaskResolution = {
@@ -631,6 +644,8 @@ export type TaskStateInfo = {
   state: {
     brief?: string;
     references?: TaskReference[];
+    // Newest last, as Core stores them.
+    notes?: TaskNote[];
     resolution: TaskResolution;
     windowStartSeq: number;
     // The execution tasks the thread proposed or started, oldest first.

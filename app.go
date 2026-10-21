@@ -260,6 +260,10 @@ func (a *App) EditTaskReference(sessionID string, edit backend.TaskReferenceEdit
 	return a.backend.EditTaskReference(context.Background(), sessionID, edit)
 }
 
+func (a *App) EditTaskNote(sessionID string, edit backend.TaskNoteEdit) (backend.TaskStateInfo, error) {
+	return a.backend.EditTaskNote(context.Background(), sessionID, edit)
+}
+
 func (a *App) ResolveThread(sessionID, state string) (backend.TaskStateInfo, error) {
 	return a.backend.ResolveThread(context.Background(), sessionID, state, "desktop-user")
 }

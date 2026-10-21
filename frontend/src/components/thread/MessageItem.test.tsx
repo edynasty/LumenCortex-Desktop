@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { copy } from "../../lib/i18n/app-copy";
 import type { Message } from "../../types";
 import { MessageItem } from "./MessageItem";
@@ -22,7 +23,47 @@ const labels = {
   workCalls: t.workCalls,
   showOutput: t.showOutput,
   hideOutput: t.hideOutput,
+  remember: t.remember,
+  remembered: t.remembered,
+  rememberTitle: t.rememberTitle,
+  rememberSave: t.rememberSave,
+  rememberCancel: t.rememberCancel,
+  rememberClipped: t.rememberClipped,
+  taskNoteBytes: t.taskNoteBytes,
 };
+
+describe("MessageItem Remember", () => {
+  it("seeds the editor with the message cut to the note bound and saves the edited text", async () => {
+    const onRemember = vi.fn().mockResolvedValue("");
+    render(<MessageItem labels={labels} onRemember={onRemember} message={row("assistant", { role: "assistant", content: "x".repeat(600) })} />);
+
+    await userEvent.click(screen.getByRole("button", { name: t.rememberTitle }));
+    const field = screen.getByRole("textbox", { name: t.remember }) as HTMLTextAreaElement;
+    expect(field.value).toBe("x".repeat(512));
+    expect(screen.getByText(t.rememberClipped.replace("{max}", "512"))).toBeTruthy();
+
+    await userEvent.clear(field);
+    await userEvent.type(field, "  rel- prefix since 1.4  ");
+    await userEvent.click(screen.getByRole("button", { name: t.rememberSave }));
+    expect(onRemember).toHaveBeenCalledWith("rel- prefix since 1.4");
+    expect(screen.queryByRole("textbox", { name: t.remember })).toBeNull();
+    expect(screen.getByRole("button", { name: t.remembered })).toBeTruthy();
+  });
+
+  it("keeps the editor open with Core's refusal, and is not offered on runtime notices", async () => {
+    const onRemember = vi.fn().mockResolvedValue("This thread already has 32 notes you wrote.");
+    const { unmount } = render(<MessageItem labels={labels} onRemember={onRemember} message={row("user", { role: "user", content: "use the beta flag" })} />);
+    await userEvent.click(screen.getByRole("button", { name: t.rememberTitle }));
+    await userEvent.click(screen.getByRole("button", { name: t.rememberSave }));
+    expect(onRemember).toHaveBeenCalledWith("use the beta flag");
+    expect(screen.getByRole("alert").textContent).toContain("32 notes");
+    expect(screen.getByRole("textbox", { name: t.remember })).toBeTruthy();
+    unmount();
+
+    render(<MessageItem labels={labels} onRemember={onRemember} message={row("user", { role: "user", origin: "completion_blocked", content: "blocked" })} />);
+    expect(screen.queryByRole("button", { name: t.rememberTitle })).toBeNull();
+  });
+});
 
 function row(role: string, json: Record<string, unknown>): Message {
   return { sessionId: "s", seq: 3, role, json };

@@ -5,6 +5,8 @@ import type { Message } from "../../types";
 import { Icon } from "../primitives/Icon";
 import { Markdown } from "./Markdown";
 import { WorkGroup } from "./WorkGroup";
+import { RememberButton, RememberEditor, type RememberLabels, type RememberNote } from "./RememberAction";
+
 type AppCopyKeys = {
   workTitle: string;
   workCalls: string;
@@ -21,12 +23,14 @@ type Labels = {
   copied: string;
   runtimeNotice: string;
 } & RuntimeNoticeCopy &
-  AppCopyKeys;
-
+  AppCopyKeys &
+  RememberLabels;
 
 type Props = {
   message: Message;
   labels: Labels;
+  // Offered on the user's and the assistant's turns when the thread can take notes.
+  onRemember?: RememberNote;
 };
 
 function normalizePayload(value: unknown): Record<string, unknown> {
@@ -62,10 +66,27 @@ function CopyAction({ text, labels }: { text: string; labels: Pick<Labels, "copy
   );
 }
 
-export function MessageItem({ message, labels }: Props) {
+export function MessageItem({ message, labels, onRemember }: Props) {
+  const [noting, setNoting] = useState(false);
+  const [saved, setSaved] = useState(false);
   const payload = normalizePayload(message.json);
   const content = typeof payload.content === "string" ? payload.content : JSON.stringify(payload, null, 2);
   const origin = typeof payload.origin === "string" ? payload.origin : "";
+  const canRemember = Boolean(onRemember && content.trim());
+  const rememberButton = canRemember && <RememberButton saved={saved} labels={labels} onOpen={() => setNoting(true)} />;
+  const rememberEditor = canRemember && noting && onRemember && (
+    <RememberEditor
+      text={content}
+      labels={labels}
+      onRemember={onRemember}
+      onClose={(stored) => {
+        setNoting(false);
+        if (!stored) return;
+        setSaved(true);
+        window.setTimeout(() => setSaved(false), 1600);
+      }}
+    />
+  );
 
   // Rows the runtime wrote are notices, not turns: a quiet line keyed by origin.
   if (origin) {
@@ -97,6 +118,8 @@ export function MessageItem({ message, labels }: Props) {
           {content}
           <CopyAction text={content} labels={labels} />
         </div>
+        {rememberButton && <div className="msg-actions">{rememberButton}</div>}
+        {rememberEditor}
       </div>
     );
   }
@@ -115,8 +138,10 @@ export function MessageItem({ message, labels }: Props) {
       {content && (
         <div className="msg-actions">
           <CopyAction text={content} labels={labels} />
+          {rememberButton}
         </div>
       )}
+      {rememberEditor}
     </div>
   );
 }

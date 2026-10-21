@@ -298,6 +298,10 @@ let visualTaskState: TaskStateInfo = {
       { id: "ref_b", kind: "path", target: "frontend/src/components/provider/ProvidersPane.tsx", state: "suggested", by: "agent", at: "2026-09-22T01:09:00Z" },
       { id: "ref_c", kind: "path", target: "docs/legacy-provider-notes.md", state: "excluded", by: "user", at: "2026-09-22T01:10:00Z" },
     ],
+    notes: [
+      { id: "n1", text: "Provider scopes merge field by field; a workspace file never replaces a global provider's apiKey.", by: "agent", at: "2026-09-22T01:12:00Z", cites: [{ path: "internal/backend/provider_config.go", blob: "3f1c2a" }] },
+      { id: "u7c41e2", text: "Keep the saved file format: no migration in this change.", by: "user", at: "2026-09-22T01:14:00Z" },
+    ],
     resolution: { state: "open", by: "reopen", actor: "runtime" },
     windowStartSeq: 0,
   },
@@ -550,6 +554,17 @@ export function visualAppStub() {
           kept.push({ id: `ref_${edit.target}`, kind: edit.kind, target: edit.target, note: edit.note, state: edit.state, by: "user", at: new Date().toISOString() });
         }
         state.references = kept;
+      }),
+    EditTaskNote: async (_id, edit) =>
+      editVisualTaskState((state) => {
+        const notes = state.notes ?? [];
+        if (edit.remove) {
+          state.notes = notes.filter((note) => note.id !== edit.id);
+        } else if (edit.id) {
+          state.notes = notes.map((note) => (note.id === edit.id ? { ...note, text: edit.text ?? note.text, by: "user" } : note));
+        } else {
+          state.notes = [...notes, { id: `u${Date.now().toString(16)}`, text: edit.text ?? "", by: "user", at: new Date().toISOString() }];
+        }
       }),
     ResolveThread: async (_id, resolution) =>
       editVisualTaskState((state) => { state.resolution = { state: resolution, by: "user", actor: "desktop-user" }; }),

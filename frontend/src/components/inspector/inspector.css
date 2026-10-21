@@ -113,6 +113,12 @@
 .ref-add { display: flex; gap: 6px; }
 .ref-add .input { flex: 1; min-width: 0; }
 
+/* Notes: reference rows whose text wraps; the newest first. */
+.note-row { align-items: start; }
+.note-row .ref-kind { margin-top: 2px; }
+.note-text { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: var(--text-xs); line-height: 1.45; color: var(--fg); }
+.note-add textarea { min-height: 56px; }
+
 /* Resolution + the ready badge. */
 .task-ready {
   display: inline-flex;

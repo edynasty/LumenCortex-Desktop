@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bridge } from "../../lib/bridge";
-import type { RuntimeEvent, TaskReferenceEdit, TaskResolutionState, TaskStateInfo } from "../../types";
+import type { RuntimeEvent, TaskNoteEdit, TaskReferenceEdit, TaskResolutionState, TaskStateInfo } from "../../types";
 
 // Events after which the host view of Task State may differ: Task State versions and queued edits,
 // a context reset, the end of a run, changes to the evidence the resolution reads, and the start,
@@ -100,6 +100,7 @@ export function useTaskState({ sessionId, events }: Options) {
     refresh: load,
     setBrief: (brief: string) => apply(() => bridge.setTaskBrief(sessionId, brief)),
     editReference: (edit: TaskReferenceEdit) => apply(() => bridge.editTaskReference(sessionId, edit)),
+    editNote: (edit: TaskNoteEdit) => apply(() => bridge.editTaskNote(sessionId, edit)),
     resolve: (state: TaskResolutionState) => apply(() => bridge.resolveThread(sessionId, state)),
     resetContext: () => apply(() => bridge.resetContext(sessionId)),
   };

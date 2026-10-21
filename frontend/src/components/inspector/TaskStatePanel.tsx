@@ -6,10 +6,11 @@ import type { RuntimeEvent, TaskObligation, TaskReference, TaskResolutionState, 
 import { EmptyState } from "../primitives/EmptyState";
 import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { NotesSection, type NotesLabels } from "./NotesSection";
 import { InspectorSection } from "./Section";
 import { useTaskState } from "./useTaskState";
 
-export type TaskStateLabels = Pick<
+export type TaskStateLabels = NotesLabels & Pick<
   AppCopy,
   | "taskNoSession"
   | "taskBrief"
@@ -71,6 +72,7 @@ export type TaskStateLabels = Pick<
   | "errTaskNeedsCommit"
   | "errChildLimit"
   | "errAgentLimit"
+  | "errTooManyNotes"
 >;
 
 type Props = {
@@ -129,7 +131,7 @@ function taskStateLabel(labels: TaskStateLabels, state: string): string {
 // the agent works toward, the context references it should read, the thread's resolution, and the
 // context reset. Core owns every rule; the panel shows Core's view and sends one edit at a time.
 export function TaskStatePanel({ sessionId, running, events, labels, pane = "task", onOpenTask }: Props) {
-  const { info, error, busy, setBrief, editReference, resolve, resetContext } = useTaskState({ sessionId, events });
+  const { info, error, busy, setBrief, editReference, editNote, resolve, resetContext } = useTaskState({ sessionId, events });
   const brief = info?.state.brief ?? "";
   const [draft, setDraft] = useState(brief);
   const [newPath, setNewPath] = useState("");
@@ -263,6 +265,8 @@ export function TaskStatePanel({ sessionId, running, events, labels, pane = "tas
           </button>
         </form>
       </InspectorSection>
+
+      <NotesSection notes={info?.state.notes ?? []} ready={Boolean(info)} busy={busy} labels={labels} editNote={editNote} />
 
       <InspectorSection title={labels.taskResolution}>
         <SegmentedControl

@@ -24,6 +24,7 @@ type ErrorLabels = Pick<
   | "errTaskNeedsCommit"
   | "errChildLimit"
   | "errAgentLimit"
+  | "errTooManyNotes"
 >;
 
 const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
@@ -48,6 +49,7 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   taskNeedsCommit: "errTaskNeedsCommit",
   childLimit: "errChildLimit",
   agentLimit: "errAgentLimit",
+  tooManyNotes: "errTooManyNotes",
 };
 
 // A Core error the UI knows is shown as actionable localized copy. Any other error keeps its text.

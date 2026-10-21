@@ -277,6 +277,7 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"unknownAgent":            lcx.ErrUnknownAgent,
 		"agentNotForConversation": lcx.ErrAgentNotForConversation,
 		"agentUseMismatch":        lcx.ErrAgentUseMismatch,
+		"tooManyNotes":            lcx.ErrTooManyNotes,
 	}
 	got := map[string]string{}
 	for key, err := range want {
@@ -284,5 +285,18 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 	}
 	if !reflect.DeepEqual(markers, got) {
 		t.Fatalf("frontend/src/lib/core-errors.json is out of date\nwant %v\n got %v", got, markers)
+	}
+}
+
+// frontend/src/lib/core-limits.json holds the note bounds the Task pane counts against while the user
+// types; this keeps it equal to the pinned Core's.
+func TestFrontendCoreLimitsMatchCore(t *testing.T) {
+	var limits map[string]int
+	if err := json.Unmarshal([]byte(readFile(t, "../../frontend/src/lib/core-limits.json")), &limits); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int{"noteBytes": lcx.MaxThreadNoteBytes, "notes": lcx.MaxThreadNotes}
+	if !reflect.DeepEqual(limits, want) {
+		t.Fatalf("frontend/src/lib/core-limits.json is out of date\nwant %v\n got %v", want, limits)
 	}
 }

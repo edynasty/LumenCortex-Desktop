@@ -2,6 +2,8 @@ import { useCallback, useMemo, type ReactNode } from "react";
 import { DelegationControl } from "../components/thread/DelegationControl";
 import { ExecutionTasks } from "../components/thread/ExecutionTasks";
 import { TaskResultNotice } from "../components/thread/TaskResultNotice";
+import type { RememberNote } from "../components/thread/RememberAction";
+import { bridge } from "../lib/bridge";
 import { presentError } from "../lib/error-presentation";
 import { latestTaskResults, taskResultOf } from "../lib/execution-tasks";
 import type { AppCopy } from "../lib/i18n/app-copy";
@@ -15,6 +17,8 @@ export type ThreadTaskExtras = {
   tasks: ReactNode;
   delegationControl: ReactNode;
   renderRuntimeRow: (message: Message) => ReactNode | null;
+  // "Remember" on a message: a user note of this thread (ADR-0010).
+  onRemember: RememberNote;
 };
 
 type Props = {
@@ -64,6 +68,14 @@ export function ThreadTasksLayer({
     stopElsewhereText: stopElsewhere,
     stopNoneText: labels.taskStopNone,
   });
+  const remember = useCallback<RememberNote>(async (text) => {
+    try {
+      await bridge.editTaskNote(session.id, { text });
+      return "";
+    } catch (err) {
+      return presentError(labels, String(err));
+    }
+  }, [session.id, labels]);
   const results = useMemo(() => latestTaskResults(messages), [messages]);
 
   const info = thread.info;
@@ -124,6 +136,7 @@ export function ThreadTasksLayer({
             />
           );
         },
+        onRemember: remember,
       })}
     </>
   );

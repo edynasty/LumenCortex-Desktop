@@ -9,6 +9,7 @@ import { LoadingState } from "../primitives/LoadingState";
 import { Icon } from "../primitives/Icon";
 import { ApprovalCard } from "./ApprovalCard";
 import { MessageItem } from "./MessageItem";
+import type { RememberLabels, RememberNote } from "./RememberAction";
 import { ThreadOutcome } from "./ThreadOutcome";
 import { ThreadProgress } from "./ThreadProgress";
 import { ThreadComposer } from "./ThreadComposer";
@@ -50,6 +51,7 @@ type Props = {
   delegationControl?: ReactNode;
   // Renders a runtime row the thread presents itself (task_result); null keeps the default row.
   renderRuntimeRow?: (message: Message) => ReactNode | null;
+  onRemember?: RememberNote;
   goal: string;
   busy: boolean;
   workflowSummary?: WorkflowSummary | null;
@@ -73,7 +75,7 @@ type Props = {
     runningElsewhereNotice: string; runtimeNotice: string;
     originToolInterrupted: string; originToolInterruptedBody: string;
     originCompletionBlocked: string; originResume: string; originTurn: string;
-  };
+  } & RememberLabels;
   // The composer's own copy (app copy + the config-dependent picker placeholder).
   composerLabels: ComposerCopy;
   onGoalChange: (value: string) => void;
@@ -151,7 +153,7 @@ export function ThreadWorkspace({
   resolution,
   tasks,
   delegationControl,
-  renderRuntimeRow,
+  renderRuntimeRow, onRemember,
   goal,
   busy,
   workflowSummary,
@@ -271,7 +273,7 @@ export function ThreadWorkspace({
                   <MessageItem
                     key={`${entry.message.seq}-${entry.message.role}`}
                     message={entry.message}
-                    labels={labels}
+                    labels={labels} onRemember={onRemember}
                   />
                 )
               ),

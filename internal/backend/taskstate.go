@@ -58,6 +58,25 @@ func (r *Runtime) EditTaskReference(ctx context.Context, sessionID string, edit 
 	}})
 }
 
+// TaskNoteEdit adds (no id), rewrites or removes one note of the thread as the user (ADR-0010 D1).
+// A run cannot change or remove the user's notes.
+type TaskNoteEdit struct {
+	ID     string `json:"id,omitempty"`
+	Text   string `json:"text,omitempty"`
+	Remove bool   `json:"remove,omitempty"`
+}
+
+// EditTaskNote queues a note edit; a running loop applies it at its next step.
+func (r *Runtime) EditTaskNote(ctx context.Context, sessionID string, edit TaskNoteEdit) (TaskStateInfo, error) {
+	engine, err := r.currentEngine()
+	if err != nil {
+		return TaskStateInfo{}, err
+	}
+	return engine.EditTaskState(ctx, sessionID, lcx.TaskStateEdit{Note: &lcx.ThreadNoteEdit{
+		ID: edit.ID, Text: edit.Text, Remove: edit.Remove,
+	}})
+}
+
 // ResolveThread sets the thread's resolution (open, done or dropped) as the user.
 func (r *Runtime) ResolveThread(ctx context.Context, sessionID, state, actor string) (TaskStateInfo, error) {
 	engine, err := r.currentEngine()

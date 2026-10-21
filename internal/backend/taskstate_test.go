@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
 // gatedRun starts a run whose first step calls a shell tool that waits for the file "go" in the
@@ -198,5 +200,47 @@ func TestTaskReferencesAndResolution(t *testing.T) {
 	}
 	if info, _ = r.TaskState(ctx, session.ID); info.PendingEdits != 4 {
 		t.Fatalf("pending edits %d, want the 4 accepted ones", info.PendingEdits)
+	}
+}
+
+// The user's notes round-trip through Core as user notes; Core's text limit and the marker the UI
+// matches for a full thread hold through the adapter.
+func TestTaskNotes(t *testing.T) {
+	useConfigDir(t)
+	ctx := context.Background()
+	r := New()
+	defer r.Close()
+	if _, err := r.OpenWorkspace(ctx, t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	session, err := r.CreateSession(ctx, "remember decisions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := r.EditTaskNote(ctx, session.ID, TaskNoteEdit{Text: "  Staging host is stg-7.internal.  "})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(info.State.Notes) != 1 || info.State.Notes[0].By != "user" || info.State.Notes[0].Text != "Staging host is stg-7.internal." {
+		t.Fatalf("after add: %+v", info.State.Notes)
+	}
+	id := info.State.Notes[0].ID
+	if info, err = r.EditTaskNote(ctx, session.ID, TaskNoteEdit{ID: id, Text: "Staging host is stg-8.internal."}); err != nil || info.State.Notes[0].Text != "Staging host is stg-8.internal." {
+		t.Fatalf("after rewrite: %+v %v", info.State.Notes, err)
+	}
+	if info, err = r.EditTaskNote(ctx, session.ID, TaskNoteEdit{ID: id, Remove: true}); err != nil || len(info.State.Notes) != 0 {
+		t.Fatalf("after remove: %+v %v", info.State.Notes, err)
+	}
+	if _, err := r.EditTaskNote(ctx, session.ID, TaskNoteEdit{Text: strings.Repeat("x", lcx.MaxThreadNoteBytes+1)}); err == nil {
+		t.Fatal("an over-limit note was queued")
+	}
+	for i := 0; i < lcx.MaxThreadNotes; i++ {
+		if _, err := r.EditTaskNote(ctx, session.ID, TaskNoteEdit{Text: "fact"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err = r.EditTaskNote(ctx, session.ID, TaskNoteEdit{Text: "one too many"})
+	if !errors.Is(err, lcx.ErrTooManyNotes) {
+		t.Fatalf("full thread: %v", err)
 	}
 }

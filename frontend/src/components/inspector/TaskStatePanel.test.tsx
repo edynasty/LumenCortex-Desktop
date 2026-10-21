@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   taskState: vi.fn(),
   setTaskBrief: vi.fn(),
   editTaskReference: vi.fn(),
+  editTaskNote: vi.fn(),
   resolveThread: vi.fn(),
   resetContext: vi.fn(),
 }));
@@ -87,6 +88,34 @@ describe("TaskStatePanel", () => {
     await userEvent.type(screen.getByRole("textbox", { name: labels.taskReferenceAdd }), " cmd/main.go ");
     await userEvent.click(screen.getByRole("button", { name: labels.taskReferenceAdd }));
     expect(mocks.editTaskReference).toHaveBeenLastCalledWith("s1", { kind: "path", target: "cmd/main.go", state: "included" });
+  });
+
+  it("lists notes newest first, removes one, refuses an over-long add and adds a trimmed note", async () => {
+    const notes = [
+      { id: "n1", text: "Releases cut from rel-<version>.", by: "agent", at: "", cites: [{ path: "docs/release.md", blob: "b" }] },
+      { id: "u1a", text: "Ship behind the beta flag.", by: "user", at: "" },
+    ];
+    mocks.taskState.mockResolvedValue(info({ notes }));
+    mocks.editTaskNote.mockResolvedValue(info({ notes }));
+    render(<TaskStatePanel sessionId="s1" running={false} events={[]} labels={labels} />);
+
+    const first = await screen.findByText("Ship behind the beta flag.");
+    const second = screen.getByText("Releases cut from rel-<version>.");
+    expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("release.md")).toBeTruthy();
+
+    await userEvent.click(screen.getAllByRole("button", { name: labels.taskNoteRemove })[1]);
+    expect(mocks.editTaskNote).toHaveBeenCalledWith("s1", { id: "n1", remove: true });
+
+    const field = screen.getByRole("textbox", { name: labels.taskNoteAdd });
+    const add = screen.getByRole("button", { name: labels.taskNoteAdd });
+    await userEvent.click(field);
+    await userEvent.paste("界".repeat(171));
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.clear(field);
+    await userEvent.type(field, "  Keep the v1 API  ");
+    await userEvent.click(add);
+    expect(mocks.editTaskNote).toHaveBeenLastCalledWith("s1", { text: "Keep the v1 API" });
   });
 
   it("disables reset while running and presents a held run as running elsewhere", async () => {
