@@ -47,7 +47,7 @@
    width and collapse to icon-only instead of shrinking to unreadable fragments. */
 .composer-bar { display: flex; align-items: center; gap: var(--sp-1); min-width: 0; padding: var(--sp-1) var(--sp-2) var(--sp-2); cursor: default; }
 .composer-bar .chip { flex: none; min-width: 0; }
-.composer-bar .chip .chip-label, .composer-bar .chip .chip-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-bar .chip .chip-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .composer-spacer { flex: 1 1 auto; min-width: var(--sp-1); }
 .composer-hint { flex: 0 1 auto; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px; overflow: hidden; white-space: nowrap; color: var(--fg-3); font-size: var(--text-2xs); }
 .composer-hint > svg { flex: none; }
@@ -75,7 +75,7 @@
 .send-btn {
   display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: none; border-radius: var(--r-pill);
   background: var(--accent-gradient); color: var(--fg-on-accent); box-shadow: var(--shadow-control);
-  transition: transform var(--dur-fast) var(--ease-standard), opacity var(--dur-fast), background var(--dur-fast);
+  transition: transform var(--dur-instant) var(--ease-standard), opacity var(--dur-fast), background var(--dur-fast);
 }
 .send-btn:hover:not(:disabled) { transform: scale(1.04); }
 .send-btn:active:not(:disabled) { transform: scale(.96); }

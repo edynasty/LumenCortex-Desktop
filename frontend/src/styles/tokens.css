@@ -32,7 +32,6 @@
   --weight-semibold: 600;
 
   /* —— Space (4px grid) —— */
-  --sp-0: 2px;
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -40,7 +39,6 @@
   --sp-5: 20px;
   --sp-6: 24px;
   --sp-8: 32px;
-  --sp-10: 40px;
 
   /* —— Radii: controls < rows < cards < panes < sheets —— */
   --r-xs: 4px;
@@ -62,24 +60,29 @@
   --toolbar-h: 48px;
   --rail-w: 52px;
   --sidebar-w: 264px;
-  --sidebar-min: 216px;
-  --sidebar-max: 380px;
   --inspector-w: 320px;
-  --inspector-min: 280px;
-  --inspector-max: 440px;
   --pane-gap: 8px;
   --reading-w: 760px;
 
   /* —— Motion —— */
-  --dur-fast: 120ms;
-  --dur-base: 180ms;
-  --dur-slow: 260ms;
+  /* docs/motion-design.md section 2; nothing in the product transitions longer than --dur-page. */
+  --dur-instant: 80ms;   /* press, toggle */
+  --dur-fast: 120ms;     /* hover, focus, state colour */
+  --dur-base: 160ms;     /* row selection, popover, dialog, toast, content reveal */
+  --dur-panel: 200ms;    /* sidebar, inspector, drawer */
+  --dur-page: 220ms;     /* major workspace content */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
 
-  /* —— Blur (one material, three strengths) —— */
-  --blur-chrome: 24px;
+  /* —— Layers: window-level stacking only. Local order inside one component (1-6) stays a literal. —— */
+  --z-scrim: 20;
+  --z-drawer: 30;
+  --z-popover: 40;    /* menus, selects, the project switcher */
+  --z-modal: 60;      /* dialogs, palette, settings, welcome */
+  --z-toast: 80;
+  --z-tooltip: 100;
+
+  /* —— Blur —— */
   --blur-float: 28px;
 }
 
@@ -251,6 +254,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --dur-fast: 1ms; --dur-base: 1ms; --dur-slow: 1ms; }
+  :root { --dur-instant: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-panel: 1ms; --dur-page: 1ms; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }

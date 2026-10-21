@@ -36,11 +36,13 @@ Canonical wide screen:
 
 | Width | Behavior |
 |---|---|
-| >=1440 | full desktop |
-| 1180–1439 | inspector drawer |
-| 820–1179 | sidebar persistent where space permits; inspector drawer |
-| 560–819 | sidebar drawer + inspector drawer |
-| <560 | guarded by Desktop minimum width |
+| >= 1240 | sidebar and inspector docked |
+| 880–1239 | sidebar docked, inspector drawer |
+| 640–879 | sidebar drawer + inspector drawer, rail stays |
+| < 640 | compact: the rail moves into the sidebar drawer |
+
+The thresholds are `INSPECTOR_DOCK_MIN`, `SIDEBAR_DOCK_MIN` and `COMPACT_MAX` in
+`frontend/src/components/app-shell/AppShell.tsx`; the code is the contract.
 
 ## 4. Spacing scale
 

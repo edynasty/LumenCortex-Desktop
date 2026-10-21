@@ -92,10 +92,15 @@ All significant UI changes MUST be checked at:
 
 | Width | Expected behavior |
 |---|---|
-| 1440+ | Full sidebar + center + inspector |
-| 1180 | Inspector becomes overlay/drawer |
-| 820 | Sidebar becomes overlay/drawer |
-| 560 | Compact toolbar, compact composer, no horizontal overflow |
+| 1440 | Sidebar and inspector docked |
+| 1180 | Sidebar docked, inspector is a drawer |
+| 820 | Sidebar and inspector are drawers, rail stays |
+| 560 | Compact: rail moves into the sidebar drawer; compact toolbar and composer, no horizontal overflow |
+
+The widths above are the test widths. The thresholds are constants in
+`frontend/src/components/app-shell/AppShell.tsx` and are the contract: the inspector docks from
+`INSPECTOR_DOCK_MIN` (1240), the sidebar from `SIDEBAR_DOCK_MIN` (880), and the layout is compact
+below `COMPACT_MAX` (640). Change a threshold there and update this table in the same commit.
 
 Required invariants:
 - No horizontal page scrolling.

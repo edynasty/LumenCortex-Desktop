@@ -167,7 +167,7 @@
 
 /* —— Window pane —— */
 .memory-meter { height: 6px; margin-top: 4px; overflow: hidden; border-radius: var(--r-pill); background: var(--surface-sunken); }
-.memory-meter span { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); transition: width var(--dur-slow) var(--ease-out); }
+.memory-meter span { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); transition: width var(--dur-page) var(--ease-out); }
 .checkpoint-list { list-style: none; display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; }
 .checkpoint-list li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2); min-height: 22px; font-size: var(--text-xs); }
 .checkpoint-list .num { color: var(--fg-3); font-variant-numeric: tabular-nums; }

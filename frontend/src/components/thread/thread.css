@@ -36,7 +36,7 @@
 .status-pill.completed, .status-pill.created { color: var(--fg-3); }
 
 /* —— Messages —— */
-.msg-user, .msg-assistant { display: flex; flex-direction: column; gap: 12px; animation: rise-in var(--dur-slow) var(--ease-out); }
+.msg-user, .msg-assistant { display: flex; flex-direction: column; gap: 12px; animation: rise-in var(--dur-base) var(--ease-out); }
 /* The user's turn: a quiet tinted bubble. No blur — it already sits on the pane's glass. */
 .msg-user-bubble {
   position: relative; align-self: flex-end; max-width: min(580px, 88%); padding: 10px 36px 10px 14px;
@@ -100,7 +100,7 @@
 .result-block:not(.is-settled) .block-icon { color: var(--fg-3); }
 
 /* —— Work groups (tool narration) —— */
-.work-group { display: flex; flex-direction: column; gap: 2px; animation: rise-in var(--dur-slow) var(--ease-out); }
+.work-group { display: flex; flex-direction: column; gap: 2px; animation: rise-in var(--dur-base) var(--ease-out); }
 .work-head-row { display: flex; margin: 0 -10px; }
 .work-head {
   display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 30px; padding: 0 10px;
