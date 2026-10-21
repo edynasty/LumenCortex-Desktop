@@ -43,7 +43,7 @@
 }
 .scm-head-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .scm-head-text h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scm-head-text h2.mono { font-family: var(--font-mono); font-size: 15px; letter-spacing: -.01em; }
+.scm-head-text h2.mono { font-family: var(--font-mono); font-size: 15px; }
 .scm-head-sub { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--text-xs); color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scm-head-sub .mono { font-size: var(--text-2xs); }
 .scm-head-thread { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

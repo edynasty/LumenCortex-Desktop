@@ -203,6 +203,12 @@ test.describe("window shell", () => {
     expect(state.chrome).toEqual(["none", "none", "none", "none"]);
     expect(state.content).not.toContain("none");
     expect(state.overscroll).toBe("contain");
+    // Titles are usually Chinese: no negative tracking (docs/frontend-development-standard.md).
+    const tracking = await page.evaluate(() => [".toolbar-title h1", ".task-intro h1"].map((selector) => {
+      const el = document.querySelector(selector);
+      return el ? parseFloat(getComputedStyle(el).letterSpacing) || 0 : null;
+    }));
+    for (const value of tracking) expect(value === null || value >= 0).toBe(true);
   });
 
   test("with the native menu installed, menu commands act once and the webview keys stand down", async ({ page }) => {

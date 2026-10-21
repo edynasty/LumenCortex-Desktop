@@ -86,7 +86,7 @@
 .lens-graph .context-article { padding: 18px 18px 28px; }
 .context-article-head { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
 .context-article-head > svg { flex: none; margin-top: 4px; color: var(--accent-fg); }
-.context-article-head h2 { min-width: 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: 1.35; letter-spacing: -.005em; overflow-wrap: anywhere; }
+.context-article-head h2 { min-width: 0; font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: 1.35; overflow-wrap: anywhere; }
 .context-file-title .path { font-size: var(--text-sm); }
 .context-article-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--text-2xs); color: var(--fg-3); }
 .context-article-body { font-size: var(--text-sm); line-height: 1.6; color: var(--fg-2); white-space: pre-wrap; overflow-wrap: anywhere; }
