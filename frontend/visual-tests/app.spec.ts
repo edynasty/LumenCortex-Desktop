@@ -171,6 +171,40 @@ test.describe("window shell", () => {
     await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
   });
 
+  test("material: a drawer is solid, at most two layers blur, chrome is not selectable and content is", async ({ page }) => {
+    await open(page, "", 820);
+    await openThread(page, "Provider settings refactor");
+    await page.getByRole("button", { name: /Toggle sidebar/ }).click();
+    await expect(page.locator(".drawer-start")).toBeVisible();
+    const probe = () => page.evaluate(() => {
+      const blurred: string[] = [];
+      for (const el of document.querySelectorAll("*")) {
+        for (const pseudo of [null, "::before", "::after"]) {
+          const style = getComputedStyle(el, pseudo);
+          const filter = style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter");
+          if (filter && filter !== "none") blurred.push(`${el.tagName.toLowerCase()}.${el.className}${pseudo ?? ""}`);
+        }
+      }
+      const select = (selector: string) => {
+        const el = document.querySelector(selector);
+        return el ? (getComputedStyle(el).userSelect || getComputedStyle(el).getPropertyValue("-webkit-user-select")) : "missing";
+      };
+      return {
+        blurred,
+        drawerFilter: getComputedStyle(document.querySelector(".drawer-start")!).backdropFilter,
+        chrome: [select(".toolbar"), select(".rail"), select(".thread-row"), select(".chip")],
+        content: [select(".msg-assistant"), select(".msg-user")],
+        overscroll: getComputedStyle(document.querySelector(".sidebar-scroll")!).overscrollBehaviorY,
+      };
+    });
+    const state = await probe();
+    expect(state.drawerFilter).toBe("none");
+    expect(state.blurred.length, state.blurred.join(", ")).toBeLessThanOrEqual(2);
+    expect(state.chrome).toEqual(["none", "none", "none", "none"]);
+    expect(state.content).not.toContain("none");
+    expect(state.overscroll).toBe("contain");
+  });
+
   test("with the native menu installed, menu commands act once and the webview keys stand down", async ({ page }) => {
     await open(page, "menu=native");
     const emit = (command: string) => page.evaluate((name) => (window as Window & { __lcxEmit: (n: string, p: unknown) => void }).__lcxEmit("menu:command", name), command);
@@ -426,6 +460,7 @@ test.describe("accessibility", () => {
         for (const [name, surface] of [
           ["content", content], ["card hover", onContent("--surface-card-hover")], ["control", onContent("--surface-control")],
           ["selected row", onContent("--state-selected")], ["float", onContent("--surface-float")],
+          ["solid float (drawer, toast)", (g: Rgba) => over(read(tok("--surface-float-solid")), g)],
         ] as const) {
           for (const token of ["--fg", "--fg-2", "--fg-3"]) text(`${token.slice(2)} on ${name}`, tok(token), surface);
         }

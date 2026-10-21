@@ -161,8 +161,7 @@
 .scrim { position: absolute; inset: 0; z-index: var(--z-scrim); padding: 0; border: none; background: var(--surface-scrim); animation: fade-in var(--dur-base) var(--ease-standard); }
 .drawer {
   position: absolute; z-index: var(--z-drawer); top: 0; bottom: var(--pane-gap); display: flex;
-  border-radius: var(--r-pane); overflow: hidden; background: var(--surface-float); box-shadow: var(--shadow-sheet);
-  backdrop-filter: blur(var(--blur-float)) saturate(140%); -webkit-backdrop-filter: blur(var(--blur-float)) saturate(140%);
+  border-radius: var(--r-pane); overflow: hidden; background: var(--surface-float-solid); box-shadow: var(--shadow-sheet);
 }
 .drawer-start { left: var(--pane-gap); width: min(calc(var(--rail-w) + 280px), calc(100% - 48px)); padding-top: 8px; animation: drawer-start var(--dur-panel) var(--ease-out); }
 .drawer-start .sidebar { flex: 1; padding-left: 8px; }

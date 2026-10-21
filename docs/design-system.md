@@ -164,6 +164,16 @@ Production CSS uses semantic elevation tokens rather than component-local color 
 
 Overlay backdrops use `--backdrop`; warning-context chips use `--warning-chip-bg`. Light/dark values are defined only in `frontend/src/styles/tokens.css`. Non-token component stylesheets must not embed reusable hex/rgb/hsl literals.
 
+### Material
+
+Float glass (`--surface-float` plus a 28 px backdrop blur) is for the composer, popovers and the modal
+sheet. Drawers and the error toast use `--surface-float-solid` with no blur: a drawer sits over a scrim
+and a toast lives seconds, so blur there costs a full-pane layer for no readable gain. At most two
+layers blur at once. Native chrome (toolbar, rail, thread rows, section labels, chips, buttons) is
+`user-select: none`; message text, code, diffs and paths stay selectable. Every scroller contains
+its overscroll. Under `prefers-contrast: more` the content and float surfaces turn solid, hairlines
+use the strong line and `--fg-4` takes `--fg-3`.
+
 ## 12. Core components
 
 ### Button

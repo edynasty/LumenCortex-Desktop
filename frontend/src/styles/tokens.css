@@ -104,6 +104,7 @@
   --surface-card: rgba(255, 255, 255, 0.035);
   --surface-card-hover: rgba(255, 255, 255, 0.055);
   --surface-float: rgba(28, 38, 58, 0.88);
+  --surface-float-solid: #1a2437;   /* drawer and toast: they sit over a scrim or live seconds, so no blur */
   --surface-sunken: rgba(0, 0, 0, 0.22);
   --surface-control: rgba(255, 255, 255, 0.06);
   --surface-control-hover: rgba(255, 255, 255, 0.10);
@@ -189,6 +190,7 @@
   --surface-card: rgba(246, 249, 253, 0.85);
   --surface-card-hover: rgba(240, 245, 252, 0.95);
   --surface-float: rgba(255, 255, 255, 0.92);
+  --surface-float-solid: #ffffff;
   --surface-sunken: rgba(20, 40, 80, 0.045);
   --surface-control: rgba(20, 40, 80, 0.05);
   --surface-control-hover: rgba(20, 40, 80, 0.08);
@@ -259,4 +261,14 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --dur-instant: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-panel: 1ms; --dur-page: 1ms; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}
+
+/* macOS Accessibility > Display > Increase contrast: solid surfaces and stronger lines, nothing else. */
+@media (prefers-contrast: more) {
+  :root {
+    --surface-content: var(--surface-content-solid);
+    --surface-float: var(--surface-float-solid);
+    --line: var(--line-strong);
+    --fg-4: var(--fg-3);
+  }
 }

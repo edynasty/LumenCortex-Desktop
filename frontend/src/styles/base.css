@@ -16,6 +16,13 @@ body {
 }
 button, input, textarea, select { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: default; }
+/* Native chrome is not selectable; message text, code, diffs and paths in content stay selectable.
+   WKWebView needs the prefixed property. */
+button, .toolbar, .rail, .thread-row, .section-label, .chip, .kbd, .list-row {
+  -webkit-user-select: none; user-select: none;
+}
+/* Scrolling inside a pane never chains to the window, as in a native app. */
+* { overscroll-behavior: contain; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 h1, h2, h3, h4, h5, p, figure, dl, dd, blockquote, pre { margin: 0; }
