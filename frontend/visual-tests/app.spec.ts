@@ -532,9 +532,12 @@ test.describe("accessibility", () => {
         };
         const ratio = (a: Rgba, b: Rgba) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
 
-        // The ground is a gradient; test against both ends of its linear layer and keep the worse ratio.
-        const stops = tok("--bg-ground").match(/#[0-9a-f]{6}/gi) ?? [];
-        const grounds = stops.slice(-2).map(read);
+        // The ground is a gradient: both ends of its linear layer, each also under either radial
+        // light at full strength (the worst point of each), and keep the worst ratio.
+        const ground = tok("--bg-ground");
+        const stops = (ground.match(/#[0-9a-f]{6}/gi) ?? []).slice(-2).map(read);
+        const lights = (ground.match(/rgba\([^)]+\)/gi) ?? []).map(read);
+        const grounds = stops.flatMap((stop) => [stop, ...lights.map((light) => over(light, stop))]);
         const worst = (fg: string, surface: (ground: Rgba) => Rgba) => Math.min(...grounds.map((g) => {
           const bg = surface(g);
           return ratio(over(read(fg), bg), bg);
@@ -550,6 +553,9 @@ test.describe("accessibility", () => {
           ["content", content], ["card hover", onContent("--surface-card-hover")], ["control", onContent("--surface-control")],
           ["selected row", onContent("--state-selected")], ["float", onContent("--surface-float")],
           ["solid float (drawer, toast)", (g: Rgba) => over(read(tok("--surface-float-solid")), g)],
+          // The sidebar has no surface of its own: its rows and search field sit on the ground.
+          ["ground (sidebar)", (g: Rgba) => g], ["selected row on ground", (g: Rgba) => over(read(tok("--state-selected")), g)],
+          ["sunken field on ground", (g: Rgba) => over(read(tok("--surface-sunken")), g)],
         ] as const) {
           for (const token of ["--fg", "--fg-2", "--fg-3"]) text(`${token.slice(2)} on ${name}`, tok(token), surface);
         }

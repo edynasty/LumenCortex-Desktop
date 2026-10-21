@@ -211,7 +211,7 @@
 
   --fg: #17202e;
   --fg-2: #3f4b5e;
-  --fg-3: #58647a;
+  --fg-3: #505b72;   /* >= 4.5:1 also on the bare ground under the radial light (sidebar selected row, search field) */
   --fg-4: #7a8597;
   --fg-on-accent: #ffffff;
 
