@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Build the native macOS application bundle and verify that it is launchable.
+# Build the native macOS application bundle and verify that it is complete and launchable.
 #
-# Extra arguments are passed to `wails build` (for example -v 2).
+# The app version comes from wails.json info.productVersion (the single source of truth); it is
+# written into Info.plist by Wails and compiled into the binary with -ldflags. LCX_APP_VERSION and
+# LCX_APP_COMMIT override both for an isolated release build that extracted an exact commit.
+#
+# Extra arguments are passed to `wails build` (for example -v 2). A caller-provided -ldflags
+# replaces the version injection.
 # Usage: scripts/build-macos.sh
 set -euo pipefail
 
@@ -23,11 +28,65 @@ EOF
   fi
 fi
 
-arch="$(uname -m)"
+node_version="$(node -p 'process.versions.node' 2>/dev/null || true)"
+node_major="${node_version%%.*}"
+if [[ -z "$node_version" || ! "$node_major" =~ ^[0-9]+$ || "$node_major" -lt 22 ]]; then
+  echo "Node.js 22 or newer is required for the production frontend build (found: ${node_version:-missing}). Put a supported Node version first in PATH." >&2
+  exit 2
+fi
+
+arch="${LCX_BUILD_ARCH:-$(uname -m)}"
+case "$arch" in
+  arm64|x86_64|universal) ;;
+  *) echo "unsupported macOS build architecture: $arch (expected arm64, x86_64, or universal)" >&2; exit 2 ;;
+esac
+
+version="${LCX_APP_VERSION:-$(plutil -extract info.productVersion raw -o - wails.json 2>/dev/null || true)}"
+if [[ -z "$version" ]]; then
+  echo "wails.json has no info.productVersion (run scripts/bump-version.sh X.Y.Z)" >&2
+  exit 2
+fi
+commit="${LCX_APP_COMMIT:-$(git rev-parse HEAD 2>/dev/null || printf 'unknown')}"
+has_ldflags=0
+for arg in "$@"; do [[ "$arg" == "-ldflags" ]] && has_ldflags=1; done
+build_args=("$@")
+if [[ "$has_ldflags" -eq 0 ]]; then
+  build_args=(-ldflags "-X main.appVersion=$version -X main.appCommit=$commit" "$@")
+fi
 
 # `wails dev` writes its development binary into the same bundle and deletes it on
-# exit, so a production build is required before the bundle can launch.
-"$wails" build -platform "darwin/$arch" "$@"
+# exit, so a production build is required before the bundle can launch. Wails v2.16 can
+# print an internal frontend failure while returning exit code 0; require explicit success
+# markers so an old bundle can never make a failed build appear successful.
+bundle="build/bin/LumenCortex Desktop.app"
+binary="$bundle/Contents/MacOS/LumenCortex"
+build_started="$(date +%s)"
+build_log="$(mktemp "${TMPDIR:-/tmp}/lcx-wails-build.XXXXXX")"
+clean_log="$build_log.clean"
+trap 'rm -f "$build_log" "$clean_log"' EXIT
+skip_frontend=0
+for arg in "$@"; do [[ "$arg" == "-skipfrontend" ]] && skip_frontend=1; done
+if ! "$wails" build -platform "darwin/$arch" "${build_args[@]}" 2>&1 | tee "$build_log"; then
+  echo "Wails build command failed; see output above." >&2
+  exit 1
+fi
+sed -E $'s/\x1B\\[[0-9;]*[[:alpha:]]//g' "$build_log" > "$clean_log"
+if [[ "$skip_frontend" -eq 0 ]] && ! grep -Eq 'Compiling frontend:[[:space:]]*Done\.' "$clean_log"; then
+  echo "Wails did not confirm frontend compilation; refusing to validate a possibly stale app bundle." >&2
+  exit 1
+fi
+for phase in 'Compiling application' 'Packaging application' 'Self-signing application'; do
+  if ! grep -E "${phase}:[[:space:]]*Done\." "$clean_log" >/dev/null; then
+    echo "Wails did not confirm '${phase}' succeeded; refusing to validate a possibly stale app bundle." >&2
+    exit 1
+  fi
+done
+[[ -x "$binary" ]] || { echo "Wails did not produce an executable: $binary" >&2; exit 1; }
+binary_mtime="$(stat -f '%m' "$binary")"
+if [[ "$binary_mtime" -lt "$build_started" ]]; then
+  echo "Wails left an older executable in place; refusing to validate a stale app bundle." >&2
+  exit 1
+fi
 
 # `wails build` writes Contents/Resources/iconfile.icns itself by nearest-neighbour
 # resampling of the single 1024 px build/appicon.png (wails v2.16 pkg/commands/build/
@@ -35,10 +94,9 @@ arch="$(uname -m)"
 # scripts/generate-app-icon.mjs with a dedicated high-contrast small master so the mark
 # stays legible at 16-32 px — and re-sign: replacing bundle resources invalidates the
 # ad-hoc signature.
-bundle="build/bin/LumenCortex Desktop.app"
 icns="build/darwin/iconfile.icns"
 [[ -f "$icns" ]] || { echo "missing $icns (run: node scripts/generate-app-icon.mjs)" >&2; exit 1; }
 cp "$icns" "$bundle/Contents/Resources/iconfile.icns"
 codesign --force --sign - "$bundle" >/dev/null
 
-exec "$(dirname "$0")/verify-macos-bundle.sh" "$bundle" "$arch"
+"$(dirname "$0")/verify-macos-bundle.sh" "$bundle" "$arch" "$version"

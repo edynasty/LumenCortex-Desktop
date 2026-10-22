@@ -2,6 +2,13 @@
   "$schema": "https://wails.io/schemas/config.v2.json",
   "name": "LumenCortex Desktop",
   "outputfilename": "LumenCortex",
+  "info": {
+    "companyName": "LumenCortex",
+    "productName": "LumenCortex Desktop",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright © 2026 LumenCortex",
+    "comments": "Local-first coding-agent workspace · 本地优先的编码智能体工作区"
+  },
   "frontend:install": "npm ci",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",

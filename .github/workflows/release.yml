@@ -1,0 +1,53 @@
+name: macOS release
+
+# A Desktop tag vX.Y.Z publishes a tested, isolated build of that exact commit. The same scripts
+# run locally, so CI cannot drift from the documented procedure. Core must be released and pinned
+# first; scripts/release-check.sh --mode release refuses a pseudo-version or a local replace.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.27.x"
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies and Playwright browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: Release check (tag, version, Core pin, tests)
+        run: scripts/release-check.sh --mode release --with-visual
+      - name: Build isolated release artifacts
+        run: scripts/release-candidate.sh --mode release --arch universal --skip-check
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            build/releases/*/*.dmg
+            build/releases/*/*.zip
+            build/releases/*/SHA256SUMS
+            build/releases/*/manifest.json
+            build/releases/*/RELEASE_NOTES.md

@@ -12,3 +12,10 @@ frontend/dist/*
 
 # macOS
 .DS_Store
+
+# Generated release artifacts
+build/releases/
+
+# Test and tooling artifacts
+frontend/test-results/
+frontend/playwright-report/

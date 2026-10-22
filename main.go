@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 	"runtime"
 
 	"github.com/wailsapp/wails/v2"
@@ -16,6 +17,12 @@ import (
 var assets embed.FS
 
 func main() {
+	// --version and --self-check are answered before Wails starts: they must work on a machine
+	// without a window server and must not create a window.
+	if handled, code := handleDiagnosticArgs(os.Args[1:], os.Stdout, os.Stderr); handled {
+		os.Exit(code)
+	}
+
 	app := NewApp()
 	// The menu bar is macOS-only; the frontend replaces it with the app language through SetMenuLocale.
 	var appMenu *menu.Menu
@@ -38,8 +45,9 @@ func main() {
 		// native traffic lights sit inset over the toolbar lead, which reserves their space.
 		Mac: &mac.Options{
 			TitleBar: mac.TitleBarHiddenInset(),
-			// Adds About LumenCortex to the App menu.
-			About: &mac.AboutInfo{Title: "LumenCortex", Message: "LumenCortex Desktop\n本地优先的编码智能体工作区 · Local-first coding-agent workspace"},
+			// Adds About LumenCortex to the App menu. The message names the app, Core and Go
+			// versions compiled into this binary (see version.go).
+			About: &mac.AboutInfo{Title: "LumenCortex", Message: aboutMessage()},
 		},
 	}); err != nil {
 		log.Fatal(err)
