@@ -7,6 +7,10 @@ import type { AgentCatalog, AgentEntry } from "../../types";
 import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
 import { AgentsPage } from "./AgentsPage";
 
+const mocks = vi.hoisted(() => ({ effectivePrompt: vi.fn() }));
+
+vi.mock("../../lib/bridge", () => ({ bridge: { effectivePrompt: mocks.effectivePrompt } }));
+
 const t = copy.en;
 
 function entry(overrides: Partial<AgentEntry> & { id: string }): AgentEntry {
@@ -76,6 +80,13 @@ function renderPage(
       recentModelRefs={[]}
       effortOptions={["low", "medium", "high"]}
       onOpenProviders={vi.fn()}
+      prompt={{
+        workspace: "/repo/demo",
+        sessionId: "",
+        trusted: true,
+        trusting: false,
+        onTrust: vi.fn(),
+      }}
     />,
   );
   return agentsController;
@@ -375,6 +386,31 @@ describe("AgentsPage", () => {
     await user.click(screen.getByRole("button", { name: t.agentsDirtyDiscard }));
     expect(screen.getByRole("region", { name: t.agentsNew })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Sonic")).toBeInTheDocument();
+  });
+
+  it("switches the editor to the effective prompt Core would send", async () => {
+    const user = userEvent.setup();
+    mocks.effectivePrompt.mockResolvedValue({
+      workspace: "/repo/demo",
+      trusted: true,
+      agent: "agent",
+      policy: "workspace",
+      delegation: "propose",
+      layers: [{ kind: "builtin", source: "core", scope: "core", included: true, bytes: 10, text: "You are LumenCortex." }],
+      tools: [{ name: "read_file", permission: "read", source: "builtin", included: true }],
+      warnings: [],
+    });
+    renderPage([...builtins, reviewer]);
+
+    // The settings form is the editor's first view.
+    expect(screen.getByRole("textbox", { name: new RegExp(t.agentsInstructions) })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: t.agentsTabPrompt }));
+
+    expect(await screen.findByText(t.promptTrusted)).toBeInTheDocument();
+    expect(screen.getByText(t.promptKindBuiltin)).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: new RegExp(t.agentsInstructions) })).not.toBeInTheDocument();
+    // The selected agent is the first built-in (Ask): its ceiling, not the page's, is the grant.
+    expect(mocks.effectivePrompt).toHaveBeenCalledWith(expect.objectContaining({ agent: "ask", policy: "read-only", interactive: true }));
   });
 
   it("reports a catalog that could not be read", () => {

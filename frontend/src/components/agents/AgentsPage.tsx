@@ -9,7 +9,7 @@ import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
 import { useAgentPresets } from "../../app/hooks/useAgentPresets";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
-import { AgentEditor } from "./AgentEditor";
+import { AgentEditor, type AgentPromptContext } from "./AgentEditor";
 import type { AgentModelOption } from "./AgentModelList";
 import { AgentPresetPicker } from "./AgentPresetPicker";
 import "./agents.css";
@@ -21,14 +21,12 @@ type Props = {
   recentModelRefs: string[];
   effortOptions: string[];
   onOpenProviders: () => void;
+  // The effective-prompt tab describes a run in this workspace, so it needs one.
+  prompt: AgentPromptContext;
 };
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function agentIcon(agent: AgentEntry): "discussion" | "agents" {
-  return agent.policy === "read-only" ? "discussion" : "agents";
 }
 
 /**
@@ -38,7 +36,7 @@ function agentIcon(agent: AgentEntry): "discussion" | "agents" {
  * global file. A dirty editor guards every selection change with an inline confirm, and the result
  * of the one-time agents.json import is reported here rather than dropped.
  */
-export function AgentsPage({ labels, agents, models, recentModelRefs, effortOptions, onOpenProviders }: Props) {
+export function AgentsPage({ labels, agents, models, recentModelRefs, effortOptions, onOpenProviders, prompt }: Props) {
   const first = agents.agents[0];
   const [selectedId, setSelectedId] = useState<string | null>(first?.id ?? null);
   const [draft, setDraft] = useState<AgentEntry>(() => first ?? emptyAgent());
@@ -278,7 +276,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
                 onClick={() => requestOpen(agent.id)}
               >
                 <span className="agents-row-name">
-                  <Icon name={agentIcon(agent)} size={14} />
+                  <Icon name={agent.policy === "read-only" ? "discussion" : "agents"} size={14} />
                   <span>{agentName(agent, labels)}</span>
                 </span>
                 {agent.builtin
@@ -317,6 +315,7 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
         <AgentEditor
           labels={labels}
           draft={draft}
+          prompt={prompt}
           creating={creating}
           dirty={dirty}
           saving={saving}

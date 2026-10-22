@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentDelegation, AgentEffort, AgentEntry, AgentModelItem, AgentPolicy, AgentUse } from "../../types";
 import { AGENT_LIMITS, agentName, utf8Bytes } from "../../app/agent-catalog";
@@ -9,11 +10,22 @@ import { MenuPicker } from "../composer/MenuPicker";
 import type { PickerOption } from "../composer/ComposerPickers";
 import { AgentModelList, type AgentModelOption } from "./AgentModelList";
 import { effortMenuOptions } from "./agent-effort";
+import { EffectivePromptPanel } from "./EffectivePromptPanel";
 import "./agents.css";
+
+/** What the effective-prompt tab needs beyond the draft: the workspace, its trust and a session. */
+export type AgentPromptContext = {
+  workspace: string;
+  sessionId: string;
+  trusted: boolean;
+  trusting: boolean;
+  onTrust: () => void;
+};
 
 export type AgentEditorProps = {
   labels: AppCopy;
   draft: AgentEntry;
+  prompt: AgentPromptContext;
   creating: boolean;
   dirty: boolean;
   saving: boolean;
@@ -42,10 +54,12 @@ export type AgentEditorProps = {
  * workspace definition is read-only here: this page writes the global lumincortex.json.
  */
 export function AgentEditor({
-  labels, draft, creating, dirty, saving, error, deleteConfirm, pending, models, recentModelRefs, effortOptions,
+  labels, draft, prompt, creating, dirty, saving, error, deleteConfirm, pending, models, recentModelRefs, effortOptions,
   onOpenProviders, onChange, onSave, onDiscard, onDuplicate, onReset,
   onDeleteRequest, onDeleteConfirm, onDeleteCancel, onPendingDiscard, onPendingStay,
 }: AgentEditorProps) {
+  // The editor's two views: the settings form, and the prompt Core would send for this agent.
+  const [tab, setTab] = useState<"settings" | "prompt">("settings");
   const builtin = Boolean(draft.builtin);
   const locked = builtin || !draft.editable;
   // Instructions, effort and the model list stay editable on a built-in; only a workspace definition is read-only.
@@ -120,144 +134,181 @@ export function AgentEditor({
         </div>
       </div>
 
-      {!draft.editable && <p className="agents-note agents-locked">{labels.agentsWorkspaceLocked}</p>}
-
-      {deleteConfirm && (
-        <div className="agents-inline-confirm" role="alert">
-          <span>{labels.agentsDeleteBody}</span>
-          <Button size="sm" variant="danger" disabled={saving} onClick={onDeleteConfirm}>{labels.agentsDeleteConfirm}</Button>
-          <Button size="sm" variant="ghost" onClick={onDeleteCancel}>{labels.agentsDeleteCancel}</Button>
-        </div>
-      )}
-
-      {pending !== undefined && (
-        <div className="agents-inline-confirm" role="alert">
-          <span><strong>{labels.agentsDirtyTitle}</strong> {labels.agentsDirtyBody}</span>
-          <Button size="sm" variant="primary" onClick={onPendingDiscard}>{labels.agentsDirtyDiscard}</Button>
-          <Button size="sm" variant="ghost" onClick={onPendingStay}>{labels.agentsDirtyStay}</Button>
-        </div>
-      )}
-
-      <label className="field">
-        <span className="field-label">{labels.agentsName}</span>
-        <input
-          className="input"
-          value={builtin ? agentName(draft, labels) : draft.name}
-          disabled={locked}
-          placeholder={labels.agentsNamePlaceholder}
-          onChange={(event) => onChange({ ...draft, name: event.target.value })}
-        />
-      </label>
-
-      <label className="field">
-        <span className="field-label">{labels.agentsDescription}</span>
-        <input
-          className="input"
-          value={draft.description ?? ""}
-          disabled={locked}
-          placeholder={labels.agentsDescriptionPlaceholder}
-          onChange={(event) => onChange({ ...draft, description: event.target.value })}
-        />
-      </label>
-
-      <div className="field">
-        <span className="field-label">{labels.agentsUse}</span>
-        <SegmentedControl
-          ariaLabel={labels.agentsUse}
-          value={draft.use}
-          options={[
-            { value: "conversation", label: labels.agentsUseConversation, title: labels.agentsUseConversationDescription, disabled: locked },
-            { value: "delegation", label: labels.agentsUseDelegation, title: labels.agentsUseDelegationDescription, disabled: locked },
-            { value: "both", label: labels.agentsUseBoth, title: labels.agentsUseBothDescription, disabled: locked },
-          ]}
-          onChange={(use) => onChange({
-            ...draft,
-            use: use as AgentUse,
-            delegation: use === "conversation" ? draft.delegation : "none",
-            // A delegated agent caps its policy at read-only or workspace; full is not offered.
-            policy: use !== "conversation" && draft.policy === "full" ? "workspace" : draft.policy,
-          })}
-        />
-        <small className="agents-note">
-          {builtin ? labels.agentsUseFixed : labels.agentsUseConversationDescription}
-        </small>
+      <div className="agents-tabs" role="tablist" aria-label={title}>
+        <button
+          type="button"
+          role="tab"
+          className={`agents-tab${tab === "settings" ? " is-selected" : ""}`}
+          aria-selected={tab === "settings"}
+          onClick={() => setTab("settings")}
+        >
+          {labels.agentsTabSettings}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`agents-tab${tab === "prompt" ? " is-selected" : ""}`}
+          aria-selected={tab === "prompt"}
+          onClick={() => setTab("prompt")}
+        >
+          {labels.agentsTabPrompt}
+        </button>
       </div>
 
-      <div className="agents-ceilings">
-        <div className="field">
-          <span className="field-label">{labels.agentsPolicy}</span>
-          <MenuPicker
-            ariaLabel={labels.agentsPolicy}
-            value={draft.policy}
-            placeholder={labels.full}
-            disabled={locked}
-            options={policyChoices}
-            onChange={(policy) => onChange({ ...draft, policy: policy as AgentPolicy })}
-          />
-        </div>
-        <div className="field">
-          <span className="field-label">{labels.agentsDelegation}</span>
-          <MenuPicker
-            ariaLabel={labels.agentsDelegation}
-            value={delegationFixed ? "none" : draft.delegation}
-            placeholder={labels.delegationIsolated}
-            disabled={locked || delegationFixed}
-            disabledReason={delegationFixed ? labels.agentsDelegationFixed : undefined}
-            options={delegationChoices}
-            onChange={(delegation) => onChange({ ...draft, delegation: delegation as AgentDelegation })}
-          />
-        </div>
-        <div className="field">
-          <span className="field-label">{labels.agentsDefaultEffort}</span>
-          <MenuPicker
-            ariaLabel={labels.agentsDefaultEffort}
-            value={draft.effort ?? ""}
-            placeholder={labels.effortDefault}
-            disabled={readOnly}
-            options={effortChoices}
-            onChange={(effort) => onChange({ ...draft, effort: (effort || undefined) as AgentEffort | undefined })}
-          />
-        </div>
-      </div>
-
-      <label className="field">
-        <span className="field-label">
-          {labels.agentsInstructions}
-          <span className={`agents-counter ${counter > AGENT_LIMITS.instructions ? "is-over" : ""}`}>
-            {counter}/{AGENT_LIMITS.instructions}
-          </span>
-        </span>
-        <textarea
-          className="input agents-instructions"
-          value={draft.instructions}
-          disabled={readOnly}
-          placeholder={labels.agentsInstructionsPlaceholder}
-          onChange={(event) => onChange({ ...draft, instructions: event.target.value })}
+      {tab === "prompt" ? (
+        <EffectivePromptPanel
+          labels={labels}
+          workspace={prompt.workspace}
+          sessionId={prompt.sessionId}
+          agent={draft}
+          creating={creating}
+          dirty={dirty}
+          trusted={prompt.trusted}
+          trusting={prompt.trusting}
+          onTrust={prompt.onTrust}
         />
-        <small className="agents-note">{labels.agentsInstructionsNote}</small>
-      </label>
+      ) : (
+        <>
+          {!draft.editable && <p className="agents-note agents-locked">{labels.agentsWorkspaceLocked}</p>}
 
-      <AgentModelList
-        labels={labels}
-        models={models}
-        recentModelRefs={recentModelRefs}
-        candidates={candidates}
-        efforts={candidateEfforts}
-        readOnly={readOnly}
-        onChange={(next) => onChange({ ...draft, models: next.length ? next : null })}
-        onOpenProviders={onOpenProviders}
-      />
+          {deleteConfirm && (
+            <div className="agents-inline-confirm" role="alert">
+              <span>{labels.agentsDeleteBody}</span>
+              <Button size="sm" variant="danger" disabled={saving} onClick={onDeleteConfirm}>{labels.agentsDeleteConfirm}</Button>
+              <Button size="sm" variant="ghost" onClick={onDeleteCancel}>{labels.agentsDeleteCancel}</Button>
+            </div>
+          )}
 
-      {error && <p className="agents-error" role="alert"><Icon name="failed" size={13} /><span>{error}</span></p>}
+          {pending !== undefined && (
+            <div className="agents-inline-confirm" role="alert">
+              <span><strong>{labels.agentsDirtyTitle}</strong> {labels.agentsDirtyBody}</span>
+              <Button size="sm" variant="primary" onClick={onPendingDiscard}>{labels.agentsDirtyDiscard}</Button>
+              <Button size="sm" variant="ghost" onClick={onPendingStay}>{labels.agentsDirtyStay}</Button>
+            </div>
+          )}
 
-      <footer className="agents-editor-foot">
-        <Button variant="primary" size="sm" disabled={(!dirty && !creating) || saving || !draft.editable} onClick={onSave}>
-          {saving ? labels.agentsSaving : labels.agentsSave}
-        </Button>
-        <Button variant="ghost" size="sm" disabled={!dirty || saving} onClick={onDiscard}>
-          {labels.agentsDiscard}
-        </Button>
-      </footer>
+          <label className="field">
+            <span className="field-label">{labels.agentsName}</span>
+            <input
+              className="input"
+              value={builtin ? agentName(draft, labels) : draft.name}
+              disabled={locked}
+              placeholder={labels.agentsNamePlaceholder}
+              onChange={(event) => onChange({ ...draft, name: event.target.value })}
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">{labels.agentsDescription}</span>
+            <input
+              className="input"
+              value={draft.description ?? ""}
+              disabled={locked}
+              placeholder={labels.agentsDescriptionPlaceholder}
+              onChange={(event) => onChange({ ...draft, description: event.target.value })}
+            />
+          </label>
+
+          <div className="field">
+            <span className="field-label">{labels.agentsUse}</span>
+            <SegmentedControl
+              ariaLabel={labels.agentsUse}
+              value={draft.use}
+              options={[
+                { value: "conversation", label: labels.agentsUseConversation, title: labels.agentsUseConversationDescription, disabled: locked },
+                { value: "delegation", label: labels.agentsUseDelegation, title: labels.agentsUseDelegationDescription, disabled: locked },
+                { value: "both", label: labels.agentsUseBoth, title: labels.agentsUseBothDescription, disabled: locked },
+              ]}
+              onChange={(use) => onChange({
+                ...draft,
+                use: use as AgentUse,
+                delegation: use === "conversation" ? draft.delegation : "none",
+                // A delegated agent caps its policy at read-only or workspace; full is not offered.
+                policy: use !== "conversation" && draft.policy === "full" ? "workspace" : draft.policy,
+              })}
+            />
+            <small className="agents-note">
+              {builtin ? labels.agentsUseFixed : labels.agentsUseConversationDescription}
+            </small>
+          </div>
+
+          <div className="agents-ceilings">
+            <div className="field">
+              <span className="field-label">{labels.agentsPolicy}</span>
+              <MenuPicker
+                ariaLabel={labels.agentsPolicy}
+                value={draft.policy}
+                placeholder={labels.full}
+                disabled={locked}
+                options={policyChoices}
+                onChange={(policy) => onChange({ ...draft, policy: policy as AgentPolicy })}
+              />
+            </div>
+            <div className="field">
+              <span className="field-label">{labels.agentsDelegation}</span>
+              <MenuPicker
+                ariaLabel={labels.agentsDelegation}
+                value={delegationFixed ? "none" : draft.delegation}
+                placeholder={labels.delegationIsolated}
+                disabled={locked || delegationFixed}
+                disabledReason={delegationFixed ? labels.agentsDelegationFixed : undefined}
+                options={delegationChoices}
+                onChange={(delegation) => onChange({ ...draft, delegation: delegation as AgentDelegation })}
+              />
+            </div>
+            <div className="field">
+              <span className="field-label">{labels.agentsDefaultEffort}</span>
+              <MenuPicker
+                ariaLabel={labels.agentsDefaultEffort}
+                value={draft.effort ?? ""}
+                placeholder={labels.effortDefault}
+                disabled={readOnly}
+                options={effortChoices}
+                onChange={(effort) => onChange({ ...draft, effort: (effort || undefined) as AgentEffort | undefined })}
+              />
+            </div>
+          </div>
+
+          <label className="field">
+            <span className="field-label">
+              {labels.agentsInstructions}
+              <span className={`agents-counter ${counter > AGENT_LIMITS.instructions ? "is-over" : ""}`}>
+                {counter}/{AGENT_LIMITS.instructions}
+              </span>
+            </span>
+            <textarea
+              className="input agents-instructions"
+              value={draft.instructions}
+              disabled={readOnly}
+              placeholder={labels.agentsInstructionsPlaceholder}
+              onChange={(event) => onChange({ ...draft, instructions: event.target.value })}
+            />
+            <small className="agents-note">{labels.agentsInstructionsNote}</small>
+          </label>
+
+          <AgentModelList
+            labels={labels}
+            models={models}
+            recentModelRefs={recentModelRefs}
+            candidates={candidates}
+            efforts={candidateEfforts}
+            readOnly={readOnly}
+            onChange={(next) => onChange({ ...draft, models: next.length ? next : null })}
+            onOpenProviders={onOpenProviders}
+          />
+
+          {error && <p className="agents-error" role="alert"><Icon name="failed" size={13} /><span>{error}</span></p>}
+
+          <footer className="agents-editor-foot">
+            <Button variant="primary" size="sm" disabled={(!dirty && !creating) || saving || !draft.editable} onClick={onSave}>
+              {saving ? labels.agentsSaving : labels.agentsSave}
+            </Button>
+            <Button variant="ghost" size="sm" disabled={!dirty || saving} onClick={onDiscard}>
+              {labels.agentsDiscard}
+            </Button>
+          </footer>
+        </>
+      )}
     </section>
   );
 }

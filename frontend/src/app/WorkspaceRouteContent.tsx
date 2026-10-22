@@ -168,6 +168,14 @@ export function WorkspaceRouteContent({
         recentModelRefs={recentModelRefs}
         effortOptions={effortOptions}
         onOpenProviders={onOpenProviders}
+        prompt={{
+          workspace,
+          // The open thread adds its Task State block and worktree to the prompt Core describes.
+          sessionId: current?.id ?? "",
+          trusted: config.trusted,
+          trusting,
+          onTrust: onTrustWorkspace,
+        }}
       />
     );
   }

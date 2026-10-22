@@ -29,6 +29,8 @@ import type {
   AgentConcurrency,
   ConfigState,
   CredentialStatus,
+  EffectivePrompt,
+  EffectivePromptRequest,
   ProviderCatalogDocument,
   ProviderCatalogScope,
   ProviderConnectionResult,
@@ -89,6 +91,7 @@ export type AppAPI = {
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalogDocument>;
   GetReasoningFormats(pkg: string): Promise<string[]>;
   GetReasoningEfforts(): Promise<string[]>;
+  GetEffectivePrompt(req: EffectivePromptRequest): Promise<EffectivePrompt>;
   GetProviderCredentialStatus(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
   SaveProviderCredential(scope: ProviderCatalogScope, providerID: string, apiKey: string): Promise<CredentialStatus>;
   RemoveProviderCredential(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
@@ -217,6 +220,7 @@ export const bridge = {
   // these two calls, never from a list in TypeScript.
   reasoningFormats: (pkg: string) => api().GetReasoningFormats(pkg),
   reasoningEfforts: () => api().GetReasoningEfforts(),
+  effectivePrompt: (req: EffectivePromptRequest) => api().GetEffectivePrompt(req),
   providerCredentialStatus: (scope: ProviderCatalogScope, providerId: string) => api().GetProviderCredentialStatus(scope, providerId),
   saveProviderCredential: (scope: ProviderCatalogScope, providerId: string, apiKey: string) => api().SaveProviderCredential(scope, providerId, apiKey),
   removeProviderCredential: (scope: ProviderCatalogScope, providerId: string) => api().RemoveProviderCredential(scope, providerId),

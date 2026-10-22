@@ -165,5 +165,21 @@ paragraph means the removal has landed.
 (`App.MigrateSubagentModel`) that calls `config.MigrateSubagentModel` on the global file and the
 open workspace file, then reloads.
 
-Wails APIs: `GetAgents`, `SaveAgent`, `DeleteAgent`, `MigrateSubagentModel`
-(`internal/backend/agents.go`), with typed bridge methods in `frontend/src/lib/bridge.ts`.
+### Effective prompt
+
+The editor's second view shows what a run of the agent would actually send. `App.GetEffectivePrompt`
+passes the page's request — the agent, the host's `policy`/`delegation` grant, the open session id
+when there is one — straight to `Engine.EffectivePrompt`, and renders Core's answer: every layer in
+order with its `kind`, `source`, `scope`, `included`, `reason`, `bytes` and text, and every tool
+grouped by its `source` (`builtin`, `task`, `lsp`, `mcp:<id>`, `delegation`) with the filter that
+withholds it. Desktop assembles nothing: it cannot show a prompt the run would not send, and a
+project `AGENTS.md` appears as "not loaded · workspace not trusted" exactly because Core says so.
+The header shows the workspace's trust state and reuses the existing `TrustWorkspace` path; after a
+trust the panel re-reads, because trust changes which project inputs Core loads. The tab is a pure
+read — no run starts, no lock is taken — and without an open workspace there is no Engine, so the
+tab shows the open-a-project message. A new agent has to be saved first (Core resolves the agent
+from its catalog), and an unsaved draft says that the panel describes the saved version.
+
+Wails APIs: `GetAgents`, `SaveAgent`, `DeleteAgent`, `MigrateSubagentModel`, `GetEffectivePrompt`
+(`internal/backend/agents.go`, `internal/backend/prompt.go`), with typed bridge methods in
+`frontend/src/lib/bridge.ts`.

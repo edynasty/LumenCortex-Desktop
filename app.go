@@ -205,6 +205,18 @@ func (a *App) GetConfigState() (backend.ConfigState, error) {
 	return a.backend.ConfigState()
 }
 
+// GetEffectivePrompt returns the prompt Core would send for the requested run: its layers with
+// their provenance and the tools it could offer. It reads; it never starts a run, so the page can
+// show what an agent actually sends without side effects.
+func (a *App) GetEffectivePrompt(req backend.EffectivePromptRequest) (backend.EffectivePrompt, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		// Wails installs the context in startup; a unit test calls the method directly.
+		ctx = context.Background()
+	}
+	return a.backend.EffectivePrompt(ctx, req)
+}
+
 func (a *App) TrustWorkspace(globalDigest string) (backend.ConfigState, error) {
 	return a.backend.TrustWorkspace(globalDigest)
 }

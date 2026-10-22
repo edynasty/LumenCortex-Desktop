@@ -147,6 +147,12 @@ Edit Core's agent catalog (ADR-0009): the four built-ins and the user's custom a
 - editor for the selected agent,
 - the one-time `agents.json` import report, when there was one.
 
+### Editor views
+- Settings: the fields below.
+- Effective prompt: the layers and tools Core would send for this agent (read-only), the
+  workspace's trust state with the trust action, and a refresh. Shown per the open session when
+  there is one; without a project, or before a new agent is saved, the view says so.
+
 ### Editor fields
 - name and description (fixed for a built-in),
 - use: conversation, delegated child, or both (fixed for a built-in),
@@ -159,13 +165,16 @@ Edit Core's agent catalog (ADR-0009): the four built-ins and the user's custom a
 - saved, unsaved (inline confirm before switching),
 - read-only: a built-in's fixed fields, or a definition from the project's lumencortex.json,
 - refused save: stale digest (conflict) or an invalid agent; nothing is written,
-- import report: imported, renamed to `agents.json.imported`, skipped entries and warnings.
+- import report: imported, renamed to `agents.json.imported`, skipped entries and warnings,
+- effective prompt: a project file is "not loaded · workspace not trusted" until the workspace is
+  trusted, then loaded with its text.
 
 ### Acceptance
 User can answer:
 - which agents exist and where each one comes from?
 - what may this agent do, and which models does it try in order?
 - did my save apply, and did the old profile file import without losing anything?
+- what exactly will this agent's run send, and what does it not load because of trust or permission?
 
 ## 4. Review / Diff
 

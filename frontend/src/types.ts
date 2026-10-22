@@ -582,6 +582,53 @@ export type AgentLimits = {
   idPattern: string;
 };
 
+// One piece of the prompt a run would send, with its provenance (Core's runtime.PromptLayer). Text
+// is exactly what the layer contributes, and is empty when the layer is not included.
+export type PromptLayer = {
+  kind: string;
+  source?: string;
+  scope?: string;
+  included: boolean;
+  // Why the layer is not included: "missing", "untrusted workspace", "no enabled skills", ...
+  reason?: string;
+  bytes: number;
+  text?: string;
+  truncated?: boolean;
+  warning?: string;
+};
+
+// One tool the run's step could offer (Core's runtime.PromptTool). Reason is the filter that
+// withholds it: policy, allowlist, denylist or delegation.
+export type PromptTool = {
+  name: string;
+  permission: string;
+  source: string;
+  included: boolean;
+  reason?: string;
+};
+
+// What the effective-prompt tab asks for: the host's grant only. Core narrows it by the agent's
+// ceilings, exactly as at a Start.
+export type EffectivePromptRequest = {
+  sessionId?: string;
+  agent?: string;
+  policy?: string;
+  delegation?: string;
+  interactive?: boolean;
+};
+
+// Core's description of the run's prompt. Desktop displays it; it never assembles one.
+export type EffectivePrompt = {
+  workspace: string;
+  trusted: boolean;
+  agent: string;
+  policy: string;
+  delegation: string;
+  layers: PromptLayer[];
+  tools: PromptTool[];
+  warnings?: string[];
+};
+
 // What the one-time import of the retired Desktop agents.json did. Warnings name what was dropped
 // (an unknown model, an over-limit entry), so nothing disappears silently.
 export type AgentImportResult = {

@@ -8,6 +8,7 @@ import type {
   Message,
   ConfigState,
   CredentialStatus,
+  EffectivePrompt,
   ProviderCatalog,
   RuntimeEvent,
   Session,
@@ -240,6 +241,32 @@ export const visualConfigState: ConfigState = {
     default: { maxAgents: 4, maxChildrenPerParent: 3 },
     max: { maxAgents: 16, maxChildrenPerParent: 8 },
   },
+};
+
+// The visual harness's effective prompt: the shape Core returns for a trusted workspace with one
+// project instruction file, one skill and a read-only grant.
+export const visualEffectivePrompt: EffectivePrompt = {
+  workspace: "/repo/lumencortex",
+  trusted: true,
+  agent: "agent",
+  policy: "workspace",
+  delegation: "propose",
+  layers: [
+    { kind: "builtin", source: "core", scope: "core", included: true, bytes: 1480, text: "You are LumenCortex...\n\nYou may change files inside the workspace." },
+    { kind: "global-instructions", source: "/home/.config/lumencortex/AGENTS.md", scope: "global", included: true, bytes: 132, text: "## Global instructions (from /home/.config/lumencortex/AGENTS.md)\n\nAnswer in Chinese." },
+    { kind: "project-instructions", source: "/repo/lumencortex/AGENTS.md", scope: "project", included: true, bytes: 96, text: "## Project instructions (from /repo/lumencortex/AGENTS.md)\n\nRun gofmt before committing." },
+    { kind: "skills", source: "/home/.config/lumencortex/skills, /repo/lumencortex/.lumencortex/skills", scope: "project", included: true, bytes: 210, text: "## Skills (from /home/.config/lumencortex/skills)\n\n### go-test\nRun go test ./..." },
+    { kind: "agent-instructions", source: "agent:agent (global)", scope: "agent", included: false, reason: "none", bytes: 0 },
+  ],
+  tools: [
+    { name: "read_file", permission: "read", source: "builtin", included: true },
+    { name: "search_text", permission: "read", source: "builtin", included: true },
+    { name: "write_file", permission: "write", source: "builtin", included: true },
+    { name: "shell", permission: "exec", source: "builtin", included: false, reason: "policy" },
+    { name: "lsp_diagnostics", permission: "read", source: "lsp", included: true },
+    { name: "recall", permission: "read", source: "task", included: true },
+  ],
+  warnings: [],
 };
 
 export const providerCatalog: ProviderCatalog = {
@@ -538,6 +565,7 @@ export function visualAppStub() {
     GetReasoningFormats: async (pkg: string) =>
       pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-object", "reasoning-effort", "deepseek"],
     GetReasoningEfforts: async () => ["none", "low", "medium", "high", "max"],
+    GetEffectivePrompt: async () => visualEffectivePrompt,
     GetProviderCatalogScope: async (scope) => ({
       scope,
       path: visualConfigState.globalPath,
