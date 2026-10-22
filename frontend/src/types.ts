@@ -775,3 +775,101 @@ export type ShellResult = {
   stderr: { total: number; truncated: boolean };
   cancelled: boolean;
 };
+
+// OMP session import (Core runtime, ADR-0011). Core lists OMP's session files, previews what an
+// import would write and imports the visible history as native sessions; these are its wire types.
+
+// Which OMP sessions to list: Root "" is OMP's sessions directory, All widens from this workspace to
+// every workspace, Query filters by title, id or directory, Limit defaults to 100 (at most 500).
+export type OMPListOptions = {
+  root?: string;
+  all?: boolean;
+  query?: string;
+  limit?: number;
+};
+
+// The native session an OMP session was imported into. SourceChanged means the source file differs
+// from the bytes that were imported; the import is never re-applied.
+export type OMPImportRef = {
+  sessionId: string;
+  importedAt: string;
+  sourceChanged: boolean;
+};
+
+// One top-level OMP session as the import dialog lists it.
+export type OMPSessionSummary = {
+  path: string;
+  id: string;
+  title?: string;
+  cwd: string;
+  createdAt: string;
+  updatedAt: string;
+  size: number;
+  children: number;
+  // True when the session ran in this workspace or below it.
+  workspaceMatch: boolean;
+  imported?: OMPImportRef;
+};
+
+// What a conversion copied, changed and left out.
+export type OMPImportStats = {
+  rows: number;
+  userMessages: number;
+  assistantMessages: number;
+  toolCalls: number;
+  toolResults: number;
+  notices: number;
+  markers: number;
+  thinkingBlocks: number;
+  hiddenMessages: number;
+  retriedTurns: number;
+  images: number;
+  compactions: number;
+  branchReturns: number;
+  interruptedCalls: number;
+  orphanResults: number;
+  duplicateCalls: number;
+  truncatedRows: number;
+};
+
+// A preview finding: a stable code the UI localizes, and Core's English explanation.
+export type OMPWarning = {
+  code: string;
+  message: string;
+};
+
+// One subagent session imported with its parent.
+export type OMPChildPreview = {
+  key: string;
+  sessionId: string;
+  agent?: string;
+  goal: string;
+  rows: number;
+  aborted?: boolean;
+};
+
+export type OMPImportPreview = {
+  source: OMPSessionSummary;
+  // The native id the session gets (or got).
+  sessionId: string;
+  goal: string;
+  model?: string;
+  firstUser?: string;
+  lastAssistant?: string;
+  stats: OMPImportStats;
+  offBranch: number;
+  malformed: number;
+  children?: OMPChildPreview[];
+  childrenSkipped?: number;
+  sha256: string;
+  warnings?: OMPWarning[];
+};
+
+// AlreadyImported means nothing was written: the session exists from an earlier import.
+export type OMPImportResult = {
+  sessionId: string;
+  alreadyImported: boolean;
+  sourceChanged: boolean;
+  sessions: number;
+  preview: OMPImportPreview;
+};

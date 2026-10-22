@@ -2,6 +2,8 @@ import { useMemo, type FormEvent, type ReactNode, type Ref } from "react";
 import { CommandPalette } from "../components/app-shell/CommandPalette";
 import { Welcome } from "../components/app-shell/Welcome";
 import type { InspectorTab } from "../components/inspector/inspector-types";
+import { OmpImportDialog } from "../components/omp/OmpImportDialog";
+import type { OmpImportSheet } from "./hooks/useWorkspaceController";
 import { SettingsSheet } from "../components/settings/SettingsSheet";
 import type { RuntimeState, SidebarGroup } from "../components/sidebar/Sidebar";
 import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
@@ -79,6 +81,7 @@ type Props = {
   checkpoints: SessionCheckpoint[];
   worktreeCleanupTarget: WorktreeCleanupTarget | null;
   error: string;
+  ompImport: OmpImportSheet;
   textareaRef: Ref<HTMLTextAreaElement>;
   onSetRoute: (route: WorkspaceRoute) => void;
   onLayoutChange: (layout: LayoutPreference) => void;
@@ -183,6 +186,7 @@ export function WorkspaceView(props: Props) {
         onErrorAction={recovery?.run}
         onClearError={props.onClearError}
       />
+      <OmpImportDialog open={props.ompImport.open} labels={labels} locale={props.locale} onClose={() => props.ompImport.setOpen(false)} onImported={props.ompImport.openSession} />
     </>
   );
 
@@ -259,6 +263,7 @@ export function WorkspaceView(props: Props) {
       onOpenProviders={() => openSettings("models")}
       onOpenPalette={() => props.onPaletteOpenChange(true)}
       onNewTask={props.onNewTask}
+      onImportOmp={() => props.ompImport.setOpen(true)}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}
       onRenameSession={props.onRenameSession}

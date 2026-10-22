@@ -75,6 +75,7 @@ type Props = {
     runningElsewhereNotice: string; runtimeNotice: string;
     originToolInterrupted: string; originToolInterruptedBody: string;
     originCompletionBlocked: string; originResume: string; originTurn: string;
+    originImported: string; originImportedNotice: string; originImportedMarker: string;
   } & RememberLabels;
   // The composer's own copy (app copy + the config-dependent picker placeholder).
   composerLabels: ComposerCopy;

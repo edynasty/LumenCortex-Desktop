@@ -17,10 +17,84 @@ import type {
   TaskStateInfo,
   AgentCatalog,
   AgentEntry,
+  OMPImportPreview,
+  OMPSessionSummary,
 } from "../types";
 import { cancelVisualSubtree, startVisualTask, taskSession } from "./task-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
+
+// OMP session import fixtures (ADR-0011): one session of this workspace, one of another, and one
+// imported before whose source changed. The preview of the first mirrors Core's counts for a real
+// session with thinking blocks, images and subagents.
+export const visualOMPSessions: OMPSessionSummary[] = [
+  {
+    path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-lumencortex/2026-10-21T09-12-00-000Z_01a2b3c4-0000-7000-8000-000000000001.jsonl",
+    id: "01a2b3c4-0000-7000-8000-000000000001",
+    title: "Fix the parser bug",
+    cwd: workspace,
+    createdAt: "2026-10-21T09:12:00.000Z",
+    updatedAt: "2026-10-21T10:04:00.000Z",
+    size: 284_113,
+    children: 3,
+    workspaceMatch: true,
+  },
+  {
+    path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-runtime/2026-10-20T07-40-00-000Z_01a2b3c4-0000-7000-8000-000000000002.jsonl",
+    id: "01a2b3c4-0000-7000-8000-000000000002",
+    title: "Retire the old indexer",
+    cwd: "/Users/demo/Projects/runtime",
+    createdAt: "2026-10-20T07:40:00.000Z",
+    updatedAt: "2026-10-20T08:15:00.000Z",
+    size: 91_204,
+    children: 0,
+    workspaceMatch: false,
+  },
+  {
+    path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-lumencortex/2026-10-18T12-00-00-000Z_01a2b3c4-0000-7000-8000-000000000003.jsonl",
+    id: "01a2b3c4-0000-7000-8000-000000000003",
+    title: "Migration notes",
+    cwd: workspace,
+    createdAt: "2026-10-18T12:00:00.000Z",
+    updatedAt: "2026-10-19T09:30:00.000Z",
+    size: 41_882,
+    children: 1,
+    workspaceMatch: true,
+    imported: { sessionId: "session-omp-imported", importedAt: "2026-10-19T10:00:00.000Z", sourceChanged: true },
+  },
+];
+
+export function visualOMPPreview(session: OMPSessionSummary): OMPImportPreview {
+  const imported = session.imported;
+  return {
+    source: session,
+    sessionId: imported?.sessionId ?? "session-omp-fix-parser",
+    goal: session.title ?? session.id,
+    model: "deepseek/coder",
+    firstUser: "Fix the parser bug in src/parse.go.",
+    lastAssistant: "Fixed the off-by-one; tests pass.",
+    stats: {
+      rows: 24, userMessages: 3, assistantMessages: 5, toolCalls: 7, toolResults: 7,
+      notices: 1, markers: 1, thinkingBlocks: 11, hiddenMessages: 4, retriedTurns: 1,
+      images: 2, compactions: 1, branchReturns: 0, interruptedCalls: 1,
+      orphanResults: 0, duplicateCalls: 0, truncatedRows: 0,
+    },
+    offBranch: 1,
+    malformed: 0,
+    children: session.children > 0
+      ? [
+          { key: "Scout1", sessionId: "session-omp-child-scout", agent: "scout", goal: "Scout1 (scout)", rows: 6 },
+          { key: "Scout1/Inner", sessionId: "session-omp-child-inner", agent: "scout", goal: "Inner (scout)", rows: 3 },
+          { key: "Killed", sessionId: "session-omp-child-killed", agent: "scout", goal: "Killed (scout)", rows: 2, aborted: true },
+        ].slice(0, session.children)
+      : undefined,
+    sha256: `sha256:${session.id}`,
+    warnings: session.workspaceMatch
+      ? [{ code: "open_tool_calls", message: "The source ended with tool calls that have no result." }]
+      : [{ code: "workspace_mismatch", message: "The session ran in another directory." }],
+  };
+}
+
 
 // The Agents page's catalog in the visual harness: Core's four built-ins plus one custom agent.
 // Mutable, so create/edit/delete flows behave like the Desktop backend without a file.

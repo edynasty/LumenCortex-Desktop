@@ -10,6 +10,8 @@ import {
   subagents,
   threadMessages,
   visualAppStub,
+  visualOMPPreview,
+  visualOMPSessions,
   workspace,
 } from "./fixture-data";
 import { taskSession, taskThreadMessages, visualTaskList, visualTaskTree } from "./task-fixture";
@@ -62,7 +64,18 @@ const recent: Session = {
 
 const tasks: Session = { ...taskSession, metadata: { ui: { delegation: "propose", title: "Provider settings in tasks" } } };
 
-let sessions: Session[] = [session, tasks, gate, failed, recent];
+// A thread imported from OMP before (ADR-0011): its transcript ends with the notice rows the
+// import writes, so the harness shows what an imported history looks like in the native view.
+const importedOMP: Session = {
+  id: "session-omp-imported",
+  createdAt: at(44),
+  updatedAt: at(45),
+  status: "completed",
+  goal: "Migration notes",
+  metadata: { ui: { title: "Migration notes" }, import: { source: "omp", sessionId: "01a2b3c4-0000-7000-8000-000000000003" } },
+};
+
+let sessions: Session[] = [session, tasks, gate, failed, recent, importedOMP];
 
 // The fixture cite the harness reports as changed since its note was written.
 const staleFixtureCites: Record<string, true> = { "internal/backend/provider_config.go": true };
@@ -139,6 +152,12 @@ const contextTaskStates: Record<string, () => Promise<TaskStateInfo> | TaskState
 
 const transcripts: Record<string, Message[]> = {
   [session.id]: threadMessages,
+  [importedOMP.id]: [
+    { sessionId: importedOMP.id, seq: 0, role: "user", json: { content: "Write down the migration notes." } },
+    { sessionId: importedOMP.id, seq: 1, role: "assistant", json: { content: "Notes are in docs/migrations.md." } },
+    { sessionId: importedOMP.id, seq: 2, role: "user", json: { content: "[OMP async-result]\nBackground task finished.", origin: "imported_notice" } },
+    { sessionId: importedOMP.id, seq: 3, role: "user", json: { content: "[runtime] The messages above were imported from a session of another agent runtime.", origin: "imported" } },
+  ],
   [tasks.id]: taskThreadMessages,
   [gate.id]: [
     { sessionId: gate.id, seq: 0, role: "user", json: { content: "Add a schema migration for session tags." } },
@@ -308,6 +327,44 @@ export function visualApp(projectOpen: boolean): AppAPI {
     DeleteMCPConfig: async () => undefined,
     GetSubagentTree: async (id) => (id === tasks.id ? visualTaskTree() : id === session.id ? subagents : []),
     GetSessionCheckpoints: async (id) => (id === session.id ? checkpoints : []),
+    // OMP import (ADR-0011): the fixture list, its previews, and an import that adds a session the
+    // thread view then opens. The imported row keeps its final `imported` notice.
+    ListOMPSessions: async (opts) => {
+      const query = (opts.query ?? "").trim().toLowerCase();
+      return visualOMPSessions
+        .filter((row) => (opts.all || row.workspaceMatch) && (!query || `${row.title ?? ""}\n${row.id}\n${row.cwd}`.toLowerCase().includes(query)))
+        .slice(0, opts.limit ?? 100);
+    },
+    PreviewOMPSession: async (path) => {
+      const found = visualOMPSessions.find((row) => row.path === path);
+      if (!found) throw "session not found";
+      return visualOMPPreview(found);
+    },
+    ImportOMPSession: async (path) => {
+      const found = visualOMPSessions.find((row) => row.path === path);
+      if (!found) throw "session not found";
+      const preview = visualOMPPreview(found);
+      if (found.imported) {
+        return { sessionId: found.imported.sessionId, alreadyImported: true, sourceChanged: found.imported.sourceChanged, sessions: 0, preview };
+      }
+      const now = new Date().toISOString();
+      found.imported = { sessionId: preview.sessionId, importedAt: now, sourceChanged: false };
+      const imported: Session = {
+        id: preview.sessionId,
+        createdAt: now,
+        updatedAt: now,
+        status: "completed",
+        goal: preview.goal,
+        metadata: { ui: { title: preview.goal }, import: { source: "omp", sessionId: found.id } },
+      };
+      sessions = [imported, ...sessions];
+      transcripts[preview.sessionId] = [
+        { sessionId: preview.sessionId, seq: 0, role: "user", json: { content: preview.firstUser } },
+        { sessionId: preview.sessionId, seq: 1, role: "assistant", json: { content: preview.lastAssistant } },
+        { sessionId: preview.sessionId, seq: 2, role: "user", json: { content: "[runtime] The messages above were imported from a session of another agent runtime.", origin: "imported" } },
+      ];
+      return { sessionId: preview.sessionId, alreadyImported: false, sourceChanged: false, sessions: 4, preview };
+    },
   };
 }
 

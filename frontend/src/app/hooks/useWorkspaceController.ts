@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { bridge } from "../../lib/bridge";
 import { coreErrorKey } from "../../lib/core-errors";
+import type { WorkspaceRoute } from "../workspace-route";
 import type { ConfigState, WorkspaceState } from "../../types";
 
 const MAX_RECENT_PROJECTS = 8;
@@ -182,4 +183,47 @@ export function useWorkspaceController({ setError }: Options) {
     pickWorkspace,
     openWorkspace,
   };
+}
+
+type OmpImportSheetOptions = {
+  workspace: string;
+  setWorkspaceState: (state: WorkspaceState) => void;
+  setError: (message: string) => void;
+  resetSessionRuntime: () => void;
+  setRoute: (route: WorkspaceRoute) => void;
+};
+
+// The sheet's contract: whether it is open, how it is opened or closed, and the session to open
+// after an import.
+export type OmpImportSheet = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  openSession: (sessionId: string) => Promise<void>;
+};
+
+// The OMP import sheet (ADR-0011): whether it is open, and what happens after an import. An import
+// writes sessions this app did not create itself, so the workspace is read again before the
+// imported root is selected; the native thread view then shows it. A project switch closes the
+// sheet, because its list belongs to the previous workspace.
+export function useOmpImportSheet({ workspace, setWorkspaceState, setError, resetSessionRuntime, setRoute }: OmpImportSheetOptions): OmpImportSheet {
+  const [open, setOpen] = useState(false);
+  const lastWorkspace = useRef(workspace);
+  useEffect(() => {
+    if (lastWorkspace.current === workspace) return;
+    lastWorkspace.current = workspace;
+    setOpen(false);
+  }, [workspace]);
+
+  const openSession = useCallback(async (sessionId: string) => {
+    setOpen(false);
+    resetSessionRuntime();
+    try {
+      setWorkspaceState(await bridge.state());
+    } catch (err) {
+      setError(String(err));
+    }
+    setRoute({ kind: "thread", sessionId });
+  }, [resetSessionRuntime, setError, setRoute, setWorkspaceState]);
+
+  return { open, setOpen, openSession };
 }

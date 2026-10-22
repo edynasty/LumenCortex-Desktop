@@ -1040,4 +1040,48 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
     });
     expect(leaked).toBe(false);
   });
+
+});
+
+test.describe("OMP session import", () => {
+  test("an OMP session imports from the sidebar sheet and opens as a native thread", async ({ page }) => {
+    await open(page);
+    await page.getByRole("button", { name: "Import from OMP" }).click();
+    const sheet = page.locator(".omp-import-sheet");
+    await expect(sheet).toBeVisible();
+    // The default scope is this workspace, so another workspace's session is not listed.
+    await expect(sheet.getByRole("button", { name: /Fix the parser bug/ })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /Retire the old indexer/ })).toHaveCount(0);
+
+    // A session imported before says so and offers Open; Open shows the existing thread and the
+    // notice rows the import wrote, without importing again.
+    await sheet.getByRole("button", { name: /Migration notes/ }).click();
+    await expect(sheet.locator(".omp-preview-imported")).toContainText("This session was imported already");
+    await sheet.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.locator(".toolbar-title")).toContainText("Migration notes");
+    await expect(page.locator(".notice-line").filter({ hasText: "OMP notice" })).toBeVisible();
+    await expect(page.locator(".notice-line").filter({ hasText: "History imported from another runtime" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Import from OMP" }).click();
+    await sheet.getByRole("button", { name: /Fix the parser bug/ }).click();
+    await expect(sheet.getByText("Fix the parser bug in src/parse.go.")).toBeVisible();
+    await expect(sheet.locator(".omp-safety")).toContainText("Hidden reasoning is not imported");
+    await expect(sheet.locator(".omp-counts")).toContainText("Thinking blocks left out");
+    await sheet.getByRole("button", { name: "Import", exact: true }).click();
+
+    await expect(sheet).toBeHidden();
+    await expect(page.locator(".toolbar-title")).toContainText("Fix the parser bug");
+    await expect(page.locator(".notice-line").filter({ hasText: "History imported from another runtime" })).toBeVisible();
+  });
+
+  test("the OMP sheet stays usable at the narrow window width", async ({ page }) => {
+    await open(page, "", 560);
+    await page.getByRole("button", { name: /Toggle sidebar/ }).click();
+    await page.getByRole("button", { name: "Import from OMP" }).click();
+    const sheet = page.locator(".omp-import-sheet");
+    await sheet.getByRole("button", { name: /Fix the parser bug/ }).click();
+    await expect(sheet.getByText("Fix the parser bug in src/parse.go.")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Import", exact: true })).toBeVisible();
+  });
 });

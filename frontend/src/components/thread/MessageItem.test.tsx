@@ -19,6 +19,9 @@ const labels = {
   originCompletionBlocked: t.originCompletionBlocked,
   originResume: t.originResume,
   originTurn: t.originTurn,
+  originImported: t.originImported,
+  originImportedNotice: t.originImportedNotice,
+  originImportedMarker: t.originImportedMarker,
   workTitle: t.workTitle,
   workCalls: t.workCalls,
   showOutput: t.showOutput,
@@ -93,6 +96,16 @@ describe("MessageItem runtime rows", () => {
   it("shows an unknown origin by its raw value", () => {
     render(<MessageItem labels={labels} message={row("user", { role: "user", origin: "future_origin", content: "hello" })} />);
     expect(screen.getByText("future_origin")).toBeTruthy();
+  });
+
+  it("renders the rows an OMP import wrote as notices with their own titles", () => {
+    const { container } = render(
+      <MessageItem labels={labels} message={row("user", { role: "user", origin: "imported_notice", content: "[OMP async-result]\nBackground task finished." })} />,
+    );
+    expect(container.querySelector(".notice-line")).not.toBeNull();
+    expect(container.querySelector(".msg-user")).toBeNull();
+    expect(screen.getByText(t.originImportedNotice)).toBeTruthy();
+    expect(screen.getByText(/\[OMP async-result\]/)).toBeTruthy();
   });
 
   it("keeps ordinary user rows as quiet bubbles", () => {

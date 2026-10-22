@@ -20,6 +20,10 @@ import type {
   MCPStatus,
   Message,
   MessagePage,
+  OMPImportPreview,
+  OMPImportResult,
+  OMPListOptions,
+  OMPSessionSummary,
   AgentConcurrency,
   ConfigState,
   CredentialStatus,
@@ -145,6 +149,9 @@ export type AppAPI = {
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
   GetAgents(): Promise<AgentCatalog>;
   GetAgentPresets(): Promise<AgentEntry[]>;
+  ListOMPSessions(opts: OMPListOptions): Promise<OMPSessionSummary[]>;
+  PreviewOMPSession(path: string): Promise<OMPImportPreview>;
+  ImportOMPSession(path: string): Promise<OMPImportResult>;
   SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
   MigrateSubagentModel(): Promise<SubagentModelMigration>;
@@ -260,6 +267,10 @@ export const bridge = {
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
   agents: () => api().GetAgents(),
   agentPresets: () => api().GetAgentPresets(),
+  // OMP session import (ADR-0011): list, preview and import always read OMP's default directory.
+  ompSessions: (opts: OMPListOptions = {}) => api().ListOMPSessions(opts),
+  previewOMPSession: (path: string) => api().PreviewOMPSession(path),
+  importOMPSession: (path: string) => api().ImportOMPSession(path),
   saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
   deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
   migrateSubagentModel: () => api().MigrateSubagentModel(),

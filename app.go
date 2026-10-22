@@ -460,6 +460,23 @@ func (a *App) SaveToolPermissions(value backend.ToolPermissions) (backend.ToolPe
 	return a.backend.SaveToolPermissions(value)
 }
 
+// ListOMPSessions lists the OMP sessions the import dialog may show. The source directory is
+// always OMP's default one; All widens the list from this workspace to every workspace.
+func (a *App) ListOMPSessions(opts backend.OMPListOptions) ([]backend.OMPSessionSummary, error) {
+	return a.backend.ListOMPSessions(context.Background(), opts)
+}
+
+// PreviewOMPSession reports what importing one OMP session would write; it writes nothing.
+func (a *App) PreviewOMPSession(path string) (backend.OMPImportPreview, error) {
+	return a.backend.PreviewOMPSession(context.Background(), "", path)
+}
+
+// ImportOMPSession imports one OMP session and its subagents as native sessions of this workspace.
+// Importing a session imported before writes nothing and reports alreadyImported.
+func (a *App) ImportOMPSession(path string) (backend.OMPImportResult, error) {
+	return a.backend.ImportOMPSession(context.Background(), "", path)
+}
+
 // GetAgents returns Core's merged agent catalog: the four built-ins first, then the custom agents.
 // The retired Desktop agents.json is imported the first time this is read; the result rides along
 // so the page can report what the import skipped.

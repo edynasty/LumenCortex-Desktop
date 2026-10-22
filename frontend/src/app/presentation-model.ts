@@ -150,5 +150,8 @@ export function threadWorkspaceLabels(labels: AppCopy, noModels: string): Compon
     originCompletionBlocked: labels.originCompletionBlocked,
     originResume: labels.originResume,
     originTurn: labels.originTurn,
+    originImported: labels.originImported,
+    originImportedNotice: labels.originImportedNotice,
+    originImportedMarker: labels.originImportedMarker,
   };
 }

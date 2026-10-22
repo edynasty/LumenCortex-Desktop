@@ -79,6 +79,7 @@ type Props = {
   onOpenProviders: () => void;
   onOpenPalette: () => void;
   onNewTask: () => void;
+  onImportOmp: () => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
   onRenameSession: (sessionId: string, title: string) => void;
@@ -160,6 +161,10 @@ export function WorkspaceChrome(props: Props) {
           onNewTask={() => {
             closeDrawer();
             props.onNewTask();
+          }}
+          onImportOmp={() => {
+            closeDrawer();
+            props.onImportOmp();
           }}
           onSelectSession={(sessionId) => {
             closeDrawer();

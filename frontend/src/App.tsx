@@ -9,8 +9,7 @@ import { useLSPController } from "./app/hooks/useLSPController";
 import { useRuntimeEvents } from "./app/hooks/useRuntimeEvents";
 import { useSessionMaintenanceActions } from "./app/hooks/useSessionMaintenanceActions";
 import { useSessionRuntimeState } from "./app/hooks/useSessionRuntimeState";
-import { useWorkspaceController } from "./app/hooks/useWorkspaceController";
-
+import { useOmpImportSheet, useWorkspaceController } from "./app/hooks/useWorkspaceController";
 import { executableModels, modelOptions } from "./app/model-selection";
 import { useComposerPreferences } from "./app/hooks/useComposerPreferences";
 import { useComposerAgents } from "./app/hooks/useComposerAgents";
@@ -109,6 +108,7 @@ export default function App() {
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("task");
   const [worktreeCleanupTarget, setWorktreeCleanupTarget] = useState<WorktreeCleanupTarget | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const ompImport = useOmpImportSheet({ workspace: state.workspace, setWorkspaceState: setState, setError, resetSessionRuntime, setRoute });
 
   useEffect(() => {
     localStorage.setItem("lcx-locale", locale);
@@ -287,6 +287,7 @@ export default function App() {
       checkpoints={checkpoints}
       worktreeCleanupTarget={worktreeCleanupTarget}
       error={error}
+      ompImport={ompImport}
       textareaRef={composerRef}
       onSetRoute={setRoute}
       onLayoutChange={setLayout}
