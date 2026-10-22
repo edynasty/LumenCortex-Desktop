@@ -2,24 +2,34 @@
 # Build, verify and package a macOS release candidate from the exact HEAD commit.
 #
 # The source is extracted with `git archive` into a temporary directory, so uncommitted work in the
-# working tree can never leak into an artifact, and the development bundle build/bin is never
-# touched. Artifacts go to build/releases/<version>/ (ignored) with SHA256SUMS, manifest.json and
-# RELEASE_NOTES.md.
+# working tree can never leak into an artifact, and neither the Wails scratch directory build/bin nor
+# the local build build/local is touched. Output (all ignored):
+#
+#   --mode release  build/releases/<version>/                       LumenCortex-Desktop-<version>-macos-<arch>.*
+#   --mode local    build/candidates/<version>-<commit12>/          LumenCortex-Desktop-<version>-local.<commit7>-macos-<arch>.*
+#
+# each with SHA256SUMS, manifest.json, RELEASE_NOTES.md, build.log and launch.log. Artifacts are
+# assembled in a staging directory and moved into place only after every verification passed, so a
+# failed build leaves the previous artifacts untouched.
 #
 # Usage: scripts/release-candidate.sh [--mode local|release] [--arch arm64|universal] [--force]
 #                                     [--skip-check] [--core <path>] [--core-ref <rev>]
-#                                     [--overlay <path>]...
+#                                     [--core-git <path>] [--overlay <path>]...
 #
 #   --mode local    (default) The Core pin may be a pseudo-version or a local replace; the build uses
 #                   the sibling Core checkout and the artifacts are recorded as non-release.
 #   --core-ref <rev> Build against a Core revision extracted from the sibling checkout instead of its
 #                   working tree, so uncommitted Core work cannot leak into the artifact either.
-#   --overlay <path> Copy a working-tree path over the extracted HEAD tree before building. This is
-#                   for verifying a change set before it is committed: every overlaid path is
+#   --overlay <path> Local mode only. Copy a working-tree path over the extracted HEAD tree before
+#                   building, to verify a change set before it is committed; every overlaid path is
 #                   recorded in manifest.json, and nothing else from the working tree is included.
-#   --mode release  Requires the exact tag v<productVersion> on HEAD and a published Core SemVer pin.
-#   --force         Move an existing build/releases/<version>/ to build/releases/.backup/<version>-<ts>
-#                   instead of refusing to overwrite it.
+#   --mode release  Requires the exact tag v<productVersion> on HEAD and a SemVer Core pin. The
+#                   pre-flight check runs in a temporary clean worktree of HEAD, so local changes in
+#                   this checkout are neither required to be absent nor included.
+#   --core-git <path> Release mode only: resolve an unpushed Core tag from this checkout (see
+#                   scripts/release-check.sh); recorded as an unpublished Core dependency.
+#   --force         Move an existing output directory to <output root>/.backup/<name>-<ts> instead of
+#                   refusing. A release directory built from a different commit is never replaced.
 #   --skip-check    Skip scripts/release-check.sh (CI runs it as a separate step).
 set -Eeuo pipefail
 
@@ -33,6 +43,7 @@ force=0
 skip_check=0
 core_source="${LCX_CORE_SOURCE:-../LumenCortex-Core}"
 core_ref=""
+core_git=""
 overlays=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -44,15 +55,23 @@ while [[ $# -gt 0 ]]; do
     --core=*) core_source="${1#*=}"; shift ;;
     --core-ref) core_ref="${2:-}"; shift 2 ;;
     --core-ref=*) core_ref="${1#*=}"; shift ;;
+    --core-git) core_git="${2:-}"; shift 2 ;;
+    --core-git=*) core_git="${1#*=}"; shift ;;
     --overlay) overlays+=("${2:-}"); shift 2 ;;
     --overlay=*) overlays+=("${1#*=}"); shift ;;
     --force) force=1; shift ;;
     --skip-check) skip_check=1; shift ;;
-    -h|--help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) lcx_die "unknown argument: $1" ;;
   esac
 done
 [[ "$mode" == local || "$mode" == release ]] || lcx_die "--mode must be local or release (got: $mode)"
+if [[ "$mode" == release && "${#overlays[@]}" -gt 0 ]]; then
+  lcx_die "--overlay is for local candidates; a release is built from the tagged commit only"
+fi
+if [[ -n "$core_git" && "$mode" != release ]]; then
+  lcx_die "--core-git is for --mode release"
+fi
 lcx_arch_check "$arch"
 
 version="$(lcx_read_version .)"
@@ -66,31 +85,67 @@ if [[ "$mode" == "release" && "$tag" != "v$version" ]]; then
   lcx_die "release mode requires tag v$version on HEAD (found: ${tag:-none})"
 fi
 
-out_root="build/releases"
-out_dir="$out_root/$version"
+if [[ "$mode" == release ]]; then
+  out_root="build/releases"
+  out_name="$version"
+  base="LumenCortex-Desktop-${version}-macos-${arch}"
+else
+  out_root="build/candidates"
+  out_name="$version-${commit:0:12}"
+  base="LumenCortex-Desktop-${version}-local.${commit:0:7}-macos-${arch}"
+fi
+out_dir="$out_root/$out_name"
 backup_root="$out_root/.backup"
 
-# Fail before the long build when the destination is taken.
-if [[ -d "$out_dir" && -n "$(ls -A "$out_dir" 2>/dev/null)" && "$force" -eq 0 ]]; then
-  lcx_die "refusing to overwrite non-empty $out_dir (pass --force to move it to $backup_root/<version>-<timestamp>)"
+# Fail before the long build when the destination is taken. A published version is immutable: a
+# release directory recorded for another commit is never replaced, even with --force.
+if [[ -d "$out_dir" && -n "$(ls -A "$out_dir" 2>/dev/null)" ]]; then
+  if [[ "$mode" == release && -f "$out_dir/manifest.json" ]]; then
+    existing="$(/usr/bin/python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); print(m.get("buildMode",""), m.get("gitCommit",""))' "$out_dir/manifest.json" 2>/dev/null || true)"
+    if [[ "${existing%% *}" == release && "${existing#* }" != "$commit" ]]; then
+      lcx_die "$out_dir already holds release $version from commit ${existing#* }; bump the version instead of rebuilding it from $commit"
+    fi
+  fi
+  [[ "$force" -eq 1 ]] ||
+    lcx_die "refusing to overwrite non-empty $out_dir (pass --force to move it to $backup_root/$out_name-<timestamp>)"
 fi
 
+export LCX_CORE_TAG_COMMIT=""
+if [[ -n "$core_git" ]]; then
+  pinned="$(git show HEAD:go.mod | awk '$1 == "github.com/edynasty/LumenCortex" { print $2; exit }')"
+  lcx_use_unpublished_core "$core_git" "$pinned"
+fi
+
+check_worktree=""
 if [[ "$skip_check" -eq 0 ]]; then
-  check_args=(--mode "$mode")
   if [[ "$mode" == local ]]; then
     # The artifact is built from HEAD only, so a dirty working tree is recorded, not fatal.
-    check_args+=(--allow-dirty)
+    scripts/release-check.sh --mode local --allow-dirty
+  else
+    # The release gate demands a clean tree; check a clean worktree of the exact commit instead of
+    # this checkout, whose unrelated local files are not part of the release either way.
+    check_worktree="$(mktemp -d "${TMPDIR:-/tmp}/lcx-release-check.XXXXXX")"
+    git worktree add --detach --quiet "$check_worktree/tree" "$commit"
+    check_args=(--mode release)
+    [[ -z "$core_git" ]] || check_args+=(--core-git "$(cd "$core_git" && pwd -P)")
+    if ! (cd "$check_worktree/tree" && scripts/release-check.sh "${check_args[@]}"); then
+      git worktree remove --force "$check_worktree/tree" || true
+      rm -rf "$check_worktree"
+      lcx_die "release check failed in a clean worktree of $commit"
+    fi
+    git worktree remove --force "$check_worktree/tree"
+    rm -rf "$check_worktree"
+    check_worktree=""
   fi
-  scripts/release-check.sh "${check_args[@]}"
 fi
 
-staging="$out_root/.staging/$version-$$"
+staging="$out_root/.staging/$out_name-$$"
 mkdir -p "$staging"
 log="$staging/build.log"
 exec > >(tee -a "$log") 2>&1
 on_error() {
   status=$?
-  printf '\nFAILED (exit %s). Build log: %s\n' "$status" "$log" >&2
+  printf '\nFAILED (exit %s). Build log: %s\nPrevious artifacts in %s are unchanged.\n' "$status" "$log" "$out_dir" >&2
   exit "$status"
 }
 trap on_error ERR
@@ -164,7 +219,11 @@ else
   if (cd "$src" && go list -m -f '{{if .Replace}}{{.Replace.Path}}{{end}}' github.com/edynasty/LumenCortex | grep -q .); then
     lcx_die "release mode forbids a Core replace directive"
   fi
-  printf 'source: git archive of %s (tag %s)\ncore: published module pin\n' "$commit" "$tag"
+  if [[ -n "$core_git" ]]; then
+    printf 'source: git archive of %s (tag %s)\ncore: unpublished local tag %s at %s\n' "$commit" "$tag" "$pinned" "$LCX_CORE_TAG_COMMIT"
+  else
+    printf 'source: git archive of %s (tag %s)\ncore: published module pin\n' "$commit" "$tag"
+  fi
 fi
 
 lcx_step "Build"
@@ -173,7 +232,7 @@ lcx_step "Build"
   LCX_BUILD_ARCH="$arch" LCX_APP_VERSION="$version" LCX_APP_COMMIT="$commit" \
     scripts/build-macos.sh -clean -trimpath
 )
-app="$src/build/bin/LumenCortex Desktop.app"
+app="$src/build/local/LumenCortex Desktop.app"
 [[ -d "$app" ]] || lcx_die "build produced no app bundle: $app"
 
 if [[ "$skip_check" -eq 0 ]]; then
@@ -185,7 +244,6 @@ if [[ "$skip_check" -eq 0 ]]; then
 fi
 
 lcx_step "Package"
-base="LumenCortex-Desktop-${version}-macos-${arch}"
 dmg="$staging/${base}.dmg"
 zip_path="$staging/${base}.zip"
 dmg_stage="$work/dmg"
@@ -333,6 +391,8 @@ manifest = {
         "local": env["LCX_CORE_LOCAL"] in ("True", "true"),
         "localPath": env["LCX_CORE_LOCAL_DESC"] or env["LCX_CORE_LOCAL_PATH"] or None,
         "localCommit": env["LCX_CORE_LOCAL_COMMIT"] or None,
+        "published": env["LCX_MODE"] == "release" and not env["LCX_CORE_TAG_COMMIT"],
+        "tagCommit": env["LCX_CORE_TAG_COMMIT"] or None,
         "runtimeVersion": env["LCX_CORE_RUNTIME"],
     },
     "toolchain": {
@@ -385,18 +445,23 @@ with open(os.path.join(staging, "changes.txt"), encoding="utf-8") as handle:
     changes = handle.read().strip() or "- (no commits)"
 with open(os.path.join(staging, "SHA256SUMS"), encoding="utf-8") as handle:
     checksums = handle.read().strip()
-core_line = "%s (%s)" % (
-    env["LCX_CORE_VERSION"],
-    "local replace: " + (env["LCX_CORE_LOCAL_DESC"] or env["LCX_CORE_LOCAL_PATH"]) if (env["LCX_CORE_LOCAL_DESC"] or env["LCX_CORE_LOCAL_PATH"]) else "release-pinned",
-)
+if env["LCX_CORE_LOCAL_DESC"] or env["LCX_CORE_LOCAL_PATH"]:
+    core_source = "local replace: " + (env["LCX_CORE_LOCAL_DESC"] or env["LCX_CORE_LOCAL_PATH"])
+elif env["LCX_CORE_TAG_COMMIT"]:
+    core_source = "tag at Core commit %s, not yet pushed" % env["LCX_CORE_TAG_COMMIT"]
+else:
+    core_source = "published tag"
+core_line = "%s (%s)" % (env["LCX_CORE_VERSION"], core_source)
 if env["LCX_CORE_ARTIFACT_VERSION"] != env["LCX_CORE_VERSION"]:
     core_line += ", binary reports " + env["LCX_CORE_ARTIFACT_VERSION"]
-status = (
-    "Published release candidate."
-    if env["LCX_MODE"] == "release"
-    else "Local release candidate. Not a published release: it is built from the exact commit below "
-    "with a local Core checkout and is intended for local testing only."
-)
+if env["LCX_MODE"] != "release":
+    status = ("Local release candidate. Not a release: it is built from the exact commit below "
+              "with a local Core checkout and is intended for local testing only.")
+elif env["LCX_CORE_TAG_COMMIT"]:
+    status = ("Release build of the tag below, made locally before the tags were pushed. Push the "
+              "Core tag and this tag unchanged before distributing it.")
+else:
+    status = "Release build of the tag below."
 overlay_line = ""
 if env.get("LCX_OVERLAY"):
     overlay_line = "\n- Pre-commit overlay (not yet in the commit): " + env["LCX_OVERLAY"].replace(" ", ", ")
@@ -459,7 +524,7 @@ if [[ -d "$out_dir" ]]; then
     [[ "$force" -eq 1 ]] ||
       lcx_die "refusing to overwrite non-empty $out_dir (pass --force to move it to $backup_root)"
     mkdir -p "$backup_root"
-    backup="$backup_root/${version}-$(date -u +%Y%m%dT%H%M%SZ)"
+    backup="$backup_root/${out_name}-$(date -u +%Y%m%dT%H%M%SZ)"
     mv "$out_dir" "$backup"
     printf 'moved previous artifacts to %s\n' "$backup"
   else
@@ -470,7 +535,7 @@ mkdir -p "$out_root"
 mv "$staging" "$out_dir"
 lcx_ok "release candidate published"
 
-printf '\nRelease candidate %s:\n' "$version"
+printf '\n%s %s:\n' "$([[ "$mode" == release ]] && printf 'Release' || printf 'Local candidate (not a release)')" "$version"
 printf '  directory: %s\n' "$out_dir"
 printf '  dmg:       %s\n' "$out_dir/${base}.dmg"
 printf '  zip:       %s\n' "$out_dir/${base}.zip"

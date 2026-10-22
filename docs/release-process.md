@@ -14,8 +14,10 @@ use. A public download still needs Developer ID signing and notarization (see
 
 | Artifact | Where | What it is |
 | --- | --- | --- |
-| Local development build | `build/bin/LumenCortex Desktop.app` | Whatever the working tree builds now. Not a release. Regenerate with `scripts/build-macos.sh`. |
-| Local release candidate | `build/releases/<version>/` | Isolated build of an exact commit, optionally with a local Core checkout. Recorded as non-release. |
+| Wails scratch | `build/bin/` | Written by `wails dev` and `wails build`; `wails dev` deletes its binary on exit. Never kept, never trusted. |
+| Local build | `build/local/LumenCortex Desktop.app` | Verified build of the working tree (`scripts/build-macos.sh`); commit recorded as `<sha>-dirty` when the tree has changes. Previous build in `build/local/.previous/`. Not a release. |
+| Local candidate | `build/candidates/<version>-<commit12>/` | Isolated build of an exact commit against a local Core checkout. File names carry `-local.<commit7>`; the manifest says `buildMode: local`. Not a release. |
+| Release build | `build/releases/<version>/` | Isolated build of the tag `v<version>` with a SemVer Core pin, checked in a clean worktree. Only `--mode release` writes here. |
 | Published release | GitHub Release for tag `vX.Y.Z` | Universal DMG + ZIP + `SHA256SUMS` + `manifest.json` + `RELEASE_NOTES.md`. |
 
 The DMG is the installer: open it and drag **LumenCortex Desktop.app** to Applications. A `.pkg` is
@@ -43,8 +45,8 @@ and `scripts/verify-macos-bundle.sh` fails when the binary and Info.plist disagr
 ### Binary diagnostics
 
 ```bash
-"build/bin/LumenCortex Desktop.app/Contents/MacOS/LumenCortex" --version
-"build/bin/LumenCortex Desktop.app/Contents/MacOS/LumenCortex" --self-check
+"build/local/LumenCortex Desktop.app/Contents/MacOS/LumenCortex" --version
+"build/local/LumenCortex Desktop.app/Contents/MacOS/LumenCortex" --self-check
 ```
 
 `--version` prints one JSON object: `appVersion`, `commit`, `coreModule`, `coreVersion`,
@@ -61,11 +63,12 @@ scripts/build-local-macos.sh           # build against the sibling Core checkout
 ```
 
 Both verify the bundle afterwards: structure, executable, architecture, ad-hoc signature, bundle
-identifier, icon, Info.plist version, the binary's `--version` agreement and `--self-check`.
+identifier, icon, Info.plist version, the binary's `--version` agreement and `--self-check`. Only a
+bundle that passes replaces `build/local/LumenCortex Desktop.app` (the replaced one moves to
+`build/local/.previous/`); a failed build leaves both untouched.
 
-`wails dev` shares `build/bin` and deletes the development binary from the bundle when it exits.
-That is why a dev session can leave `LumenCortex Desktop.app` without an executable; run
-`scripts/build-macos.sh` to restore it.
+`wails dev` builds into `build/bin` and deletes the development binary from that bundle when it
+exits. It cannot affect `build/local`.
 
 ## 2. Local release candidate
 
@@ -85,28 +88,27 @@ scripts/release-candidate.sh --mode local --arch arm64 --core-ref HEAD \
 `release-candidate.sh`:
 
 - extracts the **exact HEAD commit** with `git archive` into a temporary directory, so uncommitted
-  work in the working tree cannot leak into an artifact (that is what `--overlay` is for: it names
-  the few pre-commit paths that are deliberately copied over the extracted tree and records them in
-  `manifest.json`);
-- never writes into `build/bin` (the development bundle) or `/Applications`;
-- refuses to overwrite a non-empty `build/releases/<version>/`; `--force` moves the old directory to
-  `build/releases/.backup/<version>-<timestamp>`;
-- keeps the previous artifacts intact on failure and leaves `build.log` in the staging directory,
-  printing its path;
+  work in the working tree cannot leak into an artifact (that is what `--overlay` is for, in local
+  mode only: it names the few pre-commit paths that are deliberately copied over the extracted tree
+  and records them in `manifest.json`);
+- never writes into `build/bin`, `build/local` or `/Applications`;
+- writes local candidates to `build/candidates/<version>-<commit12>/` and release builds to
+  `build/releases/<version>/`, so a candidate never lands where a release is expected;
+- refuses to overwrite a non-empty output directory; `--force` moves it to
+  `<root>/.backup/<name>-<timestamp>`. A release directory whose manifest records another commit is
+  never replaced: bump the version instead;
+- assembles everything in `<root>/.staging/` and moves it into place only after every verification
+  passed, so a failure keeps the previous artifacts intact; it prints the `build.log` path;
 - for `--mode local`, points the Desktop module at the sibling Core with a local `replace` and
   records the Core commit, so the result is explicitly a **non-release** candidate.
 
-Artifacts per version directory:
+Artifacts per output directory:
 
 ```text
-build/releases/<version>/
-  LumenCortex-Desktop-<version>-macos-<arch>.dmg
-  LumenCortex-Desktop-<version>-macos-<arch>.zip
-  SHA256SUMS
-  manifest.json
-  RELEASE_NOTES.md
-  build.log
-  launch.log
+build/releases/<version>/                         build/candidates/<version>-<commit12>/
+  LumenCortex-Desktop-<version>-macos-<arch>.dmg    LumenCortex-Desktop-<version>-local.<commit7>-macos-<arch>.dmg
+  LumenCortex-Desktop-<version>-macos-<arch>.zip    LumenCortex-Desktop-<version>-local.<commit7>-macos-<arch>.zip
+  SHA256SUMS, manifest.json, RELEASE_NOTES.md, build.log, launch.log
 ```
 
 Verification performed before the artifacts are published into that directory:
@@ -173,21 +175,37 @@ for local/private use.
 Order is fixed: **Core first, Desktop second.**
 
 1. **Core**: finish the change, run `scripts/release-check.sh --mode local` from
-   `LumenCortex-Core/`, commit, then run `scripts/release-check.sh --mode release` on the tagged
-   commit. The tag `vX.Y.Z` must agree with the numeric core of
-   `runtime.GoRuntimePreviewVersion` (for example `0.1.0-preview` ↔ `v0.1.0`). Push the commit and
-   tag. `Core release` publishes the module.
-2. **Desktop**: pin the published Core tag in `go.mod` (`go mod tidy`, review the `go.mod`/`go.sum`
-   diff), commit the pin together with the version bump.
-3. Run `scripts/release-check.sh --mode release` and
-   `scripts/release-candidate.sh --mode release --arch universal` on that commit. The release mode
-   refuses a pseudo-version, a `replace` and a `go.work`; the artifact must be built from the clean
-   commit.
-4. Push the Desktop commit, then create the tag `vX.Y.Z` on that exact commit and push it. The
-   `macOS release` workflow re-runs the same check, builds the isolated universal artifacts and
-   attaches the DMG, ZIP, `SHA256SUMS`, `manifest.json` and `RELEASE_NOTES.md` to the GitHub
-   Release.
-5. Download the published artifacts and verify `SHA256SUMS` before calling the release delivered.
+   `LumenCortex-Core/`, commit, create the annotated tag `vX.Y.Z` on that commit (check first that
+   `git tag -l vX.Y.Z` and `git ls-remote --tags origin vX.Y.Z` are both empty), then run
+   `scripts/release-check.sh --mode release`. The tag must agree with the numeric core of
+   `runtime.GoRuntimePreviewVersion` (for example `0.1.0-preview` ↔ `v0.1.0`).
+2. **Desktop pin**: point `go.mod` at the Core tag. Before the tag is pushed, resolve it from the
+   local checkout with the same environment `--core-git` uses:
+
+   ```bash
+   GOPRIVATE=github.com/edynasty/LumenCortex GIT_CONFIG_COUNT=1 \
+   GIT_CONFIG_KEY_0="url.file://$(cd ../LumenCortex-Core && pwd -P).insteadOf" \
+   GIT_CONFIG_VALUE_0=https://github.com/edynasty/LumenCortex \
+     go get github.com/edynasty/LumenCortex@vX.Y.Z && go mod tidy
+   ```
+
+   Review the `go.mod`/`go.sum` diff and commit the pin (with the version bump, if any). The
+   `go.sum` hash depends only on the tagged tree, so it is the hash the checksum database records
+   once the same tag is pushed.
+3. **Desktop tag**: check that `vX.Y.Z` does not exist locally or on `origin`, then create the
+   annotated tag on the pin commit. Never move or recreate an existing tag; a fix is a new version.
+4. **Build**: `scripts/release-candidate.sh --mode release --arch arm64|universal`, adding
+   `--core-git ../LumenCortex-Core` while the Core tag is unpushed. It runs `release-check.sh
+   --mode release` in a clean temporary worktree of the tag, builds from `git archive` of the tag,
+   verifies, and publishes `build/releases/X.Y.Z/`. The manifest records `core.published: false`
+   and `core.tagCommit` for a locally resolved Core tag; the release notes say the tags must be
+   pushed unchanged before distribution.
+5. **Record**: write the commit, tags, artifact paths and SHA-256 values in a report.
+6. **Publish** (owner): push the Core commit and tag, then the Desktop commit and tag. The
+   `macOS release` workflow re-runs the check against the published Core module, builds the
+   isolated universal artifacts and attaches DMG, ZIP, `SHA256SUMS`, `manifest.json` and
+   `RELEASE_NOTES.md` to the GitHub Release. Download them and verify `SHA256SUMS` before calling
+   the release delivered.
 
 Core and Desktop tags are independent even when the numbers match. Never tag a dirty tree, and
 never create or push tags without owner authorization.

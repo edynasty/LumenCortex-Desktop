@@ -13,7 +13,9 @@ frontend/dist/*
 # macOS
 .DS_Store
 
-# Generated release artifacts
+# Generated build and release artifacts (scripts/build-macos.sh, scripts/release-candidate.sh)
+build/local/
+build/candidates/
 build/releases/
 
 # Test and tooling artifacts

@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
-# Build the native macOS application bundle and verify that it is complete and launchable.
+# Build the native macOS application bundle, verify it, and install it as the local build.
+#
+# Output directories:
+#   build/bin/     Wails' scratch directory. `wails dev` and `wails build` both write here, and
+#                  `wails dev` deletes its binary on exit, so nothing here is kept or trusted.
+#   build/local/   The verified local build: LumenCortex Desktop.app, replaced only after the new
+#                  bundle passed scripts/verify-macos-bundle.sh. The bundle it replaces is kept in
+#                  build/local/.previous/. A failed build leaves both untouched.
+# Neither is a release; release artifacts come only from scripts/release-candidate.sh.
 #
 # The app version comes from wails.json info.productVersion (the single source of truth); it is
 # written into Info.plist by Wails and compiled into the binary with -ldflags. LCX_APP_VERSION and
-# LCX_APP_COMMIT override both for an isolated release build that extracted an exact commit.
+# LCX_APP_COMMIT override both for an isolated release build that extracted an exact commit. A build
+# of a working tree with uncommitted changes records its commit as <sha>-dirty.
 #
 # Extra arguments are passed to `wails build` (for example -v 2). A caller-provided -ldflags
 # replaces the version injection.
@@ -46,7 +55,14 @@ if [[ -z "$version" ]]; then
   echo "wails.json has no info.productVersion (run scripts/bump-version.sh X.Y.Z)" >&2
   exit 2
 fi
-commit="${LCX_APP_COMMIT:-$(git rev-parse HEAD 2>/dev/null || printf 'unknown')}"
+if [[ -n "${LCX_APP_COMMIT:-}" ]]; then
+  commit="$LCX_APP_COMMIT"
+else
+  commit="$(git rev-parse HEAD 2>/dev/null || printf 'unknown')"
+  if [[ "$commit" != unknown && -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]]; then
+    commit="$commit-dirty"
+  fi
+fi
 has_ldflags=0
 for arg in "$@"; do [[ "$arg" == "-ldflags" ]] && has_ldflags=1; done
 build_args=("$@")
@@ -54,10 +70,9 @@ if [[ "$has_ldflags" -eq 0 ]]; then
   build_args=(-ldflags "-X main.appVersion=$version -X main.appCommit=$commit" "$@")
 fi
 
-# `wails dev` writes its development binary into the same bundle and deletes it on
-# exit, so a production build is required before the bundle can launch. Wails v2.16 can
-# print an internal frontend failure while returning exit code 0; require explicit success
-# markers so an old bundle can never make a failed build appear successful.
+# Wails builds into build/bin, the same bundle `wails dev` uses and empties on exit. Wails v2.16 can
+# print an internal frontend failure while returning exit code 0; require explicit success markers
+# so an old bundle can never make a failed build appear successful.
 bundle="build/bin/LumenCortex Desktop.app"
 binary="$bundle/Contents/MacOS/LumenCortex"
 build_started="$(date +%s)"
@@ -100,3 +115,20 @@ cp "$icns" "$bundle/Contents/Resources/iconfile.icns"
 codesign --force --sign - "$bundle" >/dev/null
 
 "$(dirname "$0")/verify-macos-bundle.sh" "$bundle" "$arch" "$version"
+
+# Install the verified bundle as the local build. The staging copy and the swap stay inside
+# build/local, so each mv is a rename on one volume.
+local_dir="build/local"
+local_app="$local_dir/LumenCortex Desktop.app"
+staging="$local_dir/.staging-$$"
+rm -rf "$staging"
+mkdir -p "$staging"
+ditto "$bundle" "$staging/LumenCortex Desktop.app"
+if [[ -d "$local_app" ]]; then
+  rm -rf "$local_dir/.previous"
+  mkdir -p "$local_dir/.previous"
+  mv "$local_app" "$local_dir/.previous/"
+fi
+mv "$staging/LumenCortex Desktop.app" "$local_app"
+rmdir "$staging"
+printf 'Local build (not a release): %s\n    version %s, commit %s\n' "$local_app" "$version" "$commit"

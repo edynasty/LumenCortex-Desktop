@@ -8,10 +8,10 @@
 # identifier disagrees with wails.json, the bundled binary's `--version` disagrees with the bundle,
 # or the bundled binary's `--self-check` fails.
 #
-# Usage: scripts/verify-macos-bundle.sh ["build/bin/LumenCortex Desktop.app"] [arm64|x86_64|universal] [expected-version]
+# Usage: scripts/verify-macos-bundle.sh ["build/local/LumenCortex Desktop.app"] [arm64|x86_64|universal] [expected-version]
 set -euo pipefail
 
-bundle="${1:-build/bin/LumenCortex Desktop.app}"
+bundle="${1:-build/local/LumenCortex Desktop.app}"
 expected_arch="${2:-$(uname -m)}"
 expected_version="${3:-}"
 

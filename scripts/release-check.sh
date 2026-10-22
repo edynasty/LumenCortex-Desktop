@@ -6,12 +6,15 @@
 # scripts/release-candidate.sh for the isolated build and packaging step.
 #
 # Usage: scripts/release-check.sh [--mode local|release] [--allow-dirty] [--with-visual] [--skip-tests]
+#                                 [--core-git <core-checkout>]
 #
 #   --mode release  A publishable candidate: clean tree, HEAD tagged v<productVersion>, and the
-#                   Core module pinned to a published SemVer tag (no pseudo-version, no replace,
-#                   no go.work).
+#                   Core module pinned to a SemVer tag (no pseudo-version, no replace, no go.work).
 #   --mode local    A local candidate: a pseudo-version or a local replace is allowed and recorded
 #                   as non-release by scripts/release-candidate.sh. Default.
+#   --core-git <path> Release mode only: resolve the pinned Core tag from this local Core checkout
+#                   because the tag is not pushed yet. The checkout must hold the exact tag; the
+#                   result is recorded as an unpublished Core dependency.
 #   --allow-dirty   Local mode only: list uncommitted changes as warnings instead of failing. The
 #                   isolated build still uses the exact HEAD commit.
 #   --with-visual   Also run the Playwright suite (requires installed browsers).
@@ -26,6 +29,7 @@ mode=local
 allow_dirty=0
 with_visual=0
 skip_tests=0
+core_git=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode) mode="${2:-}"; shift 2 ;;
@@ -33,13 +37,24 @@ while [[ $# -gt 0 ]]; do
     --allow-dirty) allow_dirty=1; shift ;;
     --with-visual) with_visual=1; shift ;;
     --skip-tests) skip_tests=1; shift ;;
-    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --core-git) core_git="${2:-}"; shift 2 ;;
+    --core-git=*) core_git="${1#*=}"; shift ;;
+    -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) lcx_die "unknown argument: $1" ;;
   esac
 done
 [[ "$mode" == local || "$mode" == release ]] || lcx_die "--mode must be local or release (got: $mode)"
 if [[ "$allow_dirty" -eq 1 && "$mode" == release ]]; then
   lcx_die "--allow-dirty cannot be combined with --mode release"
+fi
+if [[ -n "$core_git" && "$mode" != release ]]; then
+  lcx_die "--core-git is for --mode release; local mode builds against a Core checkout with a replace"
+fi
+if [[ -n "$core_git" ]]; then
+  # Resolve before anything asks the module system about Core.
+  pinned="$(awk '$1 == "github.com/edynasty/LumenCortex" { print $2; exit }' go.mod)"
+  [[ -n "$pinned" ]] || lcx_die "go.mod does not require github.com/edynasty/LumenCortex"
+  lcx_use_unpublished_core "$core_git" "$pinned"
 fi
 
 version="$(lcx_read_version .)"
@@ -109,9 +124,13 @@ if [[ "$mode" == release ]]; then
   fi
   [[ "$core_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] ||
     lcx_die "release mode requires a Core SemVer tag (got: $core_version)"
-  go mod download github.com/edynasty/LumenCortex ||
-    lcx_die "cannot download the pinned Core module; publish the Core tag first"
-  lcx_ok "Core pin $core_version is a published SemVer tag"
+  if [[ -n "$core_git" ]]; then
+    lcx_ok "Core pin $core_version is a SemVer tag, resolved locally (not yet published: push it before publishing Desktop)"
+  else
+    go mod download github.com/edynasty/LumenCortex ||
+      lcx_die "cannot download the pinned Core module; publish the Core tag first (or pass --core-git)"
+    lcx_ok "Core pin $core_version is a published SemVer tag"
+  fi
 else
   if lcx_pseudo_version "$core_version" || [[ -n "$core_replace_path" ]]; then
     printf 'local candidate: the Core pin is not a published release; artifacts are recorded as non-release.\n'

@@ -65,16 +65,16 @@ wails doctor
 wails dev
 ```
 
-This starts the Go backend, the Vite dev server and a native window. `wails dev` builds its development binary into the **same** `build/bin/LumenCortex Desktop.app` bundle as `wails build` and **deletes that binary when it exits**. After a dev session the bundle is a shell with an empty `Contents/MacOS` and cannot be opened; rebuild before launching the packaged app.
+This starts the Go backend, the Vite dev server and a native window. `wails dev` builds its development binary into `build/bin/LumenCortex Desktop.app` and **deletes that binary when it exits**. `build/bin` is Wails' scratch directory: nothing there is kept or trusted.
 
 ### Native application
 
 ```bash
 scripts/build-macos.sh
-open "build/bin/LumenCortex Desktop.app"
+open "build/local/LumenCortex Desktop.app"
 ```
 
-`scripts/build-macos.sh` runs `wails build -platform darwin/$(uname -m)` and then `scripts/verify-macos-bundle.sh`, which fails when `Contents/MacOS` is empty, `CFBundleExecutable` is missing or empty, the declared executable is absent or not executable, the binary is not Mach-O, its architecture does not match, or the ad-hoc signature does not verify. Pass extra `wails build` flags as arguments (for example `scripts/build-macos.sh -v 2`).
+`scripts/build-macos.sh` runs `wails build -platform darwin/$(uname -m)` and then `scripts/verify-macos-bundle.sh`, which fails when `Contents/MacOS` is empty, `CFBundleExecutable` is missing or empty, the declared executable is absent or not executable, the binary is not Mach-O, its architecture does not match, or the ad-hoc signature does not verify. Only a bundle that passes is copied to `build/local/LumenCortex Desktop.app`; the one it replaces moves to `build/local/.previous/`, and a failed build leaves both untouched, so `wails dev` cannot break the local build. A working tree with uncommitted changes is recorded as commit `<sha>-dirty` in `--version`. Pass extra `wails build` flags as arguments (for example `scripts/build-macos.sh -v 2`). Release artifacts come only from `scripts/release-candidate.sh` (see [docs/release-process.md](docs/release-process.md)).
 
 Frontend only:
 

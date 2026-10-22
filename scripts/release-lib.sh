@@ -81,6 +81,35 @@ lcx_core_runtime_version() {
   sed -n 's/^const GoRuntimePreviewVersion = "\(.*\)"$/\1/p' "$1/runtime/engine.go" | sed -n '1p'
 }
 
+# lcx_use_unpublished_core <core-checkout> <version>
+# Resolves the pinned Core tag <version> from a local Core checkout instead of the module proxy, for
+# a release built before the Core tag is pushed. Only this process's environment changes: the Core
+# module bypasses the proxy and checksum database (GOPRIVATE) and git fetches it from the checkout
+# (GIT_CONFIG_* url.insteadOf). The module's go.sum hash depends only on the tagged tree, so it is
+# the same hash the checksum database records once that tag is pushed unchanged. Fails unless the
+# checkout has the tag and the downloaded module comes from the tagged commit. Sets
+# LCX_CORE_TAG_COMMIT.
+lcx_use_unpublished_core() {
+  local dir="$1" version="$2" origin
+  [[ -d "$dir" ]] || lcx_die "Core checkout not found: $dir"
+  dir="$(cd "$dir" && pwd -P)"
+  grep -q '^module github.com/edynasty/LumenCortex$' "$dir/go.mod" 2>/dev/null ||
+    lcx_die "not a LumenCortex Core module: $dir"
+  LCX_CORE_TAG_COMMIT="$(git -C "$dir" rev-parse -q --verify "refs/tags/$version^{commit}" 2>/dev/null)" ||
+    lcx_die "Core checkout $dir has no tag $version"
+  export GOPRIVATE="github.com/edynasty/LumenCortex"
+  export GIT_CONFIG_COUNT=1
+  export GIT_CONFIG_KEY_0="url.file://$dir.insteadOf"
+  export GIT_CONFIG_VALUE_0="https://github.com/edynasty/LumenCortex"
+  export LCX_CORE_TAG_COMMIT
+  origin="$(go mod download -json "github.com/edynasty/LumenCortex@$version" |
+    /usr/bin/python3 -c 'import json,sys; print((json.load(sys.stdin).get("Origin") or {}).get("Hash", ""))')" ||
+    lcx_die "cannot resolve Core $version from $dir"
+  [[ "$origin" == "$LCX_CORE_TAG_COMMIT" ]] ||
+    lcx_die "module cache has Core $version from commit '${origin:-unknown}', but tag $version in $dir is $LCX_CORE_TAG_COMMIT"
+  printf 'core: %s resolved from unpublished local tag (%s at %s)\n' "$version" "$dir" "$LCX_CORE_TAG_COMMIT"
+}
+
 # lcx_launch_check <app-bundle> <seconds> <log-path>
 # Launches the packaged app with an isolated HOME, confirms it stays alive, then stops it. It never
 # installs anything and never touches the user's data directories.
