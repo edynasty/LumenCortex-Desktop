@@ -50,6 +50,7 @@ function controller(agents: AgentEntry[], overrides: Partial<AgentCatalogControl
     composerAgent: { agents, selectedId: "agent", onSelect: vi.fn() },
     save: vi.fn(async (agent: AgentEntry) => catalog([...agents.filter((item) => item.id !== agent.id), agent])),
     remove: vi.fn(async () => catalog(agents)),
+    dismissImport: vi.fn(async () => catalog(agents)),
     presets: vi.fn(async () => []),
     reload: vi.fn(async () => catalog(agents)),
     ...overrides,
@@ -222,6 +223,54 @@ describe("AgentsPage", () => {
     expect(panel).toHaveTextContent("/home/agents.json.imported");
     expect(panel).toHaveTextContent(t.agentsImportSkipped.replace("{count}", "1"));
     expect(panel).toHaveTextContent("gone/model");
+  });
+
+  it("shows no notice when the import changed nothing", () => {
+    renderPage([...builtins, reviewer], {
+      importResult: {
+        imported: false, alreadyImported: true, renamedTo: "/home/agents.json.imported",
+        custom: 0, builtinOverrides: [], skipped: 0, warnings: [],
+      },
+    });
+    expect(screen.queryByRole("region", { name: t.agentsImportTitle })).toBeNull();
+  });
+
+  it("hides the notice once it was dismissed", () => {
+    renderPage([...builtins, reviewer], {
+      importResult: {
+        imported: false, alreadyImported: true, custom: 1, builtinOverrides: [], skipped: 0, warnings: [],
+        dismissedAt: "2026-10-22T10:00:00Z",
+      },
+    });
+    expect(screen.queryByRole("region", { name: t.agentsImportTitle })).toBeNull();
+  });
+
+  it("dismisses the notice and stops showing it", async () => {
+    const user = userEvent.setup();
+    const importResult = {
+      imported: false, alreadyImported: true, custom: 1, builtinOverrides: [], skipped: 0, warnings: [],
+    };
+    const dismissImport = vi.fn(async () => catalog([...builtins, reviewer]));
+    renderPage([...builtins, reviewer], { importResult, dismissImport });
+
+    const panel = screen.getByRole("region", { name: t.agentsImportTitle });
+    await user.click(within(panel).getByRole("button", { name: t.agentsImportDismiss }));
+    expect(dismissImport).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a notice that could not be dismissed", async () => {
+    const user = userEvent.setup();
+    const dismissImport = vi.fn(async () => {
+      throw new Error("/home/agents.import.json could not be written");
+    });
+    renderPage([...builtins, reviewer], {
+      importResult: {
+        imported: false, alreadyImported: true, custom: 1, builtinOverrides: [], skipped: 0, warnings: [],
+      },
+      dismissImport,
+    });
+    await user.click(screen.getByRole("button", { name: t.agentsImportDismiss }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be written");
   });
 
   it("marks a workspace definition read-only", async () => {

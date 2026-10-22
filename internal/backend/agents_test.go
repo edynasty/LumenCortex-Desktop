@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/edynasty/LumenCortex/config"
@@ -590,6 +591,93 @@ func TestLegacyAgentProfilesImportRunsOnceWhenTheRenameFails(t *testing.T) {
 	}
 	if custom != 1 {
 		t.Fatalf("custom agents = %d, want 1 (%v)", custom, agentIDs(second))
+	}
+}
+
+// The one-time notice is dismissed in the record, not by deleting it: what the import did stays
+// readable, a record written before the field existed reads as not dismissed, and a second dismiss
+// changes nothing.
+func TestDismissAgentImportRecordsTheNoticeAndKeepsTheRecord(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	legacyPath := filepath.Join(filepath.Dir(configPath), legacyAgentProfilesFileName)
+	writeFile(t, legacyPath, `{"version": 1, "profiles": [{"id": "p1", "name": "Planner", "base": "agent"}]}`)
+
+	first, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Import == nil || first.Import.DismissedAt != "" || first.Import.Custom != 1 {
+		t.Fatalf("first import = %+v", first.Import)
+	}
+
+	dismissed, err := r.DismissAgentImport()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dismissed.Import == nil || dismissed.Import.DismissedAt == "" {
+		t.Fatalf("dismissed import = %+v", dismissed.Import)
+	}
+	// Everything else the record said survives, so the file still explains what the import did.
+	if !dismissed.Import.AlreadyImported || dismissed.Import.Custom != 1 || dismissed.Import.RenamedTo != legacyPath+".imported" {
+		t.Fatalf("dismissed import = %+v", dismissed.Import)
+	}
+	stamp := dismissed.Import.DismissedAt
+	if _, err := time.Parse(time.RFC3339, stamp); err != nil {
+		t.Fatalf("dismissedAt = %q: %v", stamp, err)
+	}
+
+	// A later read reports the dismissal, and dismissing again keeps the first stamp.
+	again, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Import == nil || again.Import.DismissedAt != stamp {
+		t.Fatalf("second read = %+v", again.Import)
+	}
+	twice, err := r.DismissAgentImport()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if twice.Import == nil || twice.Import.DismissedAt != stamp {
+		t.Fatalf("second dismiss = %+v", twice.Import)
+	}
+}
+
+// A record written before dismissedAt existed is not dismissed, and a dismissal does not need one.
+func TestDismissAgentImportReadsOldRecordsAndNeedsARecord(t *testing.T) {
+	configPath := useCatalogDir(t)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+	recordPath := filepath.Join(filepath.Dir(configPath), agentImportRecordFileName)
+
+	// No record at all: nothing to dismiss, and no file is created.
+	empty, err := r.DismissAgentImport()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if empty.Import != nil {
+		t.Fatalf("import = %+v, want none", empty.Import)
+	}
+	if _, err := os.Stat(recordPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("dismissing without a record wrote %s: %v", recordPath, err)
+	}
+
+	writeFile(t, recordPath, `{"imported": false, "alreadyImported": true, "custom": 0, "builtinOverrides": null, "skipped": 0, "warnings": null}`)
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.Import == nil || catalog.Import.DismissedAt != "" || !catalog.Import.AlreadyImported {
+		t.Fatalf("old record = %+v", catalog.Import)
+	}
+	dismissed, err := r.DismissAgentImport()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dismissed.Import == nil || dismissed.Import.DismissedAt == "" || !dismissed.Import.AlreadyImported {
+		t.Fatalf("dismissed = %+v", dismissed.Import)
 	}
 }
 

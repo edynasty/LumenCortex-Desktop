@@ -527,6 +527,12 @@ func (a *App) DeleteAgent(globalDigest, id string) (backend.AgentCatalog, error)
 	return a.backend.DeleteAgent(globalDigest, id)
 }
 
+// DismissAgentImport closes the one-time agents.json notice; the record keeps what it says about
+// the import, so the file still explains what happened.
+func (a *App) DismissAgentImport() (backend.AgentCatalog, error) {
+	return a.backend.DismissAgentImport()
+}
+
 // MigrateSubagentModel rewrites the retired subagentModel key in the global file and, when a
 // workspace is open, in its lumencortex.json. It is the repair behind the load error that names it.
 func (a *App) MigrateSubagentModel() (backend.SubagentModelMigration, error) {

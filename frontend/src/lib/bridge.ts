@@ -159,6 +159,7 @@ export type AppAPI = {
   SetPluginEnabled(id: string, enabled: boolean): Promise<void>;
   SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
+  DismissAgentImport(): Promise<AgentCatalog>;
   MigrateSubagentModel(): Promise<SubagentModelMigration>;
   TitleBarDoubleClick(): Promise<void>;
   SetMenuLocale(locale: string): Promise<boolean>;
@@ -282,6 +283,7 @@ export const bridge = {
   setPluginEnabled: (id: string, enabled: boolean) => api().SetPluginEnabled(id, enabled),
   saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
   deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
+  dismissAgentImport: () => api().DismissAgentImport(),
   migrateSubagentModel: () => api().MigrateSubagentModel(),
   subagentTree: (parentSessionId: string) => api().GetSubagentTree(parentSessionId),
   sessionCheckpoints: (sessionId: string, limit = 20) => api().GetSessionCheckpoints(sessionId, limit),

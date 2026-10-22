@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/edynasty/LumenCortex/config"
@@ -118,6 +119,9 @@ type AgentImportResult struct {
 	BuiltinOverrides []string `json:"builtinOverrides"`
 	Skipped          int      `json:"skipped"`
 	Warnings         []string `json:"warnings"`
+	// DismissedAt is when the user closed the notice. A record written before this field existed
+	// reads as not dismissed, so an upgrade does not hide a notice the user never saw.
+	DismissedAt string `json:"dismissedAt,omitempty"`
 }
 
 // AgentCatalog is the merged catalog the page reads, with the digest a save must send back.
@@ -233,7 +237,9 @@ func agentCatalogFrom(cfg *config.Config, record *AgentImportResult) AgentCatalo
 	switch {
 	case record == nil:
 	case record.Imported || record.AlreadyImported:
-		if len(record.Warnings) > 0 {
+		// The warning is the same one-time notice: once the user dismissed it, the page stops
+		// repeating it. The record itself keeps the warnings for whoever inspects the file.
+		if len(record.Warnings) > 0 && record.DismissedAt == "" {
 			catalog.Warning = fmt.Sprintf("agents.json was imported with %d warning(s).", len(record.Warnings))
 		}
 	default:
@@ -293,6 +299,32 @@ func (r *Runtime) SaveAgent(globalDigest string, entry AgentEntry) (AgentCatalog
 		return AgentCatalog{}, err
 	}
 	return r.agentsAfterSave()
+}
+
+// DismissAgentImport closes the one-time agents.json notice: the record keeps everything it says
+// about the import (so the file still explains what happened) and only gains dismissedAt, which the
+// Agents page reads to stop showing the notice. Without a record there is nothing to dismiss and no
+// file is created.
+func (r *Runtime) DismissAgentImport() (AgentCatalog, error) {
+	r.agentsMu.Lock()
+	defer r.agentsMu.Unlock()
+	record := readAgentImportRecord()
+	if record != nil && record.DismissedAt == "" {
+		dismissed := *record
+		dismissed.DismissedAt = time.Now().UTC().Format(time.RFC3339)
+		if err := writeAgentImportRecord(&dismissed); err != nil {
+			return AgentCatalog{}, err
+		}
+		record = readAgentImportRecord()
+		if record == nil {
+			return AgentCatalog{}, fmt.Errorf("%s could not be read back after dismissing the notice", agentImportRecordFileName)
+		}
+	}
+	cfg, err := config.Load(r.currentWorkspace())
+	if err != nil {
+		return AgentCatalog{}, err
+	}
+	return agentCatalogFrom(cfg, record), nil
 }
 
 // DeleteAgent removes a custom agent from the global file. A built-in cannot be deleted, and a
@@ -577,13 +609,13 @@ func (r *Runtime) importLegacyAgentsLocked(cfg *config.Config) (*AgentImportResu
 	// The record is written before the rename, so a rename that fails (or a process that stops in
 	// between) leaves the import marked as done; the file itself is only the backup.
 	record.Imported = true
-	writeAgentImportRecord(record)
+	_ = writeAgentImportRecord(record)
 	if renamed, err := renameLegacyProfiles(path); err != nil {
 		record.Warnings = append(record.Warnings, fmt.Sprintf("the profile file could not be renamed: %v", err))
 	} else {
 		record.RenamedTo = renamed
 	}
-	writeAgentImportRecord(record)
+	_ = writeAgentImportRecord(record)
 	return record, nil
 }
 
@@ -818,37 +850,38 @@ func agentImportRecordPath() string {
 	return filepath.Join(dir, agentImportRecordFileName)
 }
 
-func writeAgentImportRecord(record *AgentImportResult) {
+func writeAgentImportRecord(record *AgentImportResult) error {
 	path := agentImportRecordPath()
 	if path == "" {
-		return
+		return errors.New("no global directory for " + agentImportRecordFileName)
 	}
 	// The record is read on later starts, when the import already happened: it says so.
 	stored := *record
 	stored.Imported, stored.AlreadyImported = false, true
 	raw, err := json.MarshalIndent(stored, "", "  ")
 	if err != nil {
-		return
+		return err
 	}
 	raw = append(raw, '\n')
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return
+		return err
 	}
 	temp, err := os.CreateTemp(filepath.Dir(path), ".agents-import-*.json")
 	if err != nil {
-		return
+		return err
 	}
 	tempPath := temp.Name()
 	if _, err := temp.Write(raw); err == nil {
 		if temp.Chmod(0o600) == nil && temp.Sync() == nil {
 			_ = temp.Close()
 			if os.Rename(tempPath, path) == nil {
-				return
+				return nil
 			}
 		}
 	}
 	_ = temp.Close()
 	_ = os.Remove(tempPath)
+	return fmt.Errorf("%s could not be written", path)
 }
 
 func readAgentImportRecord() *AgentImportResult {

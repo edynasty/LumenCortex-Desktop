@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { copy } from "../lib/i18n/app-copy";
 import type { AgentEntry } from "../types";
-import { DELEGATION_ORDER, POLICY_ORDER, underCeiling, validateAgentDraft } from "./agent-catalog";
+import {
+  DELEGATION_ORDER, POLICY_ORDER, pendingAgentImportNotice, underCeiling, validateAgentDraft,
+} from "./agent-catalog";
 
 const labels = copy.en;
 
@@ -48,5 +50,30 @@ describe("validateAgentDraft for a delegated agent", () => {
   it("accepts a both agent that Core can load, and a conversation agent with no ceiling", () => {
     expect(validateAgentDraft(draft({ use: "both", policy: "read-only", description: "Runs both." }), [], labels)).toBe("");
     expect(validateAgentDraft(draft(), [], labels)).toBe("");
+  });
+});
+
+describe("the one-time agents.json notice", () => {
+  const record = (overrides = {}) => ({
+    imported: false, alreadyImported: true, custom: 0, builtinOverrides: [] as string[] | null,
+    skipped: 0, warnings: [] as string[] | null, ...overrides,
+  });
+
+  it("shows only when the import changed something", () => {
+    expect(pendingAgentImportNotice(undefined)).toBeUndefined();
+    // An alreadyImported record whose import imported nothing has nothing to report.
+    expect(pendingAgentImportNotice(record())).toBeUndefined();
+    for (const changed of [
+      record({ custom: 1 }),
+      record({ builtinOverrides: ["ask"] }),
+      record({ skipped: 2 }),
+      record({ warnings: ["a warning"] }),
+    ]) {
+      expect(pendingAgentImportNotice(changed)).toBe(changed);
+    }
+  });
+
+  it("stays hidden after the user dismissed it", () => {
+    expect(pendingAgentImportNotice(record({ custom: 1, dismissedAt: "2026-10-22T10:00:00Z" }))).toBeUndefined();
   });
 });

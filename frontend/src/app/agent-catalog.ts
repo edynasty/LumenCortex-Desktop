@@ -1,4 +1,4 @@
-import type { AgentEntry, AgentLimits, AgentPolicy, AgentUse, AgentDelegation } from "../types";
+import type { AgentEntry, AgentImportResult, AgentLimits, AgentPolicy, AgentUse, AgentDelegation } from "../types";
 import type { AppCopy } from "../lib/i18n/app-copy";
 
 // Core's agent catalog, frontend side: the built-in fallback the composer starts from, the id
@@ -57,6 +57,18 @@ export function underCeiling<T extends string>(order: readonly T[], grant: T, ce
   const limit = order.indexOf(ceiling);
   const allowed = limit < 0 ? [...order] : order.slice(0, limit + 1);
   return { allowed, effective: allowed.includes(grant) ? grant : allowed[allowed.length - 1] };
+}
+
+/**
+ * The one-time agents.json notice, when it is worth showing: the import must have changed
+ * something (a custom agent, a built-in override, a skip or a warning) and the user must not have
+ * dismissed it. An alreadyImported record whose import changed nothing shows nothing.
+ */
+export function pendingAgentImportNotice(record: AgentImportResult | undefined): AgentImportResult | undefined {
+  if (!record || record.dismissedAt) return undefined;
+  const changed = record.custom > 0 || Boolean(record.builtinOverrides?.length)
+    || record.skipped > 0 || Boolean(record.warnings?.length);
+  return changed ? record : undefined;
 }
 
 /** The agents a composer may run: everything but delegation-only ones (ADR-0009). */

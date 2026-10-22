@@ -647,6 +647,7 @@ export function visualAppStub() {
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
     GetAgents: async () => visualAgentCatalog(),
+    DismissAgentImport: async () => visualAgentCatalog(),
     GetAgentPresets: async () => structuredClone(visualAgentPresets),
     SaveAgent: async (_digest, agent) => {
       const saved: AgentEntry = {

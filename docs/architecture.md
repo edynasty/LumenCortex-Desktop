@@ -135,6 +135,17 @@ catalog is dropped with a warning. The write is one `config.Save`; then the file
 `agents.json.imported` (never deleted) and the outcome is recorded in `agents.import.json` so the
 page keeps reporting what was skipped, including entries beyond the 16-agent limit.
 
+The Agents page shows that outcome as a one-time notice only when the import changed something (a
+custom agent, a built-in override, a skip or a warning) and the user has not dismissed it:
+`agents.import.json` gains `dismissedAt` (`App.DismissAgentImport`), and a record written before the
+field existed reads as not dismissed. An `alreadyImported` record whose import changed nothing
+shows nothing.
+
+**Retirement (0.3).** Desktop stops reading `agents.json` in 0.3: no import, no rename. A file
+still present at that point is left untouched and the Agents page shows a read-only notice naming
+its path, so the data is never destroyed and never silently imported twice. Removing this
+paragraph means the removal has landed.
+
 `subagentModel` is retired: a file that still sets it fails to load with
 `config.ErrSubagentModelRetired`, and the error toast offers a one-click Migrate
 (`App.MigrateSubagentModel`) that calls `config.MigrateSubagentModel` on the global file and the

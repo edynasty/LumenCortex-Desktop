@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentEntry } from "../../types";
 import { coreErrorKey } from "../../lib/core-errors";
-import { AGENT_LIMITS, agentName, copyAgentName, emptyAgent, sameAgentDraft, validateAgentDraft } from "../../app/agent-catalog";
+import {
+  AGENT_LIMITS, agentName, copyAgentName, emptyAgent, pendingAgentImportNotice, sameAgentDraft, validateAgentDraft,
+} from "../../app/agent-catalog";
 import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
 import { useAgentPresets } from "../../app/hooks/useAgentPresets";
 import { Button } from "../primitives/Button";
@@ -49,7 +51,20 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
 
   const dirty = useMemo(() => !sameAgentDraft(draft, baseline), [baseline, draft]);
   const custom = agents.agents.filter((agent) => !agent.builtin).length;
-  const importResult = agents.importResult;
+  // One-time notice: only when the import changed something and the user has not dismissed it.
+  const importNotice = pendingAgentImportNotice(agents.importResult);
+  const [dismissing, setDismissing] = useState(false);
+
+  async function dismissImport() {
+    setDismissing(true);
+    try {
+      await agents.dismissImport();
+    } catch (failure) {
+      setError(errorText(failure));
+    } finally {
+      setDismissing(false);
+    }
+  }
 
   const presets = useAgentPresets({
     loadPresets: agents.presets,
@@ -212,25 +227,30 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
             <span>{labels.agentsWarning}{agents.loadError}</span>
           </p>
         )}
-        {importResult && (importResult.imported || importResult.alreadyImported) && (
+        {importNotice && (
           <section className="agents-import" aria-label={labels.agentsImportTitle}>
             <strong>{labels.agentsImportTitle}</strong>
             <p>
-              {importResult.imported
-                ? labels.agentsImportBody.replace("{file}", importResult.renamedTo ?? "agents.json.imported")
-                : labels.agentsImportAlready.replace("{file}", importResult.renamedTo ?? "agents.json.imported")}
+              {importNotice.imported
+                ? labels.agentsImportBody.replace("{file}", importNotice.renamedTo ?? "agents.json.imported")
+                : importNotice.alreadyImported
+                  ? labels.agentsImportAlready.replace("{file}", importNotice.renamedTo ?? "agents.json.imported")
+                  : labels.agentsImportNotImported}
             </p>
-            {importResult.skipped > 0 && (
-              <p>{labels.agentsImportSkipped.replace("{count}", String(importResult.skipped))}</p>
+            {importNotice.skipped > 0 && (
+              <p>{labels.agentsImportSkipped.replace("{count}", String(importNotice.skipped))}</p>
             )}
-            {importResult.warnings?.length ? (
+            {importNotice.warnings?.length ? (
               <>
                 <p>{labels.agentsImportWarnings}</p>
                 <ul>
-                  {importResult.warnings.map((line, index) => <li key={index}>{line}</li>)}
+                  {importNotice.warnings.map((line, index) => <li key={index}>{line}</li>)}
                 </ul>
               </>
             ) : null}
+            <Button size="sm" variant="ghost" disabled={dismissing} onClick={() => void dismissImport()}>
+              {labels.agentsImportDismiss}
+            </Button>
           </section>
         )}
       </header>

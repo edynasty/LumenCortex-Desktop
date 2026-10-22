@@ -53,6 +53,8 @@ export type AgentCatalogController = {
   composerAgent: ComposerAgent;
   save: (agent: AgentEntry) => Promise<AgentCatalog>;
   remove: (id: string) => Promise<AgentCatalog>;
+  /** Closes the one-time agents.json notice; the record keeps what it says about the import. */
+  dismissImport: () => Promise<AgentCatalog>;
   /** The compiled-in specialists the page may open a draft from; never catalog entries. */
   presets: () => Promise<AgentEntry[]>;
   reload: () => Promise<AgentCatalog>;
@@ -169,6 +171,12 @@ export function useAgentCatalog({ sessionId, pinnedAgent, isChild, workspace, on
     }
   }, [catalog.globalDigest, fetchCatalog, workspace]);
 
+  const dismissImport = useCallback(async () => {
+    const next = await bridge.dismissAgentImport();
+    setLoaded({ workspace, catalog: next });
+    return next;
+  }, [workspace]);
+
   const presets = useCallback(async () => bridge.agentPresets(), []);
 
   const reload = useCallback(async () => {
@@ -196,6 +204,7 @@ export function useAgentCatalog({ sessionId, pinnedAgent, isChild, workspace, on
     composerAgent,
     save,
     remove,
+    dismissImport,
     presets,
     reload,
   };

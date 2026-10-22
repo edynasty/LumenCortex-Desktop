@@ -589,6 +589,8 @@ export type AgentImportResult = {
   builtinOverrides: string[] | null;
   skipped: number;
   warnings: string[] | null;
+  // When the user closed the notice (RFC 3339). A record written before this field existed has none.
+  dismissedAt?: string;
 };
 
 export type AgentCatalog = {
