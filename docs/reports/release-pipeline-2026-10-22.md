@@ -168,11 +168,27 @@ copy. It was never run against the real `~/Applications` or `/Applications`.
 - `hdiutil attach -readonly … -mountpoint` is deprecated on macOS 27 (warning only); it still works.
 - `unzip` is used for the ZIP integrity test; `ditto` is used for creation and extraction.
 
+## Committed rebuild (no overlay)
+
+After the tooling was committed (Desktop `e98d9fb`) and Desktop moved to Core `9581de1`
+(`b1575c4`), `scripts/release-candidate.sh --mode local --arch arm64 --force` ran without
+`--overlay` from a clean tree: release check passed (`mode=local`, commit `b1575c4`), DMG
+(`hdiutil verify`, read-only mount) and ZIP (integrity, extract) bundles verified with
+`--version`/`--self-check`, launch check "alive 8s; terminated with SIGTERM". `manifest.json`:
+`dirty: false`, Core `v0.0.0-20261022075503-9581de10ec96`, local sibling checkout at the same
+commit (`releasePinned: false`: still a pseudo-version).
+
+```
+e1f50e3551d065c0ba7165fb7b61ff54eae0a6867a73c0dd8631294f5695d719  LumenCortex-Desktop-0.1.0-macos-arm64.dmg
+6cb7eaf01d0da02c5150845a4d6de6fd5ad63b1c0320b63ce6b5ae2d230793fc  LumenCortex-Desktop-0.1.0-macos-arm64.zip
+```
+
+`scripts/build-macos.sh` restored `build/bin` from the committed pin (self-check ok) after a
+`wails dev` acceptance run had replaced the development bundle.
+
 ## Next actions
 
-1. Commit the release tooling (Desktop and Core) with the version bump, then rebuild without
-   `--overlay` and record the new hashes.
-2. Bump Core's pin only after a Core tag is published; run `release-check.sh --mode release` on both
-   sides.
-3. Add Developer ID signing and notarization (documented but unimplemented) before any public
+1. Publish a Core SemVer tag, pin it in Desktop, and run `release-check.sh --mode release` on
+   both sides (owner decision; nothing is tagged or pushed).
+2. Add Developer ID signing and notarization (documented but unimplemented) before any public
    distribution.
