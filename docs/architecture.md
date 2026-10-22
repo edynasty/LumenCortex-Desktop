@@ -73,8 +73,8 @@ Go owns the menu bar (`menu.go`): the system App menu (About, Hide, Quit), File 
 Settings… ⌘,, Close Window ⌘W), the system Edit menu, View (Command Palette ⌘K, Toggle Sidebar ⌘B)
 and the system Window menu. Wails v2.16 builds the App, Edit and Window menus natively with fixed
 English titles; File and View follow the app language through the bound `SetMenuLocale`, which the
-frontend calls at start and whenever the language changes (default 中文). A custom item emits one
-`menu:command` event; `lib/bridge.ts` exposes it as `onMenuCommand`, and `useWorkspaceCommands` and
+frontend calls at start and whenever the language changes (default 中文). Every custom item except Close
+Window emits one `menu:command` event; `lib/bridge.ts` exposes it as `onMenuCommand`, and `useWorkspaceCommands` and
 `AppShell` act on it. `SetMenuLocale` returns whether a native menu is installed; while it is, the
 webview's own handlers for those four keys stand down (`lib/native-menu.ts`), so each command fires
 once. In a browser and off macOS they keep working. Close Window ends the app like the red traffic

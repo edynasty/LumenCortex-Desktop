@@ -67,22 +67,18 @@ Use:
 | Interaction | Motion |
 |---|---|
 | Button hover | background/border/color · 120 ms |
-| Button press | optional 1 px translateY · 80 ms |
 | Thread selected | background/color · 120 ms |
 | Sidebar mobile open | translateX · 200 ms |
 | Sidebar backdrop | opacity · 160 ms |
-| Inspector open | translateX 8 px + opacity · 180–200 ms |
+| Inspector open | translateX 8 px + opacity · 160 ms |
 | New Task → Thread | opacity + translateY 4 px · 160 ms |
 | Workspace → Provider | opacity only · 160 ms |
-| Provider expand | chevron rotate + body fade/translateY 2 px · 140–160 ms |
 | Advanced JSON expand | fade/translateY 2 px · 160 ms |
 | Dialog | opacity + translateY 4 px · 160 ms |
-| Popover/select | opacity + translateY 2 px · 120 ms |
+| Popover/select | opacity + translateY 2 px · 160 ms |
 | Error toast | opacity + translateY 6 px · 160 ms |
-| New message | opacity + translateY 3 px · 120 ms |
-| Tool card complete | semantic color transition · 120 ms |
+| New message | opacity + translateY 3 px · 160 ms |
 | Approval appears | fade/translateY 4 px · 160 ms |
-| Diff line selection | background · 80 ms |
 
 ### Exit
 
@@ -108,10 +104,10 @@ Not allowed:
 - pulsing entire cards,
 - infinite glowing borders.
 
-The current thinking dots may continue, but:
+The loading dots (`LoadingState`, content loading only, never agent activity):
 - duration: about 1000–1200 ms,
 - opacity/translate only,
-- hidden when reduced motion is enabled.
+- static at 60 % opacity when reduced motion is enabled.
 
 ### Tool execution
 

@@ -25,12 +25,13 @@ Avoid:
 
 ## 2. Desktop grid
 
-Canonical wide screen:
+Canonical wide screen (values from `frontend/src/styles/tokens.css`, layout section):
 - 1440 × 900 reference.
-- Sidebar: 248 px.
-- Primary workspace: flexible.
-- Inspector: 360 px.
-- Provider settings inspector: up to ~600 px.
+- Toolbar: `--toolbar-h` 48 px; rail: `--rail-w` 52 px.
+- Sidebar: `--sidebar-w` 264 px default, user-resizable.
+- Primary workspace: flexible; reading column `--reading-w` 760 px.
+- Inspector: `--inspector-w` 320 px default, user-resizable.
+- Pane gap: `--pane-gap` 8 px.
 
 ## 3. Breakpoints
 
@@ -46,33 +47,36 @@ The thresholds are `INSPECTOR_DOCK_MIN`, `SIDEBAR_DOCK_MIN` and `COMPACT_MAX` in
 
 ## 4. Spacing scale
 
-4 px base grid:
+4 px base grid (`--sp-1` … `--sp-8`):
 
 | Token | Value |
 |---|---:|
-| space/1 | 4 |
-| space/2 | 8 |
-| space/3 | 12 |
-| space/4 | 16 |
-| space/5 | 20 |
-| space/6 | 24 |
-| space/8 | 32 |
+| `--sp-1` | 4 |
+| `--sp-2` | 8 |
+| `--sp-3` | 12 |
+| `--sp-4` | 16 |
+| `--sp-5` | 20 |
+| `--sp-6` | 24 |
+| `--sp-8` | 32 |
 
 ## 5. Radius
 
 | Token | Value | Use |
 |---|---:|---|
-| radius/sm | 6 | compact controls |
-| radius/md | 8 | buttons/input/rows |
-| radius/lg | 12 | panels/cards |
-| radius/xl | 16 | composer/dialog |
+| `--r-xs` | 4 | tags, tiny inline buttons |
+| `--r-sm` | 6 | compact controls, rows inside a control |
+| `--r-md` | 8 | buttons, inputs, list rows |
+| `--r-lg` | 10 | cards |
+| `--r-xl` | 14 | composer, popovers, menus, message bubble, toast |
+| `--r-pane` | 12 | window panes and drawers |
+| `--r-sheet` | 16 | modal sheet, dialogs |
+| `--r-pill` | 999 | status pills, badges, round send button, meters |
 
 Avoid pills unless representing status or compact metadata.
 
 ### Semantic shape tokens
 
-Production CSS picks shape by role, from `frontend/src/styles/tokens.css`; the raw scale above is
-nominal and the tokens are the contract.
+Production CSS picks shape by role where one of these applies; the raw scale above covers the rest.
 
 | Token | Value | Use |
 |---|---:|---|
@@ -87,74 +91,59 @@ One edge convention: a 1 px edge on a box is an inset ring (`box-shadow: inset 0
 
 ## 6. Control heights
 
-| Token | Value |
-|---|---:|
-| control/sm | 28 |
-| control/md | 32 |
-| control/lg | 36 |
+| Token | Value | Use |
+|---|---:|---|
+| `--ctl-xs` | 22 | the worktree pill in the toolbar |
+| `--ctl-sm` | 26 | small buttons (`.btn-sm`), toast actions, in-content icon buttons (via `--ctl-icon`) |
+| `--ctl-md` | 30 | buttons, fields (via `--ctl-field`), toolbar/rail icon buttons (via `--ctl-icon-lg`) |
 
-## 7. Light color tokens
+There is no taller control: a field and the button beside it are both 30 px.
 
-- bg/app: #F6F6F4
-- bg/sidebar: #F3F3F0
-- bg/surface: #FFFFFF
-- bg/subtle: #F8F8F6
-- bg/hover: #ECECEA
-- text/primary: #252525
-- text/secondary: #60605C
-- text/muted: #8C8C86
-- border/subtle: #E7E7E2
-- border/strong: #D6D6D0
-- accent/primary: #181918
-- success: #2F7D4F
-- warning: #9A691B
-- danger: #B0444E
-- info: #4F72A8
+## 7. Color tokens
+
+Light and dark values are defined only in `frontend/src/styles/tokens.css` (`:root[data-theme="light"]`
+and `:root, :root[data-theme="dark"]`); this document does not copy them. Both themes are Lumen Glass:
+a deep navy (dark) or pale blue-grey (light) window ground with a soft light source, translucent
+content and float surfaces over it, and one blue accent.
+
+Text uses three steps: `--fg`, `--fg-2`, and `--fg-3`, the lightest readable text (at least 4.5:1 on
+every surface text sits on, including the sidebar's bare ground). `--fg-4` is for non-text only (icons,
+separators, dots; at least 3:1). Semantic colours are `--ok`, `--warn`, `--bad` with `-soft` tints.
+The Playwright test "text and non-text contrast hold" computes these ratios from the live tokens in
+both themes.
 
 ## 8. Dark theme
 
-Dark theme remains defined in code tokens.
-
-The current Figma Starter plan supports only one variable mode per collection in this workspace, so Figma uses Light as the canonical design mode. Dark must still preserve:
-- neutral charcoal, not blue-black,
-- no glow,
-- equivalent semantic hierarchy,
-- accessible contrast.
+Dark is a first-class theme with the same semantic hierarchy and contrast rules as light, no glow.
+The theme follows the system unless the user picks one; the native window background follows it too.
 
 ## 9. Typography
 
-Product:
-- -apple-system
-- BlinkMacSystemFont
-- SF Pro Text
-- PingFang SC
-- Microsoft YaHei
-- Segoe UI
-
-Figma:
-- Inter used as portable approximation.
-
-Code:
-- ui-monospace
-- SFMono-Regular
-- Menlo
-- Monaco
-- Consolas
+Families (`--font-ui`, `--font-display`, `--font-mono`): the system UI font (SF Pro) with PingFang SC
+for Chinese; code uses `ui-monospace` / SF Mono.
 
 ### Type scale
-- Page/task title: 18–30
-- Section title: 14–18
-- Body/UI: 10–13
-- Metadata: 8–10
-- Code/diff: 9–12 monospace
+
+| Token | px | Use |
+|---|---:|---|
+| `--text-display` | 24 | new-thread heading |
+| `--text-xl` | 20 | thread title |
+| `--text-lg` | 16 | article headings |
+| `--text-md` | 14 | toolbar title, composer |
+| `--text-sm` | 13 | body, rows |
+| `--text-xs` | 12 | secondary UI, hints |
+| `--text-2xs` | 11 | metadata |
+| `--text-3xs` | 10 | badges only |
+| `--mono-size` | 12 | code and diff |
+
+Titles are usually Chinese: no negative letter-spacing.
 
 ## 10. Icons
 
 General UI icon library:
 - Lucide React only.
 
-Typical icon size:
-- 14–18 px.
+Typical icon size: 12–16 px inside rows and controls; up to 22 px for brand and empty states.
 
 Do not:
 - use emoji as controls,
@@ -172,13 +161,14 @@ Use only for:
 Static panels use borders/surface contrast.
 
 Production CSS uses semantic elevation tokens rather than component-local color literals:
-- `--shadow-sm` / `--shadow-lg`: general transient elevation,
-- `--shadow-drawer` / `--shadow-sidebar`: right/left overlay surfaces,
-- `--shadow-dialog`: modal surfaces,
-- `--shadow-composer` / `--shadow-composer-focus`: task composer resting/focus states,
-- `--shadow-control` / `--shadow-toggle`: compact active controls.
+- `--shadow-control`: compact active controls (selected segment, switch),
+- `--shadow-pane`: window panes,
+- `--shadow-card`: cards inside a pane,
+- `--shadow-float`: popovers, menus, the error toast,
+- `--shadow-composer`: the composer,
+- `--shadow-sheet`: dialogs, the settings sheet, drawers.
 
-Overlay backdrops use `--backdrop`; warning-context chips use `--warning-chip-bg`. Light/dark values are defined only in `frontend/src/styles/tokens.css`. Non-token component stylesheets must not embed reusable hex/rgb/hsl literals.
+Overlay scrims use `--surface-scrim`; warning context uses `--warn-soft`. Light/dark values are defined only in `frontend/src/styles/tokens.css`. Non-token component stylesheets must not embed reusable hex/rgb/hsl literals.
 
 ### Material
 
