@@ -234,6 +234,8 @@ export type SubagentNode = {
   sessionId: string;
   parentSessionId?: string;
   kind: "subagent" | "execution" | string;
+  // Relation mode, e.g. "imported" for a historical OMP child session.
+  mode?: string;
   // The catalog agent the child pinned (ADR-0009 A3); absent before its first Start.
   agent?: string;
   goal: string;

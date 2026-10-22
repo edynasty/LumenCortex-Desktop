@@ -10,6 +10,7 @@ type Props = {
     active: string;
     completed: string;
     interrupted: string;
+    imported: string;
   };
   onOpenSession: (sessionId: string) => void;
 };
@@ -40,7 +41,7 @@ function TreeNode({
         </span>
         <span className="subagent-tree-copy">
           <strong>{node.goal}</strong>
-          <small>{statusLabel(node, labels)}{node.runtime.branch ? ` · ${node.runtime.branch}` : ""}</small>
+          <small>{[node.mode === "imported" ? labels.imported : "", statusLabel(node, labels), node.runtime.branch || ""].filter(Boolean).join(" · ")}</small>
         </span>
       </button>
       {(node.children || []).map((child) => (

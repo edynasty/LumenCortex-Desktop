@@ -30,6 +30,7 @@ export type RunSettingsLabels = Pick<
   | "subagentActive"
   | "subagentCompleted"
   | "subagentInterrupted"
+  | "subagentImported"
   | "terminal"
   | "shellCommand"
   | "runCommand"
@@ -206,6 +207,7 @@ export function RunSettingsPanel({
             active: labels.subagentActive,
             completed: labels.subagentCompleted,
             interrupted: labels.subagentInterrupted,
+            imported: labels.subagentImported,
           }}
           onOpenSession={onOpenSubagent}
         />

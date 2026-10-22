@@ -49,6 +49,7 @@ export type InspectorLabels = Omit<
   | "subagentActive"
   | "subagentCompleted"
   | "subagentInterrupted"
+  | "subagentImported"
   | "lsp"
   | "lspCommand"
   | "lspArgs"
