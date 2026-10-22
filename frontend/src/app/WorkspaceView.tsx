@@ -19,6 +19,7 @@ import type {
 } from "../types";
 import type { AgentCatalogController } from "./hooks/useAgentCatalog";
 import type { ConfiguredModelOption, ModelPickerOption } from "./model-selection";
+import { agentName } from "./agent-catalog";
 import { WorkspaceChrome } from "./WorkspaceChrome";
 import { WorkspaceOverlays } from "./WorkspaceOverlays";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
@@ -138,6 +139,8 @@ type Props = {
 export function WorkspaceView(props: Props) {
   const { route, current, labels, workspace, groups, settings, error } = props;
   const sessionIds = useMemo(() => new Set(props.sessions.map((session) => session.id)), [props.sessions]);
+  // The Run pane is capped by the same agent the composer names (ADR-0009), so both agree.
+  const selectedAgent = props.agents.selected;
 
   const { navigate, openSettings, closeSettings, paletteActions, recovery } = useWorkspaceCommands({ ...props, sessionIds });
   const page = useWorkspacePages(props);
@@ -239,6 +242,7 @@ export function WorkspaceView(props: Props) {
       modelRef={props.modelRef}
       configuredModels={props.configuredModels}
       policy={props.policy}
+      agentCeiling={selectedAgent ? { policy: selectedAgent.policy, label: agentName(selectedAgent, labels) } : undefined}
       maxSteps={props.maxSteps}
       command={props.command}
       lspCommand={props.lspCommand}

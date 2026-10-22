@@ -130,4 +130,43 @@ describe("DesktopSelect", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
+
+  it("shows a disabled option with its reason, refuses it, and skips it in keyboard navigation", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <DesktopSelect
+        ariaLabel="Policy"
+        value="read-only"
+        placeholder="Policy"
+        onChange={onChange}
+        options={[
+          { value: "read-only", label: "Read only" },
+          { value: "workspace", label: "Workspace" },
+          { value: "full", label: "Full", disabled: true, disabledReason: "Ask caps this at read-only" },
+        ]}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Policy" });
+    await user.click(trigger);
+    const full = screen.getByRole("option", { name: /Full/ });
+    expect(full).toBeDisabled();
+    expect(full).toHaveAttribute("aria-disabled", "true");
+    expect(full).toHaveAttribute("title", "Ask caps this at read-only");
+    expect(screen.getByText("Ask caps this at read-only")).toBeInTheDocument();
+
+    await user.click(full);
+    expect(onChange).not.toHaveBeenCalled();
+
+    // Arrow keys cycle the enabled rows only: a disabled button cannot take focus.
+    await user.keyboard("{Escape}");
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    await waitFor(() => expect(screen.getByRole("option", { name: /Read only/ })).toHaveFocus());
+    await user.keyboard("{End}");
+    expect(screen.getByRole("option", { name: /Workspace/ })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(onChange).toHaveBeenCalledWith("workspace");
+  });
 });

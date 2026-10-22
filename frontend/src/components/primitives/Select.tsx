@@ -10,6 +10,9 @@ export type SelectOption = {
   badge?: string;
   badgeTone?: "default" | "warning";
   keywords?: string;
+  // A visible but unselectable row (above an agent's ceiling); `disabledReason` says why.
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
 type SearchConfig = {
@@ -71,12 +74,21 @@ export function DesktopSelect({
     return () => cancelAnimationFrame(frame);
   }, [open]);
 
+  // Disabled rows stay visible with their reason but are skipped: a disabled button cannot take
+  // focus, so cycling over them would stall the arrow keys.
+  function focusableOptions(): HTMLButtonElement[] {
+    return Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') || []);
+  }
+
   useEffect(() => {
     if (!open || !focusTarget) return;
     const frame = requestAnimationFrame(() => {
-      const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+      const items = focusableOptions();
       if (!items.length) return;
-      const selectedIndex = Math.max(0, filteredOptions.findIndex((option) => option.value === value));
+      const selectedIndex = Math.max(
+        0,
+        filteredOptions.filter((option) => !option.disabled).findIndex((option) => option.value === value),
+      );
       const index =
         focusTarget === "last"
           ? items.length - 1
@@ -111,7 +123,7 @@ export function DesktopSelect({
   }
 
   function focusOption(direction: "first" | "last") {
-    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+    const items = focusableOptions();
     items[direction === "last" ? items.length - 1 : 0]?.focus();
   }
 
@@ -124,7 +136,7 @@ export function DesktopSelect({
 
   function onListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+    const items = focusableOptions();
     if (!items.length) return;
     event.preventDefault();
     const current = Math.max(0, items.indexOf(document.activeElement as HTMLButtonElement));
@@ -193,6 +205,9 @@ export function DesktopSelect({
                 type="button"
                 role="option"
                 aria-selected={selectedOption}
+                aria-disabled={option.disabled || undefined}
+                disabled={option.disabled}
+                title={option.disabled ? option.disabledReason : undefined}
                 className={`desktop-select-option ${selectedOption ? "selected" : ""}`}
                 onClick={() => {
                   onChange(option.value);
@@ -208,6 +223,9 @@ export function DesktopSelect({
                     {option.badge && <em className={option.badgeTone === "warning" ? "warning" : ""}>{option.badge}</em>}
                   </span>
                   {option.description && <small>{option.description}</small>}
+                  {option.disabled && option.disabledReason && (
+                    <small className="desktop-select-option-reason">{option.disabledReason}</small>
+                  )}
                 </span>
               </button>
             </div>

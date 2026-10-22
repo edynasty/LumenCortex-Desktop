@@ -5,7 +5,8 @@ import { LSPSettingsPanel } from "./LSPSettingsPanel";
 import { MilestoneList } from "./MilestoneList";
 import { SubagentTreePanel } from "./SubagentTreePanel";
 import { InspectorSection } from "./Section";
-import type { InspectorLabels, InspectorPolicy } from "./inspector-types";
+import { POLICY_ORDER, underCeiling } from "../../app/agent-catalog";
+import type { InspectorLabels, InspectorPolicy, PolicyCeiling } from "./inspector-types";
 
 export type RunSettingsLabels = Pick<
   InspectorLabels,
@@ -68,12 +69,15 @@ export type RunSettingsLabels = Pick<
   | "milestoneTaskCompleted"
   | "milestoneTaskInterrupted"
   | "milestoneWorkflowAdvanced"
+  | "agentCapsControls"
 >;
 
 type Props = {
   modelRef: string;
   models: SelectOption[];
   policy: InspectorPolicy;
+  // The agent the next turn runs: its ceiling caps the policy exactly as it does in the composer.
+  agentCeiling?: PolicyCeiling;
   maxSteps: number;
   command: string;
   running: boolean;
@@ -111,6 +115,7 @@ export function RunSettingsPanel({
   modelRef,
   models,
   policy,
+  agentCeiling,
   maxSteps,
   command,
   running,
@@ -141,6 +146,13 @@ export function RunSettingsPanel({
   onOpenSubagent,
   onRunShell,
 }: Props) {
+  // Core runs min(grant, ceiling) (ADR-0009). The select shows what will actually run and disables
+  // the grants above the ceiling with the reason, so the inspector cannot promise more than Core does.
+  const ceiling = underCeiling(POLICY_ORDER, policy, agentCeiling?.policy ?? "full");
+  const capReason = agentCeiling
+    ? labels.agentCapsControls.replace("{agent}", agentCeiling.label)
+    : undefined;
+
   return (
     <div className="tp-pane">
       <InspectorSection title={labels.provider}>
@@ -172,13 +184,15 @@ export function RunSettingsPanel({
           <span className="field-label">{labels.policy}</span>
           <DesktopSelect
             ariaLabel={labels.policy}
-            value={policy}
+            value={ceiling.effective}
             placeholder={labels.workspace}
             options={[
               { value: "read-only", label: labels.readOnly, description: labels.readOnlyDescription },
               { value: "workspace", label: labels.workspace, description: labels.workspaceDescription },
               { value: "full", label: labels.full, description: labels.fullDescription },
-            ]}
+            ].map((option) => (ceiling.allowed.includes(option.value as InspectorPolicy)
+              ? option
+              : { ...option, disabled: true, disabledReason: capReason }))}
             onChange={(value) => onPolicyChange(value as InspectorPolicy)}
             popoverPlacement="bottom"
             className="tp-select"

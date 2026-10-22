@@ -2,7 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { AppShell } from "../components/app-shell/AppShell";
 import { Rail } from "../components/app-shell/Rail";
 import { WorkspaceTopbar } from "../components/app-shell/WorkspaceTopbar";
-import type { InspectorTab } from "../components/inspector/inspector-types";
+import type { InspectorTab, PolicyCeiling } from "../components/inspector/inspector-types";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
 import { Sidebar, type SidebarGroup } from "../components/sidebar/Sidebar";
 import { ThreadsSidebar } from "../components/sidebar/ThreadsSidebar";
@@ -53,6 +53,8 @@ type Props = {
   modelRef: string;
   configuredModels: ConfiguredModelOption[];
   policy: Policy;
+  // The selected agent's permission ceiling, so the Run pane cannot offer a grant Core will cap.
+  agentCeiling?: PolicyCeiling;
   maxSteps: number;
   command: string;
   lspCommand: string;
@@ -182,6 +184,7 @@ export function WorkspaceChrome(props: Props) {
       models={models}
       modelPlaceholder={pickerPlaceholder(props.modelRef, configuredModels, labels)}
       policy={props.policy}
+      agentCeiling={props.agentCeiling}
       maxSteps={props.maxSteps}
       health={props.health}
       pressure={props.pressure}

@@ -13,7 +13,7 @@ import { ChecksPanel } from "./ChecksPanel";
 import { Inspector } from "./Inspector";
 import { TaskStatePanel } from "./TaskStatePanel";
 import { WindowPane } from "./WindowPane";
-import type { InspectorLabels, InspectorPolicy, InspectorTab } from "./inspector-types";
+import type { InspectorLabels, InspectorPolicy, InspectorTab, PolicyCeiling } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
@@ -23,6 +23,8 @@ type Props = {
   // Shown when modelRef is not one of models (none configured, or a pinned model that is unavailable).
   modelPlaceholder: string;
   policy: InspectorPolicy;
+  // The selected agent's ceiling; without it every grant stays available.
+  agentCeiling?: PolicyCeiling;
   maxSteps: number;
   health?: Health;
   pressure: number;
@@ -69,6 +71,7 @@ export function WorkspaceInspector({
   models,
   modelPlaceholder,
   policy,
+  agentCeiling,
   maxSteps,
   health,
   pressure,
@@ -113,6 +116,7 @@ export function WorkspaceInspector({
       modelRef={modelRef}
       models={models}
       policy={policy}
+      agentCeiling={agentCeiling}
       maxSteps={maxSteps}
       command={command}
       lspCommand={lspCommand}

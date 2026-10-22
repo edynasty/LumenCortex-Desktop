@@ -5,7 +5,7 @@ import { IconButton } from "../primitives/IconButton";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import type { SelectOption } from "../primitives/Select";
 import { RunSettingsPanel } from "./RunSettingsPanel";
-import type { InspectorLabels, InspectorPolicy, InspectorTab } from "./inspector-types";
+import type { InspectorLabels, InspectorPolicy, InspectorTab, PolicyCeiling } from "./inspector-types";
 
 type Props = {
   tab: InspectorTab;
@@ -13,6 +13,8 @@ type Props = {
   modelRef: string;
   models: SelectOption[];
   policy: InspectorPolicy;
+  // The selected agent's ceiling; without it every grant stays available.
+  agentCeiling?: PolicyCeiling;
   maxSteps: number;
   command: string;
   lspCommand: string;
@@ -57,6 +59,7 @@ export function Inspector({
   modelRef,
   models,
   policy,
+  agentCeiling,
   maxSteps,
   command,
   lspCommand,
@@ -119,6 +122,7 @@ export function Inspector({
             modelRef={modelRef}
             models={models}
             policy={policy}
+            agentCeiling={agentCeiling}
             maxSteps={maxSteps}
             command={command}
             running={running}

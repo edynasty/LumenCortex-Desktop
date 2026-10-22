@@ -1,6 +1,11 @@
 import type { AppCopy } from "../../lib/i18n/app-copy";
+import type { AgentPolicy } from "../../types";
 
 export type InspectorPolicy = "read-only" | "workspace" | "full";
+
+// The selected agent's permission ceiling as the composer sees it (ADR-0009: Core runs
+// min(grant, ceiling)). `label` is the agent's display name, used in the reason a grant is disabled.
+export type PolicyCeiling = { policy: AgentPolicy; label: string };
 
 // The panes the inspector shows (Demo "Lumen Glass" thread panel): Task · Window · Checks · Run.
 // The runtime event list and the debug shell are sections of Run.
@@ -81,6 +86,7 @@ export type InspectorLabels = Omit<
   | "milestoneTaskCompleted"
   | "milestoneTaskInterrupted"
   | "milestoneWorkflowAdvanced"
+  | "agentCapsControls"
   >,
   "noModels"
 > & {
