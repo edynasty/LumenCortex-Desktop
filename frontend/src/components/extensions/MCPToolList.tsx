@@ -62,7 +62,6 @@ export function MCPToolList({ labels, tools, overrides, scope, trusted, busy, on
                   variant="ghost"
                   size="sm"
                   disabled={busy}
-                  title={labels.clearOverride}
                   onClick={() => onSetPermission(name, null)}
                 >
                   {labels.clearOverride}
@@ -97,7 +96,6 @@ export function MCPToolList({ labels, tools, overrides, scope, trusted, busy, on
                   variant="ghost"
                   size="sm"
                   disabled={busy}
-                  title={labels.markReadOnly}
                   onClick={() => onSetPermission(tool.toolName, "read")}
                 >
                   {labels.markReadOnly}
@@ -108,7 +106,6 @@ export function MCPToolList({ labels, tools, overrides, scope, trusted, busy, on
                   variant="ghost"
                   size="sm"
                   disabled={busy}
-                  title={labels.clearOverride}
                   onClick={() => onSetPermission(tool.toolName, null)}
                 >
                   {labels.clearOverride}
