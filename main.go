@@ -27,7 +27,7 @@ func main() {
 	// The menu bar is macOS-only; the frontend replaces it with the app language through SetMenuLocale.
 	var appMenu *menu.Menu
 	if runtime.GOOS == "darwin" {
-		appMenu = buildMenu(defaultMenuLocale, app.emitMenuCommand, app.closeWindow)
+		appMenu = buildMenu(defaultMenuLocale, app.emitMenuCommand, app.hideWindow)
 	}
 	if err := wails.Run(&options.App{
 		Title:            "LumenCortex",
@@ -38,6 +38,7 @@ func main() {
 		AssetServer:      &assetserver.Options{Assets: assets},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
+		OnBeforeClose:    app.onBeforeClose,
 		Bind:             []interface{}{app},
 		BackgroundColour: initialWindowGround(),
 		Menu:             appMenu,

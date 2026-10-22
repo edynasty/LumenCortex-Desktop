@@ -30,8 +30,8 @@ func accelerator(item *menu.MenuItem) string {
 // the shortcuts the webview used to own, and choosing one emits exactly its command.
 func TestMenuStructureAndCommands(t *testing.T) {
 	var emitted []string
-	closed := 0
-	m := buildMenu("en", func(c string) { emitted = append(emitted, c) }, func() { closed++ })
+	hidden := 0
+	m := buildMenu("en", func(c string) { emitted = append(emitted, c) }, func() { hidden++ })
 
 	var top []string
 	for _, item := range m.Items {
@@ -69,15 +69,15 @@ func TestMenuStructureAndCommands(t *testing.T) {
 	want := []entry{
 		{"New Thread", "Cmd+N", menuCommandNewThread},
 		{"Settings…", "Cmd+,", menuCommandSettings},
-		{"Close Window", "Cmd+W", ""},
+		{"Hide Window", "Cmd+W", ""},
 		{"Command Palette", "Cmd+K", menuCommandPalette},
 		{"Toggle Sidebar", "Cmd+B", menuCommandToggleSidebar},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("items = %+v\nwant   %+v", got, want)
 	}
-	if closed != 1 {
-		t.Fatalf("Close Window ran closeWindow %d times, want once and without emitting a command", closed)
+	if hidden != 1 {
+		t.Fatalf("Hide Window ran hideWindow %d times, want once and without emitting a command", hidden)
 	}
 }
 

@@ -70,15 +70,20 @@ anthropic-messages) and redact the key from every error an upstream echoes it in
 ## Native window integration (macOS)
 
 Go owns the menu bar (`menu.go`): the system App menu (About, Hide, Quit), File (New Thread ⌘N,
-Settings… ⌘,, Close Window ⌘W), the system Edit menu, View (Command Palette ⌘K, Toggle Sidebar ⌘B)
+Settings… ⌘,, Hide Window ⌘W), the system Edit menu, View (Command Palette ⌘K, Toggle Sidebar ⌘B)
 and the system Window menu. Wails v2.16 builds the App, Edit and Window menus natively with fixed
 English titles; File and View follow the app language through the bound `SetMenuLocale`, which the
-frontend calls at start and whenever the language changes (default 中文). Every custom item except Close
+frontend calls at start and whenever the language changes (default 中文). Every custom item except Hide
 Window emits one `menu:command` event; `lib/bridge.ts` exposes it as `onMenuCommand`, and `useWorkspaceCommands` and
 `AppShell` act on it. `SetMenuLocale` returns whether a native menu is installed; while it is, the
 webview's own handlers for those four keys stand down (`lib/native-menu.ts`), so each command fires
-once. In a browser and off macOS they keep working. Close Window ends the app like the red traffic
-light (single window).
+once. In a browser and off macOS they keep working.
+
+⌘W hides the app (`runtime.Hide`, which is `[NSApp hide:]`), so the app stays reachable from the
+Dock; `runtime.WindowHide` only orders the window out and Wails v2.16 has no
+`applicationShouldHandleReopen`, so that window could not be brought back. Quitting is ⌘Q's job
+alone (`quit.go`): `OnBeforeClose` asks with a native dialog when a run is in progress, and the
+window's close button is the same quit request, so closing the single window asks the same way.
 
 The window background shows wherever the webview has not painted (launch, live resize, overscroll).
 Go starts it from the system appearance (`appearance.go`); `lib/theme.ts` then sets it to the

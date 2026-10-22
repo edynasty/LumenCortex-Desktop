@@ -16,10 +16,18 @@ type App struct {
 
 	menuMu     sync.Mutex
 	menuLocale string
+
+	// Seams for the quit path (quit.go). A test replaces them because the native dialog and a live
+	// run supervisor exist only inside a running app.
+	activeRuns func() int
+	askToQuit  func(activeRuns int) bool
 }
 
 func NewApp() *App {
-	return &App{backend: backend.New()}
+	app := &App{backend: backend.New()}
+	app.activeRuns = app.countActiveRuns
+	app.askToQuit = app.confirmQuit
+	return app
 }
 
 func (a *App) startup(ctx context.Context) {

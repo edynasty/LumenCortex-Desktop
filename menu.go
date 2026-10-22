@@ -27,26 +27,26 @@ const (
 // Window menus natively with fixed English titles, so only the File and View menus follow the
 // app language.
 type menuLabels struct {
-	file, newThread, settings, closeWindow string
-	view, palette, toggleSidebar           string
+	file, newThread, settings, hideWindow string
+	view, palette, toggleSidebar          string
 }
 
 func menuLabelsFor(locale string) menuLabels {
 	if locale == "en" {
 		return menuLabels{
-			file: "File", newThread: "New Thread", settings: "Settings…", closeWindow: "Close Window",
+			file: "File", newThread: "New Thread", settings: "Settings…", hideWindow: "Hide Window",
 			view: "View", palette: "Command Palette", toggleSidebar: "Toggle Sidebar",
 		}
 	}
 	return menuLabels{
-		file: "文件", newThread: "新建会话", settings: "设置…", closeWindow: "关闭窗口",
+		file: "文件", newThread: "新建会话", settings: "设置…", hideWindow: "隐藏窗口",
 		view: "视图", palette: "命令面板", toggleSidebar: "切换侧栏",
 	}
 }
 
 // buildMenu returns the application menu: App (About, Hide, Quit), File, Edit, View and Window.
-// emit receives a command name when a custom item is chosen; closeWindow runs for Close Window.
-func buildMenu(locale string, emit func(command string), closeWindow func()) *menu.Menu {
+// emit receives a command name when a custom item is chosen; hideWindow runs for Hide Window.
+func buildMenu(locale string, emit func(command string), hideWindow func()) *menu.Menu {
 	l := menuLabelsFor(locale)
 	command := func(name string) menu.Callback {
 		return func(*menu.CallbackData) { emit(name) }
@@ -56,7 +56,7 @@ func buildMenu(locale string, emit func(command string), closeWindow func()) *me
 	file.AddText(l.newThread, keys.CmdOrCtrl("n"), command(menuCommandNewThread))
 	file.AddText(l.settings, keys.CmdOrCtrl(","), command(menuCommandSettings))
 	file.AddSeparator()
-	file.AddText(l.closeWindow, keys.CmdOrCtrl("w"), func(*menu.CallbackData) { closeWindow() })
+	file.AddText(l.hideWindow, keys.CmdOrCtrl("w"), func(*menu.CallbackData) { hideWindow() })
 
 	view := menu.NewMenu()
 	view.AddText(l.palette, keys.CmdOrCtrl("k"), command(menuCommandPalette))
@@ -79,12 +79,19 @@ func (a *App) emitMenuCommand(command string) {
 	wailsruntime.EventsEmit(a.ctx, menuCommandEvent, command)
 }
 
-// closeWindow closes the only window, which ends the app exactly as the red traffic light does.
-func (a *App) closeWindow() {
+// hideWindow hides the app, the way ⌘H does: the window disappears and a Dock click brings it
+// back. Quitting is ⌘Q's job alone, so ⌘W can never drop a run by accident.
+//
+// Wails v2.16 offers two primitives here. WindowHide orders the window out, but its macOS
+// AppDelegate implements neither applicationShouldHandleReopen nor window restoration, so a
+// window hidden that way cannot be brought back from the Dock. runtime.Hide hides the
+// application ([NSApp hide:]), which AppKit reverses on a Dock click; that is the same
+// user-visible result and the only one that leaves the app reachable.
+func (a *App) hideWindow() {
 	if a.ctx == nil {
 		return
 	}
-	wailsruntime.Quit(a.ctx)
+	wailsruntime.Hide(a.ctx)
 }
 
 // SetMenuLocale rebuilds the native menu bar in the app language ("zh-CN" or "en") and reports
@@ -97,7 +104,7 @@ func (a *App) SetMenuLocale(locale string) bool {
 	a.menuMu.Lock()
 	defer a.menuMu.Unlock()
 	if a.menuLocale != locale {
-		wailsruntime.MenuSetApplicationMenu(a.ctx, buildMenu(locale, a.emitMenuCommand, a.closeWindow))
+		wailsruntime.MenuSetApplicationMenu(a.ctx, buildMenu(locale, a.emitMenuCommand, a.hideWindow))
 		a.menuLocale = locale
 	}
 	return true

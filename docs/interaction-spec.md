@@ -247,3 +247,18 @@ Explain that no file changes were detected; do not show empty diff chrome.
 
 ### No activity
 Show quiet placeholder, not a large illustration.
+
+## 13. Window commands (macOS)
+
+### Hide — ⌘W
+- Hides the window; the app keeps running, including any run in progress.
+- Clicking the Dock icon brings the window back; that is the only way back besides the App menu.
+- ⌘W never quits, so it cannot drop a run by accident.
+
+### Quit — ⌘Q
+- The only shortcut that quits. The App menu's Quit item carries the same key.
+- With no run in progress it quits at once.
+- With one or more runs in progress it shows a native question naming the count: "Keep Running"
+  (default, also the cancel button) or "Quit Anyway". Quitting stops the runs.
+- Closing the only window is the same quit request and asks the same way.
+
