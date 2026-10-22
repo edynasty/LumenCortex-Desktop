@@ -83,12 +83,13 @@ lcx_core_runtime_version() {
 
 # lcx_use_unpublished_core <core-checkout> <version>
 # Resolves the pinned Core tag <version> from a local Core checkout instead of the module proxy, for
-# a release built before the Core tag is pushed. Only this process's environment changes: the Core
-# module bypasses the proxy and checksum database (GOPRIVATE) and git fetches it from the checkout
-# (GIT_CONFIG_* url.insteadOf). The module's go.sum hash depends only on the tagged tree, so it is
-# the same hash the checksum database records once that tag is pushed unchanged. Fails unless the
-# checkout has the tag and the downloaded module comes from the tagged commit. Sets
-# LCX_CORE_TAG_COMMIT.
+# a release built before the Core tag is pushed. The download alone runs with git's url.insteadOf
+# pointing the Core URL at the checkout (as a prefix rule it would also rewrite
+# .../LumenCortex-Desktop, so it never leaks into this shell); afterwards the module is in the
+# module cache and GOPRIVATE keeps the proxy and checksum database out of the remaining go
+# commands. The module's go.sum hash depends only on the tagged tree, so it is the same hash the
+# checksum database records once that tag is pushed unchanged. Fails unless the checkout has the
+# tag and the downloaded module comes from the tagged commit. Exports LCX_CORE_TAG_COMMIT.
 lcx_use_unpublished_core() {
   local dir="$1" version="$2" origin
   [[ -d "$dir" ]] || lcx_die "Core checkout not found: $dir"
@@ -98,11 +99,10 @@ lcx_use_unpublished_core() {
   LCX_CORE_TAG_COMMIT="$(git -C "$dir" rev-parse -q --verify "refs/tags/$version^{commit}" 2>/dev/null)" ||
     lcx_die "Core checkout $dir has no tag $version"
   export GOPRIVATE="github.com/edynasty/LumenCortex"
-  export GIT_CONFIG_COUNT=1
-  export GIT_CONFIG_KEY_0="url.file://$dir.insteadOf"
-  export GIT_CONFIG_VALUE_0="https://github.com/edynasty/LumenCortex"
   export LCX_CORE_TAG_COMMIT
-  origin="$(go mod download -json "github.com/edynasty/LumenCortex@$version" |
+  origin="$(GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.file://$dir.insteadOf" \
+    GIT_CONFIG_VALUE_0="https://github.com/edynasty/LumenCortex" \
+    go mod download -json "github.com/edynasty/LumenCortex@$version" |
     /usr/bin/python3 -c 'import json,sys; print((json.load(sys.stdin).get("Origin") or {}).get("Hash", ""))')" ||
     lcx_die "cannot resolve Core $version from $dir"
   [[ "$origin" == "$LCX_CORE_TAG_COMMIT" ]] ||
