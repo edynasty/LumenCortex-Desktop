@@ -18,6 +18,14 @@ export type Skill = {
 
 export type MCPProtocolMode = "legacy" | "modern";
 export type MCPConfigScope = "global" | "project" | "effective";
+/** global | project — the file an entry is defined in (never "effective"). */
+export type MCPDefinedScope = Exclude<MCPConfigScope, "effective">;
+
+/** The permission an MCP tool is exposed with. A server's readOnlyHint makes its tools read; an
+ *  override in the server entry can only be read, write or exec. */
+export type MCPToolPermission = "read" | "write" | "exec";
+/** Whether the server's annotation or the user's override decided the permission. */
+export type MCPToolPermissionSource = "annotation" | "override";
 
 export type MCPConfig = {
   id: string;
@@ -27,6 +35,12 @@ export type MCPConfig = {
   workspace?: string;
   protocolMode?: MCPProtocolMode;
   disabled?: boolean;
+  /** Per-tool permission overrides, keyed by the tool name the server reports (ADR-0013). */
+  tools?: Record<string, { permission?: MCPToolPermission }>;
+  /** Where the entry is defined; set by Core on a listing, never saved. */
+  scope?: MCPDefinedScope;
+  /** Set by Core on a listing: the entry belongs to the project file of an untrusted workspace. */
+  blockedByTrust?: boolean;
 };
 
 export type MCPStatus = {
@@ -41,6 +55,11 @@ export type MCPStatus = {
   pendingRequests: number;
   tools: number;
   lastError?: string;
+  /** The file the running configuration came from. */
+  scope?: MCPDefinedScope;
+  /** The process belongs to the project file of an untrusted workspace: it keeps running, but its
+   *  tools are not exposed to any run (ADR-0013). */
+  blockedByTrust?: boolean;
 };
 
 export type MCPAgentTool = {
@@ -50,6 +69,10 @@ export type MCPAgentTool = {
   serverId: string;
   toolName: string;
   readOnly: boolean;
+  /** The effective permission Core exposes the tool with; readOnly is permission === "read". */
+  permission: MCPToolPermission;
+  permissionSource?: MCPToolPermissionSource;
+  scope?: MCPDefinedScope;
 };
 
 export type LSPPosition = {

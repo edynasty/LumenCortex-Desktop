@@ -15,12 +15,26 @@ type Props = {
   workspace: string;
   sessionId: string;
   runtime: SessionRuntime;
+  /** The open workspace's trust, from the app's one trust source (ConfigState.trusted). */
+  trusted: boolean;
+  trusting: boolean;
+  onTrust: () => void;
   labels: ExtensionsLabels;
   onError: (message: string) => void;
 };
 
-export function ExtensionsWorkspace({ tab, workspace, sessionId, runtime, labels, onError }: Props) {
-  const mcp = useMCPWorkspaceController({ workspace, sessionId, onError });
+export function ExtensionsWorkspace({
+  tab,
+  workspace,
+  sessionId,
+  runtime,
+  trusted,
+  trusting,
+  onTrust,
+  labels,
+  onError,
+}: Props) {
+  const mcp = useMCPWorkspaceController({ workspace, sessionId, trusted, onError });
 
   return (
     <section className="pane">
@@ -34,10 +48,14 @@ export function ExtensionsWorkspace({ tab, workspace, sessionId, runtime, labels
           workspace={workspace}
           labels={labels}
           controller={mcp}
+          trusted={trusted}
+          trusting={trusting}
+          onTrust={onTrust}
         />
       ) : tab === "skills" ? (
         <SkillsPanel
           workspace={workspace}
+          trusted={trusted}
           onError={onError}
           labels={{
             title: labels.skills,
@@ -50,6 +68,7 @@ export function ExtensionsWorkspace({ tab, workspace, sessionId, runtime, labels
             inherited: labels.inherited,
             globalSource: labels.globalSource,
             projectSource: labels.projectSource,
+            notLoaded: labels.skillNotLoaded,
             enabled: labels.enabled,
             disabled: labels.disabled,
             id: labels.skillId,

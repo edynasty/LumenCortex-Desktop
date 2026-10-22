@@ -73,6 +73,7 @@ export type TaskStateLabels = NotesLabels & Pick<
   | "errChildLimit"
   | "errAgentLimit"
   | "errTooManyNotes"
+  | "errUntrustedWorkspace"
 >;
 
 type Props = {

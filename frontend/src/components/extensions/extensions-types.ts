@@ -25,8 +25,6 @@ export type ExtensionsLabels = {
   pending: string;
   tools: string;
   noTools: string;
-  readOnly: string;
-  sideEffect: string;
   noAutoStart: string;
   currentRuntime: string;
   localRuntime: string;
@@ -42,6 +40,22 @@ export type ExtensionsLabels = {
   inherited: string;
   globalSource: string;
   projectSource: string;
+  /** Shown for a project entry of an untrusted workspace (ADR-0013). */
+  trustRequired: string;
+  trustWorkspace: string;
+  trustingWorkspace: string;
+  toolOverrides: string;
+  /** A project override cannot take effect while the workspace is untrusted. */
+  overrideInactive: string;
+  permissionRead: string;
+  permissionWrite: string;
+  permissionExec: string;
+  permissionFromAnnotation: string;
+  permissionFromOverride: string;
+  markReadOnly: string;
+  clearOverride: string;
+  /** Shown on a project skill while the workspace is untrusted. */
+  skillNotLoaded: string;
   mcpTab: string;
   skillsTab: string;
   permissionsTab: string;

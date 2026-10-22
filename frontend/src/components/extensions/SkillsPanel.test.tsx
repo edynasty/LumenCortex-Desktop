@@ -27,6 +27,7 @@ const labels = {
   inherited: "Inherited",
   globalSource: "Global",
   projectSource: "Project",
+  notLoaded: "Not loaded (workspace not trusted)",
   enabled: "Enabled",
   disabled: "Disabled",
   id: "Skill ID",
@@ -72,7 +73,7 @@ describe("SkillsPanel", () => {
   });
 
   it("loads effective global skill content as inherited in project scope", async () => {
-    render(<SkillsPanel workspace="/repo" labels={labels} onError={() => undefined} />);
+    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
 
     expect(await screen.findByText("Go Backend")).toBeInTheDocument();
     expect(await screen.findByDisplayValue(/name: Go Backend/)).toBeInTheDocument();
@@ -82,7 +83,7 @@ describe("SkillsPanel", () => {
 
   it("saves an inherited skill as a project override", async () => {
     const user = userEvent.setup();
-    render(<SkillsPanel workspace="/repo" labels={labels} onError={() => undefined} />);
+    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
 
     const editor = await screen.findByDisplayValue(/name: Go Backend/);
     await user.clear(editor);
@@ -108,7 +109,7 @@ describe("SkillsPanel", () => {
     setupScopes([projectSkill]);
     const user = userEvent.setup();
 
-    render(<SkillsPanel workspace="/repo" labels={labels} onError={() => undefined} />);
+    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
 
     await screen.findByText("Go Backend");
     await user.click(screen.getByRole("button", { name: "Enabled" }));
@@ -116,5 +117,21 @@ describe("SkillsPanel", () => {
     await waitFor(() => {
       expect(mocks.setSkillEnabled).toHaveBeenCalledWith("project", "go-backend", false);
     });
+  });
+
+  it("marks a project skill as not loaded while the workspace is untrusted", async () => {
+    const projectSkill: Skill = {
+      ...globalSkill,
+      scope: "project",
+      path: "/repo/.lumencortex/skills/go-backend/SKILL.md",
+    };
+    setupScopes([projectSkill]);
+    mocks.skillContent.mockResolvedValue("---\nname: Go Backend\n---\n");
+
+    render(<SkillsPanel workspace="/repo" trusted={false} labels={labels} onError={() => undefined} />);
+
+    expect(await screen.findByText("Go Backend")).toBeInTheDocument();
+    // The catalogue row and the editor both say the skill is not loaded.
+    expect(screen.getAllByText("Not loaded (workspace not trusted)").length).toBeGreaterThan(1);
   });
 });

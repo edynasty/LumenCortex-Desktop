@@ -383,6 +383,7 @@ const visualMCPConfig = {
   args: ["-y", "@modelcontextprotocol/server-filesystem", workspace],
   protocolMode: "modern" as const,
   disabled: false,
+  scope: "global" as const,
 };
 
 export const visualEvents: RuntimeEvent[] = [
@@ -634,6 +635,7 @@ export function visualAppStub() {
       pid: 53121,
       pendingRequests: 0,
       tools: 2,
+      scope: "global" as const,
     }],
     GetMCPTools: async () => [
       {
@@ -643,6 +645,9 @@ export function visualAppStub() {
         serverId: visualMCPConfig.id,
         toolName: "read_file",
         readOnly: true,
+        permission: "read" as const,
+        permissionSource: "annotation" as const,
+        scope: "global" as const,
       },
       {
         name: "mcp__filesystem__write_file",
@@ -651,6 +656,9 @@ export function visualAppStub() {
         serverId: visualMCPConfig.id,
         toolName: "write_file",
         readOnly: false,
+        permission: "exec" as const,
+        permissionSource: "annotation" as const,
+        scope: "global" as const,
       },
     ],
     SaveMCPConfigScope: async () => undefined,

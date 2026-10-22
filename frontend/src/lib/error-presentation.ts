@@ -25,6 +25,7 @@ type ErrorLabels = Pick<
   | "errChildLimit"
   | "errAgentLimit"
   | "errTooManyNotes"
+  | "errUntrustedWorkspace"
 >;
 
 const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
@@ -50,6 +51,7 @@ const labelKey: Record<CoreErrorKey, keyof ErrorLabels> = {
   childLimit: "errChildLimit",
   agentLimit: "errAgentLimit",
   tooManyNotes: "errTooManyNotes",
+  untrustedWorkspace: "errUntrustedWorkspace",
 };
 
 // A Core error the UI knows is shown as actionable localized copy. Any other error keeps its text.

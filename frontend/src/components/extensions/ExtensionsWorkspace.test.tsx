@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MCPConfig } from "../../types";
 import { ExtensionsWorkspace, type ExtensionsTab } from "./ExtensionsWorkspace";
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   refreshMCPTools: vi.fn(),
   toolPermissions: vi.fn(),
   saveToolPermissions: vi.fn(),
+  skills: vi.fn(),
+  skillContent: vi.fn(),
 }));
 
 vi.mock("../../lib/bridge", () => ({
@@ -47,8 +50,6 @@ const labels = {
   pending: "Pending",
   tools: "Tools",
   noTools: "No tools",
-  readOnly: "Read only",
-  sideEffect: "May have side effects",
   noAutoStart: "Saved only",
   currentRuntime: "Current runtime",
   localRuntime: "Local",
@@ -64,6 +65,19 @@ const labels = {
   inherited: "Inherited from global",
   globalSource: "Global",
   projectSource: "Project",
+  trustRequired: "Workspace not trusted - not loaded",
+  trustWorkspace: "Trust this workspace",
+  trustingWorkspace: "Trusting…",
+  toolOverrides: "Tool permission overrides",
+  overrideInactive: "The workspace is not trusted, so Core does not apply this project's tool permission overrides.",
+  permissionRead: "Read only",
+  permissionWrite: "Write",
+  permissionExec: "Exec",
+  permissionFromAnnotation: "Server annotation",
+  permissionFromOverride: "User override",
+  markReadOnly: "Mark read-only",
+  clearOverride: "Clear override",
+  skillNotLoaded: "Not loaded (workspace not trusted)",
   mcpTab: "MCP",
   skillsTab: "Skills",
   permissionsTab: "Permissions",
@@ -87,7 +101,7 @@ const labels = {
   skillError: "Skill error",
 };
 
-const globalConfig = {
+const globalConfig: MCPConfig = {
   id: "helper",
   name: "Global Helper",
   command: "helper-server",
@@ -113,15 +127,22 @@ function configureScopes(options?: {
   });
 }
 
-function renderWorkspace(sessionId = "session-1", tab: ExtensionsTab = "mcp") {
+function renderWorkspace(
+  sessionId = "session-1",
+  tab: ExtensionsTab = "mcp",
+  options?: { trusted?: boolean; onTrust?: () => void; onError?: (message: string) => void },
+) {
   return render(
     <ExtensionsWorkspace
       tab={tab}
       workspace="/repo"
       sessionId={sessionId}
       runtime={{ kind: "local", path: "/repo" }}
+      trusted={options?.trusted ?? true}
+      trusting={false}
+      onTrust={options?.onTrust ?? (() => undefined)}
       labels={labels}
-      onError={() => undefined}
+      onError={options?.onError ?? (() => undefined)}
     />
   );
 }
@@ -145,6 +166,8 @@ describe("ExtensionsWorkspace", () => {
     mocks.refreshMCPTools.mockResolvedValue(undefined);
     mocks.toolPermissions.mockResolvedValue({ disabled: [] });
     mocks.saveToolPermissions.mockImplementation(async (value) => value);
+    mocks.skills.mockResolvedValue([]);
+    mocks.skillContent.mockResolvedValue("");
   });
 
   it("loads saved configuration without auto-starting a server", async () => {
@@ -225,5 +248,156 @@ describe("ExtensionsWorkspace", () => {
     await waitFor(() =>
       expect(mocks.deleteMCPConfigScope).toHaveBeenCalledWith("project", "helper")
     );
+  });
+
+  it("shows a blocked project server, disables Start and offers to trust the workspace", async () => {
+    const projectServer = { ...globalConfig, blockedByTrust: true };
+    configureScopes({ global: [], project: [projectServer] });
+    const onTrust = vi.fn();
+    const user = userEvent.setup();
+    renderWorkspace("session-1", "mcp", { trusted: false, onTrust });
+
+    expect(await screen.findByDisplayValue("helper-server")).toBeInTheDocument();
+    // The row and the runtime section both say why, in the same words.
+    expect(screen.getAllByText("Workspace not trusted - not loaded").length).toBeGreaterThan(0);
+
+    const start = screen.getByRole("button", { name: "Start server" });
+    expect(start).toBeDisabled();
+    expect(start).toHaveAttribute("title", "Workspace not trusted - not loaded");
+
+    await user.click(screen.getByRole("button", { name: "Trust this workspace" }));
+    expect(onTrust).toHaveBeenCalledTimes(1);
+    expect(mocks.startMCP).not.toHaveBeenCalled();
+  });
+
+  it("turns a start refused for trust into the trust notice instead of a raw error", async () => {
+    configureScopes({ global: [], project: [{ ...globalConfig }] });
+    mocks.startMCP.mockRejectedValue(
+      new Error("mcp server is defined by the project configuration of an untrusted workspace: helper"),
+    );
+    const onError = vi.fn();
+    const user = userEvent.setup();
+    renderWorkspace("session-1", "mcp", { trusted: true, onError });
+
+    await screen.findByDisplayValue("helper-server");
+    await user.click(screen.getByRole("button", { name: "Start server" }));
+
+    expect(await screen.findByText("Workspace not trusted - not loaded")).toBeInTheDocument();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("writes a read-only tool override into the file the server entry came from", async () => {
+    configureScopes({ global: [], project: [{ ...globalConfig }] });
+    mocks.mcpTools.mockResolvedValue([
+      {
+        name: "mcp__helper__write_file",
+        serverId: "helper",
+        toolName: "write_file",
+        inputSchema: { type: "object" },
+        readOnly: false,
+        permission: "exec",
+        permissionSource: "annotation",
+        scope: "project",
+      },
+    ]);
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await screen.findByDisplayValue("helper-server");
+    expect(await screen.findByText("Exec")).toBeInTheDocument();
+    expect(screen.getByText("Server annotation")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Mark read-only" }));
+
+    await waitFor(() =>
+      expect(mocks.saveMCPConfigScope).toHaveBeenCalledWith(
+        "project",
+        expect.objectContaining({
+          id: "helper",
+          command: "helper-server",
+          tools: { write_file: { permission: "read" } },
+        }),
+      )
+    );
+  });
+
+  it("clears an override through the same save path", async () => {
+    configureScopes({
+      global: [],
+      project: [{ ...globalConfig, tools: { write_file: { permission: "read" as const } } }],
+    });
+    mocks.mcpTools.mockResolvedValue([
+      {
+        name: "mcp__helper__write_file",
+        serverId: "helper",
+        toolName: "write_file",
+        inputSchema: { type: "object" },
+        readOnly: true,
+        permission: "read",
+        permissionSource: "override",
+        scope: "project",
+      },
+    ]);
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await screen.findByDisplayValue("helper-server");
+    expect(await screen.findByText("User override")).toBeInTheDocument();
+
+    const clear = screen.getAllByRole("button", { name: "Clear override" });
+    await user.click(clear[clear.length - 1]);
+
+    await waitFor(() => {
+      const [, payload] = mocks.saveMCPConfigScope.mock.calls.at(-1)!;
+      expect(payload.id).toBe("helper");
+      expect(payload.tools).toBeUndefined();
+    });
+  });
+
+  it("says a project override has no effect while the workspace is untrusted", async () => {
+    configureScopes({
+      global: [],
+      project: [{ ...globalConfig, blockedByTrust: true, tools: { write_file: { permission: "read" as const } } }],
+    });
+    renderWorkspace("session-1", "mcp", { trusted: false });
+
+    expect(await screen.findByDisplayValue("helper-server")).toBeInTheDocument();
+    expect(screen.getByText("Tool permission overrides")).toBeInTheDocument();
+    expect(
+      screen.getByText("The workspace is not trusted, so Core does not apply this project's tool permission overrides."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a shadowed entry as global, because Core resolved the project file away", async () => {
+    // Untrusted workspace: Core ignores the project file, so the effective listing is the global
+    // entry. The row must not claim the project layer.
+    mocks.mcpConfigsScope.mockImplementation(async (scope: string) => {
+      if (scope === "global") return [{ ...globalConfig, scope: "global" as const }];
+      if (scope === "project") {
+        return [{ ...globalConfig, name: "Project Helper", command: "project-helper", scope: "project" as const }];
+      }
+      return [{ ...globalConfig, scope: "global" as const }];
+    });
+    renderWorkspace("session-1", "mcp", { trusted: false });
+
+    const row = await screen.findByRole("button", { name: /Global Helper/ });
+    expect(row).toHaveTextContent(/· Global ·/);
+    expect(row).not.toHaveTextContent("Project");
+  });
+
+  it("marks project skills as not loaded while the workspace is untrusted", async () => {
+    const projectSkill = {
+      id: "go-backend",
+      name: "Go Backend",
+      scope: "project" as const,
+      path: "/repo/.lumencortex/skills/go-backend/SKILL.md",
+      enabled: true,
+    };
+    mocks.skills.mockImplementation(async (scope: string) => (scope === "global" ? [] : [projectSkill]));
+    mocks.skillContent.mockResolvedValue("---\nname: Go Backend\n---\n");
+    renderWorkspace("session-1", "skills", { trusted: false });
+
+    expect(await screen.findByText("Go Backend")).toBeInTheDocument();
+    expect(screen.getAllByText("Not loaded (workspace not trusted)").length).toBeGreaterThan(0);
   });
 });

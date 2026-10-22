@@ -16,6 +16,8 @@ type Labels = {
   inherited: string;
   globalSource: string;
   projectSource: string;
+  /** Shown on a project skill while the workspace is untrusted (ADR-0013). */
+  notLoaded: string;
   enabled: string;
   disabled: string;
   id: string;
@@ -30,12 +32,14 @@ type Labels = {
 
 type Props = {
   workspace: string;
+  /** The open workspace's trust, from the app's one trust source (ConfigState.trusted). */
+  trusted: boolean;
   labels: Labels;
   onError: (message: string) => void;
 };
 
 /** Skills pane: Demo settings-sheet style — scope toolbar, provider-style skill list, editor column. */
-export function SkillsPanel({ workspace, labels, onError }: Props) {
+export function SkillsPanel({ workspace, trusted, labels, onError }: Props) {
   const {
     effective,
     scope,
@@ -57,7 +61,7 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
     save,
     remove,
     toggleEnabled,
-  } = useSkillsController({ workspace, onError });
+  } = useSkillsController({ workspace, trusted, onError });
 
   // "Add skill" clears the selection; track that intent so an empty catalogue still
   // switches the editor column from the empty state to the creation form.
@@ -103,6 +107,12 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
                 </span>
                 <span className="provider-row-sub">
                   {skill.scope === "project" ? labels.projectSource : labels.globalSource}
+                  {skill.scope === "project" && !trusted && (
+                    <>
+                      {" · "}
+                      <span className="tone-warn">{labels.notLoaded}</span>
+                    </>
+                  )}
                 </span>
               </button>
             </li>
@@ -164,6 +174,13 @@ export function SkillsPanel({ workspace, labels, onError }: Props) {
                 </div>
               )}
             </div>
+
+            {selectedId && selectedEffective?.scope === "project" && !trusted && (
+              <p className="extensions-note" role="note">
+                <Icon name="lock" size={13} />
+                <span>{labels.notLoaded}</span>
+              </p>
+            )}
 
             <div className="form-grid">
               <label className="field">

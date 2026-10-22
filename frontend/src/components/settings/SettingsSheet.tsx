@@ -113,6 +113,9 @@ export function SettingsSheet(props: Props) {
               workspace={workspace}
               sessionId={props.sessionId}
               runtime={props.runtime}
+              trusted={props.config.trusted}
+              trusting={props.trusting}
+              onTrust={props.onTrust}
               labels={extensionsLabels(labels)}
               onError={props.onError}
             />

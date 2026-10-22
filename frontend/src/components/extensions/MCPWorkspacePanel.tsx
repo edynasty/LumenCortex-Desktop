@@ -6,16 +6,21 @@ import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { DesktopSelect } from "../primitives/Select";
 import type { ExtensionsLabels } from "./extensions-types";
+import { MCPToolList } from "./MCPToolList";
 import type { MCPWorkspaceController } from "./useMCPWorkspaceController";
 
 type Props = {
   workspace: string;
   labels: ExtensionsLabels;
   controller: MCPWorkspaceController;
+  /** The open workspace's trust, from the app's one trust source (ConfigState.trusted). */
+  trusted: boolean;
+  trusting: boolean;
+  onTrust: () => void;
 };
 
 /** MCP pane: Demo settings-sheet style — scope toolbar, provider-style server list, editor column. */
-export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
+export function MCPWorkspacePanel({ workspace, labels, controller, trusted, trusting, onTrust }: Props) {
   const {
     configs,
     projectConfigs,
@@ -35,11 +40,16 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
     statusById,
     selectedStatus,
     selectedTools,
+    selectedScope,
+    selectedBlocked,
+    startRefused,
+    clearStartRefused,
     beginNew,
     saveConfig,
     deleteConfig,
     toggleServer,
     refreshTools,
+    setToolPermission,
   } = controller;
 
   // "Add server" clears the selection; track that intent so an empty catalogue still
@@ -91,7 +101,15 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
                   <span className="provider-row-sub">
                     {config.disabled ? labels.disabled : status?.running ? labels.running : labels.stopped}
                     {" · "}
-                    {projectConfigs.some((item) => item.id === config.id) ? labels.projectSource : labels.globalSource}
+                    {(config.scope ?? (projectConfigs.some((item) => item.id === config.id) ? "project" : "global")) === "project"
+                      ? labels.projectSource
+                      : labels.globalSource}
+                    {config.blockedByTrust && (
+                      <>
+                        {" · "}
+                        <span className="tone-warn">{labels.trustRequired}</span>
+                      </>
+                    )}
                     {" · "}
                     {status?.tools ?? 0} {labels.tools}
                   </span>
@@ -245,12 +263,34 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
                     variant={running ? "secondary" : "primary"}
                     size="sm"
                     icon={<Icon name={running ? "stop" : "send"} size={13} />}
-                    disabled={busy || Boolean(draft.disabled)}
+                    // A project server that was started while the workspace was trusted keeps running
+                    // after trust is withdrawn, so Stop stays available; only Start is refused.
+                    disabled={busy || (!running && (Boolean(draft.disabled) || selectedBlocked))}
+                    title={!running && selectedBlocked ? labels.trustRequired : undefined}
                     onClick={() => void toggleServer()}
                   >
                     {running ? labels.stop : labels.start}
                   </Button>
                 </div>
+
+                {(selectedBlocked || startRefused) && (
+                  <p className="extensions-note" role="status">
+                    <Icon name="lock" size={13} />
+                    <span>{labels.trustRequired}</span>
+                    <span className="toolbar-spacer" />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={trusting}
+                      onClick={() => {
+                        clearStartRefused();
+                        onTrust();
+                      }}
+                    >
+                      {trusting ? labels.trustingWorkspace : labels.trustWorkspace}
+                    </Button>
+                  </p>
+                )}
 
                 <dl className="extensions-stats">
                   <div><dt>{labels.pid}</dt><dd className="mono">{selectedStatus?.pid || "—"}</dd></div>
@@ -265,26 +305,15 @@ export function MCPWorkspacePanel({ workspace, labels, controller }: Props) {
                   </p>
                 )}
 
-                <h5 className="subhead">
-                  {labels.tools}
-                  <span className="muted"> · {selectedTools.length}</span>
-                </h5>
-                {selectedTools.length ? (
-                  <ul className="setting-list">
-                    {selectedTools.map((tool) => (
-                      <li key={tool.name} className="setting-list-row">
-                        <span className="mono extensions-tool-name">{tool.toolName}</span>
-                        {tool.description && <span className="extensions-tool-desc">{tool.description}</span>}
-                        <span className="toolbar-spacer" />
-                        <span className={`badge ${tool.readOnly ? "" : "tone-warn"}`}>
-                          {tool.readOnly ? labels.readOnly : labels.sideEffect}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="pane-intro">{labels.noTools}</p>
-                )}
+                <MCPToolList
+                  labels={labels}
+                  tools={selectedTools}
+                  overrides={draft.tools || {}}
+                  scope={selectedScope}
+                  trusted={trusted}
+                  busy={busy}
+                  onSetPermission={(toolName, permission) => void setToolPermission(toolName, permission)}
+                />
               </>
             ) : !creating ? (
               <div className="empty-state">

@@ -12,10 +12,12 @@ const template =
 
 type Options = {
   workspace: string;
+  /** The open workspace's trust, from the app's one trust source (ConfigState.trusted). */
+  trusted: boolean;
   onError: (message: string) => void;
 };
 
-export function useSkillsController({ workspace, onError }: Options) {
+export function useSkillsController({ workspace, trusted, onError }: Options) {
   const [effective, setEffective] = useState<Skill[]>([]);
   const [globalSkills, setGlobalSkills] = useState<Skill[]>([]);
   const [projectSkills, setProjectSkills] = useState<Skill[]>([]);
@@ -50,7 +52,7 @@ export function useSkillsController({ workspace, onError }: Options) {
     } catch (err) {
       onError(String(err));
     }
-  }, [onError, workspace]);
+  }, [onError, trusted, workspace]);
 
   useEffect(() => {
     void refresh();
