@@ -150,6 +150,36 @@ func TestConfigStateWithoutWorkspaceUsesGlobalConfigOnly(t *testing.T) {
 	}
 }
 
+// The Settings sheet edits the global provider catalog before any project is open: the global
+// scope needs no workspace, and the project scope is the only one that refuses without one.
+func TestGlobalProviderCatalogNeedsNoWorkspace(t *testing.T) {
+	configPath := useConfigDir(t)
+	writeTestCatalog(t, configPath, "http://127.0.0.1:1/v1", "test/a")
+	r := New()
+
+	doc, err := r.ProviderCatalogScope("global")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Scope != "global" || doc.Path != configPath || len(doc.Catalog.Providers) != 1 {
+		t.Fatalf("doc=%#v", doc)
+	}
+	doc.Catalog.Providers["test"].Models["c"] = ProviderModel{Name: "Model C"}
+	saved, err := r.SaveProviderCatalogScope("global", doc)
+	if err != nil {
+		t.Fatalf("saving the global catalog without a workspace: %v", err)
+	}
+	if _, ok := saved.Catalog.Providers["test"].Models["c"]; !ok || !strings.Contains(readFile(t, configPath), `"c"`) {
+		t.Fatalf("saved=%#v\n%s", saved, readFile(t, configPath))
+	}
+	if _, err := r.ProviderCatalogScope("workspace"); !errors.Is(err, ErrNoWorkspace) {
+		t.Fatalf("reading the project scope without a workspace: err=%v, want ErrNoWorkspace", err)
+	}
+	if _, err := r.SaveProviderCatalogScope("workspace", doc); !errors.Is(err, ErrNoWorkspace) {
+		t.Fatalf("saving the project scope without a workspace: err=%v, want ErrNoWorkspace", err)
+	}
+}
+
 // Settings saves concurrency into the global file, keeping every other key, and the next state
 // reports it. A stale digest and an out-of-bounds value write nothing.
 func TestSaveConcurrencyWritesTheGlobalFileOnly(t *testing.T) {

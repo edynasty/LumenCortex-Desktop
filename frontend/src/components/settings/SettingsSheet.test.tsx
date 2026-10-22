@@ -70,4 +70,27 @@ describe("SettingsSheet provider keepalive", () => {
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("edits the global provider catalog before any project is open", () => {
+    render(<SettingsSheet {...baseProps} workspace="" config={{ ...baseProps.config, workspace: "", trusted: false }} />);
+    // The provider panel is mounted for the global file; only its project scope needs a project.
+    expect(screen.getByRole("textbox", { name: "Provider draft" })).toBeVisible();
+    expect(screen.queryByText(copy.en.settingsNoProject)).toBeNull();
+  });
+
+  it("keeps the project-scoped panes behind the open-a-project notice", () => {
+    const { rerender } = render(<SettingsSheet {...baseProps} workspace="" pane="permissions" />);
+    expect(screen.getByText(copy.en.settingsNoProject)).toBeVisible();
+
+    rerender(<SettingsSheet {...baseProps} workspace="" pane="skills" />);
+    expect(screen.getByText(copy.en.settingsNoProject)).toBeVisible();
+
+    rerender(<SettingsSheet {...baseProps} workspace="" pane="plugins" />);
+    expect(screen.getByText(copy.en.settingsNoProject)).toBeVisible();
+  });
+
+  it("shows About without a project", () => {
+    render(<SettingsSheet {...baseProps} workspace="" pane="about" />);
+    expect(screen.getByText(copy.en.aboutVersion)).toBeVisible();
+  });
 });

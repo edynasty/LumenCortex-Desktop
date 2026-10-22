@@ -93,21 +93,19 @@ export function SettingsSheet(props: Props) {
               onError={props.onError}
             />
           )}
-          {/* Mounted once opened and hidden on other panes: unsaved provider edits survive pane switches. */}
+          {/* Mounted once opened and hidden on other panes: unsaved provider edits survive pane switches.
+              The global catalog needs no project (Core reads the global file alone); the project scope
+              inside the panel stays disabled until one is open. */}
           <div hidden={pane !== "models"}>
-            {workspace ? (
-              <ProviderSettingsPanel
-                locale={props.locale}
-                workspace={workspace}
-                config={props.config}
-                trusting={props.trusting}
-                onTrust={props.onTrust}
-                onConfigChanged={props.onConfigChanged}
-                onError={props.onError}
-              />
-            ) : (
-              <p className="pane-intro">{labels.settingsNoProject}</p>
-            )}
+            <ProviderSettingsPanel
+              locale={props.locale}
+              workspace={workspace}
+              config={props.config}
+              trusting={props.trusting}
+              onTrust={props.onTrust}
+              onConfigChanged={props.onConfigChanged}
+              onError={props.onError}
+            />
           </div>
           {extensionsTab && (workspace ? (
             <ExtensionsWorkspace
