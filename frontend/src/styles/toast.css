@@ -1,9 +1,13 @@
 /*
  * Error toast (WorkspaceOverlays). Float glass like the Demo's toasts and menus; the error tone
- * lives in the icon and title so long messages stay readable over any content.
+ * lives in the icon and title so long messages stay readable over any content. It is centred on
+ * the main pane (`--main-start`/`--main-end` from shell.css), the column the composer and the
+ * thread are centred in, not on the window.
  */
 .error-toast {
-  position: fixed; z-index: var(--z-toast); left: 50%; bottom: 24px; width: min(560px, calc(100vw - 32px));
+  --toast-span: calc(100vw - var(--main-start, 0px) - var(--main-end, 0px));
+  position: fixed; z-index: var(--z-toast); left: calc(var(--main-start, 0px) + var(--toast-span) / 2); bottom: 24px;
+  width: min(560px, calc(var(--toast-span) - 32px));
   display: grid; grid-template-columns: auto minmax(0, 1fr) var(--ctl-sm); gap: 10px; align-items: start;
   padding: 10px 10px 10px 14px; transform: translateX(-50%);
   border-radius: var(--r-xl); background: var(--surface-float-solid); box-shadow: var(--shadow-float), inset 0 0 0 1px var(--bad-line);

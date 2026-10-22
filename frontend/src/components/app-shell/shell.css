@@ -17,7 +17,13 @@
   position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; overflow: hidden;
   background: var(--bg-ground); background-color: var(--bg-window); color: var(--fg);
   transition: --sidebar-current var(--dur-panel) var(--ease-out), --inspector-current var(--dur-panel) var(--ease-out);
+  /* Where the main pane starts and how much of the window lies to its right, for window-fixed
+     layers (the error toast) that belong to the pane rather than to the whole window. */
+  --main-start: calc(var(--rail-w) + var(--sidebar-current));
+  --main-end: calc(var(--inspector-current) + var(--pane-gap));
 }
+.lc-window.has-inspector { --main-end: calc(var(--inspector-current) + 2 * var(--pane-gap)); }
+.lc-window.is-compact, .lc-window.is-welcome { --main-start: 0px; --main-end: 0px; }
 .lc-window.is-resizing { transition: none; cursor: col-resize; user-select: none; }
 .lc-window.is-resizing * { cursor: col-resize !important; }
 
