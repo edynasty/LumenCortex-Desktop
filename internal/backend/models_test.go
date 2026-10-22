@@ -278,6 +278,7 @@ func TestFrontendCoreErrorMarkersMatchCoreSentinels(t *testing.T) {
 		"agentNotForConversation": lcx.ErrAgentNotForConversation,
 		"agentUseMismatch":        lcx.ErrAgentUseMismatch,
 		"tooManyNotes":            lcx.ErrTooManyNotes,
+		"untrustedWorkspace":      lcx.ErrUntrustedWorkspace,
 	}
 	got := map[string]string{}
 	for key, err := range want {

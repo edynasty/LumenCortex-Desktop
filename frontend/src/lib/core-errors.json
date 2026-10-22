@@ -20,5 +20,6 @@
   "taskNeedsCommit": "execution tasks need a git workspace with at least one commit",
   "childLimit": "subagent concurrency limit exceeded for parent session",
   "agentLimit": "runtime agent concurrency limit exceeded",
-  "tooManyNotes": "too many notes"
+  "tooManyNotes": "too many notes",
+  "untrustedWorkspace": "mcp server is defined by the project configuration of an untrusted workspace"
 }

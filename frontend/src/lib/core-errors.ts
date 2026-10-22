@@ -31,6 +31,7 @@ const order: CoreErrorKey[] = [
   "childLimit",
   "agentLimit",
   "tooManyNotes",
+  "untrustedWorkspace",
 ];
 
 export function coreErrorKey(error: string): CoreErrorKey | null {

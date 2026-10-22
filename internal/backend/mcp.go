@@ -58,6 +58,9 @@ func (r *Runtime) MCPDeleteConfigScope(scope, id string) error {
 	return engine.MCPDeleteConfigScope(scope, id)
 }
 
+// MCPStart starts one server for the session's runtime workspace. A server defined by the project
+// mcp.json of an untrusted workspace is refused with ErrUntrustedWorkspace before any process is
+// created (ADR-0013); the pane turns that refusal into its trust notice instead of an error.
 func (r *Runtime) MCPStart(ctx context.Context, sessionID, serverID string) (MCPStatus, error) {
 	r.mu.RLock()
 	engine := r.engine

@@ -21,6 +21,10 @@ var (
 	ErrRunHeld       = lcx.ErrRunHeld
 	ErrInvalidPolicy = errors.New("invalid agent policy")
 	ErrArchiveActive = errors.New("cannot archive an active agent run")
+	// ErrUntrustedWorkspace is Core's refusal to use a project input (an MCP server, project skills,
+	// project instructions) of a workspace the user has not trusted (ADR-0013). Nothing was started
+	// and nothing was written; the UI offers to trust the workspace instead of showing the raw error.
+	ErrUntrustedWorkspace = lcx.ErrUntrustedWorkspace
 )
 
 type Runtime struct {
