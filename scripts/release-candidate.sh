@@ -327,7 +327,9 @@ if [[ "$mode" == release && "$core_local" != "True" && "$core_local" != "true" ]
   release_pinned=true
 fi
 
-prev_tag="$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)"
+# The previous tag is the newest one reachable from HEAD's parent: describing HEAD itself returns the
+# tag being released and an empty change list.
+prev_tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
 if [[ -n "$prev_tag" ]]; then
   change_range="$prev_tag..HEAD"
   changes_scope="since $prev_tag"
