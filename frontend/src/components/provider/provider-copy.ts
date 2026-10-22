@@ -77,6 +77,13 @@ export const providerCopy = {
     ,storedHint: "直接输入密钥，或输入 ${ENV_NAME} 从环境变量读取。密钥保存在 LumenCortex 配置目录的本地文件中（仅当前用户可读，未加密）；配置文件只保留一个引用。"
     ,keySaveFailed: "保存 API Key 失败。"
     ,keyRemoveFailed: "移除 API Key 失败。"
+    ,reasoningFormat: "推理格式"
+    ,reasoningFormatDefault: "包默认"
+    ,reasoningFormatHint: "由协议决定可选值：Anthropic Messages 可选 adaptive（模型自行决定思考量），其他协议按各自的方式传递档位。"
+    ,reasoningEfforts: "支持的档位"
+    ,reasoningEffortsHint: "不勾选表示不限制：请求的档位原样传给模型。"
+    ,reasoningAdaptiveNoNone: "adaptive 思考无法关闭，因此不能包含「无」。"
+    ,reasoningNoOptions: "这个协议没有可选的推理格式。"
   },
   en: {
     title: "Models & Providers",
@@ -154,5 +161,12 @@ export const providerCopy = {
     ,storedHint: "Enter the key itself, or ${ENV_NAME} to read it from an environment variable. A key is stored in a local file in the LumenCortex config folder (readable only by your user, not encrypted); the config file keeps only a reference."
     ,keySaveFailed: "Saving the API key failed."
     ,keyRemoveFailed: "Removing the API key failed."
+    ,reasoningFormat: "Reasoning format"
+    ,reasoningFormatDefault: "Package default"
+    ,reasoningFormatHint: "The protocol decides the choices: Anthropic Messages offers adaptive (the model decides how much to think); other protocols send the level their own way."
+    ,reasoningEfforts: "Accepted levels"
+    ,reasoningEffortsHint: "Nothing ticked means no restriction: the requested level is passed to the model as it is."
+    ,reasoningAdaptiveNoNone: "Adaptive thinking cannot be turned off, so None is not available."
+    ,reasoningNoOptions: "This protocol has no reasoning format to choose."
   }
 } as const;

@@ -17,6 +17,9 @@ vi.mock("../../lib/bridge", () => ({
   bridge: {
     providerCatalogScope: mocks.providerCatalogScope,
     saveProviderCatalogScope: mocks.saveProviderCatalogScope,
+    // Core's reasoning vocabulary: the model form asks for both, so every panel render needs them.
+    reasoningFormats: async (pkg: string) => (pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-effort"]),
+    reasoningEfforts: async () => ["none", "low", "medium", "high", "max"],
     providerCredentialStatus: mocks.providerCredentialStatus,
     saveProviderCredential: mocks.saveProviderCredential,
     removeProviderCredential: mocks.removeProviderCredential,

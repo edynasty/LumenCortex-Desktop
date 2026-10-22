@@ -74,8 +74,15 @@ Shows:
 - name,
 - upstream modelID,
 - context/output limits,
+- reasoning format and accepted effort levels (the package default when unset),
 - default badge,
 - set-default/edit/delete.
+
+### Model details (edit form)
+- model ID, display name, upstream modelID, context/output limits,
+- reasoning format, from Core's per-package list (the empty value is the package default),
+- accepted effort levels as one checkbox per Core level; adaptive drops "none",
+- Core's refusal (a format the package does not implement, adaptive with "none") inline in the form.
 
 ### States
 - global scope,

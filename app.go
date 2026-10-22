@@ -217,6 +217,17 @@ func (a *App) GetProviderCatalogScope(scope string) (backend.ProviderCatalogDocu
 	return a.backend.ProviderCatalogScope(scope)
 }
 
+// GetReasoningFormats lists the reasoning.format values the provider package implements, the
+// package default ("") first. Core owns the list; the model form fills its select from it.
+func (a *App) GetReasoningFormats(pkg string) ([]string, error) {
+	return backend.ReasoningFormats(pkg), nil
+}
+
+// GetReasoningEfforts lists Core's effort levels, lowest first, for a model's efforts list.
+func (a *App) GetReasoningEfforts() ([]string, error) {
+	return backend.ReasoningEfforts(), nil
+}
+
 func (a *App) SaveProviderCatalogScope(scope string, doc backend.ProviderCatalogDocument) (backend.ProviderCatalogDocument, error) {
 	return a.backend.SaveProviderCatalogScope(scope, doc)
 }

@@ -1,7 +1,12 @@
+import type { AppCopy } from "../../lib/i18n/app-copy";
 import { Button } from "../primitives/Button";
 import { SegmentedControl } from "../primitives/SegmentedControl";
+import { DesktopSelect } from "../primitives/Select";
 import type { ProviderLocale } from "./provider-copy";
 import { providerCopy } from "./provider-copy";
+import {
+  ADAPTIVE_FORMAT, effortDisabled, effortLabel, formatLabel, withEffort, withReasoningFormat,
+} from "./provider-reasoning";
 import { envNameValid, type ModelDraft, type ProviderDraft } from "./provider-settings-model";
 
 export function ProviderForm({
@@ -83,6 +88,10 @@ export function ProviderForm({
 
 export function ModelForm({
   t,
+  labels,
+  formats,
+  efforts,
+  error,
   draft,
   onChange,
   onSave,
@@ -90,6 +99,14 @@ export function ModelForm({
   saving,
 }: {
   t: (typeof providerCopy)[ProviderLocale];
+  // The effort levels' names come from the app copy, so a level is never spelled twice.
+  labels: AppCopy;
+  // Core's values for this provider's package: the format choices and the level list. Never a
+  // hard-coded list here.
+  formats: string[];
+  efforts: string[];
+  // Core's refusal, shown where the edit happened instead of only in the app's error banner.
+  error?: string;
   draft: ModelDraft;
   onChange: (draft: ModelDraft) => void;
   onSave: () => void;
@@ -119,7 +136,42 @@ export function ModelForm({
           <span className="field-label">{t.output}</span>
           <input className="input" inputMode="numeric" value={draft.output} onChange={(event) => onChange({ ...draft, output: event.target.value })} placeholder="8192" />
         </label>
+        <div className="field span-2">
+          <span className="field-label">{t.reasoningFormat}</span>
+          {formats.length === 0 ? (
+            <span className="field-help">{t.reasoningNoOptions}</span>
+          ) : (
+            <DesktopSelect
+              ariaLabel={t.reasoningFormat}
+              value={draft.format}
+              placeholder={t.reasoningFormatDefault}
+              options={formats.map((format) => ({ value: format, label: formatLabel(format, t) }))}
+              onChange={(format) => onChange(withReasoningFormat(draft, format))}
+            />
+          )}
+          <span className="field-help">{t.reasoningFormatHint}</span>
+        </div>
+        <div className="field span-2">
+          <span className="field-label">{t.reasoningEfforts}</span>
+          <div className="provider-efforts" role="group" aria-label={t.reasoningEfforts}>
+            {efforts.map((level) => (
+              <label className="provider-effort" key={level}>
+                <input
+                  type="checkbox"
+                  checked={draft.efforts.includes(level)}
+                  disabled={effortDisabled(draft.format, level)}
+                  onChange={(event) => onChange(withEffort(draft, level, event.target.checked, efforts))}
+                />
+                <span>{effortLabel(level, labels)}</span>
+              </label>
+            ))}
+          </div>
+          <span className="field-help">
+            {draft.format === ADAPTIVE_FORMAT ? t.reasoningAdaptiveNoNone : t.reasoningEffortsHint}
+          </span>
+        </div>
       </div>
+      {error && <p className="field-help is-error" role="alert">{error}</p>}
       <div className="editor-actions">
         <Button variant="secondary" size="sm" onClick={onCancel}>{t.cancel}</Button>
         <Button variant="primary" size="sm" disabled={saving} onClick={onSave}>{t.save}</Button>

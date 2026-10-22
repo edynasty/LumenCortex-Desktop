@@ -1,20 +1,24 @@
 import { useState } from "react";
+import type { AppCopy } from "../../lib/i18n/app-copy";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import { ModelForm, ProviderForm } from "./ProviderForms";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
+import { effortLabel } from "./provider-reasoning";
 import { emptyProvider } from "./provider-settings-model";
 import { ProviderCredentialSection } from "./ProviderCredentialSection";
 import type { ProviderSettingsController } from "./useProviderSettingsController";
 
 type Props = {
   locale: ProviderLocale;
+  // The effort levels' names live in the app copy; the provider copy only names the fields.
+  labels: AppCopy;
   effectiveModel: string;
   controller: ProviderSettingsController;
 };
 
 /** The provider list + the selected provider's editor, per the Demo Providers pane layout. */
-export function ProviderCatalogList({ locale, effectiveModel, controller }: Props) {
+export function ProviderCatalogList({ locale, labels, effectiveModel, controller }: Props) {
   const t = providerCopy[locale];
   const {
     catalog,
@@ -28,6 +32,9 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
     setEditingModel,
     modelDraft,
     setModelDraft,
+    reasoningFormats,
+    reasoningEfforts,
+    modelError,
     setDeleteTarget,
     providerAction,
     providerNotice,
@@ -195,6 +202,10 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
                         {editing ? (
                           <ModelForm
                             t={t}
+                            labels={labels}
+                            formats={reasoningFormats}
+                            efforts={reasoningEfforts}
+                            error={modelError}
                             draft={modelDraft}
                             onChange={setModelDraft}
                             onSave={() => void commitModel()}
@@ -260,6 +271,15 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
                                   <dd>{Math.round(model.limit.output / 1024)}K</dd>
                                 </div>
                               ) : null}
+                              <div>
+                                <dt>{t.reasoningFormat}</dt>
+                                <dd>
+                                  {model.reasoning?.format || t.reasoningFormatDefault}
+                                  {model.reasoning?.efforts?.length
+                                    ? " · " + model.reasoning.efforts.map((level) => effortLabel(level, labels)).join(" / ")
+                                    : ""}
+                                </dd>
+                              </div>
                             </dl>
                           </>
                         )}
@@ -273,6 +293,10 @@ export function ProviderCatalogList({ locale, effectiveModel, controller }: Prop
                 {editingModel?.providerId === selectedProviderId && !editingModel.modelId && (
                   <ModelForm
                     t={t}
+                    labels={labels}
+                    formats={reasoningFormats}
+                    efforts={reasoningEfforts}
+                    error={modelError}
                     draft={modelDraft}
                     onChange={setModelDraft}
                     onSave={() => void commitModel()}

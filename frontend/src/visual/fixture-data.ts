@@ -535,6 +535,9 @@ function credentialStatusFor(scope: "global" | "workspace", providerId: string):
 export function visualAppStub() {
   return {
     GetConfigState: async () => visualConfigState,
+    GetReasoningFormats: async (pkg: string) =>
+      pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-object", "reasoning-effort", "deepseek"],
+    GetReasoningEfforts: async () => ["none", "low", "medium", "high", "max"],
     GetProviderCatalogScope: async (scope) => ({
       scope,
       path: visualConfigState.globalPath,

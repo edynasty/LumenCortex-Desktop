@@ -18,6 +18,10 @@ export type ModelDraft = {
   modelID: string;
   context: string;
   output: string;
+  // reasoning.format, "" for the provider package's default. The options come from Core.
+  format: string;
+  // reasoning.efforts: the levels this model accepts, in Core's order.
+  efforts: string[];
 };
 
 export type DeleteTarget =
@@ -58,6 +62,8 @@ export const emptyModel: ModelDraft = {
   modelID: "",
   context: "",
   output: "",
+  format: "",
+  efforts: [],
 };
 
 export function cloneCatalog(catalog: ProviderCatalog): ProviderCatalog {
@@ -97,6 +103,8 @@ export function modelToDraft(id: string, model: ProviderModel): ModelDraft {
     modelID: model.modelID || "",
     context: model.limit?.context ? String(model.limit.context) : "",
     output: model.limit?.output ? String(model.limit.output) : "",
+    format: model.reasoning?.format || "",
+    efforts: model.reasoning?.efforts ? [...model.reasoning.efforts] : [],
   };
 }
 
@@ -111,10 +119,18 @@ export function modelFromDraft(draft: ModelDraft): ProviderModel {
         }
       : undefined;
 
+  // No format and no levels leave no reasoning object: an echo-only object in the file keeps its
+  // echo, because the backend merges what this DTO carries into the entry it read.
+  const reasoning =
+    draft.format || draft.efforts.length
+      ? { format: draft.format || undefined, efforts: draft.efforts.length ? draft.efforts : undefined }
+      : undefined;
+
   return {
     name: draft.name.trim() || undefined,
     modelID: draft.modelID.trim() || undefined,
     limit,
+    reasoning,
   };
 }
 

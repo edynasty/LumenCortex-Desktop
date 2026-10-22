@@ -66,6 +66,20 @@ the store write back. Connection tests and model discovery speak each protocol's
 authentication (Bearer for openai-compatible, `x-api-key` plus `anthropic-version` for
 anthropic-messages) and redact the key from every error an upstream echoes it in.
 
+### Reasoning settings
+
+A model's `reasoning` object is part of the provider catalog the panel edits: `format` (how effort
+is encoded) and `efforts` (the levels the model accepts). The panel never carries its own list of
+either: `App.GetReasoningFormats(pkg)` returns `config.ReasoningFormats` for the provider's
+`package`, and `App.GetReasoningEfforts` returns Core's five levels, so a value Core adds or drops
+appears in the form without a frontend change. `reasoning.echo` stays outside the DTO and survives
+every save, like `headers` and `timeouts`.
+
+Core validates the merged catalog when it loads it, which is too late for an editor: the save path
+therefore refuses a format the package does not implement and adaptive with `none` (adaptive
+thinking cannot be turned off) before `config.Save` runs, naming the same key Core's error names
+(`providers.<id>.models.<key>.reasoning.*`). The refusal is shown in the model form itself. The
+form additionally drops `none` when the user picks adaptive, so the pairing is not offered.
 
 ## Native window integration (macOS)
 

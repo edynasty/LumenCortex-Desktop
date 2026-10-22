@@ -96,6 +96,7 @@ export function ProviderSettingsPanel({
         <>
           <ProviderCatalogList
             locale={locale}
+            labels={copy[locale]}
             effectiveModel={config.model}
             controller={controller}
           />

@@ -87,6 +87,8 @@ export type AppAPI = {
   TrustWorkspace(globalDigest: string): Promise<ConfigState>;
   SaveConcurrency(globalDigest: string, limits: AgentConcurrency): Promise<ConfigState>;
   GetProviderCatalogScope(scope: ProviderCatalogScope): Promise<ProviderCatalogDocument>;
+  GetReasoningFormats(pkg: string): Promise<string[]>;
+  GetReasoningEfforts(): Promise<string[]>;
   GetProviderCredentialStatus(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
   SaveProviderCredential(scope: ProviderCatalogScope, providerID: string, apiKey: string): Promise<CredentialStatus>;
   RemoveProviderCredential(scope: ProviderCatalogScope, providerID: string): Promise<CredentialStatus>;
@@ -211,6 +213,10 @@ export const bridge = {
   trustWorkspace: (globalDigest: string) => api().TrustWorkspace(globalDigest),
   saveConcurrency: (globalDigest: string, limits: AgentConcurrency) => api().SaveConcurrency(globalDigest, limits),
   providerCatalogScope: (scope: ProviderCatalogScope) => api().GetProviderCatalogScope(scope),
+  // Core owns the reasoning vocabulary: the model form's format options and effort levels come from
+  // these two calls, never from a list in TypeScript.
+  reasoningFormats: (pkg: string) => api().GetReasoningFormats(pkg),
+  reasoningEfforts: () => api().GetReasoningEfforts(),
   providerCredentialStatus: (scope: ProviderCatalogScope, providerId: string) => api().GetProviderCredentialStatus(scope, providerId),
   saveProviderCredential: (scope: ProviderCatalogScope, providerId: string, apiKey: string) => api().SaveProviderCredential(scope, providerId, apiKey),
   removeProviderCredential: (scope: ProviderCatalogScope, providerId: string) => api().RemoveProviderCredential(scope, providerId),

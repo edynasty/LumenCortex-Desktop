@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,9 +77,9 @@ type ProviderCatalogDocument struct {
 }
 
 // ProviderCatalog is the editable subset of a configuration file. Fields outside it (failover,
-// agents, effort, checks, trustedWorkspaces, headers, timeouts, reasoning, toolCalling, modalities)
-// are never part of the DTO and survive every save. Providers is always sent, as {} for a file
-// without providers: the panel indexes it directly.
+// agents, effort, checks, trustedWorkspaces, headers, timeouts, toolCalling, modalities, and a
+// model's reasoning.echo) are never part of the DTO and survive every save. Providers is always
+// sent, as {} for a file without providers: the panel indexes it directly.
 type ProviderCatalog struct {
 	Schema    string                        `json:"$schema,omitempty"`
 	Model     string                        `json:"model,omitempty"`
@@ -104,10 +105,21 @@ type ProviderSettings struct {
 
 // RenamedFrom, set only by a rename, names the model key this entry had in the file that was read.
 type ProviderModel struct {
-	Name        string      `json:"name,omitempty"`
-	ModelID     string      `json:"modelID,omitempty"`
-	Limit       *ModelLimit `json:"limit,omitempty"`
-	RenamedFrom string      `json:"renamedFrom,omitempty"`
+	Name        string          `json:"name,omitempty"`
+	ModelID     string          `json:"modelID,omitempty"`
+	Limit       *ModelLimit     `json:"limit,omitempty"`
+	Reasoning   *ModelReasoning `json:"reasoning,omitempty"`
+	RenamedFrom string          `json:"renamedFrom,omitempty"`
+}
+
+// ModelReasoning is the editable part of a model's reasoning object: how effort is encoded for
+// this model and which levels it accepts. reasoning.echo stays in the file untouched.
+type ModelReasoning struct {
+	// Format is one of the provider package's values ("" is the package default); the panel asks
+	// Core for the list instead of hard-coding it.
+	Format string `json:"format,omitempty"`
+	// Efforts lists the levels the model accepts, lowest first.
+	Efforts []string `json:"efforts,omitempty"`
 }
 
 type ModelLimit struct {
@@ -307,6 +319,9 @@ func (r *Runtime) SaveProviderCatalogScope(scope string, doc ProviderCatalogDocu
 	if err != nil {
 		return ProviderCatalogDocument{}, err
 	}
+	if err := checkReasoning(next); err != nil {
+		return ProviderCatalogDocument{}, err
+	}
 	if err := checkReferences(next, other); err != nil {
 		return ProviderCatalogDocument{}, err
 	}
@@ -355,6 +370,9 @@ func catalogFromFile(f config.File) ProviderCatalog {
 			if m.Limit != nil && (m.Limit.Context > 0 || m.Limit.Output > 0) {
 				model.Limit = &ModelLimit{Context: m.Limit.Context, Output: m.Limit.Output}
 			}
+			if m.Reasoning != nil && (m.Reasoning.Format != "" || len(m.Reasoning.Efforts) > 0) {
+				model.Reasoning = &ModelReasoning{Format: m.Reasoning.Format, Efforts: effortStrings(m.Reasoning.Efforts)}
+			}
 			def.Models[key] = model
 		}
 		catalog.Providers[id] = def
@@ -364,9 +382,9 @@ func catalogFromFile(f config.File) ProviderCatalog {
 
 // applyCatalog overlays the DTO on the file it was read from. Only the DTO's fields change: the
 // model, each provider's name, package, baseURL, endpoint and apiKey, and each model's name,
-// modelID and limit. Providers and models the DTO omits are removed. A renamed provider or model
-// starts from the entry it was renamed from, so its other fields move with it. A package the
-// dispatcher does not support is refused here, not at run time.
+// modelID, limit, reasoning.format and reasoning.efforts. Providers and models the DTO omits are
+// removed. A renamed provider or model starts from the entry it was renamed from, so its other
+// fields move with it. A package the dispatcher does not support is refused here, not at run time.
 func applyCatalog(existing config.File, dto ProviderCatalog) (config.File, error) {
 	out := existing
 	out.Model = config.ModelRef(strings.TrimSpace(dto.Model))
@@ -404,6 +422,7 @@ func applyCatalog(existing config.File, dto ProviderCatalog) (config.File, error
 			if dm.Limit != nil && (dm.Limit.Context > 0 || dm.Limit.Output > 0) {
 				model.Limit = &config.Limit{Context: dm.Limit.Context, Output: dm.Limit.Output}
 			}
+			model.Reasoning = overlayReasoning(model.Reasoning, dm.Reasoning)
 			models[key] = model
 		}
 		next.Models = models
@@ -434,6 +453,125 @@ func overlaySettings(existing *config.ProviderSettings, dto ProviderSettings) *c
 	}
 	s.BaseURL, s.Endpoint, s.APIKey = dto.BaseURL, dto.Endpoint, dto.APIKey
 	return &s
+}
+
+// overlayReasoning keeps the reasoning fields the panel does not edit (echo, and whatever a later
+// Core adds) and replaces the format and the efforts list. An empty format and list leave no
+// reasoning object behind, unless echo still needs one.
+func overlayReasoning(existing *config.Reasoning, dto *ModelReasoning) *config.Reasoning {
+	var r config.Reasoning
+	if existing != nil {
+		r = *existing
+	}
+	r.Format, r.Efforts = "", nil
+	if dto != nil {
+		r.Format = strings.ToLower(strings.TrimSpace(dto.Format))
+		for _, level := range dto.Efforts {
+			if level = strings.TrimSpace(level); level != "" {
+				r.Efforts = append(r.Efforts, config.Effort(level))
+			}
+		}
+	}
+	if r.Format == "" && len(r.Efforts) == 0 && r.Echo == "" {
+		return nil
+	}
+	return &r
+}
+
+// effortStrings renders a model's effort levels for the DTO; nil when it declares none.
+func effortStrings(efforts []config.Effort) []string {
+	if len(efforts) == 0 {
+		return nil
+	}
+	out := make([]string, len(efforts))
+	for i, level := range efforts {
+		out[i] = string(level)
+	}
+	return out
+}
+
+// ReasoningFormats returns the reasoning.format values a provider package accepts, the package
+// default ("") first. Core owns the list, so the panel never hard-codes one.
+func ReasoningFormats(pkg string) []string {
+	formats := config.ReasoningFormats(pkg)
+	if formats == nil {
+		return []string{}
+	}
+	return formats
+}
+
+// ReasoningEfforts returns Core's effort levels, lowest first, for a model's efforts list.
+func ReasoningEfforts() []string {
+	return []string{
+		string(config.EffortNone), string(config.EffortLow), string(config.EffortMedium),
+		string(config.EffortHigh), string(config.EffortMax),
+	}
+}
+
+// checkReasoning refuses a save Core's loader would refuse: a format the provider's package does
+// not implement, or adaptive with "none", because adaptive thinking cannot be turned off. Core
+// enforces both rules on the merged catalog at every load; checking here means the panel reports
+// the problem instead of leaving a file Core can no longer read. The accepted formats and levels
+// come from Core, so only the adaptive/none pairing is restated.
+func checkReasoning(file config.File) error {
+	for _, pid := range sortedProviderIDs(file.Providers) {
+		p := file.Providers[pid]
+		pkg, err := config.NormalizePackage(p.Package)
+		if err != nil {
+			// An unknown package is reported when a model of the provider is resolved.
+			continue
+		}
+		for _, key := range sortedModelIDs(p.Models) {
+			r := p.Models[key].Reasoning
+			if r == nil {
+				continue
+			}
+			format := strings.ToLower(strings.TrimSpace(r.Format))
+			if !slices.Contains(config.ReasoningFormats(pkg), format) {
+				return fmt.Errorf("%w: providers.%s.models.%s.reasoning.format: %q is not accepted by package %s (accepted: %s)",
+					config.ErrInvalidConfig, pid, key, r.Format, pkg, reasoningFormatList(pkg))
+			}
+			if format == config.ReasoningAdaptive && slices.Contains(r.Efforts, config.EffortNone) {
+				return fmt.Errorf("%w: providers.%s.models.%s.reasoning.efforts: %q is not accepted with reasoning.format %q, "+
+					"because adaptive thinking cannot be turned off; remove the level",
+					config.ErrInvalidConfig, pid, key, config.EffortNone, config.ReasoningAdaptive)
+			}
+		}
+	}
+	return nil
+}
+
+// reasoningFormatList names a package's accepted formats the way Core's own error does: the
+// default is described, the rest are quoted.
+func reasoningFormatList(pkg string) string {
+	formats := config.ReasoningFormats(pkg)
+	parts := make([]string, len(formats))
+	for i, format := range formats {
+		if format == "" {
+			parts[i] = `"" (the package default)`
+			continue
+		}
+		parts[i] = strconv.Quote(format)
+	}
+	return strings.Join(parts, ", ")
+}
+
+func sortedProviderIDs(providers map[string]config.Provider) []string {
+	ids := make([]string, 0, len(providers))
+	for id := range providers {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+func sortedModelIDs(models map[string]config.Model) []string {
+	keys := make([]string, 0, len(models))
+	for key := range models {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
 }
 
 // checkReferences refuses a save that would leave a model reference, in either file, pointing at a

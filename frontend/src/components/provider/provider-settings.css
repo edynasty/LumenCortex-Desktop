@@ -31,6 +31,13 @@
 .provider-form, .provider-model-form { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--line); background: var(--surface-sunken); }
 .provider-model-list .provider-model-form { box-shadow: none; background: transparent; }
 
+/* A model's accepted effort levels: a checkbox per Core level, in Core's order. */
+.provider-efforts { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.provider-effort { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--fg-2); cursor: pointer; }
+.provider-effort input { width: 13px; height: 13px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.provider-effort input:disabled { cursor: not-allowed; }
+.provider-effort:has(input:disabled) { color: var(--fg-4); cursor: not-allowed; }
+
 .provider-advanced { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
 .provider-advanced-toggle { display: flex; align-items: center; gap: 6px; min-height: 34px; width: 100%; padding: 0 7px; border: none; border-radius: var(--r-md); background: transparent; color: var(--fg-3); font-size: var(--text-xs); text-align: left; cursor: pointer; }
 .provider-advanced-toggle:hover { background: var(--state-hover); color: var(--fg); }

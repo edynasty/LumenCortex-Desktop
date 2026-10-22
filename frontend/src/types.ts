@@ -430,6 +430,9 @@ export type ProviderModel = {
   name?: string;
   modelID?: string;
   limit?: { context?: number; output?: number };
+  // How effort is encoded for this model and which levels it accepts. reasoning.echo stays in the
+  // file: it is outside this DTO. `format` "" means the provider package's default.
+  reasoning?: { format?: string; efforts?: string[] };
   // Set only when saving a rename: the key this model had in the file that was read.
   renamedFrom?: string;
 };

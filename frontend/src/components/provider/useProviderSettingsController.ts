@@ -57,6 +57,12 @@ export type ProviderSettingsController = {
   setEditingModel: (value: { providerId: string; modelId?: string } | null) => void;
   modelDraft: ModelDraft;
   setModelDraft: (draft: ModelDraft) => void;
+  // Core's reasoning.format values for the package being edited, and Core's effort levels. Both
+  // come from the backend so the form never carries its own copy of the vocabulary.
+  reasoningFormats: string[];
+  reasoningEfforts: string[];
+  // The refusal of the last model save, shown in the form it came from.
+  modelError: string;
   advancedOpen: boolean;
   setAdvancedOpen: (value: boolean | ((current: boolean) => boolean)) => void;
   advancedJSON: string;
@@ -101,6 +107,9 @@ export function useProviderSettingsController({
   const [providerDraft, setProviderDraft] = useState<ProviderDraft>(emptyProvider);
   const [editingModel, setEditingModel] = useState<{ providerId: string; modelId?: string } | null>(null);
   const [modelDraft, setModelDraft] = useState<ModelDraft>(emptyModel);
+  const [modelError, setModelError] = useState("");
+  const [reasoningFormats, setReasoningFormats] = useState<string[]>([]);
+  const [reasoningEfforts, setReasoningEfforts] = useState<string[]>([]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advancedJSON, setAdvancedJSON] = useState("");
   const [advancedDirty, setAdvancedDirty] = useState(false);
@@ -146,6 +155,43 @@ export function useProviderSettingsController({
     [catalog],
   );
 
+  // Core owns the effort levels; they are the same five for every provider.
+  useEffect(() => {
+    let cancelled = false;
+    bridge.reasoningEfforts()
+      .then((levels) => {
+        if (!cancelled) setReasoningEfforts(levels);
+      })
+      .catch((err) => {
+        if (!cancelled) onError(String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onError]);
+
+  // The format choices follow the package of the provider whose model is open.
+  const editingPackage = editingModel
+    ? catalog.providers[editingModel.providerId]?.package ?? "openai-compatible"
+    : "";
+  useEffect(() => {
+    if (!editingPackage) {
+      setReasoningFormats([]);
+      return;
+    }
+    let cancelled = false;
+    bridge.reasoningFormats(editingPackage)
+      .then((formats) => {
+        if (!cancelled) setReasoningFormats(formats);
+      })
+      .catch((err) => {
+        if (!cancelled) onError(String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [editingPackage, onError]);
+
   function adopt(next: ProviderCatalogDocument) {
     setLoadedFile(next);
     setCatalog(next.catalog);
@@ -153,7 +199,9 @@ export function useProviderSettingsController({
     setAdvancedDirty(false);
   }
 
-  async function saveCatalog(next: ProviderCatalog): Promise<boolean> {
+  // onFailure receives a refusal where the edit happened (the model form); a file-level problem
+  // such as a conflict still goes to the app's notice, because it is not about that field.
+  async function saveCatalog(next: ProviderCatalog, onFailure?: (message: string) => void): Promise<boolean> {
     if (!loadedFile) return false;
     setSaving(true);
     try {
@@ -172,7 +220,8 @@ export function useProviderSettingsController({
           return false;
         }
       }
-      onError(message);
+      if (onFailure) onFailure(message);
+      else onError(message);
       return false;
     } finally {
       setSaving(false);
@@ -281,12 +330,14 @@ export function useProviderSettingsController({
     setExpandedProvider(providerId);
     setEditingModel({ providerId });
     setModelDraft(emptyModel);
+    setModelError("");
   }
 
   function startEditModel(providerId: string, modelId: string, model: ProviderModel) {
     setExpandedProvider(providerId);
     setEditingModel({ providerId, modelId });
     setModelDraft(modelToDraft(modelId, model));
+    setModelError("");
   }
 
   async function commitModel() {
@@ -303,6 +354,7 @@ export function useProviderSettingsController({
       return;
     }
 
+    setModelError("");
     const next = cloneCatalog(catalog);
     const provider = next.providers[editingModel.providerId];
     if (!provider) return;
@@ -320,7 +372,7 @@ export function useProviderSettingsController({
       ...modelFromDraft(modelDraft),
       renamedFrom: oldModelId && oldModelId !== modelId ? oldModelId : undefined,
     };
-    if (!(await saveCatalog(next))) return;
+    if (!(await saveCatalog(next, setModelError))) return;
     setEditingModel(null);
     setModelDraft(emptyModel);
   }
@@ -383,6 +435,9 @@ export function useProviderSettingsController({
     setEditingModel,
     modelDraft,
     setModelDraft,
+    reasoningFormats,
+    reasoningEfforts,
+    modelError,
     advancedOpen,
     setAdvancedOpen,
     advancedJSON,
