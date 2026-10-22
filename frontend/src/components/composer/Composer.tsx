@@ -9,7 +9,7 @@ import {
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentEffort, AgentPolicy } from "../../types";
 import { agentDescription, agentName, POLICY_ORDER, underCeiling, type ComposerAgent } from "../../app/agent-catalog";
-import { AUTO_EFFORT } from "../../app/model-selection";
+import { AUTO_EFFORT, EFFORT_LABEL_KEY } from "../../app/model-selection";
 import { ContextAttachments, ContextAttachTrigger } from "./ContextAttachments";
 import { ModelPicker, type ModelPickerHandle, type PickerOption } from "./ComposerPickers";
 import { MenuPicker } from "./MenuPicker";
@@ -72,19 +72,13 @@ const policyIcon: Record<AgentPolicy, "readOnly" | "permission" | "permissionFul
 };
 const effortIconByLevel: Record<AgentEffort, "idle" | "effort" | "plan" | "workflow" | "checkRun" | "autoEffort"> = {
   none: "idle",
+  minimal: "effort",
   low: "effort",
   medium: "plan",
   high: "workflow",
+  xhigh: "checkRun",
   max: "checkRun",
   auto: "autoEffort",
-};
-const effortLabelKey: Record<AgentEffort, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax" | "effortAuto"> = {
-  none: "effortNone",
-  low: "effortLow",
-  medium: "effortMedium",
-  high: "effortHigh",
-  max: "effortMax",
-  auto: "effortAuto",
 };
 
 // The shared composer surface (Codex / Copilot Chat pattern over Lumen Glass): one rounded glass
@@ -187,7 +181,7 @@ export function Composer({
         },
         ...effortOptions.map((level) => ({
           value: level,
-          label: copy[effortLabelKey[level as AgentEffort]],
+          label: copy[EFFORT_LABEL_KEY[level as AgentEffort]],
           icon: effortIconByLevel[level as AgentEffort],
         })),
       ]

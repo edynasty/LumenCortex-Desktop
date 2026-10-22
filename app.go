@@ -235,9 +235,10 @@ func (a *App) GetReasoningFormats(pkg string) ([]string, error) {
 	return backend.ReasoningFormats(pkg), nil
 }
 
-// GetReasoningEfforts lists Core's effort levels, lowest first, for a model's efforts list.
-func (a *App) GetReasoningEfforts() ([]string, error) {
-	return backend.ReasoningEfforts(), nil
+// GetReasoningEfforts lists Core's effort levels, lowest first, and the levels each reasoning
+// format of the provider package accepts, for a model's efforts list.
+func (a *App) GetReasoningEfforts(pkg string) (backend.ReasoningEffortChoices, error) {
+	return backend.ReasoningEfforts(pkg), nil
 }
 
 func (a *App) SaveProviderCatalogScope(scope string, doc backend.ProviderCatalogDocument) (backend.ProviderCatalogDocument, error) {

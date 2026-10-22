@@ -1,4 +1,5 @@
 import type { AppCopy } from "../../lib/i18n/app-copy";
+import type { ReasoningEffortChoices } from "../../types";
 import { Button } from "../primitives/Button";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { DesktopSelect } from "../primitives/Select";
@@ -104,7 +105,7 @@ export function ModelForm({
   // Core's values for this provider's package: the format choices and the level list. Never a
   // hard-coded list here.
   formats: string[];
-  efforts: string[];
+  efforts: ReasoningEffortChoices;
   // Core's refusal, shown where the edit happened instead of only in the app's error banner.
   error?: string;
   draft: ModelDraft;
@@ -146,7 +147,7 @@ export function ModelForm({
               value={draft.format}
               placeholder={t.reasoningFormatDefault}
               options={formats.map((format) => ({ value: format, label: formatLabel(format, t) }))}
-              onChange={(format) => onChange(withReasoningFormat(draft, format))}
+              onChange={(format) => onChange(withReasoningFormat(draft, format, efforts))}
             />
           )}
           <span className="field-help">{t.reasoningFormatHint}</span>
@@ -154,13 +155,13 @@ export function ModelForm({
         <div className="field span-2">
           <span className="field-label">{t.reasoningEfforts}</span>
           <div className="provider-efforts" role="group" aria-label={t.reasoningEfforts}>
-            {efforts.map((level) => (
+            {efforts.levels.map((level) => (
               <label className="provider-effort" key={level}>
                 <input
                   type="checkbox"
                   checked={draft.efforts.includes(level)}
-                  disabled={effortDisabled(draft.format, level)}
-                  onChange={(event) => onChange(withEffort(draft, level, event.target.checked, efforts))}
+                  disabled={effortDisabled(draft.format, level, efforts)}
+                  onChange={(event) => onChange(withEffort(draft, level, event.target.checked, efforts.levels))}
                 />
                 <span>{effortLabel(level, labels)}</span>
               </label>

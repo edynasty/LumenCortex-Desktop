@@ -1,26 +1,19 @@
 import type { AppCopy } from "../../lib/i18n/app-copy";
+import { EFFORT_LABEL_KEY } from "../../app/model-selection";
+import type { AgentEffort, ReasoningEffortChoices } from "../../types";
 import type { ModelDraft } from "./provider-settings-model";
 import type { providerCopy, ProviderLocale } from "./provider-copy";
 
 type Copy = (typeof providerCopy)[ProviderLocale];
 
-// The two Core values that cannot be combined: adaptive thinking cannot be turned off, so an
-// adaptive model's efforts list must not contain "none" (config.validateReasoning). The form
-// removes the pairing before a save; the backend refuses it again if it still arrives.
+// Adaptive thinking is the format whose restriction the form explains in its hint. Which levels a
+// format accepts comes from Core (ReasoningEffortChoices.accepted); the backend refuses a pairing
+// again if it still arrives.
 export const ADAPTIVE_FORMAT = "adaptive";
-const NONE = "none";
-
-const EFFORT_LABEL: Record<string, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax"> = {
-  none: "effortNone",
-  low: "effortLow",
-  medium: "effortMedium",
-  high: "effortHigh",
-  max: "effortMax",
-};
 
 /** A level's label from the app copy; an unknown level is shown as Core spells it. */
 export function effortLabel(level: string, labels: AppCopy): string {
-  const key = EFFORT_LABEL[level];
+  const key = EFFORT_LABEL_KEY[level as AgentEffort];
   return key ? labels[key] : level;
 }
 
@@ -29,13 +22,15 @@ export function formatLabel(format: string, t: Copy): string {
   return format === "" ? t.reasoningFormatDefault : format;
 }
 
-/** Choosing adaptive drops "none" from the list, because Core refuses the pairing. */
-export function withReasoningFormat(draft: ModelDraft, format: string): ModelDraft {
-  return {
-    ...draft,
-    format,
-    efforts: format === ADAPTIVE_FORMAT ? draft.efforts.filter((level) => level !== NONE) : draft.efforts,
-  };
+/** The levels the format accepts; a format Core did not describe is not restricted here. */
+function acceptedLevels(format: string, choices: ReasoningEffortChoices): string[] {
+  return choices.accepted[format] ?? choices.levels;
+}
+
+/** Choosing a format drops the ticked levels it does not accept, because Core refuses them. */
+export function withReasoningFormat(draft: ModelDraft, format: string, choices: ReasoningEffortChoices): ModelDraft {
+  const accepted = acceptedLevels(format, choices);
+  return { ...draft, format, efforts: draft.efforts.filter((level) => accepted.includes(level)) };
 }
 
 /** Ticking a level adds it in Core's order; unticking removes it. */
@@ -45,7 +40,7 @@ export function withEffort(draft: ModelDraft, level: string, on: boolean, levels
   return { ...draft, efforts: next };
 }
 
-/** True for the one level the current format cannot accept. */
-export function effortDisabled(format: string, level: string): boolean {
-  return format === ADAPTIVE_FORMAT && level === NONE;
+/** True for a level the current format does not accept. */
+export function effortDisabled(format: string, level: string, choices: ReasoningEffortChoices): boolean {
+  return !acceptedLevels(format, choices).includes(level);
 }

@@ -559,13 +559,23 @@ function credentialStatusFor(scope: "global" | "workspace", providerId: string):
   };
 }
 
+const visualReasoningFormats = (pkg: string) =>
+  pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-object", "reasoning-effort", "deepseek"];
+const visualEffortLevels = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+
 /** Core answers for the configuration, Git, MCP, skills, Task State and checks surfaces. */
 export function visualAppStub() {
   return {
     GetConfigState: async () => visualConfigState,
-    GetReasoningFormats: async (pkg: string) =>
-      pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-object", "reasoning-effort", "deepseek"],
-    GetReasoningEfforts: async () => ["none", "low", "medium", "high", "max"],
+    GetReasoningFormats: async (pkg: string) => visualReasoningFormats(pkg),
+    // Core's rule: adaptive thinking accepts low … max, every other format the whole ladder.
+    GetReasoningEfforts: async (pkg: string) => ({
+      levels: visualEffortLevels,
+      accepted: Object.fromEntries(visualReasoningFormats(pkg).map((format) => [
+        format,
+        format === "adaptive" ? visualEffortLevels.slice(2) : visualEffortLevels,
+      ])),
+    }),
     GetEffectivePrompt: async () => visualEffectivePrompt,
     GetProviderCatalogScope: async (scope) => ({
       scope,

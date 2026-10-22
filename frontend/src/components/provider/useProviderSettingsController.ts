@@ -7,6 +7,7 @@ import type {
   ProviderCatalogScope,
   ProviderDefinition,
   ProviderModel,
+  ReasoningEffortChoices,
 } from "../../types";
 import { providerCopy, type ProviderLocale } from "./provider-copy";
 import { useProviderRuntimeActions } from "./useProviderRuntimeActions";
@@ -24,6 +25,8 @@ import {
   type ModelDraft,
   type ProviderDraft,
 } from "./provider-settings-model";
+
+const NO_EFFORTS: ReasoningEffortChoices = { levels: [], accepted: {} };
 
 const scopeStorageKey = (workspace: string) => `lcx-provider-scope:${workspace || "__global__"}`;
 
@@ -57,10 +60,11 @@ export type ProviderSettingsController = {
   setEditingModel: (value: { providerId: string; modelId?: string } | null) => void;
   modelDraft: ModelDraft;
   setModelDraft: (draft: ModelDraft) => void;
-  // Core's reasoning.format values for the package being edited, and Core's effort levels. Both
-  // come from the backend so the form never carries its own copy of the vocabulary.
+  // Core's reasoning.format values for the package being edited, and Core's effort levels with
+  // the ones each format accepts. Both come from the backend so the form never carries its own
+  // copy of the vocabulary or of the rules.
   reasoningFormats: string[];
-  reasoningEfforts: string[];
+  reasoningEfforts: ReasoningEffortChoices;
   // The refusal of the last model save, shown in the form it came from.
   modelError: string;
   advancedOpen: boolean;
@@ -109,7 +113,7 @@ export function useProviderSettingsController({
   const [modelDraft, setModelDraft] = useState<ModelDraft>(emptyModel);
   const [modelError, setModelError] = useState("");
   const [reasoningFormats, setReasoningFormats] = useState<string[]>([]);
-  const [reasoningEfforts, setReasoningEfforts] = useState<string[]>([]);
+  const [reasoningEfforts, setReasoningEfforts] = useState<ReasoningEffortChoices>(NO_EFFORTS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advancedJSON, setAdvancedJSON] = useState("");
   const [advancedDirty, setAdvancedDirty] = useState(false);
@@ -155,34 +159,23 @@ export function useProviderSettingsController({
     [catalog],
   );
 
-  // Core owns the effort levels; they are the same five for every provider.
-  useEffect(() => {
-    let cancelled = false;
-    bridge.reasoningEfforts()
-      .then((levels) => {
-        if (!cancelled) setReasoningEfforts(levels);
-      })
-      .catch((err) => {
-        if (!cancelled) onError(String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [onError]);
-
-  // The format choices follow the package of the provider whose model is open.
+  // The format choices, and the levels each format accepts, follow the package of the provider
+  // whose model is open.
   const editingPackage = editingModel
     ? catalog.providers[editingModel.providerId]?.package ?? "openai-compatible"
     : "";
   useEffect(() => {
     if (!editingPackage) {
       setReasoningFormats([]);
+      setReasoningEfforts(NO_EFFORTS);
       return;
     }
     let cancelled = false;
-    bridge.reasoningFormats(editingPackage)
-      .then((formats) => {
-        if (!cancelled) setReasoningFormats(formats);
+    Promise.all([bridge.reasoningFormats(editingPackage), bridge.reasoningEfforts(editingPackage)])
+      .then(([formats, efforts]) => {
+        if (cancelled) return;
+        setReasoningFormats(formats);
+        setReasoningEfforts(efforts);
       })
       .catch((err) => {
         if (!cancelled) onError(String(err));

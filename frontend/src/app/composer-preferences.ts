@@ -1,4 +1,5 @@
 import type { AgentEffort, AgentPolicy } from "../types";
+import { AUTO_EFFORT, EFFORT_ORDER } from "./model-selection";
 
 // What the user last chose in the composer, so reopening the app does not fall back to defaults.
 // UI preference only (refs and enums, never keys). The execution target (Local/Worktree) is
@@ -14,7 +15,7 @@ export type ComposerPreferences = {
 
 const KEY = "lcx-composer";
 const POLICIES: AgentPolicy[] = ["read-only", "workspace", "full"];
-const EFFORTS: AgentEffort[] = ["none", "low", "medium", "high", "max", "auto"];
+const EFFORTS: AgentEffort[] = [...EFFORT_ORDER, AUTO_EFFORT];
 
 export const defaultComposerPreferences: ComposerPreferences = { policy: "workspace", agentId: "agent" };
 

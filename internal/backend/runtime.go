@@ -418,16 +418,12 @@ func agentOptionsFor(cfg AgentConfig, toolDenylist []string, input string) lcx.A
 	}
 }
 
-// validEffort accepts the five concrete levels and "auto"; "" leaves Core's configured default in
+// validEffort accepts Core's concrete levels and "auto"; "" leaves Core's configured default in
 // charge. Core performs the same check against the model, but refusing here keeps an unknown
 // string from ever reaching a run.
 func validEffort(effort string) bool {
-	switch config.Effort(strings.TrimSpace(effort)) {
-	case "", config.EffortNone, config.EffortLow, config.EffortMedium, config.EffortHigh, config.EffortMax, config.EffortAuto:
-		return true
-	default:
-		return false
-	}
+	e := config.Effort(strings.TrimSpace(effort))
+	return e == "" || e == config.EffortAuto || e.IsLevel()
 }
 
 func (r *Runtime) ContinueAgent(ctx context.Context, sessionID, content string, cfg AgentConfig) (Session, error) {

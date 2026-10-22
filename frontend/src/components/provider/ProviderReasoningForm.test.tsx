@@ -92,7 +92,8 @@ describe("model reasoning settings", () => {
     mocks.providerCredentialStatus.mockResolvedValue({ providerId: "local-anthropic", scope: "global", source: "none", set: false });
     // Core's answer for the anthropic-messages package: the default and adaptive, nothing else.
     mocks.reasoningFormats.mockResolvedValue(["", "adaptive"]);
-    mocks.reasoningEfforts.mockResolvedValue(["none", "low", "medium", "high", "max"]);
+    // Core's levels for the package: adaptive thinking accepts neither none nor minimal.
+    mocks.reasoningEfforts.mockResolvedValue({ levels: ["none", "minimal", "low", "medium", "high", "xhigh", "max"], accepted: { "": ["none", "minimal", "low", "medium", "high", "xhigh", "max"], adaptive: ["low", "medium", "high", "xhigh", "max"] } });
   });
 
   it("takes the format choices from Core for the provider's package", async () => {
@@ -120,10 +121,13 @@ describe("model reasoning settings", () => {
     await user.click(form.getByRole("button", { name: "Reasoning format" }));
     await user.click(screen.getByRole("option", { name: "adaptive" }));
 
-    // Adaptive thinking cannot be turned off, so the form refuses "none" before the save does.
+    // The levels adaptive does not accept are refused before the save is; the rest of Core's ladder,
+    // xhigh included, is offered.
+    await waitFor(() => expect(mocks.reasoningEfforts).toHaveBeenCalledWith("anthropic-messages"));
     expect(form.getByRole("checkbox", { name: "None" })).toBeDisabled();
+    expect(form.getByRole("checkbox", { name: "Minimal" })).toBeDisabled();
     await user.click(form.getByRole("checkbox", { name: "Low" }));
-    await user.click(form.getByRole("checkbox", { name: "High" }));
+    await user.click(form.getByRole("checkbox", { name: "Extra high" }));
     expect(form.getByRole("checkbox", { name: "Low" })).toBeChecked();
 
     await user.click(form.getByRole("button", { name: "Save" }));
@@ -133,10 +137,30 @@ describe("model reasoning settings", () => {
     const provider = (sent as ProviderCatalogDocument).catalog.providers["local-anthropic"]!;
     expect(provider.models!.opus!.reasoning).toEqual({
       format: "adaptive",
-      efforts: ["low", "high"],
+      efforts: ["low", "xhigh"],
     });
     // The fields outside the edit are untouched.
     expect(provider.package).toBe("anthropic-messages");
+  });
+
+  it("drops a ticked level the newly chosen format does not accept", async () => {
+    const user = userEvent.setup();
+    mocks.saveProviderCatalogScope.mockImplementation(async (_scope: ProviderCatalogScope, sent: ProviderCatalogDocument) => ({ ...sent, digest: "sha256:two" }));
+    renderPanel();
+    const form = await openModelForm(user);
+    await waitFor(() => expect(mocks.reasoningEfforts).toHaveBeenCalledWith("anthropic-messages"));
+
+    await user.click(form.getByRole("checkbox", { name: "Minimal" }));
+    await user.click(form.getByRole("checkbox", { name: "Max" }));
+    await user.click(form.getByRole("button", { name: "Reasoning format" }));
+    await user.click(screen.getByRole("option", { name: "adaptive" }));
+    expect(form.getByRole("checkbox", { name: "Minimal" })).not.toBeChecked();
+
+    await user.click(form.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(mocks.saveProviderCatalogScope).toHaveBeenCalledTimes(1));
+    const [, sent] = mocks.saveProviderCatalogScope.mock.calls[0]!;
+    expect((sent as ProviderCatalogDocument).catalog.providers["local-anthropic"]!.models!.opus!.reasoning)
+      .toEqual({ format: "adaptive", efforts: ["max"] });
   });
 
   it("shows Core's refusal in the form instead of only in the app notice", async () => {

@@ -544,7 +544,11 @@ export type ConcurrencyState = {
 
 // A per-model reasoning level, or "auto" (Core classifies each turn and resolves one level; the
 // heuristic applies when no effort.auto.model judge is configured).
-export type AgentEffort = "none" | "low" | "medium" | "high" | "max" | "auto";
+// Core's effort ladder, lowest first, and per reasoning.format of one provider package the levels
+// that format accepts (backend.ReasoningEffortChoices).
+export type ReasoningEffortChoices = { levels: string[]; accepted: Record<string, string[]> };
+
+export type AgentEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" | "auto";
 
 export type AgentConfig = {
   modelRef?: string;

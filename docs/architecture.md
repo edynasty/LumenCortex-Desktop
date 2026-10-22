@@ -71,7 +71,7 @@ anthropic-messages) and redact the key from every error an upstream echoes it in
 A model's `reasoning` object is part of the provider catalog the panel edits: `format` (how effort
 is encoded) and `efforts` (the levels the model accepts). The panel never carries its own list of
 either: `App.GetReasoningFormats(pkg)` returns `config.ReasoningFormats` for the provider's
-`package`, and `App.GetReasoningEfforts` returns Core's five levels, so a value Core adds or drops
+`package`, and `App.GetReasoningEfforts(pkg)` returns Core's effort ladder and the levels each of the package's formats accepts (`config.ReasoningEfforts`), so a value or rule Core adds or drops
 appears in the form without a frontend change. `reasoning.echo` stays outside the DTO and survives
 every save, like `headers` and `timeouts`.
 

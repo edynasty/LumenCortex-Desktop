@@ -21,7 +21,22 @@ export function executableModels(models: ModelInfo[]): ModelInfo[] {
 // Core's reasoning-effort order (internal/agent effortOrder); the picker lists a model's levels in it.
 // "auto" is a request value, not a level: it is never part of this order and never appears in a
 // model's reasoning.efforts list, so orderedEfforts drops it if a configuration names it there.
-export const EFFORT_ORDER: AgentEffort[] = ["none", "low", "medium", "high", "max"];
+export const EFFORT_ORDER: AgentEffort[] = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+export type EffortLabelKey =
+  | "effortNone" | "effortMinimal" | "effortLow" | "effortMedium" | "effortHigh" | "effortXHigh" | "effortMax" | "effortAuto";
+
+// The app-copy key of each effort value; every picker and list labels a level through it.
+export const EFFORT_LABEL_KEY: Record<AgentEffort, EffortLabelKey> = {
+  none: "effortNone",
+  minimal: "effortMinimal",
+  low: "effortLow",
+  medium: "effortMedium",
+  high: "effortHigh",
+  xhigh: "effortXHigh",
+  max: "effortMax",
+  auto: "effortAuto",
+};
 
 // AUTO_EFFORT asks Core to classify each turn's difficulty and resolve one level before the first
 // request. It needs no judge model (the heuristic fallback always applies), so it is offered for

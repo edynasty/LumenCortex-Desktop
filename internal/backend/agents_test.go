@@ -895,7 +895,7 @@ func TestAgentPresetsUseCoreDefinitionsAndOMPRoles(t *testing.T) {
 	if reviewer.Use != "both" || reviewer.Policy != "read-only" || reviewer.Effort != "high" || reviewer.OMPRole != "slow" {
 		t.Fatalf("reviewer = %+v", reviewer)
 	}
-	wantReviewer := []AgentModelItem{{Model: "test/a", Effort: "high"}, {Model: "test/b", Effort: "max"}}
+	wantReviewer := []AgentModelItem{{Model: "test/a", Effort: "high"}, {Model: "test/b", Effort: "xhigh"}}
 	if !slices.Equal(reviewer.Models, wantReviewer) {
 		t.Fatalf("reviewer models = %v, want %v", reviewer.Models, wantReviewer)
 	}

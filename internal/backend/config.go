@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -500,78 +499,28 @@ func ReasoningFormats(pkg string) []string {
 	return formats
 }
 
-// ReasoningEfforts returns Core's effort levels, lowest first, for a model's efforts list.
-func ReasoningEfforts() []string {
-	return []string{
-		string(config.EffortNone), string(config.EffortLow), string(config.EffortMedium),
-		string(config.EffortHigh), string(config.EffortMax),
-	}
+// ReasoningEffortChoices is what a model's efforts list may hold: Core's whole ladder, lowest
+// first, and per reasoning.format of the package the levels that format accepts.
+type ReasoningEffortChoices struct {
+	Levels   []string            `json:"levels"`
+	Accepted map[string][]string `json:"accepted"`
 }
 
-// checkReasoning refuses a save Core's loader would refuse: a format the provider's package does
-// not implement, or adaptive with "none", because adaptive thinking cannot be turned off. Core
-// enforces both rules on the merged catalog at every load; checking here means the panel reports
-// the problem instead of leaving a file Core can no longer read. The accepted formats and levels
-// come from Core, so only the adaptive/none pairing is restated.
+// ReasoningEfforts returns Core's effort ladder and, for each format the package implements, the
+// levels it accepts (config.ReasoningEfforts). Core owns both, so the panel restates no rule.
+func ReasoningEfforts(pkg string) ReasoningEffortChoices {
+	choices := ReasoningEffortChoices{Levels: effortStrings(config.EffortLevels()), Accepted: map[string][]string{}}
+	for _, format := range config.ReasoningFormats(pkg) {
+		choices.Accepted[format] = effortStrings(config.ReasoningEfforts(pkg, format))
+	}
+	return choices
+}
+
+// checkReasoning refuses a save Core's loader would refuse (a format the provider's package does
+// not implement, or a level the format does not accept), so the panel reports the problem instead
+// of leaving a file Core can no longer read. It is Core's own check.
 func checkReasoning(file config.File) error {
-	for _, pid := range sortedProviderIDs(file.Providers) {
-		p := file.Providers[pid]
-		pkg, err := config.NormalizePackage(p.Package)
-		if err != nil {
-			// An unknown package is reported when a model of the provider is resolved.
-			continue
-		}
-		for _, key := range sortedModelIDs(p.Models) {
-			r := p.Models[key].Reasoning
-			if r == nil {
-				continue
-			}
-			format := strings.ToLower(strings.TrimSpace(r.Format))
-			if !slices.Contains(config.ReasoningFormats(pkg), format) {
-				return fmt.Errorf("%w: providers.%s.models.%s.reasoning.format: %q is not accepted by package %s (accepted: %s)",
-					config.ErrInvalidConfig, pid, key, r.Format, pkg, reasoningFormatList(pkg))
-			}
-			if format == config.ReasoningAdaptive && slices.Contains(r.Efforts, config.EffortNone) {
-				return fmt.Errorf("%w: providers.%s.models.%s.reasoning.efforts: %q is not accepted with reasoning.format %q, "+
-					"because adaptive thinking cannot be turned off; remove the level",
-					config.ErrInvalidConfig, pid, key, config.EffortNone, config.ReasoningAdaptive)
-			}
-		}
-	}
-	return nil
-}
-
-// reasoningFormatList names a package's accepted formats the way Core's own error does: the
-// default is described, the rest are quoted.
-func reasoningFormatList(pkg string) string {
-	formats := config.ReasoningFormats(pkg)
-	parts := make([]string, len(formats))
-	for i, format := range formats {
-		if format == "" {
-			parts[i] = `"" (the package default)`
-			continue
-		}
-		parts[i] = strconv.Quote(format)
-	}
-	return strings.Join(parts, ", ")
-}
-
-func sortedProviderIDs(providers map[string]config.Provider) []string {
-	ids := make([]string, 0, len(providers))
-	for id := range providers {
-		ids = append(ids, id)
-	}
-	slices.Sort(ids)
-	return ids
-}
-
-func sortedModelIDs(models map[string]config.Model) []string {
-	keys := make([]string, 0, len(models))
-	for key := range models {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	return keys
+	return config.ValidateProviderReasoning(file.Providers)
 }
 
 // checkReferences refuses a save that would leave a model reference, in either file, pointing at a

@@ -82,7 +82,7 @@ export const providerCopy = {
     ,reasoningFormatHint: "由协议决定可选值：Anthropic Messages 可选 adaptive（模型自行决定思考量），其他协议按各自的方式传递档位。"
     ,reasoningEfforts: "支持的档位"
     ,reasoningEffortsHint: "不勾选表示不限制：请求的档位原样传给模型。"
-    ,reasoningAdaptiveNoNone: "adaptive 思考无法关闭，因此不能包含「无」。"
+    ,reasoningAdaptiveNoNone: "adaptive 思考无法关闭，也没有「极低」档，因此不能包含「无」和「极低」。"
     ,reasoningNoOptions: "这个协议没有可选的推理格式。"
   },
   en: {
@@ -166,7 +166,7 @@ export const providerCopy = {
     ,reasoningFormatHint: "The protocol decides the choices: Anthropic Messages offers adaptive (the model decides how much to think); other protocols send the level their own way."
     ,reasoningEfforts: "Accepted levels"
     ,reasoningEffortsHint: "Nothing ticked means no restriction: the requested level is passed to the model as it is."
-    ,reasoningAdaptiveNoNone: "Adaptive thinking cannot be turned off, so None is not available."
+    ,reasoningAdaptiveNoNone: "Adaptive thinking cannot be turned off and has no Minimal level, so None and Minimal are not available."
     ,reasoningNoOptions: "This protocol has no reasoning format to choose."
   }
 } as const;

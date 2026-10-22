@@ -31,20 +31,25 @@ func TestReasoningFormatsFollowThePackage(t *testing.T) {
 	}
 }
 
-func TestReasoningEffortsListsCoreLevelsLowestFirst(t *testing.T) {
-	want := []string{"none", "low", "medium", "high", "max"}
-	got := ReasoningEfforts()
-	if len(got) != len(want) {
-		t.Fatalf("efforts=%v, want %v", got, want)
+// The panel's levels and the per-format restrictions come from Core: adaptive thinking accepts
+// neither none nor minimal, every other anthropic-messages format the whole ladder.
+func TestReasoningEffortsFollowTheFormat(t *testing.T) {
+	got := ReasoningEfforts("anthropic-messages")
+	ladder := strings.Join(got.Levels, ",")
+	if ladder != "none,minimal,low,medium,high,xhigh,max" {
+		t.Fatalf("levels=%s", ladder)
 	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Fatalf("efforts=%v, want %v", got, want)
-		}
+	if adaptive := strings.Join(got.Accepted["adaptive"], ","); adaptive != "low,medium,high,xhigh,max" {
+		t.Fatalf("adaptive accepts %s", adaptive)
 	}
-	got[0] = "tampered"
-	if ReasoningEfforts()[0] != "none" {
-		t.Fatal("ReasoningEfforts leaked its slice")
+	if budget := strings.Join(got.Accepted[""], ","); budget != ladder {
+		t.Fatalf("package default accepts %s", budget)
+	}
+	if len(got.Accepted) != 2 {
+		t.Fatalf("accepted=%v, want one entry per anthropic-messages format", got.Accepted)
+	}
+	if unknown := ReasoningEfforts("no-such-package"); len(unknown.Accepted) != 0 {
+		t.Fatalf("unknown package accepted=%v", unknown.Accepted)
 	}
 }
 
@@ -98,7 +103,7 @@ func TestSaveProviderCatalogScopeRoundTripsReasoning(t *testing.T) {
 	}
 }
 
-// Core refuses adaptive with none at load time; the save refuses it first, so the file on disk
+// Core refuses adaptive with none or minimal at load time; the save refuses it first, so the file on disk
 // stays loadable and the panel can show the reason.
 func TestSaveProviderCatalogScopeRefusesReasoningCoreWouldReject(t *testing.T) {
 	cases := map[string]struct {
@@ -108,6 +113,7 @@ func TestSaveProviderCatalogScopeRefusesReasoningCoreWouldReject(t *testing.T) {
 		want    string
 	}{
 		"adaptive with none":        {"anthropic-messages", "adaptive", []string{"low", "none"}, "reasoning.efforts"},
+		"adaptive with minimal":     {"anthropic-messages", "adaptive", []string{"minimal", "high"}, "reasoning.efforts[0]"},
 		"format of another package": {"anthropic-messages", "deepseek", nil, "reasoning.format"},
 	}
 	for name, tc := range cases {
