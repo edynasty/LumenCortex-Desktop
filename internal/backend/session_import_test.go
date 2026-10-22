@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
+
+	lcx "github.com/edynasty/LumenCortex/runtime"
 )
 
 // The OMP fixture copied from Core (internal/ompsession/testdata): a real-format 18.12 session with
@@ -21,6 +24,8 @@ const (
 	ompFixtureName    = "2026-10-01T08-00-00-000Z_" + ompFixtureID + ".jsonl"
 	ompOtherID        = "01a10000-0000-7000-8000-000000000002"
 	ompOtherName      = "2026-10-02T08-00-00-000Z_" + ompOtherID + ".jsonl"
+	ompSourceID       = "omp"
+	ompPluginID       = "omp-import"
 )
 
 // useOMPFixture copies the fixture into a private agent directory, points PI_CODING_AGENT_DIR at it
@@ -119,7 +124,7 @@ func copyTree(from, to string) error {
 	})
 }
 
-func openOMPRuntime(t *testing.T, workspace string) *Runtime {
+func openImportRuntime(t *testing.T, workspace string) *Runtime {
 	t.Helper()
 	useConfigDir(t)
 	r := New()
@@ -131,13 +136,13 @@ func openOMPRuntime(t *testing.T, workspace string) *Runtime {
 }
 
 // The dialog's default list is this workspace's sessions; the toggle widens it to every workspace.
-func TestListOMPSessionsFiltersByWorkspace(t *testing.T) {
+func TestListImportSessionsFiltersByWorkspace(t *testing.T) {
 	workspace := t.TempDir()
 	useOMPFixture(t, workspace)
-	r := openOMPRuntime(t, workspace)
+	r := openImportRuntime(t, workspace)
 	ctx := context.Background()
 
-	mine, err := r.ListOMPSessions(ctx, OMPListOptions{})
+	mine, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,14 +150,14 @@ func TestListOMPSessionsFiltersByWorkspace(t *testing.T) {
 		t.Fatalf("workspace list = %+v", mine)
 	}
 	session := mine[0]
-	if session.ID != ompFixtureID || session.Title != "Fix the parser bug" || !session.WorkspaceMatch {
+	if session.Source != ompSourceID || session.ID != ompFixtureID || session.Title != "Fix the parser bug" || !session.WorkspaceMatch {
 		t.Fatalf("summary %+v", session)
 	}
 	if session.Cwd != workspace || session.Size <= 0 || session.Children != 2 || session.Imported != nil {
 		t.Fatalf("summary %+v", session)
 	}
 
-	all, err := r.ListOMPSessions(ctx, OMPListOptions{All: true})
+	all, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{All: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,14 +168,14 @@ func TestListOMPSessionsFiltersByWorkspace(t *testing.T) {
 		t.Fatalf("all is newest first: %+v", all)
 	}
 
-	query, err := r.ListOMPSessions(ctx, OMPListOptions{All: true, Query: "parser"})
+	query, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{All: true, Query: "parser"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(query) != 1 || query[0].ID != ompFixtureID {
 		t.Fatalf("query = %+v", query)
 	}
-	other, err := r.ListOMPSessions(ctx, OMPListOptions{All: true, Query: "indexer"})
+	other, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{All: true, Query: "indexer"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +183,7 @@ func TestListOMPSessionsFiltersByWorkspace(t *testing.T) {
 		t.Fatalf("query = %+v", other)
 	}
 
-	limited, err := r.ListOMPSessions(ctx, OMPListOptions{All: true, Limit: 1})
+	limited, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{All: true, Limit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,10 +193,10 @@ func TestListOMPSessionsFiltersByWorkspace(t *testing.T) {
 }
 
 // Preview reads the source and the workspace, and writes neither.
-func TestPreviewOMPSessionWritesNothing(t *testing.T) {
+func TestPreviewImportWritesNothing(t *testing.T) {
 	workspace := t.TempDir()
 	agentDir := useOMPFixture(t, workspace)
-	r := openOMPRuntime(t, workspace)
+	r := openImportRuntime(t, workspace)
 	ctx := context.Background()
 	path := filepath.Join(agentDir, "sessions", ompFixtureProject, ompFixtureName)
 	before, err := os.ReadFile(path)
@@ -199,7 +204,7 @@ func TestPreviewOMPSessionWritesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	preview, err := r.PreviewOMPSession(ctx, "", path)
+	preview, err := r.PreviewImport(ctx, ompSourceID, "", path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,14 +231,14 @@ func TestPreviewOMPSessionWritesNothing(t *testing.T) {
 }
 
 // Import writes the tree once; importing the same source again reports it and writes nothing.
-func TestImportOMPSessionIsIdempotent(t *testing.T) {
+func TestImportSessionIsIdempotent(t *testing.T) {
 	workspace := t.TempDir()
 	agentDir := useOMPFixture(t, workspace)
-	r := openOMPRuntime(t, workspace)
+	r := openImportRuntime(t, workspace)
 	ctx := context.Background()
 	path := filepath.Join(agentDir, "sessions", ompFixtureProject, ompFixtureName)
 
-	first, err := r.ImportOMPSession(ctx, "", path)
+	first, err := r.ImportSession(ctx, ompSourceID, "", path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +253,7 @@ func TestImportOMPSessionIsIdempotent(t *testing.T) {
 		t.Fatalf("session %+v", session)
 	}
 
-	listed, err := r.ListOMPSessions(ctx, OMPListOptions{})
+	listed, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +261,7 @@ func TestImportOMPSessionIsIdempotent(t *testing.T) {
 		t.Fatalf("listed after import %+v", listed)
 	}
 
-	second, err := r.ImportOMPSession(ctx, "", path)
+	second, err := r.ImportSession(ctx, ompSourceID, "", path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,13 +273,13 @@ func TestImportOMPSessionIsIdempotent(t *testing.T) {
 	}
 }
 
-// No OMP directory (a fresh machine) is an empty list, not a failure.
-func TestListOMPSessionsWithoutOMPDirectory(t *testing.T) {
+// No source directory (a fresh machine) is an empty list, not a failure.
+func TestListImportSessionsWithoutSourceDirectory(t *testing.T) {
 	workspace := t.TempDir()
 	t.Setenv("PI_CODING_AGENT_DIR", filepath.Join(t.TempDir(), "missing"))
-	r := openOMPRuntime(t, workspace)
+	r := openImportRuntime(t, workspace)
 
-	sessions, err := r.ListOMPSessions(context.Background(), OMPListOptions{All: true})
+	sessions, err := r.ListImportSessions(context.Background(), ompSourceID, ImportListOptions{All: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,18 +288,105 @@ func TestListOMPSessionsWithoutOMPDirectory(t *testing.T) {
 	}
 }
 
-// The adapter needs an open workspace: the import writes into it.
-func TestOMPSessionsRequireWorkspace(t *testing.T) {
+// The adapter needs an open workspace: the import writes into it, and the plugins are its Engine's.
+func TestSessionImportRequiresWorkspace(t *testing.T) {
 	useConfigDir(t)
 	r := New()
 	t.Cleanup(func() { r.Close() })
-	if _, err := r.ListOMPSessions(context.Background(), OMPListOptions{}); err != ErrNoWorkspace {
+	ctx := context.Background()
+	if _, err := r.ImportSources(ctx); err != ErrNoWorkspace {
+		t.Fatalf("sources error = %v", err)
+	}
+	if _, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{}); err != ErrNoWorkspace {
 		t.Fatalf("list error = %v", err)
 	}
-	if _, err := r.PreviewOMPSession(context.Background(), "", "x.jsonl"); err != ErrNoWorkspace {
+	if _, err := r.PreviewImport(ctx, ompSourceID, "", "x.jsonl"); err != ErrNoWorkspace {
 		t.Fatalf("preview error = %v", err)
 	}
-	if _, err := r.ImportOMPSession(context.Background(), "", "x.jsonl"); err != ErrNoWorkspace {
+	if _, err := r.ImportSession(ctx, ompSourceID, "", "x.jsonl"); err != ErrNoWorkspace {
 		t.Fatalf("import error = %v", err)
+	}
+	if _, err := r.Plugins(ctx); err != ErrNoWorkspace {
+		t.Fatalf("plugins error = %v", err)
+	}
+	if err := r.SetPluginEnabled(ctx, ompPluginID, false); err != ErrNoWorkspace {
+		t.Fatalf("set enabled error = %v", err)
+	}
+}
+
+// The built-in OMP plugin is the catalog's one source; disabling it removes the source and refuses
+// imports, and enabling it again restores both.
+func TestDisablingImportPluginRemovesItsSource(t *testing.T) {
+	workspace := t.TempDir()
+	agentDir := useOMPFixture(t, workspace)
+	r := openImportRuntime(t, workspace)
+	ctx := context.Background()
+	path := filepath.Join(agentDir, "sessions", ompFixtureProject, ompFixtureName)
+
+	sources, err := r.ImportSources(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != 1 {
+		t.Fatalf("sources = %+v", sources)
+	}
+	if got := sources[0]; got.ID != ompSourceID || got.Name != "OMP" || got.Converter < 1 || got.DefaultRoot != filepath.Join(agentDir, "sessions") {
+		t.Fatalf("source = %+v", got)
+	}
+
+	catalog, err := r.Plugins(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalog.APIVersion < 1 || catalog.StatePath == "" || catalog.StateError != "" {
+		t.Fatalf("catalog = %+v", catalog)
+	}
+	if len(catalog.Plugins) != 1 {
+		t.Fatalf("plugins = %+v", catalog.Plugins)
+	}
+	plugin := catalog.Plugins[0]
+	if plugin.Manifest.ID != ompPluginID || !plugin.Builtin || !plugin.Enabled || plugin.State != lcx.PluginRunning {
+		t.Fatalf("plugin = %+v", plugin)
+	}
+	if len(plugin.Manifest.Capabilities) != 1 || plugin.Manifest.Capabilities[0] != "session-import" {
+		t.Fatalf("capabilities = %+v", plugin.Manifest.Capabilities)
+	}
+	if plugin.ImportSource == nil || plugin.ImportSource.ID != ompSourceID {
+		t.Fatalf("import source = %+v", plugin.ImportSource)
+	}
+
+	if err := r.SetPluginEnabled(ctx, ompPluginID, false); err != nil {
+		t.Fatal(err)
+	}
+	if sources, err := r.ImportSources(ctx); err != nil || len(sources) != 0 {
+		t.Fatalf("sources after disabling = %+v, %v", sources, err)
+	}
+	if _, err := r.ImportSession(ctx, ompSourceID, "", path); !errors.Is(err, lcx.ErrImportSourceNotFound) {
+		t.Fatalf("disabled source still imports: %v", err)
+	}
+	if _, err := r.ListImportSessions(ctx, ompSourceID, ImportListOptions{}); !errors.Is(err, lcx.ErrImportSourceNotFound) {
+		t.Fatalf("disabled source still lists: %v", err)
+	}
+	if sessions, err := r.ListSessions(ctx, 100, 0); err != nil || len(sessions) != 0 {
+		t.Fatalf("a refused import wrote %d sessions (%v)", len(sessions), err)
+	}
+	if catalog, err := r.Plugins(ctx); err != nil {
+		t.Fatal(err)
+	} else if catalog.Plugins[0].Enabled || catalog.Plugins[0].State != lcx.PluginDisabled {
+		t.Fatalf("disabled plugin = %+v", catalog.Plugins[0])
+	}
+
+	if err := r.SetPluginEnabled(ctx, ompPluginID, true); err != nil {
+		t.Fatal(err)
+	}
+	sources, err = r.ImportSources(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != 1 || sources[0].ID != ompSourceID {
+		t.Fatalf("sources after enabling = %+v", sources)
+	}
+	if _, err := r.PreviewImport(ctx, ompSourceID, "", path); err != nil {
+		t.Fatalf("re-enabled source: %v", err)
 	}
 }

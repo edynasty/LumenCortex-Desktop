@@ -460,21 +460,38 @@ func (a *App) SaveToolPermissions(value backend.ToolPermissions) (backend.ToolPe
 	return a.backend.SaveToolPermissions(value)
 }
 
-// ListOMPSessions lists the OMP sessions the import dialog may show. The source directory is
-// always OMP's default one; All widens the list from this workspace to every workspace.
-func (a *App) ListOMPSessions(opts backend.OMPListOptions) ([]backend.OMPSessionSummary, error) {
-	return a.backend.ListOMPSessions(context.Background(), opts)
+// ImportSources lists the session import sources whose plugin is running. A disabled or failed
+// plugin has no source, so the import dialog shows an empty state instead of a list.
+func (a *App) ImportSources() ([]backend.ImportSource, error) {
+	return a.backend.ImportSources(context.Background())
 }
 
-// PreviewOMPSession reports what importing one OMP session would write; it writes nothing.
-func (a *App) PreviewOMPSession(path string) (backend.OMPImportPreview, error) {
-	return a.backend.PreviewOMPSession(context.Background(), "", path)
+// ListImportSessions lists one source's sessions for the import dialog. The source directory is
+// always the source's default one; All widens the list from this workspace to every workspace.
+func (a *App) ListImportSessions(source string, opts backend.ImportListOptions) ([]backend.ImportSessionSummary, error) {
+	return a.backend.ListImportSessions(context.Background(), source, opts)
 }
 
-// ImportOMPSession imports one OMP session and its subagents as native sessions of this workspace.
+// PreviewImport reports what importing one session of a source would write; it writes nothing.
+func (a *App) PreviewImport(source, path string) (backend.ImportPreview, error) {
+	return a.backend.PreviewImport(context.Background(), source, "", path)
+}
+
+// ImportSession imports one session and its subagents as native sessions of this workspace.
 // Importing a session imported before writes nothing and reports alreadyImported.
-func (a *App) ImportOMPSession(path string) (backend.OMPImportResult, error) {
-	return a.backend.ImportOMPSession(context.Background(), "", path)
+func (a *App) ImportSession(source, path string) (backend.ImportResult, error) {
+	return a.backend.ImportSession(context.Background(), source, "", path)
+}
+
+// Plugins lists the registered plugins with their enablement, state and failures (ADR-0012).
+func (a *App) Plugins() (backend.PluginCatalog, error) {
+	return a.backend.Plugins(context.Background())
+}
+
+// SetPluginEnabled enables or disables a plugin for every workspace and applies it to the open
+// Engine now.
+func (a *App) SetPluginEnabled(id string, enabled bool) error {
+	return a.backend.SetPluginEnabled(context.Background(), id, enabled)
 }
 
 // GetAgents returns Core's merged agent catalog: the four built-ins first, then the custom agents.

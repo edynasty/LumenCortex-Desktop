@@ -69,6 +69,7 @@ import {
  Network,
  Pin,
   Plug,
+  Puzzle,
   Plus,
   RotateCcw,
   RefreshCw,
@@ -160,6 +161,8 @@ export const Icons = {
   /** The agent profile catalog: named presets of Ask/Agent behavior. */
   agents: Users,
   mcp: Plug,
+  /** An in-process plugin (ADR-0012): its catalog and enablement. */
+  plugin: Puzzle,
   skill: BookOpen,
   /** A compiled-in specialist the user may copy into the catalog. */
   preset: LayoutTemplate,

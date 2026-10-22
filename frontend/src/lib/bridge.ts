@@ -20,10 +20,12 @@ import type {
   MCPStatus,
   Message,
   MessagePage,
-  OMPImportPreview,
-  OMPImportResult,
-  OMPListOptions,
-  OMPSessionSummary,
+  ImportListOptions,
+  ImportPreview,
+  ImportResult,
+  ImportSessionSummary,
+  ImportSource,
+  PluginCatalog,
   AgentConcurrency,
   ConfigState,
   CredentialStatus,
@@ -149,9 +151,12 @@ export type AppAPI = {
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
   GetAgents(): Promise<AgentCatalog>;
   GetAgentPresets(): Promise<AgentEntry[]>;
-  ListOMPSessions(opts: OMPListOptions): Promise<OMPSessionSummary[]>;
-  PreviewOMPSession(path: string): Promise<OMPImportPreview>;
-  ImportOMPSession(path: string): Promise<OMPImportResult>;
+  ImportSources(): Promise<ImportSource[]>;
+  ListImportSessions(source: string, opts: ImportListOptions): Promise<ImportSessionSummary[]>;
+  PreviewImport(source: string, path: string): Promise<ImportPreview>;
+  ImportSession(source: string, path: string): Promise<ImportResult>;
+  Plugins(): Promise<PluginCatalog>;
+  SetPluginEnabled(id: string, enabled: boolean): Promise<void>;
   SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
   MigrateSubagentModel(): Promise<SubagentModelMigration>;
@@ -267,10 +272,14 @@ export const bridge = {
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
   agents: () => api().GetAgents(),
   agentPresets: () => api().GetAgentPresets(),
-  // OMP session import (ADR-0011): list, preview and import always read OMP's default directory.
-  ompSessions: (opts: OMPListOptions = {}) => api().ListOMPSessions(opts),
-  previewOMPSession: (path: string) => api().PreviewOMPSession(path),
-  importOMPSession: (path: string) => api().ImportOMPSession(path),
+  // Session import (ADR-0012): list, preview and import always read the source's default
+  // directory, so the UI never chooses one.
+  importSources: () => api().ImportSources(),
+  importSessions: (source: string, opts: ImportListOptions = {}) => api().ListImportSessions(source, opts),
+  previewImport: (source: string, path: string) => api().PreviewImport(source, path),
+  importSession: (source: string, path: string) => api().ImportSession(source, path),
+  plugins: () => api().Plugins(),
+  setPluginEnabled: (id: string, enabled: boolean) => api().SetPluginEnabled(id, enabled),
   saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
   deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
   migrateSubagentModel: () => api().MigrateSubagentModel(),

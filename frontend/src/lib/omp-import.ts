@@ -1,18 +1,18 @@
 import type { AppCopy } from "./i18n/app-copy";
-import type { OMPImportPreview, OMPSessionSummary, OMPWarning } from "../types";
+import type { ImportPreview, ImportSessionSummary, ImportWarning } from "../types";
 
 // The import dialog's list bound. Core defaults to 100 and caps at 500; the dialog asks for the
 // default and tells the user to narrow a full list with the search.
-export const OMP_IMPORT_LIST_LIMIT = 100;
+export const IMPORT_LIST_LIMIT = 100;
 
-// An OMP session may have no title slot; its id is then the only stable name.
-export function ompSessionTitle(session: OMPSessionSummary): string {
+// A source session may have no title slot; its id is then the only stable name.
+export function ompSessionTitle(session: ImportSessionSummary): string {
   return session.title?.trim() || session.id;
 }
 
 // A preview warning carries a stable code and Core's English explanation. A code this build knows
 // gets the localized copy; an unknown one falls back to that English message, never to nothing.
-export function ompWarningText(labels: AppCopy, warning: OMPWarning): string {
+export function ompWarningText(labels: AppCopy, warning: ImportWarning): string {
   switch (warning.code) {
     case "workspace_mismatch":
       return labels.ompWarnWorkspaceMismatch;
@@ -45,14 +45,14 @@ export function formatByteSize(bytes: number): string {
   return `${value >= 10 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
 }
 
-export type OMPStatRow = { key: string; label: string; value: number };
+export type ImportStatRow = { key: string; label: string; value: number };
 
 // The counts the preview shows. The omissions are shown even at zero: "0 thinking blocks left out"
 // is the statement that nothing hidden was dropped, not an absent row. Rare findings (off-branch
 // records, malformed records, subagents beyond the bound) appear only when they happened.
-export function ompStatRows(preview: OMPImportPreview, labels: AppCopy): OMPStatRow[] {
+export function ompStatRows(preview: ImportPreview, labels: AppCopy): ImportStatRow[] {
   const stats = preview.stats;
-  const rows: OMPStatRow[] = [
+  const rows: ImportStatRow[] = [
     { key: "messages", label: labels.ompImportMessages, value: stats.userMessages + stats.assistantMessages },
     { key: "toolCalls", label: labels.ompImportToolCalls, value: stats.toolCalls },
     { key: "subagents", label: labels.ompImportSubagentCount, value: preview.children?.length ?? 0 },

@@ -1,8 +1,8 @@
 /*
  * Settings: one sheet over any page (⌘,). Panes are the product's real configuration surfaces:
- * appearance, the provider/model catalogue, tool permissions, MCP servers, skills, workspace
- * trust and identity. The sheet stays mounted after its first open so unsaved provider and
- * extension edits survive closing it.
+ * appearance, the provider/model catalogue, tool permissions, MCP servers, skills, plugins,
+ * workspace trust and identity. The sheet stays mounted after its first open so unsaved provider
+ * and extension edits survive closing it.
  */
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
 import type { ThemePreference } from "../../lib/theme";
@@ -14,9 +14,10 @@ import type { IconName } from "../primitives/icons";
 import { Modal } from "../primitives/Modal";
 import { ProviderSettingsPanel } from "../provider/ProviderSettingsPanel";
 import { extensionsLabels } from "./extensions-labels";
+import { PluginsPane } from "./PluginsPane";
 import { AboutPane, GeneralPane, WorkspacePane } from "./SettingsPanes";
 
-export type SettingsPane = "general" | "models" | "permissions" | "mcp" | "skills" | "workspace" | "about";
+export type SettingsPane = "general" | "models" | "permissions" | "mcp" | "skills" | "plugins" | "workspace" | "about";
 
 const NAV: { pane: SettingsPane; icon: IconName; label: keyof AppCopy }[] = [
   { pane: "general", icon: "tune", label: "settingsGeneral" },
@@ -24,6 +25,7 @@ const NAV: { pane: SettingsPane; icon: IconName; label: keyof AppCopy }[] = [
   { pane: "permissions", icon: "permission", label: "settingsPermissions" },
   { pane: "mcp", icon: "mcp", label: "settingsMcp" },
   { pane: "skills", icon: "skill", label: "settingsSkills" },
+  { pane: "plugins", icon: "plugin", label: "settingsPlugins" },
   { pane: "workspace", icon: "lock", label: "settingsTrust" },
   { pane: "about", icon: "about", label: "settingsAbout" },
 ];
@@ -116,6 +118,11 @@ export function SettingsSheet(props: Props) {
               labels={extensionsLabels(labels)}
               onError={props.onError}
             />
+          ) : (
+            <p className="pane-intro">{labels.settingsNoProject}</p>
+          ))}
+          {pane === "plugins" && (workspace ? (
+            <PluginsPane locale={props.locale} labels={labels} onError={props.onError} />
           ) : (
             <p className="pane-intro">{labels.settingsNoProject}</p>
           ))}

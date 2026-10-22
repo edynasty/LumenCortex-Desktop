@@ -778,28 +778,40 @@ export type ShellResult = {
   cancelled: boolean;
 };
 
-// OMP session import (Core runtime, ADR-0011). Core lists OMP's session files, previews what an
-// import would write and imports the visible history as native sessions; these are its wire types.
+// Session import and the plugin platform (Core runtime, ADR-0012). Core's plugins read another
+// runtime's session files, preview what an import would write and import the visible history as
+// native sessions; these are its wire types.
 
-// Which OMP sessions to list: Root "" is OMP's sessions directory, All widens from this workspace to
-// every workspace, Query filters by title, id or directory, Limit defaults to 100 (at most 500).
-export type OMPListOptions = {
+// One running session import source, e.g. "omp". A disabled or failed plugin has no source.
+export type ImportSource = {
+  id: string;
+  name: string;
+  // Version of the source's conversion rules, recorded with each imported session.
+  converter: number;
+  // The directory the source reads when the import names no root.
+  defaultRoot?: string;
+};
+
+// Which sessions to list: Root "" is the source's default directory, All widens from this workspace
+// to every workspace, Query filters by title, id or directory, Limit defaults to 100 (at most 500).
+export type ImportListOptions = {
   root?: string;
   all?: boolean;
   query?: string;
   limit?: number;
 };
 
-// The native session an OMP session was imported into. SourceChanged means the source file differs
-// from the bytes that were imported; the import is never re-applied.
-export type OMPImportRef = {
+// The native session a source session was imported into. SourceChanged means the source file
+// differs from the bytes that were imported; the import is never re-applied.
+export type ImportRef = {
   sessionId: string;
   importedAt: string;
   sourceChanged: boolean;
 };
 
-// One top-level OMP session as the import dialog lists it.
-export type OMPSessionSummary = {
+// One top-level session of a source as the import dialog lists it.
+export type ImportSessionSummary = {
+  source: string;
   path: string;
   id: string;
   title?: string;
@@ -810,11 +822,11 @@ export type OMPSessionSummary = {
   children: number;
   // True when the session ran in this workspace or below it.
   workspaceMatch: boolean;
-  imported?: OMPImportRef;
+  imported?: ImportRef;
 };
 
 // What a conversion copied, changed and left out.
-export type OMPImportStats = {
+export type ImportStats = {
   rows: number;
   userMessages: number;
   assistantMessages: number;
@@ -835,13 +847,13 @@ export type OMPImportStats = {
 };
 
 // A preview finding: a stable code the UI localizes, and Core's English explanation.
-export type OMPWarning = {
+export type ImportWarning = {
   code: string;
   message: string;
 };
 
 // One subagent session imported with its parent.
-export type OMPChildPreview = {
+export type ImportChildPreview = {
   key: string;
   sessionId: string;
   agent?: string;
@@ -850,28 +862,65 @@ export type OMPChildPreview = {
   aborted?: boolean;
 };
 
-export type OMPImportPreview = {
-  source: OMPSessionSummary;
+export type ImportPreview = {
+  source: ImportSessionSummary;
   // The native id the session gets (or got).
   sessionId: string;
   goal: string;
   model?: string;
   firstUser?: string;
   lastAssistant?: string;
-  stats: OMPImportStats;
+  stats: ImportStats;
   offBranch: number;
   malformed: number;
-  children?: OMPChildPreview[];
+  children?: ImportChildPreview[];
   childrenSkipped?: number;
   sha256: string;
-  warnings?: OMPWarning[];
+  warnings?: ImportWarning[];
 };
 
 // AlreadyImported means nothing was written: the session exists from an earlier import.
-export type OMPImportResult = {
+export type ImportResult = {
   sessionId: string;
   alreadyImported: boolean;
   sourceChanged: boolean;
   sessions: number;
-  preview: OMPImportPreview;
+  preview: ImportPreview;
+};
+
+// Plugins (ADR-0012). A plugin is an in-process extension Core starts and stops; the Settings →
+// Plugins pane shows this catalog and flips a plugin's enablement.
+
+export type PluginState = "registered" | "running" | "disabled" | "stopped" | "failed";
+
+export type PluginManifest = {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  apiVersion: number;
+  capabilities: string[];
+};
+
+export type PluginInfo = {
+  manifest: PluginManifest;
+  // Builtin plugins ship with Core; the others were supplied by the host.
+  builtin: boolean;
+  enabled: boolean;
+  state: PluginState;
+  // Error is the last start, stop, hook or panic failure; Failures counts them since open.
+  error?: string;
+  failures?: number;
+  lastFailureAt?: string;
+  // ImportSource describes the source a session-import plugin provides.
+  importSource?: ImportSource;
+};
+
+export type PluginCatalog = {
+  apiVersion: number;
+  plugins: PluginInfo[];
+  // StatePath is the global plugins.json that records disabled plugins.
+  statePath?: string;
+  // StateError is set when that file cannot be read; enablement changes are refused until fixed.
+  stateError?: string;
 };

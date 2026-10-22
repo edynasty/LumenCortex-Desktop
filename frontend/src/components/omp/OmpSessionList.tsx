@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import type { OmpLoadState } from "../../app/hooks/useOmpImport";
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
-import { formatByteSize, OMP_IMPORT_LIST_LIMIT, ompSessionTitle } from "../../lib/omp-import";
+import { formatByteSize, IMPORT_LIST_LIMIT, ompSessionTitle } from "../../lib/omp-import";
 import { formatRelative } from "../../lib/relative-time";
-import type { OMPSessionSummary } from "../../types";
+import type { ImportSessionSummary } from "../../types";
 import { EmptyState } from "../primitives/EmptyState";
 import { Icon } from "../primitives/Icon";
 import { LoadingState } from "../primitives/LoadingState";
 
 type Props = {
-  sessions: OMPSessionSummary[];
+  sessions: ImportSessionSummary[];
   state: OmpLoadState;
   error: string;
   selected: string;
@@ -28,7 +28,7 @@ function useNow(interval: number) {
 }
 
 function SessionRow({ session, selected, now, labels, locale, onSelect }: {
-  session: OMPSessionSummary;
+  session: ImportSessionSummary;
   selected: boolean;
   now: number;
   labels: AppCopy;
@@ -96,8 +96,8 @@ export function OmpSessionList({ sessions, state, error, selected, labels, local
           onSelect={() => onSelect(session.path)}
         />
       ))}
-      {sessions.length >= OMP_IMPORT_LIST_LIMIT && (
-        <p className="omp-list-note">{labels.ompImportLimit.replace("{limit}", String(OMP_IMPORT_LIST_LIMIT))}</p>
+      {sessions.length >= IMPORT_LIST_LIMIT && (
+        <p className="omp-list-note">{labels.ompImportLimit.replace("{limit}", String(IMPORT_LIST_LIMIT))}</p>
       )}
     </nav>
   );

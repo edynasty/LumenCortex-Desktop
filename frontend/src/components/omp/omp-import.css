@@ -1,7 +1,7 @@
 /*
- * OMP session import (ADR-0011). A window-level sheet: the list on the left, the preview on the
- * right, and one primary action. Below 820px the two panes stack, so the preview stays reachable
- * at the narrow window sizes the product supports.
+ * Session import (ADR-0012). A window-level sheet: the list on the left, the preview on the right,
+ * and one primary action. Below 820px the two panes stack, so the preview stays reachable at the
+ * narrow window sizes the product supports.
  */
 .modal-layer:has(.omp-import-sheet) { align-items: center; padding: var(--sp-6); }
 .omp-import-sheet {
@@ -18,6 +18,7 @@
 
 .omp-import-controls { display: flex; align-items: center; gap: var(--sp-3); flex: none; }
 .omp-import-controls .search-field { flex: 1; min-width: 0; }
+.omp-import-source { flex: none; width: 180px; }
 
 .omp-import-body {
   display: grid;
@@ -25,6 +26,16 @@
   gap: var(--sp-3);
   flex: 1;
   min-height: 0;
+}
+
+/* No running import source: the empty state stands in for the list and the preview. */
+.omp-import-body.is-empty {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  background: var(--surface-sunken);
 }
 
 /* —— List —— */

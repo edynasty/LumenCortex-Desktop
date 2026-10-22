@@ -186,3 +186,79 @@ the footer statement, and at 560px stacks the list above the preview with the ac
 - Pre-existing, unrelated: `frontend/test-results/`, `frontend/wailsjs/`, `frontend/package.json.md5`,
   `build/darwin/Info*.plist` and the deleted `frontend/dist/.keep` are still untracked/modified in
   the working tree; none were staged by this change.
+
+## Plugin platform cutover (ADR-0012) — supersedes the OMP-specific surface above
+
+Core `9581de1` replaced the OMP-specific import API with its plugin platform (ADR-0012, D5 and D8):
+an import source is a plugin capability, and every import call names the source. Desktop's
+`go.mod` is pinned to that commit; the OMP-only `lcx.OMP*` types and `Engine.OMPSessions` /
+`PreviewOMPSession` / `ImportOMPSession` no longer exist, so this section replaces the adapter
+described above. The UI behaviour with one source (today: `omp`) is unchanged.
+
+### Backend adapter
+
+`internal/backend/session_import.go` (replaces `omp_import.go`) — the same thin forwarding, now
+generic and always against the source's default directory (`root ""`), with `ErrNoWorkspace` when
+no workspace is open:
+
+| Wails API | Backend | Core |
+|---|---|---|
+| `ImportSources()` | `Runtime.ImportSources` | `Engine.ImportSources()` |
+| `ListImportSessions(source, opts)` | `Runtime.ListImportSessions` | `Engine.ListImportSessions(ctx, source, opts)` |
+| `PreviewImport(source, path)` | `Runtime.PreviewImport` | `Engine.PreviewImport(ctx, source, "", path)` |
+| `ImportSession(source, path)` | `Runtime.ImportSession` | `Engine.ImportSession(ctx, source, "", path)` |
+| `Plugins()` | `Runtime.Plugins` | `Engine.Plugins()` |
+| `SetPluginEnabled(id, enabled)` | `Runtime.SetPluginEnabled` | `Engine.SetPluginEnabled(ctx, id, enabled)` |
+
+The type aliases (`ImportSource`, `ImportSessionSummary`, `ImportPreview`, `ImportResult`,
+`ImportStats`, `ImportWarning`, `ImportRef`, `ImportChildPreview`, `ImportListOptions`,
+`PluginCatalog`, `PluginInfo`) alias Core's types, so the wire shape is Core's.
+
+### UI
+
+- The sheet loads `ImportSources()` on open. One source behaves exactly as before; more than one
+  adds a `DesktopSelect` source picker and the generic title/lede; none (plugin disabled or
+  failed) replaces the list and preview with an empty state that names Settings → Plugins and
+  offers a button that closes the sheet and opens that pane.
+- Settings gained a **Plugins** pane (`components/settings/PluginsPane.tsx`): name, id, version,
+  API version, capabilities, built-in badge, lifecycle state, import source, last error and
+  failure count with the last failure time, `statePath`, and `stateError`; the switch calls
+  `SetPluginEnabled` and re-reads the catalog, showing a refused change inline.
+- Frontend wire types were renamed from `OMP*` to the generic `Import*` names, and the dialog's
+  helpers (`IMPORT_LIST_LIMIT`, `ImportStatRow`) follow; the OMP-prefixed component/file names stay
+  because the entry point and its copy are still OMP's.
+
+### Tests
+
+- `internal/backend/session_import_test.go` keeps the OMP coverage (workspace filter, preview
+  writes nothing, idempotent import, missing source directory, require workspace) and adds
+  `TestDisablingImportPluginRemovesItsSource`: the catalog lists the built-in `omp-import`
+  (`running`, capability `session-import`, source `omp`); disabling it empties `ImportSources`,
+  makes list and import return `lcx.ErrImportSourceNotFound`, and re-enabling restores the source.
+- `frontend/src/components/omp/OmpImportDialog.test.tsx` now drives the generic bridge and covers
+  the zero-source empty state and the multi-source selector.
+- `frontend/src/components/settings/PluginsPane.test.tsx` covers list rendering, a failed plugin
+  with its error and failure count, the toggle calling the bridge then re-reading, a refused
+  toggle shown inline, `stateError`, and the empty catalog.
+
+### Validation actually run (2026-10-22, this cutover)
+
+| Check | Result |
+|---|---|
+| `go build ./...` | clean |
+| `go vet ./...` | clean |
+| `go test -count=1 ./...` | `ok` main 0.776s, `ok internal/backend` 19.107s |
+| `cd frontend && npx tsc --noEmit` | clean |
+| `cd frontend && npx vitest run` | 69 files, 343 tests passed (three consecutive full runs); one earlier run reported a single transient failure that did not reproduce and was not in the import/plugins suites |
+| `cd frontend && npm run build` | built (pre-existing chunk-size warning) |
+| `cd frontend && npx playwright test` | 88 passed |
+
+Wails bindings were regenerated with `wails generate module` (v2.16.0); `frontend/wailsjs/` is
+untracked generated output. `go.mod`/`go.sum` were not changed by this cutover.
+
+### Limits
+
+- The Plugins pane needs an open workspace, like the MCP/skills panes: Desktop has no Engine
+  before a project opens, so there is no catalog to read. Enablement itself is global.
+- The visual harness proves the flow over the in-memory stub (`visualPlugins` /
+  `visualImportSources`); no native Wails run was done for this cutover.

@@ -3,7 +3,7 @@ module github.com/edynasty/LumenCortex-Desktop
 go 1.25.0
 
 require (
-	github.com/edynasty/LumenCortex v0.0.0-20261022025533-d2eaa01dbe01
+	github.com/edynasty/LumenCortex v0.0.0-20261022075503-9581de10ec96
 	github.com/wailsapp/wails/v2 v2.16.0
 )
 

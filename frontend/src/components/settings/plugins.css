@@ -1,0 +1,42 @@
+/*
+ * Settings → Plugins (ADR-0012): Core's in-process extensions. Reuses the settings pane's
+ * .pane/.pane-section/.pane-hint and base.css's .badge and .switch; only the plugin row is new.
+ */
+
+.plugin-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.plugin-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.plugin-row.is-failed { box-shadow: inset 0 0 0 1px var(--bad-line); }
+
+.plugin-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.plugin-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.plugin-title strong { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.plugin-id { color: var(--fg-3); font-size: var(--text-2xs); overflow-wrap: anywhere; }
+
+.plugin-description { margin: 0; color: var(--fg-3); font-size: var(--text-xs); line-height: 1.55; }
+
+.plugin-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; }
+.plugin-meta > div { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.plugin-meta dt { color: var(--fg-3); font-size: var(--text-2xs); }
+.plugin-meta dd { margin: 0; color: var(--fg-2); font-size: var(--text-2xs); overflow-wrap: anywhere; }
+
+.plugin-failure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--bad-soft);
+}
+
+.plugin-error { margin: 0; color: var(--bad); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.plugin-failure-count { margin: 0; color: var(--fg-3); font-size: var(--text-2xs); }

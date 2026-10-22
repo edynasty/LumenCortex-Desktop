@@ -1,13 +1,13 @@
 import type { OmpLoadState } from "../../app/hooks/useOmpImport";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import { ompSessionTitle, ompStatRows, ompWarningText } from "../../lib/omp-import";
-import type { OMPImportPreview } from "../../types";
+import type { ImportPreview } from "../../types";
 import { EmptyState } from "../primitives/EmptyState";
 import { Icon } from "../primitives/Icon";
 import { LoadingState } from "../primitives/LoadingState";
 
 type Props = {
-  preview: OMPImportPreview | null;
+  preview: ImportPreview | null;
   state: OmpLoadState;
   error: string;
   labels: AppCopy;

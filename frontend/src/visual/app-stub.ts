@@ -10,8 +10,10 @@ import {
   subagents,
   threadMessages,
   visualAppStub,
+  visualImportSources,
   visualOMPPreview,
   visualOMPSessions,
+  visualPlugins,
   workspace,
 } from "./fixture-data";
 import { taskSession, taskThreadMessages, visualTaskList, visualTaskTree } from "./task-fixture";
@@ -327,21 +329,23 @@ export function visualApp(projectOpen: boolean): AppAPI {
     DeleteMCPConfig: async () => undefined,
     GetSubagentTree: async (id) => (id === tasks.id ? visualTaskTree() : id === session.id ? subagents : []),
     GetSessionCheckpoints: async (id) => (id === session.id ? checkpoints : []),
-    // OMP import (ADR-0011): the fixture list, its previews, and an import that adds a session the
-    // thread view then opens. The imported row keeps its final `imported` notice.
-    ListOMPSessions: async (opts) => {
+    // Session import (ADR-0012): the running sources, the fixture list of the chosen one, its
+    // previews, and an import that adds a session the thread view then opens. The imported row keeps
+    // its final `imported` notice. Disabling the plugin in Settings → Plugins empties the sources.
+    ImportSources: async () => (visualPlugins.some((plugin) => plugin.manifest.id === "omp-import" && plugin.enabled) ? visualImportSources : []),
+    ListImportSessions: async (source, opts) => {
       const query = (opts.query ?? "").trim().toLowerCase();
       return visualOMPSessions
-        .filter((row) => (opts.all || row.workspaceMatch) && (!query || `${row.title ?? ""}\n${row.id}\n${row.cwd}`.toLowerCase().includes(query)))
+        .filter((row) => row.source === source && (opts.all || row.workspaceMatch) && (!query || `${row.title ?? ""}\n${row.id}\n${row.cwd}`.toLowerCase().includes(query)))
         .slice(0, opts.limit ?? 100);
     },
-    PreviewOMPSession: async (path) => {
-      const found = visualOMPSessions.find((row) => row.path === path);
+    PreviewImport: async (source, path) => {
+      const found = visualOMPSessions.find((row) => row.source === source && row.path === path);
       if (!found) throw "session not found";
       return visualOMPPreview(found);
     },
-    ImportOMPSession: async (path) => {
-      const found = visualOMPSessions.find((row) => row.path === path);
+    ImportSession: async (source, path) => {
+      const found = visualOMPSessions.find((row) => row.source === source && row.path === path);
       if (!found) throw "session not found";
       const preview = visualOMPPreview(found);
       if (found.imported) {
@@ -355,7 +359,7 @@ export function visualApp(projectOpen: boolean): AppAPI {
         updatedAt: now,
         status: "completed",
         goal: preview.goal,
-        metadata: { ui: { title: preview.goal }, import: { source: "omp", sessionId: found.id } },
+        metadata: { ui: { title: preview.goal }, import: { source, sessionId: found.id } },
       };
       sessions = [imported, ...sessions];
       transcripts[preview.sessionId] = [
@@ -364,6 +368,17 @@ export function visualApp(projectOpen: boolean): AppAPI {
         { sessionId: preview.sessionId, seq: 2, role: "user", json: { content: "[runtime] The messages above were imported from a session of another agent runtime.", origin: "imported" } },
       ];
       return { sessionId: preview.sessionId, alreadyImported: false, sourceChanged: false, sessions: 4, preview };
+    },
+    Plugins: async () => ({
+      apiVersion: 1,
+      plugins: visualPlugins.map((plugin) => ({ ...plugin })),
+      statePath: "/Users/demo/.config/lumencortex/plugins.json",
+    }),
+    SetPluginEnabled: async (id, enabled) => {
+      const plugin = visualPlugins.find((row) => row.manifest.id === id);
+      if (!plugin) throw `plugin not found: ${id}`;
+      plugin.enabled = enabled;
+      plugin.state = enabled ? "running" : "disabled";
     },
   };
 }

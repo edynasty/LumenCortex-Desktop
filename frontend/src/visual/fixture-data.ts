@@ -17,18 +17,43 @@ import type {
   TaskStateInfo,
   AgentCatalog,
   AgentEntry,
-  OMPImportPreview,
-  OMPSessionSummary,
+  ImportPreview,
+  ImportSessionSummary,
+  ImportSource,
+  PluginInfo,
 } from "../types";
 import { cancelVisualSubtree, startVisualTask, taskSession } from "./task-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
 
-// OMP session import fixtures (ADR-0011): one session of this workspace, one of another, and one
+// OMP session import fixtures (ADR-0012): one session of this workspace, one of another, and one
 // imported before whose source changed. The preview of the first mirrors Core's counts for a real
 // session with thinking blocks, images and subagents.
-export const visualOMPSessions: OMPSessionSummary[] = [
+export const visualImportSources: ImportSource[] = [
+  { id: "omp", name: "OMP", converter: 1, defaultRoot: "/Users/demo/.omp/agent/sessions" },
+];
+
+// The built-in OMP import plugin as the Settings → Plugins pane lists it.
+export const visualPlugins: PluginInfo[] = [
   {
+    manifest: {
+      id: "omp-import",
+      name: "OMP session import",
+      version: "1.0.0",
+      description: "Reads oh-my-pi (OMP) JSONL sessions read-only and imports their visible history, including subagent sessions.",
+      apiVersion: 1,
+      capabilities: ["session-import"],
+    },
+    builtin: true,
+    enabled: true,
+    state: "running",
+    importSource: visualImportSources[0],
+  },
+];
+
+export const visualOMPSessions: ImportSessionSummary[] = [
+  {
+    source: "omp",
     path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-lumencortex/2026-10-21T09-12-00-000Z_01a2b3c4-0000-7000-8000-000000000001.jsonl",
     id: "01a2b3c4-0000-7000-8000-000000000001",
     title: "Fix the parser bug",
@@ -40,6 +65,7 @@ export const visualOMPSessions: OMPSessionSummary[] = [
     workspaceMatch: true,
   },
   {
+    source: "omp",
     path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-runtime/2026-10-20T07-40-00-000Z_01a2b3c4-0000-7000-8000-000000000002.jsonl",
     id: "01a2b3c4-0000-7000-8000-000000000002",
     title: "Retire the old indexer",
@@ -51,6 +77,7 @@ export const visualOMPSessions: OMPSessionSummary[] = [
     workspaceMatch: false,
   },
   {
+    source: "omp",
     path: "/Users/demo/.omp/agent/sessions/-Users-demo-Projects-lumencortex/2026-10-18T12-00-00-000Z_01a2b3c4-0000-7000-8000-000000000003.jsonl",
     id: "01a2b3c4-0000-7000-8000-000000000003",
     title: "Migration notes",
@@ -64,7 +91,7 @@ export const visualOMPSessions: OMPSessionSummary[] = [
   },
 ];
 
-export function visualOMPPreview(session: OMPSessionSummary): OMPImportPreview {
+export function visualOMPPreview(session: ImportSessionSummary): ImportPreview {
   const imported = session.imported;
   return {
     source: session,

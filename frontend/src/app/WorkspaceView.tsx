@@ -185,7 +185,11 @@ export function WorkspaceView(props: Props) {
         onErrorAction={recovery?.run}
         onClearError={props.onClearError}
       />
-      <OmpImportDialog open={props.ompImport.open} labels={labels} locale={props.locale} onClose={() => props.ompImport.setOpen(false)} onImported={props.ompImport.openSession} />
+      <OmpImportDialog
+        open={props.ompImport.open} labels={labels} locale={props.locale}
+        onClose={() => props.ompImport.setOpen(false)} onImported={props.ompImport.openSession}
+        onOpenPlugins={() => { props.ompImport.setOpen(false); openSettings("plugins"); }}
+      />
     </>
   );
 
