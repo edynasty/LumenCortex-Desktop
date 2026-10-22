@@ -79,6 +79,10 @@ type AgentEntry struct {
 	// Editable is false when the entry comes from the workspace file: the page edits the global
 	// file, so a workspace definition is shown but changed where it lives.
 	Editable bool `json:"editable"`
+	// Origin and OMPRole are set on a preset only: the oh-my-pi agent it derives from and the
+	// modelRoles key its model list came from ("" when it has none). A saved agent has neither.
+	Origin  string `json:"origin,omitempty"`
+	OMPRole string `json:"ompRole,omitempty"`
 }
 
 // AgentLimits mirrors Core's catalog bounds so the page can explain a refusal while typing; Core
@@ -164,6 +168,41 @@ func (r *Runtime) Agents() (AgentCatalog, error) {
 		}
 	}
 	return agentCatalogFrom(cfg, record), nil
+}
+
+// AgentPresets lists the compiled-in specialists (ADR-0009 A4) for the Agents page. They are not
+// catalog entries: the page opens an unsaved draft from one, the user edits it, and SaveAgent writes
+// the ordinary entry. Models come from the oh-my-pi model role when that role converts to models of
+// this catalog; otherwise Models stays nil and the agent inherits the default list.
+func (r *Runtime) AgentPresets() ([]AgentEntry, error) {
+	cfg, err := config.Load(r.currentWorkspace())
+	if err != nil {
+		return nil, err
+	}
+	eff := cfg.Effective()
+	presets, _ := config.ResolveAgentPresets(&eff, config.OMPConfigPath())
+	out := make([]AgentEntry, 0, len(presets))
+	for _, preset := range presets {
+		entry := AgentEntry{
+			ID: preset.ID, Name: preset.Agent.Name, Description: preset.Agent.Description,
+			Use: string(preset.Agent.Use), Policy: preset.Agent.Policy, Delegation: string(preset.Agent.Delegation),
+			Instructions: preset.Agent.Instructions, Effort: string(preset.Agent.Effort),
+			Builtin: false, Source: "preset", Editable: true,
+			ForConversation: preset.Agent.Use != config.AgentUseDelegation,
+			Origin:          preset.Origin, OMPRole: preset.OMPRole,
+		}
+		if entry.Delegation == "" {
+			entry.Delegation = string(config.DelegationNone)
+		}
+		if preset.Agent.Models != nil {
+			entry.Models = make([]AgentModelItem, len(preset.Agent.Models))
+			for i, m := range preset.Agent.Models {
+				entry.Models[i] = AgentModelItem{Model: string(m.Model), Effort: string(m.Effort)}
+			}
+		}
+		out = append(out, entry)
+	}
+	return out, nil
 }
 
 func agentCatalogFrom(cfg *config.Config, record *AgentImportResult) AgentCatalog {

@@ -53,6 +53,8 @@ export type AgentCatalogController = {
   composerAgent: ComposerAgent;
   save: (agent: AgentEntry) => Promise<AgentCatalog>;
   remove: (id: string) => Promise<AgentCatalog>;
+  /** The compiled-in specialists the page may open a draft from; never catalog entries. */
+  presets: () => Promise<AgentEntry[]>;
   reload: () => Promise<AgentCatalog>;
 };
 
@@ -167,6 +169,8 @@ export function useAgentCatalog({ sessionId, pinnedAgent, isChild, workspace, on
     }
   }, [catalog.globalDigest, fetchCatalog, workspace]);
 
+  const presets = useCallback(async () => bridge.agentPresets(), []);
+
   const reload = useCallback(async () => {
     setLoading(true);
     return fetchCatalog();
@@ -192,6 +196,7 @@ export function useAgentCatalog({ sessionId, pinnedAgent, isChild, workspace, on
     composerAgent,
     save,
     remove,
+    presets,
     reload,
   };
 }

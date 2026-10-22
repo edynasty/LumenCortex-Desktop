@@ -467,6 +467,12 @@ func (a *App) GetAgents() (backend.AgentCatalog, error) {
 	return a.backend.Agents()
 }
 
+// GetAgentPresets returns the compiled-in specialists the page may start a draft from. They are not
+// in the catalog until the user saves one.
+func (a *App) GetAgentPresets() ([]backend.AgentEntry, error) {
+	return a.backend.AgentPresets()
+}
+
 // SaveAgent creates a custom agent (empty id) or updates one in the global file. A built-in keeps
 // its name, description, use and ceilings; only its instructions, effort and models are written.
 // globalDigest is the digest the page last read: a changed file is a conflict and nothing is written.

@@ -138,6 +138,42 @@ export function validateAgentDraft(draft: AgentEntry, agents: AgentEntry[], labe
   return "";
 }
 
+/**
+ * A preset's name, numbered when an agent already uses it ("Reviewer 2"). The bound is the same
+ * name length Core enforces.
+ */
+export function dedupeAgentName(name: string, agents: AgentEntry[]): string {
+  const taken = new Set(agents.map((item) => item.name.toLowerCase()));
+  const base = name.trim() || "Agent";
+  if (!taken.has(base.toLowerCase())) return base;
+  for (let i = 2; i < 100; i += 1) {
+    const suffix = ` ${i}`;
+    const candidate = `${base.slice(0, Math.max(1, AGENT_LIMITS.name - suffix.length))}${suffix}`;
+    if (!taken.has(candidate.toLowerCase())) return candidate;
+  }
+  return base;
+}
+
+/**
+ * An unsaved draft from a preset. The page writes the global file, so the draft is a custom agent
+ * with no id: Core derives the id from the name on Save. A preset that cannot run a conversation
+ * keeps the delegation field Core requires to be empty.
+ */
+export function presetDraft(preset: AgentEntry, agents: AgentEntry[]): AgentEntry {
+  return {
+    ...preset,
+    id: "",
+    name: dedupeAgentName(preset.name, agents),
+    builtin: false,
+    source: "global",
+    digest: "",
+    editable: true,
+    forConversation: preset.use !== "delegation",
+    delegation: preset.use === "conversation" ? preset.delegation : "none",
+    models: preset.models?.length ? preset.models.map((item) => ({ ...item })) : null,
+  };
+}
+
 /** An unsaved custom agent: conversation-scoped, no ceilings, inheriting the default model list. */
 export function emptyAgent(): AgentEntry {
   return {

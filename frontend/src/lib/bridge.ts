@@ -144,6 +144,7 @@ export type AppAPI = {
   GetToolPermissions(): Promise<ToolPermissions>;
   SaveToolPermissions(value: ToolPermissions): Promise<ToolPermissions>;
   GetAgents(): Promise<AgentCatalog>;
+  GetAgentPresets(): Promise<AgentEntry[]>;
   SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
   MigrateSubagentModel(): Promise<SubagentModelMigration>;
@@ -258,6 +259,7 @@ export const bridge = {
   toolPermissions: () => api().GetToolPermissions(),
   saveToolPermissions: (value: ToolPermissions) => api().SaveToolPermissions(value),
   agents: () => api().GetAgents(),
+  agentPresets: () => api().GetAgentPresets(),
   saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
   deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
   migrateSubagentModel: () => api().MigrateSubagentModel(),

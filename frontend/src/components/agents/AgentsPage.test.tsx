@@ -49,6 +49,7 @@ function controller(agents: AgentEntry[], overrides: Partial<AgentCatalogControl
     composerAgent: { agents, selectedId: "agent", onSelect: vi.fn() },
     save: vi.fn(async (agent: AgentEntry) => catalog([...agents.filter((item) => item.id !== agent.id), agent])),
     remove: vi.fn(async () => catalog(agents)),
+    presets: vi.fn(async () => []),
     reload: vi.fn(async () => catalog(agents)),
     ...overrides,
   };
@@ -244,6 +245,49 @@ describe("AgentsPage", () => {
     await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(t.errConflict);
+  });
+
+  it("opens an unsaved draft from a preset and saves nothing until asked", async () => {
+    const user = userEvent.setup();
+    const preset = entry({
+      id: "reviewer", name: "Code reviewer", description: "Reads diffs.", use: "both",
+      policy: "read-only", delegation: "none", source: "preset", instructions: "Lead with the risk.",
+      models: [{ model: "openai/gpt-5.6", effort: "high" }], ompRole: "slow",
+    });
+    const agentsController = renderPage([...builtins, reviewer], { presets: vi.fn(async () => [preset]) });
+
+    await user.click(screen.getByRole("button", { name: t.agentsPresetsOpen }));
+    const panel = await screen.findByRole("region", { name: t.agentsPresetsTitle });
+    expect(within(panel).getByText(t.agentsPresetsModelsFromRole.replace("{role}", "slow"))).toBeInTheDocument();
+    await user.click(within(panel).getByRole("button", { name: /Code reviewer/ }));
+
+    const editor = screen.getByRole("region", { name: t.agentsNew });
+    expect(within(editor).getByDisplayValue("Code reviewer 2")).toBeInTheDocument();
+    expect(within(editor).getByDisplayValue("Lead with the risk.")).toBeInTheDocument();
+    expect(agentsController.save).not.toHaveBeenCalled();
+
+    await user.click(within(editor).getByRole("button", { name: t.agentsSave }));
+    expect(agentsController.save).toHaveBeenCalledWith(expect.objectContaining({
+      id: "", name: "Code reviewer 2", use: "both", policy: "read-only",
+    }));
+  });
+
+  it("asks before a preset replaces unsaved edits", async () => {
+    const user = userEvent.setup();
+    const preset = entry({ id: "sonic", name: "Sonic", description: "Mechanical edits.", use: "delegation", policy: "workspace", source: "preset" });
+    renderPage([...builtins, reviewer], { presets: vi.fn(async () => [preset]) });
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+    await user.type(within(editor).getByRole("textbox", { name: new RegExp(t.agentsInstructions) }), " more");
+
+    await user.click(screen.getByRole("button", { name: t.agentsPresetsOpen }));
+    const panel = await screen.findByRole("region", { name: t.agentsPresetsTitle });
+    await user.click(within(panel).getByRole("button", { name: /Sonic/ }));
+    expect(screen.getByText(new RegExp(t.agentsDirtyTitle))).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: t.agentsDirtyDiscard }));
+    expect(screen.getByRole("region", { name: t.agentsNew })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Sonic")).toBeInTheDocument();
   });
 
   it("reports a catalog that could not be read", () => {

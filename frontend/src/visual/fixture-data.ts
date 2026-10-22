@@ -59,6 +59,29 @@ const visualAgentCatalog = (): AgentCatalog => ({
   globalPath: "/home/.config/lumencortex/lumencortex.json",
   globalDigest: "sha256:visual",
 });
+
+// The compiled-in specialists the page opens drafts from. They are not part of the catalog until
+// the user saves one; the reviewer's models stand in for an oh-my-pi model role.
+const visualAgentPresets: AgentEntry[] = [
+  {
+    id: "reviewer", name: "Reviewer",
+    description: "Read-only review of the current change: verdict, confidence and findings with priority and file:line.",
+    use: "both", policy: "read-only", delegation: "none",
+    instructions: "Review the current change for defects the author would want fixed before merge.",
+    effort: "high", models: [{ model: "openai/gpt-5.6", effort: "high" }],
+    builtin: false, source: "preset", digest: "", forConversation: true, editable: true,
+    origin: "reviewer", ompRole: "slow",
+  },
+  {
+    id: "sonic", name: "Sonic",
+    description: "Strictly mechanical edits or data collection with explicit instructions; it makes no scope decisions.",
+    use: "delegation", policy: "workspace", delegation: "none",
+    instructions: "Worker agent for strictly mechanical edits or data collection.",
+    effort: "low", models: null,
+    builtin: false, source: "preset", digest: "", forConversation: false, editable: true,
+    origin: "sonic", ompRole: "smol",
+  },
+];
 export const localRuntime: SessionRuntime = { kind: "local", path: workspace, branch: "main", head: "0f6c33a" };
 export const runtime: SessionRuntime = {
   kind: "worktree",
@@ -523,6 +546,7 @@ export function visualAppStub() {
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
     GetAgents: async () => visualAgentCatalog(),
+    GetAgentPresets: async () => structuredClone(visualAgentPresets),
     SaveAgent: async (_digest, agent) => {
       const saved: AgentEntry = {
         ...agent,

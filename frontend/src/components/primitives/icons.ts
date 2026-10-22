@@ -78,6 +78,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  LayoutTemplate,
   Square,
   SquarePen,
   SquareTerminal,
@@ -160,6 +161,8 @@ export const Icons = {
   agents: Users,
   mcp: Plug,
   skill: BookOpen,
+  /** A compiled-in specialist the user may copy into the catalog. */
+  preset: LayoutTemplate,
   tool: Wrench,
   plan: ListTodo,
   workflow: Workflow,

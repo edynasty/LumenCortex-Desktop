@@ -4,9 +4,11 @@ import type { AgentEntry } from "../../types";
 import { coreErrorKey } from "../../lib/core-errors";
 import { AGENT_LIMITS, agentName, copyAgentName, emptyAgent, sameAgentDraft, validateAgentDraft } from "../../app/agent-catalog";
 import type { AgentCatalogController } from "../../app/hooks/useAgentCatalog";
+import { useAgentPresets } from "../../app/hooks/useAgentPresets";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import { AgentEditor } from "./AgentEditor";
+import { AgentPresetPicker } from "./AgentPresetPicker";
 import type { PickerOption } from "../composer/ComposerPickers";
 import "./agents.css";
 
@@ -48,6 +50,22 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
   const dirty = useMemo(() => !sameAgentDraft(draft, baseline), [baseline, draft]);
   const custom = agents.agents.filter((agent) => !agent.builtin).length;
   const importResult = agents.importResult;
+
+  const presets = useAgentPresets({
+    loadPresets: agents.presets,
+    agents: agents.agents,
+    dirty,
+    onDraft: (next) => {
+      setSelectedId(null);
+      setDraft(next);
+      setBaseline(next);
+      setCreating(true);
+      setPending(undefined);
+      setDeleteConfirm(false);
+      setError("");
+    },
+    onDirty: () => setPending(null),
+  });
 
   // A save or delete elsewhere (another pane, a reload) refreshes an editor that has no local edits.
   useEffect(() => {
@@ -217,6 +235,17 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
         )}
       </header>
 
+      {presets.open && (
+        <AgentPresetPicker
+          labels={labels}
+          presets={presets.presets}
+          loading={presets.loading}
+          error={presets.error}
+          onPick={presets.pick}
+          onClose={presets.close}
+        />
+      )}
+
       <div className="agents-layout">
         <ul className="agents-list" aria-label={labels.agentsSelectHint}>
           {agents.agents.map((agent) => (
@@ -250,6 +279,19 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
               <span>{labels.agentsNew}</span>
             </button>
           </li>
+          <li>
+            <button
+              type="button"
+              className={`agents-row is-add ${presets.open ? "is-selected" : ""}`}
+              disabled={custom >= AGENT_LIMITS.maxCustom}
+              title={custom >= AGENT_LIMITS.maxCustom ? labels.agentLimitReached : labels.agentsPresetsOpen}
+              aria-expanded={presets.open}
+              onClick={() => void presets.toggle()}
+            >
+              <Icon name="preset" size={14} />
+              <span>{labels.agentsPresetsOpen}</span>
+            </button>
+          </li>
         </ul>
 
         <AgentEditor
@@ -273,8 +315,11 @@ export function AgentsPage({ labels, agents, models, recentModelRefs, effortOpti
           onDeleteRequest={() => setDeleteConfirm(true)}
           onDeleteConfirm={() => void remove()}
           onDeleteCancel={() => setDeleteConfirm(false)}
-          onPendingDiscard={() => { if (pending !== undefined) open(pending); }}
-          onPendingStay={() => setPending(undefined)}
+          onPendingDiscard={() => {
+            if (presets.hasPending) presets.discardPending();
+            else if (pending !== undefined) open(pending);
+          }}
+          onPendingStay={() => { presets.keepEditing(); setPending(undefined); }}
         />
       </div>
     </div>

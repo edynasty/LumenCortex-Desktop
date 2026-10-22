@@ -325,7 +325,7 @@ export function AgentEditor({
       {error && <p className="agents-error" role="alert"><Icon name="failed" size={13} /><span>{error}</span></p>}
 
       <footer className="agents-editor-foot">
-        <Button variant="primary" size="sm" disabled={!dirty || saving || !draft.editable} onClick={onSave}>
+        <Button variant="primary" size="sm" disabled={(!dirty && !creating) || saving || !draft.editable} onClick={onSave}>
           {saving ? labels.agentsSaving : labels.agentsSave}
         </Button>
         <Button variant="ghost" size="sm" disabled={!dirty || saving} onClick={onDiscard}>

@@ -536,7 +536,7 @@ export type AgentConfig = {
 export type AgentUse = "conversation" | "delegation" | "both";
 export type AgentPolicy = "read-only" | "workspace" | "full";
 export type AgentDelegation = "none" | "propose" | "isolated";
-export type AgentSource = "builtin" | "global" | "workspace";
+export type AgentSource = "builtin" | "global" | "workspace" | "preset";
 
 // One ordered model candidate: the agent's failover chain. `effort` is that candidate's own level.
 export type AgentModelItem = {
@@ -561,6 +561,10 @@ export type AgentEntry = {
   digest: string;
   forConversation: boolean;
   editable: boolean;
+  // Set on a preset only: the oh-my-pi agent it derives from and the modelRoles key its models came
+  // from. A saved agent has neither.
+  origin?: string;
+  ompRole?: string;
 };
 
 // Core's catalog bounds, so the page explains a refusal while typing; Core validates again.

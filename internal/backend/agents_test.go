@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -768,4 +769,83 @@ func TestStartAgentPinsTheCatalogAgent(t *testing.T) {
 		t.Fatalf("session model = %q, want the agent's first model", current.ModelRef)
 	}
 	_ = configPath
+}
+
+// The presets are Core's compiled-in specialists, and their model lists come from the oh-my-pi
+// model roles of this machine, filtered to the merged catalog. Nothing is written to the catalog.
+func TestAgentPresetsUseCoreDefinitionsAndOMPRoles(t *testing.T) {
+	useCatalogDir(t)
+	ompDir := t.TempDir()
+	t.Setenv("PI_CODING_AGENT_DIR", ompDir)
+	writeFile(t, filepath.Join(ompDir, "config.yml"), `modelRoles:
+  slow:
+    - test/a:high
+    - test/b:xhigh
+  smol: test/b:low
+`)
+	r := New()
+	t.Cleanup(func() { r.Close() })
+
+	presets, err := r.AgentPresets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(presets) != 4 {
+		t.Fatalf("presets = %d, want 4", len(presets))
+	}
+	byID := map[string]AgentEntry{}
+	for _, preset := range presets {
+		byID[preset.ID] = preset
+		if preset.Builtin || preset.Source != "preset" || !preset.Editable || preset.Digest != "" {
+			t.Fatalf("preset %q is not an unsaved draft: %+v", preset.ID, preset)
+		}
+		if preset.Instructions == "" || preset.Description == "" {
+			t.Fatalf("preset %q has no text: %+v", preset.ID, preset)
+		}
+	}
+	reviewer := byID["reviewer"]
+	if reviewer.Use != "both" || reviewer.Policy != "read-only" || reviewer.Effort != "high" || reviewer.OMPRole != "slow" {
+		t.Fatalf("reviewer = %+v", reviewer)
+	}
+	wantReviewer := []AgentModelItem{{Model: "test/a", Effort: "high"}, {Model: "test/b", Effort: "max"}}
+	if !slices.Equal(reviewer.Models, wantReviewer) {
+		t.Fatalf("reviewer models = %v, want %v", reviewer.Models, wantReviewer)
+	}
+	if sonic := byID["sonic"]; sonic.Use != "delegation" || sonic.Policy != "workspace" || sonic.Effort != "low" ||
+		!slices.Equal(sonic.Models, []AgentModelItem{{Model: "test/b", Effort: "low"}}) {
+		t.Fatalf("sonic = %+v", sonic)
+	}
+	if security := byID["security-reviewer"]; security.Models != nil || security.OMPRole != "" {
+		t.Fatalf("security-reviewer has no OMP role but got %+v", security)
+	}
+	if historian := byID["thread-historian"]; historian.Use != "delegation" || historian.Policy != "read-only" ||
+		historian.ForConversation || historian.Delegation != "none" {
+		t.Fatalf("thread-historian = %+v", historian)
+	}
+	// The presets are drafts, not entries: reading them writes no lumencortex.json.
+	catalog, err := r.Agents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Agents) != 4 {
+		t.Fatalf("reading presets changed the catalog: %v", agentIDs(catalog))
+	}
+}
+
+// Without an oh-my-pi config every preset inherits the default model list.
+func TestAgentPresetsWithoutOMPConfigInheritModels(t *testing.T) {
+	useCatalogDir(t)
+	t.Setenv("PI_CODING_AGENT_DIR", t.TempDir())
+	r := New()
+	t.Cleanup(func() { r.Close() })
+
+	presets, err := r.AgentPresets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, preset := range presets {
+		if preset.Models != nil {
+			t.Fatalf("preset %q has models without an OMP config: %v", preset.ID, preset.Models)
+		}
+	}
 }
