@@ -110,6 +110,26 @@ lcx_use_unpublished_core() {
   printf 'core: %s resolved from unpublished local tag (%s at %s)\n' "$version" "$dir" "$LCX_CORE_TAG_COMMIT"
 }
 
+# lcx_detach_image <image-path> detaches every attachment of that disk image. Something outside the
+# script (observed on macOS 27 right after `hdiutil create`) can attach a fresh image without
+# mounting it, and hdiutil verify then fails with EAGAIN until it is detached.
+lcx_detach_image() {
+  local image dev
+  image="$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"
+  hdiutil info -plist 2>/dev/null | /usr/bin/python3 -c '
+import plistlib, sys
+image = sys.argv[1]
+for item in plistlib.load(sys.stdin.buffer).get("images", []):
+    if item.get("image-path") == image:
+        devs = [e["dev-entry"] for e in item.get("system-entities", []) if "dev-entry" in e]
+        if devs:
+            print(min(devs, key=len))
+' "$image" | while read -r dev; do
+    printf 'detaching stale attachment %s of %s\n' "$dev" "$image"
+    hdiutil detach "$dev" -quiet >/dev/null 2>&1 || hdiutil detach "$dev" -force -quiet >/dev/null 2>&1 || true
+  done
+}
+
 # lcx_launch_check <app-bundle> <seconds> <log-path>
 # Launches the packaged app with an isolated HOME, confirms it stays alive, then stops it. It never
 # installs anything and never touches the user's data directories.

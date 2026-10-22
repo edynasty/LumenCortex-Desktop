@@ -255,12 +255,14 @@ ditto -c -k --sequesterRsrc --keepParent "$app" "$zip_path"
 printf 'dmg: %s\nzip: %s\n' "$dmg" "$zip_path"
 
 lcx_step "Verify DMG"
-# hdiutil can transiently fail with EAGAIN when the disk-image state is busy (a stale attached image
-# from an interrupted run, for example). Retry before declaring the artifact broken.
+# hdiutil fails with EAGAIN while the image is attached elsewhere (a stale image from an interrupted
+# run, or an unmounted attachment the system makes right after `hdiutil create`). Detach any
+# attachment of this exact image, then retry before declaring the artifact broken.
 verify_attempt=0
 until hdiutil verify "$dmg" >/dev/null 2>&1; do
   verify_attempt=$((verify_attempt + 1))
-  [[ "$verify_attempt" -lt 3 ]] || lcx_die "hdiutil verify failed for $dmg"
+  [[ "$verify_attempt" -lt 5 ]] || lcx_die "hdiutil verify failed for $dmg"
+  lcx_detach_image "$dmg"
   sleep 2
 done
 lcx_ok "hdiutil verify"
@@ -270,7 +272,8 @@ mnt="$(cd "$mnt" && pwd -P)"
 attach_attempt=0
 until hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$mnt" "$dmg" >/dev/null 2>&1; do
   attach_attempt=$((attach_attempt + 1))
-  [[ "$attach_attempt" -lt 3 ]] || lcx_die "cannot mount $dmg read-only"
+  [[ "$attach_attempt" -lt 5 ]] || lcx_die "cannot mount $dmg read-only"
+  lcx_detach_image "$dmg"
   sleep 2
 done
 [[ -L "$mnt/Applications" ]] || lcx_die "DMG has no /Applications symlink"
