@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   baselineModel,
   chooseModel,
+  clampEffort,
   displayedModel,
+  effortChoicesFor,
   effortsOfModel,
   executableModels,
   explicitModelRef,
@@ -17,7 +19,7 @@ import {
   supportedEffort,
 } from "./model-selection";
 import { buildAgentConfig } from "./agent-config";
-import type { ModelInfo } from "../types";
+import type { AgentEffort, ModelInfo } from "../types";
 
 function model(ref: string, overrides: Partial<ModelInfo> = {}): ModelInfo {
   return {
@@ -189,6 +191,40 @@ describe("effort support", () => {
   it("keeps auto for a model with levels and drops it for one without", () => {
     expect(supportedEffort("auto", ["low", "high"])).toBe("auto");
     expect(supportedEffort("auto", [])).toBeUndefined();
+  });
+});
+
+describe("effort menus for an agent's candidate models", () => {
+  it("mirrors Core's ClampEffort", () => {
+    // The lowest listed level not below the request, else the highest listed level.
+    expect(clampEffort("medium", ["none", "low", "high"])).toBe("high");
+    expect(clampEffort("low", ["none", "low", "high"])).toBe("low");
+    expect(clampEffort("max", ["none", "low"])).toBe("low");
+    expect(clampEffort("none", ["low", "high"])).toBe("low");
+    // No list, and "send nothing", are never changed.
+    expect(clampEffort("medium", [])).toBe("medium");
+    expect(clampEffort("" as AgentEffort, ["low"])).toBe("");
+  });
+
+  it("lists the union in Core's order and marks the candidates that clamp a level", () => {
+    expect(effortChoicesFor([["low", "high"], ["none", "medium"]])).toEqual([
+      { level: "none", clampedFor: [0] },
+      { level: "low", clampedFor: [1] },
+      { level: "medium", clampedFor: [0] },
+      { level: "high", clampedFor: [1] },
+    ]);
+    // A model that declares no levels changes nothing Core sends, so it clamps nothing.
+    expect(effortChoicesFor([["low"], undefined, []])).toEqual([{ level: "low", clampedFor: [] }]);
+  });
+
+  it("keeps a stored level no candidate lists, so the menu never shows the default instead", () => {
+    expect(effortChoicesFor([["low", "high"]], "max")).toEqual([
+      { level: "low", clampedFor: [] },
+      { level: "high", clampedFor: [] },
+      { level: "max", clampedFor: [0] },
+    ]);
+    // A level every candidate lists is not repeated.
+    expect(effortChoicesFor([["low", "high"]], "low").map((choice) => choice.level)).toEqual(["low", "high"]);
   });
 });
 

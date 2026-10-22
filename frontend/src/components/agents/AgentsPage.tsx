@@ -8,14 +8,14 @@ import { useAgentPresets } from "../../app/hooks/useAgentPresets";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import { AgentEditor } from "./AgentEditor";
+import type { AgentModelOption } from "./AgentModelList";
 import { AgentPresetPicker } from "./AgentPresetPicker";
-import type { PickerOption } from "../composer/ComposerPickers";
 import "./agents.css";
 
 type Props = {
   labels: AppCopy;
   agents: AgentCatalogController;
-  models: PickerOption[];
+  models: AgentModelOption[];
   recentModelRefs: string[];
   effortOptions: string[];
   onOpenProviders: () => void;

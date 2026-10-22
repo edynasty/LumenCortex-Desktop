@@ -1,21 +1,15 @@
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type { AgentDelegation, AgentEffort, AgentEntry, AgentModelItem, AgentPolicy, AgentUse } from "../../types";
 import { AGENT_LIMITS, agentName, utf8Bytes } from "../../app/agent-catalog";
+import { effortChoicesFor, type EffortChoice } from "../../app/model-selection";
 import { Button } from "../primitives/Button";
 import { Icon } from "../primitives/Icon";
 import { SegmentedControl } from "../primitives/SegmentedControl";
 import { MenuPicker } from "../composer/MenuPicker";
-import { ModelPicker, type PickerOption } from "../composer/ComposerPickers";
+import type { PickerOption } from "../composer/ComposerPickers";
+import { AgentModelList, type AgentModelOption } from "./AgentModelList";
+import { effortMenuOptions } from "./agent-effort";
 import "./agents.css";
-
-const EFFORT_LABEL: Record<AgentEffort, "effortNone" | "effortLow" | "effortMedium" | "effortHigh" | "effortMax" | "effortAuto"> = {
-  none: "effortNone",
-  low: "effortLow",
-  medium: "effortMedium",
-  high: "effortHigh",
-  max: "effortMax",
-  auto: "effortAuto",
-};
 
 export type AgentEditorProps = {
   labels: AppCopy;
@@ -26,7 +20,7 @@ export type AgentEditorProps = {
   error: string;
   deleteConfirm: boolean;
   pending: string | null | undefined;
-  models: PickerOption[];
+  models: AgentModelOption[];
   recentModelRefs: string[];
   effortOptions: string[];
   onOpenProviders: () => void;
@@ -57,10 +51,20 @@ export function AgentEditor({
   // Instructions, effort and the model list stay editable on a built-in; only a workspace definition is read-only.
   const readOnly = !draft.editable;
   const counter = utf8Bytes(draft.instructions);
-  const effortChoices: PickerOption[] = [
-    { value: "", label: labels.effortDefault },
-    ...effortOptions.map((level) => ({ value: level, label: labels[EFFORT_LABEL[level as AgentEffort]] })),
-  ];
+  const candidates = draft.models ?? [];
+  // Each effort menu follows the models that may actually run, not the composer's current pick: a
+  // candidate row lists the levels its own model declares, and the agent's default effort lists
+  // their union, naming the candidates that would clamp a level their model does not accept
+  // (Core's ClampEffort). Without candidates the agent inherits the run's model, so the composer's
+  // levels are the best available signal.
+  const candidateEfforts = candidates.map(
+    (candidate) => models.find((option) => option.value === candidate.model)?.efforts,
+  );
+  const defaultChoices: EffortChoice[] = candidates.length
+    ? effortChoicesFor(candidateEfforts, draft.effort)
+    : effortOptions.map((level) => ({ level: level as AgentEffort, clampedFor: [] }));
+
+  const effortChoices = effortMenuOptions(defaultChoices, candidateEfforts, labels);
   const policyChoices: PickerOption[] = [
     { value: "read-only", label: labels.readOnly, description: labels.readOnlyDescription },
     { value: "workspace", label: labels.workspace, description: labels.workspaceDescription },
@@ -72,7 +76,6 @@ export function AgentEditor({
     { value: "isolated", label: labels.delegationIsolated, description: labels.delegationIsolatedDescription },
   ];
   const title = creating ? labels.agentsNew : agentName(draft, labels);
-  const candidates = draft.models ?? [];
   // Core clears the delegation of every non-conversation agent: it never delegates further.
   const delegationFixed = draft.use !== "conversation";
 
@@ -234,93 +237,16 @@ export function AgentEditor({
         <small className="agents-note">{labels.agentsInstructionsNote}</small>
       </label>
 
-      <div className="field">
-        <span className="field-label">
-          {labels.agentsModels}
-          <span className="agents-counter">{candidates.length}/{AGENT_LIMITS.models}</span>
-        </span>
-        {candidates.length === 0 && <small className="agents-note">{labels.agentsModelsInherit}</small>}
-        <ol className="agents-models" aria-label={labels.agentsModels}>
-          {candidates.map((candidate, index) => (
-            <li className="agents-model-row" key={`${candidate.model}-${index}`}>
-              <span className="agents-model-index" aria-hidden>{index + 1}</span>
-              <ModelPicker
-                ariaLabel={`${labels.agentsModels} ${index + 1}`}
-                value={candidate.model}
-                options={models}
-                placeholder={labels.noModels}
-                searchLabel={labels.modelSearch}
-                emptyLabel={labels.noModelMatches}
-                recentLabel={labels.recentModels}
-                recentRefs={recentModelRefs}
-                disabled={readOnly}
-                onChange={(model) => {
-                  const next = [...candidates];
-                  next[index] = { ...next[index], model };
-                  setModels(next);
-                }}
-                footer={{ label: labels.providerSettings, onSelect: onOpenProviders }}
-              />
-              <MenuPicker
-                ariaLabel={`${labels.agentsModelEffort} ${index + 1}`}
-                value={candidate.effort ?? ""}
-                placeholder={labels.effortDefault}
-                disabled={readOnly}
-                options={effortChoices}
-                onChange={(effort) => {
-                  const next = [...candidates];
-                  next[index] = { ...next[index], effort: (effort || undefined) as AgentEffort | undefined };
-                  setModels(next);
-                }}
-              />
-              <div className="agents-model-actions">
-                <button
-                  type="button"
-                  className="agents-model-btn"
-                  aria-label={`${labels.agentsModelUp} ${index + 1}`}
-                  title={labels.agentsModelUp}
-                  disabled={readOnly || index === 0}
-                  onClick={() => move(index, -1)}
-                >
-                  <Icon name="moveUp" size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="agents-model-btn"
-                  aria-label={`${labels.agentsModelDown} ${index + 1}`}
-                  title={labels.agentsModelDown}
-                  disabled={readOnly || index === candidates.length - 1}
-                  onClick={() => move(index, 1)}
-                >
-                  <Icon name="moveDown" size={13} />
-                </button>
-                <button
-                  type="button"
-                  className="agents-model-btn is-danger"
-                  aria-label={`${labels.agentsModelRemove} ${index + 1}`}
-                  title={labels.agentsModelRemove}
-                  disabled={readOnly}
-                  onClick={() => setModels(candidates.filter((_, at) => at !== index))}
-                >
-                  <Icon name="delete" size={13} />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="agents-models-foot">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={readOnly || candidates.length >= AGENT_LIMITS.models}
-            title={candidates.length >= AGENT_LIMITS.models ? labels.agentsModelsLimit : labels.agentsModelAdd}
-            onClick={() => setModels([...candidates, { model: models[0]?.value ?? "" }])}
-          >
-            <Icon name="plus" size={13} />{labels.agentsModelAdd}
-          </Button>
-          <small className="agents-note">{labels.agentsModelsHint}</small>
-        </div>
-      </div>
+      <AgentModelList
+        labels={labels}
+        models={models}
+        recentModelRefs={recentModelRefs}
+        candidates={candidates}
+        efforts={candidateEfforts}
+        readOnly={readOnly}
+        onChange={(next) => onChange({ ...draft, models: next.length ? next : null })}
+        onOpenProviders={onOpenProviders}
+      />
 
       {error && <p className="agents-error" role="alert"><Icon name="failed" size={13} /><span>{error}</span></p>}
 

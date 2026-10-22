@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { copy } from "../../lib/i18n/app-copy";
 import type { AgentCatalog, AgentEntry } from "../../types";
@@ -60,13 +61,17 @@ const models = [
   { value: "openai/gpt-5.6-mini", label: "GPT-5.6 mini" },
 ];
 
-function renderPage(agents: AgentEntry[], overrides: Partial<AgentCatalogController> = {}) {
+function renderPage(
+  agents: AgentEntry[],
+  overrides: Partial<AgentCatalogController> = {},
+  modelOptions: ComponentProps<typeof AgentsPage>["models"] = models,
+) {
   const agentsController = controller(agents, overrides);
   render(
     <AgentsPage
       labels={t}
       agents={agentsController}
-      models={models}
+      models={modelOptions}
       recentModelRefs={[]}
       effortOptions={["low", "medium", "high"]}
       onOpenProviders={vi.fn()}
@@ -115,6 +120,39 @@ describe("AgentsPage", () => {
       id: "reviewer",
       instructions: "Name the regression first.",
     }));
+  });
+
+  it("lists each candidate's own effort levels and marks the ones another candidate clamps", async () => {
+    const user = userEvent.setup();
+    // Two candidates whose models declare different levels: the menus follow the models, not the
+    // composer's current pick.
+    const effortModels = [
+      { value: "openai/gpt-5.6", label: "GPT-5.6", efforts: ["low", "high"] },
+      { value: "openai/gpt-5.6-mini", label: "GPT-5.6 mini", efforts: ["none", "medium"] },
+    ];
+    const split = {
+      ...reviewer,
+      models: [{ model: "openai/gpt-5.6" }, { model: "openai/gpt-5.6-mini" }],
+    };
+    renderPage([...builtins, split], {}, effortModels);
+    await user.click(screen.getByRole("button", { name: /Code reviewer/ }));
+    const editor = screen.getByRole("region", { name: "Code reviewer" });
+
+    // A candidate row offers only what its own model declares.
+    await user.click(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsModelEffort} 1`) }));
+    expect(screen.getAllByRole("menuitemradio").map((item) => item.textContent)).toEqual([
+      t.effortDefault, t.effortLow, t.effortHigh,
+    ]);
+    await user.keyboard("{Escape}");
+
+    // The agent's default effort offers the union, in Core's order, and says which candidates clamp.
+    await user.click(within(editor).getByRole("button", { name: new RegExp(`^${t.agentsDefaultEffort}`) }));
+    const rows = screen.getAllByRole("menuitemradio").map((item) => item.textContent);
+    expect(rows).toHaveLength(5);
+    expect(rows[1]).toContain(t.effortNone);
+    expect(rows[1]).toContain(t.agentsEffortClamped.replace("{count}", "1").replace("{total}", "2"));
+    expect(rows[2]).toContain(t.effortLow);
+    expect(rows[4]).toContain(t.effortHigh);
   });
 
   it("reorders and removes model candidates, and adds one up to the bound", async () => {

@@ -39,6 +39,41 @@ export function effortsOfModel(ref: string, models: ModelInfo[]): string[] {
   return orderedEfforts(model?.efforts);
 }
 
+// Core's ClampEffort (internal/agent/policy.go) mirrored for the UI: the lowest listed level not
+// below the request, else the highest listed level. An empty list or "" leaves the request alone,
+// so a model that declares no levels never changes what is sent. The argument is a concrete level:
+// "auto" is a request value Core resolves before clamping and is not passed here.
+export function clampEffort(effort: AgentEffort, supported: string[]): AgentEffort {
+  if (!effort || !supported.length) return effort;
+  let up: string | undefined;
+  let highest = supported[0];
+  for (const level of supported) {
+    const rank = EFFORT_ORDER.indexOf(level as AgentEffort);
+    if (rank > EFFORT_ORDER.indexOf(highest as AgentEffort)) highest = level;
+    if (rank >= EFFORT_ORDER.indexOf(effort) && (up === undefined || rank < EFFORT_ORDER.indexOf(up as AgentEffort))) {
+      up = level;
+    }
+  }
+  return (up ?? highest) as AgentEffort;
+}
+
+// One effort menu for a set of models that may all serve the same request: every level any of them
+// lists, plus a stored level none lists (Core clamps it for them), in Core's order. `clampedFor`
+// names the candidates that would run a different level than the one chosen, so the editor can say
+// so before a run rather than after it.
+export type EffortChoice = { level: AgentEffort; clampedFor: number[] };
+
+export function effortChoicesFor(lists: (string[] | undefined)[], current?: AgentEffort): EffortChoice[] {
+  const union = orderedEfforts(lists.flatMap((list) => list ?? []));
+  const levels = current && EFFORT_ORDER.includes(current) && !union.includes(current)
+    ? orderedEfforts([...union, current])
+    : union;
+  return levels.map((level) => ({
+    level: level as AgentEffort,
+    clampedFor: lists.flatMap((list, index) => (list?.length && !list.includes(level) ? [index] : [])),
+  }));
+}
+
 // The effort to send for the displayed model: the user's choice only when the model supports it.
 // An unsupported choice (model switched, session re-pinned) falls back to the default, never sent.
 // "auto" is valid exactly when the model has reasoning levels; a model without them gets nothing.
