@@ -11,7 +11,6 @@
 .thread-row-popover { top: 34px; width: 200px; }
 .group-attention .section-label { color: var(--warn); }
 
-.core-dot.is-offline { background: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
 .core-dot.is-ready { background: var(--fg-4); box-shadow: 0 0 0 3px var(--surface-control); }
 
 /* — Project switcher menu: portaled to the body (ProjectMenu), so the sidebar cannot clip it.

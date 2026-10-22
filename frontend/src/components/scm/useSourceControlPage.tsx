@@ -33,13 +33,13 @@ export function useSourceControlPage(input: {
   onSelectCheckout: (checkout: "main" | string) => void;
   onOpenThread: (sessionId: string) => void;
   onCleanupWorktree: (target: WorktreeCleanupTarget) => void;
-  onError: (message: string) => void;
 }): { sidebar: ReactNode; content: ReactNode } {
-  const { enabled, workspace, sessions, checkout, labels, onSelectCheckout, onOpenThread, onCleanupWorktree, onError } = input;
+  const { enabled, workspace, sessions, checkout, labels, onSelectCheckout, onOpenThread, onCleanupWorktree } = input;
 
   const [mainCount, setMainCount] = useState<number | null | undefined>(undefined);
   const [inspections, setInspections] = useState<Record<string, WorktreeInspection>>({});
   const [revision, setRevision] = useState(0);
+  const [readError, setReadError] = useState<"worktree" | "checkout" | "">("");
 
   const worktrees = useMemo<ScmWorktreeRow[]>(
     () => sessions
@@ -62,6 +62,7 @@ export function useSourceControlPage(input: {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
+    setReadError("");
     void (async () => {
       try {
         const [status, rows] = await Promise.all([
@@ -83,19 +84,25 @@ export function useSourceControlPage(input: {
           if (row) next[row[0]] = row[1];
           else failed = true;
         });
-        setInspections((current) => ({ ...current, ...next }));
-        if (failed) onError(labels.contextStateError);
+        setInspections((current) => {
+          const merged = { ...current, ...next };
+          rows.forEach((row, index) => {
+            if (!row) delete merged[worktrees[index].session.id];
+          });
+          return merged;
+        });
+        if (failed) setReadError("worktree");
       } catch {
         if (cancelled) return;
         // A failed read leaves no count to show; a stale one would read as current.
         setMainCount(null);
-        onError(labels.contextStateError);
+        setReadError("checkout");
       }
     })();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels/onError are stable app callbacks; the fetch follows the page, the worktree set and the mutation revision only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch follows page enablement, the worktree set, and the explicit revision only
   }, [enabled, worktreeRevision, revision]);
 
   const counts = useMemo(() => {
@@ -139,6 +146,17 @@ export function useSourceControlPage(input: {
   }, [worktrees, inspections]);
 
   const selected = worktrees.find((row) => row.session.id === checkout);
+  const withReadWarning = (content: ReactNode): ReactNode => (
+    <div className="scm-page-content">
+      {readError && (
+        <div className="scm-read-warning" role="status">
+          <span>{readError === "worktree" ? labels.scmWorktreeReadError : labels.scmCheckoutReadError}</span>
+          <button type="button" onClick={() => setRevision((value) => value + 1)}>{labels.retry}</button>
+        </div>
+      )}
+      {content}
+    </div>
+  );
 
   const sidebar = (
     <ScmSidebar
@@ -157,7 +175,7 @@ export function useSourceControlPage(input: {
   if (selected) {
     return {
       sidebar,
-      content: (
+      content: withReadWarning(
         <ScmWorktreeView
           key={selected.session.id}
           session={selected.session}
@@ -167,14 +185,14 @@ export function useSourceControlPage(input: {
           onOpenThread={onOpenThread}
           onCleanupWorktree={onCleanupWorktree}
           onApplied={() => setRevision((value) => value + 1)}
-        />
+        />,
       ),
     };
   }
 
   return {
     sidebar,
-    content: (
+    content: withReadWarning(
       <ScmCheckoutView
         workspace={workspace}
         worktrees={graphWorktrees}
@@ -184,7 +202,7 @@ export function useSourceControlPage(input: {
         revision={revision}
         labels={labels}
         onSelectCheckout={onSelectCheckout}
-      />
+      />,
     ),
   };
 }

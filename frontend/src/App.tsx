@@ -246,7 +246,6 @@ export default function App() {
       recentProjects={recentProjects}
       selectedSessionId={selected}
       runtimeState={health ? "online" : state.workspace ? "offline" : "ready"}
-      activeRuns={state.activeRuns.length}
       health={health}
       pressure={pressure}
       layout={layout}

@@ -132,11 +132,7 @@
 .thread-row-runtime > svg { flex: none; }
 .thread-row-runtime > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.sidebar-footer { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px; flex: none; border-top: 1px solid var(--line); }
-.core-status { display: inline-flex; align-items: center; gap: 7px; flex: 1; min-width: 0; font-size: var(--text-2xs); color: var(--fg-3); white-space: nowrap; overflow: hidden; }
 .core-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px var(--ok-soft); }
-.core-dot.is-busy { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.core-runs { margin-left: auto; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; }
 
 /* —— Sheets: the two glass surfaces (main pane, inspector) share one material. —— */
 .sheet {

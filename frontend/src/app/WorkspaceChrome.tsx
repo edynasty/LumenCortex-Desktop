@@ -4,7 +4,7 @@ import { Rail } from "../components/app-shell/Rail";
 import { WorkspaceTopbar } from "../components/app-shell/WorkspaceTopbar";
 import type { InspectorTab } from "../components/inspector/inspector-types";
 import { WorkspaceInspector } from "../components/inspector/WorkspaceInspector";
-import { Sidebar, type RuntimeState, type SidebarGroup } from "../components/sidebar/Sidebar";
+import { Sidebar, type SidebarGroup } from "../components/sidebar/Sidebar";
 import { ThreadsSidebar } from "../components/sidebar/ThreadsSidebar";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { LayoutPreference } from "../lib/layout-preference";
@@ -40,8 +40,6 @@ type Props = {
   groups: SidebarGroup[];
   recentProjects: string[];
   selectedSessionId: string;
-  runtimeState: RuntimeState;
-  activeRuns: number;
   attention: number;
   worktrees: number;
   health?: Health;
@@ -144,9 +142,6 @@ export function WorkspaceChrome(props: Props) {
       label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : page === "agents" ? labels.agentsPage : labels.contextPage}
       workspace={props.workspace}
       recentProjects={props.recentProjects}
-      runtimeState={props.runtimeState}
-      runtimeVersion={props.health?.version}
-      activeRuns={props.activeRuns}
       labels={labels}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}

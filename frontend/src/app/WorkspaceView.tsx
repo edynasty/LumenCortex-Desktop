@@ -40,7 +40,6 @@ type Props = {
   recentProjects: string[];
   selectedSessionId: string;
   runtimeState: RuntimeState;
-  activeRuns: number;
   health?: Health;
   pressure: number;
   layout: LayoutPreference;
@@ -223,8 +222,6 @@ export function WorkspaceView(props: Props) {
       groups={groups}
       recentProjects={props.recentProjects}
       selectedSessionId={props.selectedSessionId}
-      runtimeState={props.runtimeState}
-      activeRuns={props.activeRuns}
       attention={attention}
       worktrees={worktrees}
       health={props.health}

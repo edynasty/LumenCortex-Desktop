@@ -50,7 +50,6 @@ export function useWorkspacePages(input: Input): { sidebar?: ReactNode; content?
     },
     onOpenThread: openThread,
     onCleanupWorktree: input.onWorktreeCleanupTargetChange,
-    onError,
   });
 
   if (route.kind === "context") return context;

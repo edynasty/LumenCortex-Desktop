@@ -21,8 +21,6 @@ function renderSidebar() {
       label="Sidebar"
       workspace={PROJECTS[0]}
       recentProjects={PROJECTS}
-      runtimeState="ready"
-      activeRuns={0}
       labels={copy["en"]}
       onPickWorkspace={noop}
       onOpenWorkspace={noop}
@@ -39,6 +37,13 @@ const rowByName = (name: string | RegExp) => screen.getByRole("menuitemradio", {
 describe("project switcher menu", () => {
   afterEach(() => {
     window.localStorage.clear();
+  });
+
+  it("does not reserve sidebar space for runtime telemetry", () => {
+    renderSidebar();
+    expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Runtime online")).not.toBeInTheDocument();
+    expect(screen.queryByText("Idle")).not.toBeInTheDocument();
   });
 
   it("opens from the trigger with Enter and focuses the current project", async () => {
@@ -78,8 +83,6 @@ describe("project switcher menu", () => {
         label="Sidebar"
         workspace={PROJECTS[0]}
         recentProjects={PROJECTS}
-        runtimeState="ready"
-        activeRuns={0}
         labels={copy["en"]}
         onPickWorkspace={noop}
         onOpenWorkspace={onOpenWorkspace}

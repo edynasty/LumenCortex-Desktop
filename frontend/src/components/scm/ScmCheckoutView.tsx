@@ -49,7 +49,7 @@ export function ScmCheckoutView({ workspace, worktrees, baseBranch, baseHead, ch
               // The count is still being read: a blank cell would read as "no state".
               <span role="status">{labels.loading}</span>
             ) : changeCount === null ? (
-              // The read failed (the error toast says why): never leave "loading" up forever.
+              // The page-level warning explains the read failure; never leave "loading" up forever.
               labels.unknown
             ) : (
               <>

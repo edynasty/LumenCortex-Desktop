@@ -131,6 +131,27 @@ describe("useContextPage notes", () => {
     expect(await screen.findByRole("heading", { name: "Alpha thread" })).toBeInTheDocument();
   });
 
+  it("keeps partial Task State read failures local and allows retry", async () => {
+    const onError = vi.fn();
+    mocks.taskState.mockImplementation(async (id: string) => {
+      if (id === alpha.id) throw new Error("temporary read failure");
+      return info(beta.id, 1, [betaNote]);
+    });
+    render(<Host onError={onError} />);
+
+    const warning = await screen.findByRole("status");
+    expect(warning).toHaveTextContent(labels.contextStatePartialError(1));
+    expect(onError).not.toHaveBeenCalled();
+
+    mocks.taskState.mockImplementation(async (id: string) =>
+      id === alpha.id ? info(alpha.id, 3, [alphaOldest, alphaNewest]) : info(beta.id, 1, [betaNote]),
+    );
+    await userEvent.click(within(warning).getByRole("button", { name: labels.retry }));
+
+    await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it("shows Core's stale marker and the stale cite, and none for a fresh thread", async () => {
     render(<Host />);
     await openNotes();

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Session } from "../../types";
@@ -106,7 +106,6 @@ function Host({ enabled = true, checkout = "main", onSelectCheckout = vi.fn() }:
     onSelectCheckout,
     onOpenThread: vi.fn(),
     onCleanupWorktree: vi.fn(),
-    onError: vi.fn(),
   });
   return (
     <div>
@@ -128,6 +127,24 @@ describe("useSourceControlPage", () => {
     expect(mocks.gitStatus).toHaveBeenCalledTimes(2);
     expect(mocks.gitDiff).toHaveBeenCalledWith("docs/architecture.md", false);
   });
+  it("keeps worktree read failures on Source Control and allows retry", async () => {
+    mocks.inspectSessionWorktree.mockRejectedValueOnce(new Error("temporary inspection failure"));
+    render(<Host />);
+
+    const warningText = await screen.findByText(labels.scmWorktreeReadError);
+    const warning = warningText.closest('[role="status"]');
+    expect(warning).not.toBeNull();
+    await userEvent.click(within(warning as HTMLElement).getByRole("button", { name: labels.retry }));
+    await waitFor(() => expect(screen.queryByText(labels.scmWorktreeReadError)).not.toBeInTheDocument());
+  });
+
+  it("shows checkout-specific copy when the project Git status cannot be read", async () => {
+    mocks.gitStatus.mockRejectedValue(new Error("not a git repository"));
+    render(<Host />);
+
+    expect(await screen.findByText(labels.scmCheckoutReadError)).toBeInTheDocument();
+  });
+
   it("selects a worktree row through onSelectCheckout", async () => {
     const onSelectCheckout = vi.fn();
     render(<Host checkout="main" onSelectCheckout={onSelectCheckout} />);

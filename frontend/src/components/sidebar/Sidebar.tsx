@@ -1,7 +1,7 @@
 /*
- * Contextual sidebar frame. The project it scopes sits on top, the page's own list fills the
- * middle (threads, Source Control, Context), Core status sits at the bottom. The global rail
- * beside it owns navigation, so the sidebar never repeats it.
+ * Contextual sidebar frame. The project it scopes sits on top and the page's own list fills the
+ * middle (threads, Source Control, Context). The global rail owns navigation, so the sidebar
+ * never repeats it or reserves space for low-value runtime telemetry.
  */
 import { useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
@@ -83,28 +83,17 @@ type Props = {
   label: string;
   workspace: string;
   recentProjects: string[];
-  runtimeState: RuntimeState;
-  runtimeVersion?: string;
-  activeRuns: number;
   labels: AppCopy;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
   children: ReactNode;
 };
 
-export function Sidebar({ label, workspace, recentProjects, runtimeState, runtimeVersion, activeRuns, labels, onPickWorkspace, onOpenWorkspace, children }: Props) {
-  const runtimeLabel = runtimeState === "online" ? labels.runtimeOnline : runtimeState === "offline" ? labels.runtimeOffline : labels.runtimeReady;
+export function Sidebar({ label, workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace, children }: Props) {
   return (
     <aside className="sidebar" aria-label={label}>
       <ProjectSwitcher workspace={workspace} recentProjects={recentProjects} labels={labels} onPickWorkspace={onPickWorkspace} onOpenWorkspace={onOpenWorkspace} />
       <div className="sidebar-body">{children}</div>
-      <footer className="sidebar-footer">
-        <span className="core-status" title={runtimeVersion ? `LumenCortex Core ${runtimeVersion}` : "LumenCortex Core"}>
-          <span className={`core-dot is-${runtimeState} ${activeRuns ? "is-busy" : ""}`} aria-hidden />
-          <span>{runtimeLabel}</span>
-          <span className="core-runs">{activeRuns ? labels.runsActive.replace("{n}", String(activeRuns)) : labels.noRuns}</span>
-        </span>
-      </footer>
     </aside>
   );
 }

@@ -64,6 +64,8 @@ export function useContextPage(input: {
   const [selected, setSelected] = useState<string | null>(null);
   const [states, setStates] = useState<Record<string, TaskStateInfo>>({});
   const [pending, setPending] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [retryRevision, setRetryRevision] = useState(0);
   const statesRef = useRef(states);
 
   const threads = useMemo(() => boundThreads(sessions), [sessions]);
@@ -75,6 +77,7 @@ export function useContextPage(input: {
     let cancelled = false;
     const ids = threads.map((session) => session.id);
     setPending(ids.length);
+    setFailedCount(0);
     Promise.all(
       ids.map((id) =>
         bridge.taskState(id).then(
@@ -86,21 +89,24 @@ export function useContextPage(input: {
       if (cancelled) return;
       const next = { ...statesRef.current };
       let failed = 0;
-      for (const row of rows) {
+      rows.forEach((row, index) => {
         if (row) next[row[0]] = row[1];
-        else failed += 1;
-      }
+        else {
+          failed += 1;
+          delete next[ids[index]];
+        }
+      });
       statesRef.current = next;
       setStates(next);
       setPending(0);
-      if (failed > 0) onError(labels.contextStateError);
+      setFailedCount(failed);
     });
     return () => {
       cancelled = true;
       setPending(0);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels/onError are stable app callbacks; refetch follows the bound revision only
-  }, [enabled, revision]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch follows the bound revision and explicit retry only
+  }, [enabled, revision, retryRevision]);
 
   const stateMap = useMemo(() => new Map(Object.entries(states)), [states]);
   const graph = useMemo(() => contextGraph(threads, stateMap), [threads, stateMap]);
@@ -239,6 +245,12 @@ export function useContextPage(input: {
         />
       </label>
       {pending > 0 && <p className="context-loading">{labels.contextLoadingState(pending)}</p>}
+      {failedCount > 0 && (
+        <div className="context-partial-error" role="status">
+          <span>{labels.contextStatePartialError(failedCount)}</span>
+          <button type="button" onClick={() => setRetryRevision((value) => value + 1)}>{labels.retry}</button>
+        </div>
+      )}
     </header>
   );
 
