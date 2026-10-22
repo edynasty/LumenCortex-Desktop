@@ -1,7 +1,7 @@
 # OMP session import — Desktop UI
 
 Status: **implemented and validated locally; committed to local Desktop `main`, not pushed.**
-Desktop baseline `afd0c51`; Core pinned at `95478bd` by the agent-presets commit `69fb391` (through
+Desktop baseline `afd0c51`; Core pinned at `95478bd` by the agent-presets commit `69fb391`, then at `d2eaa01` (adds the retried-turn converter fix `099e155`) (through
 a temporary `url.insteadOf`, `GOPROXY=direct GOPRIVATE=github.com/edynasty/*`, as in earlier
 pins; no `replace`, no `go.work`). The commit holds only this change's hunks; other uncommitted
 working-tree changes (sidebar runtime footer removal, context/SCM error handling) stay
