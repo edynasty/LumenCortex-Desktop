@@ -4,6 +4,10 @@
   Desktop `af93c34` against Core `d2eaa01` and passed every verification step, including the launch
   check. CI workflows were updated to call the same scripts but were not executed. Signing and
   notarization are **not** implemented.
+- **Follow-up:** the output layout changed afterwards (local candidates now go to
+  `build/candidates/`, verified local builds to `build/local/`) and `v0.1.0` was tagged and built in
+  release mode; see [release-0.1.0-2026-10-22.md](release-0.1.0-2026-10-22.md). Paths below are as
+  they were at the time.
 - **Baseline:** Desktop `af93c344940e2e121e2a331cbe406ca75f00b718` (branch `main`), Core
   `d2eaa01dbe01ce4b103865042f798a7d7efde75e`. No tags exist in either repository; nothing was
   committed, tagged or pushed.
@@ -188,7 +192,6 @@ e1f50e3551d065c0ba7165fb7b61ff54eae0a6867a73c0dd8631294f5695d719  LumenCortex-De
 
 ## Next actions
 
-1. Publish a Core SemVer tag, pin it in Desktop, and run `release-check.sh --mode release` on
-   both sides (owner decision; nothing is tagged or pushed).
-2. Add Developer ID signing and notarization (documented but unimplemented) before any public
-   distribution.
+Done or superseded by [release-0.1.0-2026-10-22.md](release-0.1.0-2026-10-22.md): Core and Desktop
+are tagged `v0.1.0` locally and built in release mode. Pushing, the GitHub tag workflow, and
+Developer ID signing/notarization remain.
