@@ -82,7 +82,6 @@ type Props = {
   onOpenProviders: () => void;
   onOpenPalette: () => void;
   onNewTask: () => void;
-  onOpenAbout: () => void;
   onOpenImport: (sourceId: string) => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -140,10 +139,6 @@ export function WorkspaceChrome(props: Props) {
       onOpenSettings={() => {
         closeDrawer();
         props.onOpenSettings();
-      }}
-      onOpenAbout={() => {
-        closeDrawer();
-        props.onOpenAbout();
       }}
       onOpenImport={(sourceId) => {
         closeDrawer();

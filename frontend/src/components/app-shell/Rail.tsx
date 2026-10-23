@@ -1,10 +1,10 @@
 /*
- * Global rail: the top-level pages, the plugins that ride along, Settings and the build version.
+ * Global rail: the top-level pages, the plugins that ride along and Settings. The build version
+ * lives in Settings → About and the app menu's About panel, not on the working surface.
  * It never collapses on a docked window, so navigation stays in one place while the contextual
  * sidebar next to it opens, closes and resizes.
  */
 import type { WorkspacePage } from "../../app/workspace-route";
-import { shortCommit, useBuildInfo, versionLabel } from "../../lib/build-info";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import { pluginIcon, railPlugins } from "../../lib/plugins";
 import { useHiddenPluginIds } from "../../lib/rail-plugins";
@@ -24,13 +24,10 @@ type Props = {
   labels: AppCopy;
   onNavigate: (page: WorkspacePage) => void;
   onOpenSettings: () => void;
-  /** Opens Settings → About, where the full build identity is listed. */
-  onOpenAbout: () => void;
   onOpenImport: (sourceId: string) => void;
 };
 
-export function Rail({ page, settingsOpen, attention, worktrees, plugins, labels, onNavigate, onOpenSettings, onOpenAbout, onOpenImport }: Props) {
-  const build = useBuildInfo();
+export function Rail({ page, settingsOpen, attention, worktrees, plugins, labels, onNavigate, onOpenSettings, onOpenImport }: Props) {
   const pinned = railPlugins(plugins, useHiddenPluginIds(), labels);
   const items: { page: WorkspacePage; icon: IconName; label: string; hint: string; count?: number; dot?: boolean }[] = [
     { page: "threads", icon: "discussion", label: labels.threadsPage, hint: `${labels.threadsPage} ⌘1`, count: attention },
@@ -80,17 +77,6 @@ export function Rail({ page, settingsOpen, attention, worktrees, plugins, labels
         )}
       </div>
       <div className="rail-bottom">
-        {build && (
-          <button
-            type="button"
-            className="rail-version"
-            aria-label={`${labels.aboutVersion} ${versionLabel(build)}`}
-            title={`${build.app} ${versionLabel(build)} · ${shortCommit(build.commit)}`}
-            onClick={onOpenAbout}
-          >
-            {versionLabel(build)}
-          </button>
-        )}
         <button
           type="button"
           className={`rail-btn ${settingsOpen ? "is-active" : ""}`}

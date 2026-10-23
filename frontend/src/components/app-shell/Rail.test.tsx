@@ -4,29 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { copy } from "../../lib/i18n/app-copy";
 import { setPluginRailVisible } from "../../lib/rail-plugins";
-import type { BuildInfo, PluginInfo } from "../../types";
+import type { PluginInfo } from "../../types";
 import { Rail } from "./Rail";
 
-const mocks = vi.hoisted(() => ({ buildInfo: vi.fn() }));
-
-vi.mock("../../lib/bridge", () => ({ bridge: mocks }));
-
 const labels = copy.en;
-
-const build: BuildInfo = {
-  app: "LumenCortex Desktop",
-  appVersion: "0.1.0",
-  commit: "0f6d9214c2ab7c1d5e8f3a9b6d4c2e1f0a9b8c7d",
-  commitSource: "ldflags",
-  builtAt: "2026-10-22T18:04:00Z",
-  coreModule: "github.com/edynasty/LumenCortex",
-  coreVersion: "v0.1.2",
-  coreLocal: false,
-  coreRuntimeVersion: "0.1.2-preview",
-  goVersion: "go1.24.3",
-  goos: "darwin",
-  goarch: "arm64",
-};
 
 const ompPlugin: PluginInfo = {
   manifest: {
@@ -60,7 +41,6 @@ function renderRail(overrides: Partial<ComponentProps<typeof Rail>> = {}) {
     labels,
     onNavigate: vi.fn(),
     onOpenSettings: vi.fn(),
-    onOpenAbout: vi.fn(),
     onOpenImport: vi.fn(),
     ...overrides,
   };
@@ -71,8 +51,6 @@ function renderRail(overrides: Partial<ComponentProps<typeof Rail>> = {}) {
 describe("Rail", () => {
   beforeEach(() => {
     localStorage.clear();
-    for (const fn of Object.values(mocks)) fn.mockReset();
-    mocks.buildInfo.mockResolvedValue(build);
   });
 
   it("offers the Plugins page on ⌘5", () => {
@@ -97,7 +75,7 @@ describe("Rail", () => {
   it("drops a hidden or disabled plugin from the rail", () => {
     const { unmount } = render(<Rail
       page="threads" settingsOpen={false} attention={0} worktrees={0} plugins={[ompPlugin]} labels={labels}
-      onNavigate={vi.fn()} onOpenSettings={vi.fn()} onOpenAbout={vi.fn()} onOpenImport={vi.fn()}
+      onNavigate={vi.fn()} onOpenSettings={vi.fn()} onOpenImport={vi.fn()}
     />);
     expect(screen.getByRole("button", { name: labels.pluginEntryImport })).toBeInTheDocument();
     act(() => setPluginRailVisible("omp-import", false));
@@ -106,16 +84,5 @@ describe("Rail", () => {
 
     renderRail({ plugins: [{ ...ompPlugin, enabled: false, state: "disabled" }] });
     expect(screen.queryByRole("button", { name: labels.pluginEntryImport })).toBeNull();
-  });
-
-  it("shows the build version and opens About", async () => {
-    const user = userEvent.setup();
-    const props = renderRail();
-
-    const version = await screen.findByRole("button", { name: `${labels.aboutVersion} v0.1.0` });
-    expect(version).toHaveTextContent("v0.1.0");
-    expect(version).toHaveAttribute("title", "LumenCortex Desktop v0.1.0 · 0f6d921");
-    await user.click(version);
-    expect(props.onOpenAbout).toHaveBeenCalledTimes(1);
   });
 });

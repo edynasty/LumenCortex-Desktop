@@ -65,13 +65,6 @@
 /* Plugin buttons sit under the pages, separated by a hairline: they are entries, not pages. */
 .rail-plugins { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 9px; }
 .rail-plugins::before { content: ""; position: absolute; top: 0; left: 6px; right: 6px; height: 1px; background: var(--line); }
-/* The build version, quiet under the settings button; the title and About carry the details. */
-.rail-version {
-  display: block; max-width: 44px; padding: 2px 0; border: none; background: transparent;
-  color: var(--fg-4); font-size: 9px; line-height: 1.2; letter-spacing: .02em; font-variant-numeric: tabular-nums;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.rail-version:hover { color: var(--fg-2); }
 .rail-btn {
   position: relative; display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
   border: none; border-radius: var(--r-lg); background: transparent; color: var(--fg-3);

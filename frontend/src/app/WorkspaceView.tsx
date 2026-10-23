@@ -257,7 +257,6 @@ export function WorkspaceView(props: Props) {
       onOpenProviders={() => openSettings("models")}
       onOpenPalette={() => props.onPaletteOpenChange(true)}
       onNewTask={props.onNewTask}
-      onOpenAbout={() => openSettings("about")}
       onOpenImport={(sourceId) => props.ompImport.openFor(sourceId)}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}
