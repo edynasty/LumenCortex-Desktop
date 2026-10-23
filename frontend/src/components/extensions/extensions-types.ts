@@ -32,6 +32,10 @@ export type SkillLabels = {
   root: string;
   realPath: string;
   readOnlyNote: string;
+  /** A broken link: why no run receives it (the target follows). */
+  brokenNote: string;
+  /** A shadowed duplicate: why no run receives it (the winner follows). */
+  shadowedNote: string;
   /** Rendered after the count: "3 enabled skills reach runs". */
   reachable: string;
   catalogHint: string;
@@ -129,6 +133,8 @@ export type ExtensionsLabels = {
   skillRoot: string;
   skillRealPath: string;
   skillReadOnlyNote: string;
+  skillBrokenNote: string;
+  skillShadowedNote: string;
   skillReachable: string;
   skillCatalogHint: string;
   skillSelect: string;

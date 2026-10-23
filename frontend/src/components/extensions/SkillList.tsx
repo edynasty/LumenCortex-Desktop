@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Skill, SkillSource } from "../../types";
 import { Icon } from "../primitives/Icon";
 import type { SkillLabels } from "./extensions-types";
+import { skillBlocked, skillKey } from "./useSkillsController";
 
 /** Root conventions, not copy: these are the directory names Core reports. */
 const SOURCE_LABEL: Record<SkillSource, string> = {
@@ -12,34 +13,34 @@ const SOURCE_LABEL: Record<SkillSource, string> = {
 
 type Props = {
   skills: Skill[];
-  selectedId: string;
+  /** The selected row's skillKey (scope, source and id: a shadowed duplicate shares the id). */
+  selectedKey: string;
   labels: SkillLabels;
   trusted: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (key: string) => void;
   /** The "add skill" row, appended to the same list. */
   footer?: ReactNode;
 };
 
 /**
  * One row per discovered skill: source, scope, link and read-only badges, the description, and the
- * conflict Core reports (a shadowed duplicate or a broken link). A row that cannot be opened is
- * dimmed and inert: Core has no content for a shadowed skill, and never offers a broken link.
+ * conflict Core reports (a shadowed duplicate or a broken link). A conflicting row is dimmed but
+ * still opens: its details say where it lives and why no run receives it.
  */
-export function SkillList({ skills, selectedId, labels, trusted, onSelect, footer }: Props) {
+export function SkillList({ skills, selectedKey, labels, trusted, onSelect, footer }: Props) {
   return (
     <ul className="provider-list skill-list">
       {skills.map((skill) => {
-        const blocked = Boolean(skill.shadowedBy || skill.error);
+        const key = skillKey(skill);
+        const blocked = skillBlocked(skill);
+        const current = key === selectedKey;
         return (
-          <li key={`${skill.scope}:${skill.source}:${skill.id}`}>
+          <li key={key}>
             <button
               type="button"
-              className={`provider-row skill-row ${skill.id === selectedId ? "is-selected" : ""} ${blocked ? "is-blocked" : ""}`.trim()}
-              aria-current={skill.id === selectedId ? "true" : undefined}
-              aria-disabled={blocked || undefined}
-              onClick={() => {
-                if (!blocked) onSelect(skill.id);
-              }}
+              className={`provider-row skill-row ${current ? "is-selected" : ""} ${blocked ? "is-blocked" : ""}`.trim()}
+              aria-current={current ? "true" : undefined}
+              onClick={() => onSelect(key)}
             >
               <span className="provider-row-name">
                 <span className={`run-dot ${skill.enabled && !blocked ? "is-on" : ""}`} aria-hidden />

@@ -112,6 +112,8 @@ const labels = {
   skillRoot: "Root",
   skillRealPath: "Real path",
   skillReadOnlyNote: "LumenCortex never modifies this skill.",
+  skillBrokenNote: "The link target does not exist.",
+  skillShadowedNote: "A higher-priority source wins.",
   skillReachable: "enabled skills reach runs",
   skillCatalogHint: "Runs get a catalog and load the full skill on demand.",
   skillSelect: "Select a skill to see its details",

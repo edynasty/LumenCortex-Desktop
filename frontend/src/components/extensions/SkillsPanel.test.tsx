@@ -49,6 +49,8 @@ const labels: SkillLabels = {
   root: "Root",
   realPath: "Real path",
   readOnlyNote: "LumenCortex never modifies this skill.",
+  brokenNote: "The link target does not exist.",
+  shadowedNote: "A higher-priority source wins.",
   reachable: "enabled skills reach runs",
   catalogHint: "Runs get a catalog and load the full skill on demand.",
   select: "Select a skill to see its details",
@@ -178,28 +180,43 @@ describe("SkillsPanel", () => {
     expect(within(owned).queryByText("Read-only")).not.toBeInTheDocument();
   });
 
-  it("lists a shadowed duplicate dimmed and unselectable", async () => {
+  it("opens a shadowed duplicate's own details without loading the winner's body", async () => {
     setupScopes({ global: [lcGlobal, claudeDuplicate] });
     renderPanel();
     await showScope("Global");
 
     const shadowed = await screen.findByRole("button", { name: /Go Runtime \(Claude\)/ });
-    expect(shadowed).toHaveAttribute("aria-disabled", "true");
     expect(shadowed).toHaveTextContent("Shadowed by global:lumencortex");
+    // The winner (same id) is selected first and its body loaded.
+    await screen.findByLabelText("SKILL.md content");
 
     const before = mocks.skillContent.mock.calls.length;
     await userEvent.setup().click(shadowed);
+
+    expect(shadowed).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: /^Go Runtime\b(?! \(Claude\))/ })).not.toHaveAttribute("aria-current");
+    expect(await screen.findByRole("alert")).toHaveTextContent("A higher-priority source wins.");
+    expect(screen.getByText("/home/.claude/skills/go-runtime/SKILL.md")).toBeInTheDocument();
+    expect(screen.queryByLabelText("SKILL.md content")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enabled" })).not.toBeInTheDocument();
     expect(mocks.skillContent.mock.calls.length).toBe(before);
   });
 
-  it("shows a broken link as an error line and never opens it", async () => {
+  it("opens a broken link for its path and target, never for a body", async () => {
     setupScopes({ global: [lcGlobal, brokenLink] });
     renderPanel();
     await showScope("Global");
 
     const row = await screen.findByRole("button", { name: /Design review/ });
-    expect(row).toHaveAttribute("aria-disabled", "true");
     expect(row).toHaveTextContent("broken link: /home/src/design-review");
+
+    await userEvent.setup().click(row);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("The link target does not exist.");
+    expect(alert).toHaveTextContent("broken link: /home/src/design-review");
+    expect(screen.getByText("/home/.agents/skills/design-review/SKILL.md")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save as LumenCortex copy" })).not.toBeInTheDocument();
+    expect(mocks.skillContent).not.toHaveBeenCalledWith("global", "design-review");
   });
 
   it("toggles a read-only skill and offers no delete or edit", async () => {

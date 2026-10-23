@@ -35,6 +35,10 @@
 /* A statement about what Core does or does not use (untrusted workspace, inactive override). */
 .extensions-note { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; border-radius: var(--r-md); background: var(--warn-soft); box-shadow: inset 0 0 0 1px var(--warn-line); color: var(--fg-2); font-size: var(--text-2xs); line-height: 1.5; overflow-wrap: anywhere; }
 .extensions-note > svg { flex: none; color: var(--warn); }
+/* Why a conflicting skill never reaches a run (broken link, shadowed duplicate). */
+.extensions-note.is-error { align-items: flex-start; background: var(--bad-soft); box-shadow: inset 0 0 0 1px var(--bad-line); }
+.extensions-note.is-error > svg { margin-top: 2px; color: var(--bad); }
+.skill-note-detail { display: block; margin-top: 2px; color: var(--fg-3); }
 
 /* Skill markdown body editor. */
 .extensions-content { min-height: 300px; font-family: var(--font-mono); font-size: var(--mono-size); line-height: 1.55; }
@@ -56,9 +60,9 @@
 .skill-row-conflict { color: var(--fg-3); }
 .skill-row-error { color: var(--bad); }
 .skill-row-error > svg { flex: none; }
-/* A shadowed duplicate or a broken link: listed so the conflict is visible, never opened. */
+/* A shadowed duplicate or a broken link: dimmed in the list, opens for its details only. */
 .skill-row.is-blocked { opacity: 0.62; }
-.skill-row.is-blocked:hover { background: transparent; }
+.skill-row.is-blocked.is-selected, .skill-row.is-blocked:hover { opacity: 0.85; }
 .skill-row.is-blocked .run-dot { background: var(--fg-4); }
 
 .skill-description { margin: 0; font-size: var(--text-xs); color: var(--fg-2); line-height: 1.5; }

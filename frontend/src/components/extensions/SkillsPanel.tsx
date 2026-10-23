@@ -25,9 +25,10 @@ export function SkillsPanel({ workspace, trusted, labels, onError }: Props) {
     skills,
     view,
     setView,
-    selectedId,
-    setSelectedId,
+    selectedKey,
+    setSelectedKey,
     selected,
+    blocked,
     draftId,
     setDraftId,
     content,
@@ -54,8 +55,8 @@ export function SkillsPanel({ workspace, trusted, labels, onError }: Props) {
     beginNew();
     setCreating(true);
   };
-  const select = (id: string) => {
-    setSelectedId(id);
+  const select = (key: string) => {
+    setSelectedKey(key);
     setCreating(false);
   };
   const changeView = (next: typeof view) => {
@@ -93,7 +94,7 @@ export function SkillsPanel({ workspace, trusted, labels, onError }: Props) {
       <div className="provider-layout skill-layout">
         <SkillList
           skills={skills}
-          selectedId={selectedId}
+          selectedKey={selectedKey}
           labels={labels}
           trusted={trusted}
           onSelect={select}
@@ -127,6 +128,7 @@ export function SkillsPanel({ workspace, trusted, labels, onError }: Props) {
           <SkillEditor
             labels={labels}
             selected={selected}
+            blocked={blocked}
             trusted={trusted}
             content={content}
             draftId={draftId}

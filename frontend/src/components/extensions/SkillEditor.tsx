@@ -8,6 +8,8 @@ type Props = {
   labels: SkillLabels;
   /** The skill the view selected; null while creating a new one. */
   selected: Skill | null;
+  /** The selected row is a shadowed duplicate or a broken link: details only, no body or actions. */
+  blocked: boolean;
   trusted: boolean;
   content: string;
   draftId: string;
@@ -36,6 +38,7 @@ type Props = {
 export function SkillEditor({
   labels,
   selected,
+  blocked,
   trusted,
   content,
   draftId,
@@ -64,7 +67,7 @@ export function SkillEditor({
           <strong>{selected?.name || selected?.id || labels.add}</strong>
           <span className="mono">{selected ? selected.id : labels.content}</span>
         </div>
-        {selected && (
+        {selected && !blocked && (
           <div className="extensions-editor-actions">
             <Button
               variant="secondary"
@@ -94,6 +97,16 @@ export function SkillEditor({
 
       {selected?.description && <p className="skill-description">{selected.description}</p>}
 
+      {selected && blocked && (
+        <p className="extensions-note is-error" role="alert">
+          <Icon name="failed" size={13} />
+          <span>
+            {selected.error ? labels.brokenNote : labels.shadowedNote}
+            <span className="mono skill-note-detail">{selected.error ?? `${labels.shadowedBy} ${selected.shadowedBy}`}</span>
+          </span>
+        </p>
+      )}
+
       {selected && (
         <dl className="extensions-stats skill-paths">
           <div>
@@ -113,7 +126,7 @@ export function SkillEditor({
         </dl>
       )}
 
-      {selected?.readOnly && (
+      {selected?.readOnly && !blocked && (
         <p className="extensions-note" role="note">
           <Icon name="lock" size={13} />
           <span>{labels.readOnlyNote}</span>
@@ -127,50 +140,44 @@ export function SkillEditor({
         </p>
       )}
 
-      <div className="form-grid">
-        <label className="field">
-          <span className="field-label">{labels.id}</span>
-          <input
-            className="input mono"
-            value={selected?.id ?? draftId}
-            disabled={Boolean(selected)}
-            onChange={(event) => onDraftId(event.target.value)}
-            placeholder="java-backend"
-          />
-        </label>
-        <label className="field span-2">
-          <span className="field-label">{labels.content}</span>
-          <textarea
-            className={`input extensions-content ${readOnlyBody ? "is-readonly" : ""}`.trim()}
-            value={content}
-            readOnly={readOnlyBody}
-            onChange={(event) => onContent(event.target.value)}
-            spellCheck={false}
-          />
-        </label>
-      </div>
+      {!blocked && (
+        <div className="form-grid">
+          <label className="field">
+            <span className="field-label">{labels.id}</span>
+            <input
+              className="input mono"
+              value={selected?.id ?? draftId}
+              disabled={Boolean(selected)}
+              onChange={(event) => onDraftId(event.target.value)}
+              placeholder="java-backend"
+            />
+          </label>
+          <label className="field span-2">
+            <span className="field-label">{labels.content}</span>
+            <textarea
+              className={`input extensions-content ${readOnlyBody ? "is-readonly" : ""}`.trim()}
+              value={content}
+              readOnly={readOnlyBody}
+              onChange={(event) => onContent(event.target.value)}
+              spellCheck={false}
+            />
+          </label>
+        </div>
+      )}
 
-      <footer className="editor-actions">
-        {selected && !editable ? (
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={busy || !content.trim()}
-            onClick={() => onCopyOpen(true)}
-          >
-            {labels.saveAsCopy}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={busy || !id || !content.trim()}
-            onClick={onSave}
-          >
-            {labels.save}
-          </Button>
-        )}
-      </footer>
+      {!blocked && (
+        <footer className="editor-actions">
+          {selected && !editable ? (
+            <Button variant="primary" size="sm" disabled={busy || !content.trim()} onClick={() => onCopyOpen(true)}>
+              {labels.saveAsCopy}
+            </Button>
+          ) : (
+            <Button variant="primary" size="sm" disabled={busy || !id || !content.trim()} onClick={onSave}>
+              {labels.save}
+            </Button>
+          )}
+        </footer>
+      )}
 
       <Dialog
         open={copyOpen}
