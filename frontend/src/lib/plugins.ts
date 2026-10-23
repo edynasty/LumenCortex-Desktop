@@ -43,6 +43,8 @@ export function pluginStateLabel(plugin: PluginInfo, labels: AppCopy): string {
 export type PluginEntry = {
   plugin: PluginInfo;
   title: string;
+  /** One line under the title on the Plugins page: what running the entry does. */
+  hint: string;
   /** The import source the entry opens; empty when Core reports none (the plugin is not running). */
   sourceId: string;
 };
@@ -50,7 +52,7 @@ export type PluginEntry = {
 /** The entry the rail pins: today only a session-import entry. */
 export function primaryEntry(plugin: PluginInfo, labels: AppCopy): PluginEntry | null {
   if (!plugin.manifest.capabilities.includes("session-import")) return null;
-  return { plugin, title: labels.pluginEntryImport, sourceId: plugin.importSource?.id ?? "" };
+  return { plugin, title: labels.pluginEntryImport, hint: labels.pluginEntryImportHint, sourceId: plugin.importSource?.id ?? "" };
 }
 
 /** The rail's plugin buttons: enabled, with a primary entry, and not hidden by the user. */

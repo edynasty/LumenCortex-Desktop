@@ -3,6 +3,7 @@
  * shows the selected one — what it is, its enablement, the entries Desktop derives from its
  * capabilities, and whether it rides in the rail. Diagnostics stay in Settings → Plugins.
  */
+import { useId } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import {
   PLUGIN_STATE_LABEL,
@@ -65,6 +66,7 @@ export function PluginsContent({ labels, controller, workspace, selected, onOpen
   onOpenSettings: () => void;
 }) {
   const hidden = useHiddenPluginIds();
+  const entryHintId = useId();
   if (!workspace) return <p className="pane-intro">{labels.settingsNoProject}</p>;
   if (controller.state === "loading" || controller.state === "idle") return <LoadingState label={labels.pluginsLoading} />;
   if (controller.state === "error") {
@@ -75,94 +77,111 @@ export function PluginsContent({ labels, controller, workspace, selected, onOpen
   const manifest = selected.manifest;
   const entry = primaryEntry(selected, labels);
   const shown = !hidden.has(manifest.id);
-  const capabilities = manifest.capabilities.length > 0
-    ? manifest.capabilities.join(", ")
-    : labels.pluginsNoCapabilities;
 
   return (
-    <section className="pane plugin-page" aria-label={manifest.name}>
-      <section className="plugin-hero">
-        <span className="plugin-hero-icon"><Icon name={pluginIcon(manifest.icon)} size={20} /></span>
-        <div className="plugin-hero-text">
-          <h3>{manifest.name}</h3>
-          <span className="mono plugin-id">{manifest.id}</span>
-        </div>
-        <span className={`badge ${PLUGIN_STATE_TONE[selected.state]}`}>
-          {labels[PLUGIN_STATE_LABEL[selected.state]] as string}
-        </span>
-        <button
-          type="button"
-          className="switch"
-          role="switch"
-          aria-checked={selected.enabled}
-          aria-label={manifest.name}
-          title={selected.enabled ? labels.pluginsDisable : labels.pluginsEnable}
-          disabled={controller.busyId === manifest.id}
-          onClick={() => void controller.toggle(selected)}
-        >
-          <span />
-        </button>
-      </section>
-
-      {manifest.description && <p className="pane-intro">{manifest.description}</p>}
-      {controller.toggleError && <p className="plugin-error" role="alert">{controller.toggleError}</p>}
-      {controller.catalog?.stateError && <p className="plugin-error" role="alert">{controller.catalog.stateError}</p>}
-      {selected.error && <p className="plugin-error" role="alert">{selected.error}</p>}
-
-      <dl className="plugin-meta">
-        <div><dt>{labels.pluginsVersion}</dt><dd className="mono">{manifest.version}</dd></div>
-        <div><dt>{labels.pluginsAPIVersion}</dt><dd className="mono">{manifest.apiVersion}</dd></div>
-        <div><dt>{labels.pluginsCapabilities}</dt><dd className="mono">{capabilities}</dd></div>
-        {selected.importSource && (
-          <div><dt>{labels.pluginsImportSource}</dt><dd className="mono">{selected.importSource.id}</dd></div>
-        )}
-      </dl>
-
-      <section className="pane-section">
-        <h4>{labels.pluginEntries}</h4>
-        {entry ? (
-          <>
-            <button
-              type="button"
-              className="plugin-entry"
-              disabled={!selected.enabled}
-              onClick={() => onOpenImport(entry.sourceId)}
-            >
-              <Icon name={pluginIcon(manifest.icon)} size={15} />
-              <span>{entry.title}</span>
-            </button>
-            {!selected.enabled && <p className="pane-hint">{labels.pluginEntryDisabled}</p>}
-          </>
-        ) : (
-          <p className="pane-hint">{labels.pluginNoEntries}</p>
-        )}
-      </section>
-
-      {entry && (
-        <section className="pane-section">
-          <div className="setting-row">
-            <span className="setting-list-main">
-              <span>{labels.pluginRailShow}</span>
-              <span className="pane-hint">{labels.pluginRailShowHint}</span>
-            </span>
+    <div className="plugin-page-scroll">
+      <section className="plugin-page" aria-label={manifest.name}>
+        <header className="plugin-hero">
+          <span className="plugin-hero-icon"><Icon name={pluginIcon(manifest.icon)} size={24} /></span>
+          <div className="plugin-hero-text">
+            <div className="plugin-hero-title">
+              <h2>{manifest.name}</h2>
+              <span className={`badge ${PLUGIN_STATE_TONE[selected.state]}`}>
+                {labels[PLUGIN_STATE_LABEL[selected.state]] as string}
+              </span>
+            </div>
+            <span className="mono plugin-id">{manifest.id} · v{manifest.version}</span>
+            {manifest.description && <p className="plugin-hero-desc">{manifest.description}</p>}
+          </div>
+          <label className="plugin-hero-toggle">
+            <span>{selected.enabled ? labels.pluginEnabled : labels.pluginDisabledState}</span>
             <button
               type="button"
               className="switch"
               role="switch"
-              aria-checked={shown}
-              aria-label={labels.pluginRailShow}
-              disabled={!selected.enabled}
-              onClick={() => setPluginRailVisible(manifest.id, !shown)}
+              aria-checked={selected.enabled}
+              aria-label={manifest.name}
+              title={selected.enabled ? labels.pluginsDisable : labels.pluginsEnable}
+              disabled={controller.busyId === manifest.id}
+              onClick={() => void controller.toggle(selected)}
             >
               <span />
             </button>
-          </div>
-        </section>
-      )}
+          </label>
+        </header>
 
-      <p className="pane-hint">
-        <button type="button" className="link-btn" onClick={onOpenSettings}>{labels.pluginSettingsLink}</button>
-      </p>
-    </section>
+        {controller.toggleError && <p className="plugin-error" role="alert">{controller.toggleError}</p>}
+        {controller.catalog?.stateError && <p className="plugin-error" role="alert">{controller.catalog.stateError}</p>}
+        {selected.error && <p className="plugin-error" role="alert">{selected.error}</p>}
+
+        <section className="plugin-card" aria-labelledby="plugin-entries-title">
+          <h3 id="plugin-entries-title" className="plugin-card-title">{labels.pluginEntries}</h3>
+          {entry ? (
+            <>
+              <button
+                type="button"
+                className="plugin-entry"
+                aria-label={entry.title}
+                aria-describedby={entryHintId}
+                disabled={!selected.enabled}
+                onClick={() => onOpenImport(entry.sourceId)}
+              >
+                <span className="plugin-entry-icon"><Icon name={pluginIcon(manifest.icon)} size={16} /></span>
+                <span className="plugin-entry-text">
+                  <span className="plugin-entry-title">{entry.title}</span>
+                  <span id={entryHintId} className="plugin-entry-hint">{selected.enabled ? entry.hint : labels.pluginEntryDisabled}</span>
+                </span>
+                <Icon name="expand" size={14} className="plugin-entry-chevron" />
+              </button>
+              <div className="plugin-setting">
+                <span className="plugin-setting-text">
+                  <span>{labels.pluginRailShow}</span>
+                  <span className="plugin-setting-hint">{labels.pluginRailShowHint}</span>
+                </span>
+                <button
+                  type="button"
+                  className="switch"
+                  role="switch"
+                  aria-checked={shown}
+                  aria-label={labels.pluginRailShow}
+                  disabled={!selected.enabled}
+                  onClick={() => setPluginRailVisible(manifest.id, !shown)}
+                >
+                  <span />
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="plugin-setting-hint">{labels.pluginNoEntries}</p>
+          )}
+        </section>
+
+        <section className="plugin-card" aria-labelledby="plugin-details-title">
+          <h3 id="plugin-details-title" className="plugin-card-title">{labels.pluginDetails}</h3>
+          <dl className="plugin-details">
+            <dt>{labels.pluginsVersion}</dt><dd className="mono">{manifest.version}</dd>
+            <dt>{labels.pluginsAPIVersion}</dt><dd className="mono">{manifest.apiVersion}</dd>
+            <dt>{labels.pluginsCapabilities}</dt>
+            <dd>
+              {manifest.capabilities.length > 0
+                ? manifest.capabilities.map((capability) => <span key={capability} className="plugin-chip mono">{capability}</span>)
+                : labels.pluginsNoCapabilities}
+            </dd>
+            {selected.importSource && (
+              <>
+                <dt>{labels.pluginsImportSource}</dt>
+                <dd className="mono">{selected.importSource.id}</dd>
+              </>
+            )}
+          </dl>
+        </section>
+
+        <button type="button" className="plugin-settings-link" onClick={onOpenSettings}>
+          <Icon name="settings" size={13} />
+          <span>{labels.pluginSettingsLink}</span>
+          <Icon name="expand" size={12} />
+        </button>
+      </section>
+    </div>
   );
 }
