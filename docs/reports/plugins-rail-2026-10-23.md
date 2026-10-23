@@ -34,8 +34,26 @@ New/extended tests: `components/plugins/PluginsPage.test.tsx`, `components/app-s
 `useWorkspaceCommands.test.tsx` and `workspace-route.test.ts`, the `initialSourceId` case in
 `OmpImportDialog.test.tsx`, and the Playwright plugin/OMP/version paths.
 
+## Native app check (integration, after Skills UI `c7d0cdb` and Core `v0.1.3`)
+
+`scripts/build-macos.sh` built `build/local/LumenCortex Desktop.app` (self-check ok); `--version`
+reports appVersion 0.1.0, commit `c7d0cdb`, `builtAt` 2026-10-23T04:07:53Z, Core `v0.1.3`, runtime
+`0.1.3-preview`. The app was driven through the macOS accessibility tree (the agent's process may not
+capture the screen), against the owner's real configuration and the LumenCortex workspace:
+
+- Rail: 对话 / 上下文 / 源代码管理 / 智能体 / 插件, the pinned 导入会话 button, 桌面版本 v0.1.0, 设置.
+- 插件 page: OMP session import, 运行中, version 1.0.0, API 1, capability `session-import`, entry
+  导入会话, 在工具栏显示 on. Turning it off removed the rail button; on restored it.
+- Rail 导入会话 opened 从 OMP 导入会话 with the current workspace's real OMP sessions listed.
+- 桌面版本 opened Settings → 关于: 桌面版本 v0.1.0, Core 模块 v0.1.3, Core 运行时 0.1.3-preview, 提交
+  c7d0cdb, 构建时间, Go go1.26.5, darwin/arm64, project and database paths, 复制版本信息.
+- Settings → 技能 → 全局: the nine `~/.agents/skills` entries with 全局 / .agents / 只读 badges, 链接 on
+  the two linked skills, the broken `poc-vulnerability` link with Core's error, "8 个已启用的 Skill 会进入运行",
+  the catalog hint; selecting company-deploy shows path, root, real path, read-only content and
+  另存为 LumenCortex 副本. No enable state was changed on the owner's real skills.
+
 ## Limits
 
-- The native macOS build (`scripts/build-macos.sh`) was not run here; the integrator builds it. The
-  `builtAt` injection is in the script and unit-visible through `GetBuildInfo` only in a built binary.
+- Visual appearance of the native window was not captured (screen recording is not granted to the
+  agent's process); the browser visual harness and Playwright cover the layout. `OWNER_CHECK` in TODO UI-005.
 - `frontend/wailsjs/` is generated and was not regenerated or staged.
