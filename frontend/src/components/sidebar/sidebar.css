@@ -35,10 +35,12 @@
 }
 .project-menu-action:hover, .project-menu-action:focus-visible { background: var(--state-hover); color: var(--fg); }
 .project-menu-action.is-copied { color: var(--accent-fg); }
-/* Remove (×) shows on the row's hover or focus, like IntelliJ's recent list; a missing entry
-   keeps it visible, since removing it is the only thing left to do. */
+/* Remove (×) shows on the row's hover or keyboard focus, like IntelliJ's recent list; a missing
+   entry keeps it visible, since removing it is the only thing left to do. Only :focus-visible
+   counts: after a mouse removal the menu moves focus to the row that takes the removed row's
+   place, and a plain :focus-within there would leave that row's × showing with no hover. */
 .project-menu-remove { opacity: 0; transition: opacity var(--dur-fast); }
-.project-menu-row:hover .project-menu-remove, .project-menu-row:focus-within .project-menu-remove,
+.project-menu-row:hover .project-menu-remove, .project-menu-row:has(:focus-visible) .project-menu-remove,
 .project-menu-row.is-missing .project-menu-remove { opacity: 1; }
 /* A recent entry whose folder is gone: greyed and inert; the path stays readable for reference. */
 .project-menu-row.is-missing .menu-item { color: var(--fg-4); cursor: default; }

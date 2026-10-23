@@ -173,7 +173,7 @@
   border: none; border-radius: var(--r-md); background: transparent; color: var(--fg-3);
   opacity: 0; transition: opacity var(--dur-fast);
 }
-.welcome-project-row:hover .welcome-project-remove, .welcome-project-row:focus-within .welcome-project-remove,
+.welcome-project-row:hover .welcome-project-remove, .welcome-project-row:has(:focus-visible) .welcome-project-remove,
 .welcome-project-row.is-missing .welcome-project-remove { opacity: 1; }
 .welcome-project-remove:hover, .welcome-project-remove:focus-visible { background: var(--state-hover); color: var(--fg); }
 @media (prefers-reduced-motion: reduce) { .welcome-project-remove { transition: none; } }

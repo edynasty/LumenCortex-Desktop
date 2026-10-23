@@ -244,7 +244,7 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
               aria-description={gone ? labels.projectMissing : undefined}
               tabIndex={rovingIndex === index ? 0 : -1}
               className="menu-item project-menu-item"
-              title={gone ? `${labels.projectMissing}: ${path}` : path}
+              title={path}
               onClick={() => openProject(path)}
             >
               <Icon name="project" size={15} />

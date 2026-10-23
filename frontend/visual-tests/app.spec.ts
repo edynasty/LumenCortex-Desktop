@@ -463,6 +463,29 @@ test.describe("layout at real window widths", () => {
       expect(await page.evaluate(() => document.activeElement?.className), `focus @${width}`).toContain("project-button");
     }
   });
+
+  test("removing a recent project leaves no x showing on the row that takes its place", async ({ page }) => {
+    await open(page);
+    await page.locator(".project-button").click();
+    const remove = (name: string) => page.getByRole("menuitem", { name: `Remove from recent projects: ${name}` });
+    const opacity = (name: string) => remove(name).evaluate((el) => getComputedStyle(el).opacity);
+    // Fixture list: lumencortex (open), runtime, old-prototype (folder gone), payments-api.
+    await expect.poll(() => opacity("old-prototype")).toBe("1"); // a gone folder always offers removal
+    await page.mouse.move(900, 700);
+    expect(await opacity("payments-api")).toBe("0"); // an existing folder reveals it on hover only
+
+    // Mouse removal hands focus to payments-api, which now sits where old-prototype was.
+    await remove("old-prototype").click();
+    await page.mouse.move(900, 700);
+    await expect(page.getByRole("menuitemradio", { name: /payments-api/ })).toBeFocused();
+    expect(await opacity("payments-api"), "x on a row that is neither hovered nor keyboard-focused").toBe("0");
+
+    // Keyboard removal is a keyboard interaction: the successor row shows its x.
+    await page.getByRole("menuitemradio", { name: /runtime/ }).focus();
+    await page.keyboard.press("Delete");
+    await expect(page.getByRole("menuitemradio", { name: /payments-api/ })).toBeFocused();
+    await expect.poll(() => opacity("payments-api")).toBe("1");
+  });
 });
 
 test.describe("accessibility", () => {
@@ -1131,7 +1154,7 @@ test.describe("plugins", () => {
     await expect(sidebar.getByRole("button", { name: /OMP session import/ })).toBeVisible();
     const detail = page.locator(".plugin-page");
     await expect(detail.getByRole("heading", { name: "OMP session import" })).toBeVisible();
-    await expect(detail.getByText("1.0.0")).toBeVisible();
+    await expect(detail.getByText("1.0.0", { exact: true })).toBeVisible();
     await expect(detail.getByText("session-import")).toBeVisible();
 
     await detail.getByRole("button", { name: "Import sessions" }).click();
@@ -1143,7 +1166,6 @@ test.describe("plugins", () => {
   test("the toolbar switch hides the rail entry and the choice survives a reload", async ({ page }) => {
     await open(page);
     await goToPage(page, /^Plugins/);
-    await expect(page.locator(".rail-version")).toHaveText("v0.1.0");
 
     const toggle = page.getByRole("switch", { name: "Show in toolbar" });
     await expect(toggle).toHaveAttribute("aria-checked", "true");
@@ -1160,11 +1182,15 @@ test.describe("plugins", () => {
     await expect(page.locator(".rail-plugins").getByRole("button", { name: "Import sessions" })).toBeVisible();
   });
 
-  test("the version label opens About with the build identity", async ({ page }) => {
+  test("the rail carries no build version; Settings -> About lists the build identity", async ({ page }) => {
     await open(page);
-    await page.locator(".rail-version").click();
+    await expect(page.locator(".rail-version")).toHaveCount(0);
+    await expect(nav(page)).not.toContainText("v0.1.0");
+
+    await nav(page).getByRole("button", { name: /^Settings/ }).click();
     const sheet = page.locator(".settings-sheet");
     await expect(sheet).toBeVisible();
+    await sheet.getByRole("button", { name: /^About/ }).click();
     await expect(sheet.getByText("Desktop version")).toBeVisible();
     await expect(sheet.getByText("v0.1.0")).toBeVisible();
     await expect(sheet.getByText("v0.1.2")).toBeVisible();
