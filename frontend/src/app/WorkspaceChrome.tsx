@@ -205,6 +205,7 @@ export function WorkspaceChrome(props: Props) {
       lspDiagnostics={props.lspDiagnostics}
       subagents={props.subagents}
       checkpoints={props.checkpoints}
+      workspace={props.workspace}
       workspaceOpen={Boolean(props.workspace)}
       selectedSessionId={props.selectedSessionId}
       running={props.running}

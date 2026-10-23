@@ -7,9 +7,9 @@ export type InspectorPolicy = "read-only" | "workspace" | "full";
 // min(grant, ceiling)). `label` is the agent's display name, used in the reason a grant is disabled.
 export type PolicyCeiling = { policy: AgentPolicy; label: string };
 
-// The panes the inspector shows (Demo "Lumen Glass" thread panel): Task · Window · Checks · Run.
-// The runtime event list and the debug shell are sections of Run.
-export type InspectorTab = "task" | "window" | "checks" | "run";
+// The panes the inspector shows (Demo "Lumen Glass" thread panel): Task · Files · Terminal ·
+// Window · Checks · Run. The runtime event list and the debug shell are sections of Run.
+export type InspectorTab = "task" | "files" | "terminal" | "window" | "checks" | "run";
 
 // Every string the inspector chrome and its panes show; copy itself lives in app-copy.ts.
 export type InspectorLabels = Omit<
@@ -17,6 +17,9 @@ export type InspectorLabels = Omit<
     AppCopy,
   | "inspector"
   | "task"
+  | "files"
+  | "terminal"
+  | "terminalStarting"
   | "windowTab"
   | "checks"
   | "run"
@@ -46,7 +49,6 @@ export type InspectorLabels = Omit<
   | "shellCommand"
   | "runCommand"
   | "shellHint"
-  | "terminal"
   | "activity"
   | "noActivity"
   | "subagents"

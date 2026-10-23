@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { lazy, type FormEvent } from "react";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import type {
   Health,
@@ -10,10 +10,14 @@ import type {
 } from "../../types";
 import type { SelectOption } from "../primitives/Select";
 import { ChecksPanel } from "./ChecksPanel";
+import { FilesPanel } from "./FilesPanel";
 import { Inspector } from "./Inspector";
 import { TaskStatePanel } from "./TaskStatePanel";
 import { WindowPane } from "./WindowPane";
 import type { InspectorLabels, InspectorPolicy, InspectorTab, PolicyCeiling } from "./inspector-types";
+
+// xterm and its CSS load as their own chunk, only after the terminal tab is first opened.
+const TerminalPanel = lazy(() => import("./TerminalPanel"));
 
 type Props = {
   tab: InspectorTab;
@@ -37,6 +41,8 @@ type Props = {
   lspDiagnostics: LSPDiagnostic[];
   subagents: SubagentNode[];
   checkpoints: SessionCheckpoint[];
+  // The open workspace path: the Files tree and the terminal restart when it changes.
+  workspace: string;
   workspaceOpen: boolean;
   selectedSessionId: string;
   running: boolean;
@@ -84,6 +90,7 @@ export function WorkspaceInspector({
   lspDiagnostics,
   subagents,
   checkpoints,
+  workspace,
   workspaceOpen,
   selectedSessionId,
   running,
@@ -139,6 +146,10 @@ export function WorkspaceInspector({
           labels={labels}
           onOpenTask={onOpenSubagent}
         />
+      }
+      filesPanel={<FilesPanel workspace={workspace} workspaceOpen={workspaceOpen} labels={labels} />}
+      terminalPanel={
+        <TerminalPanel workspace={workspace} workspaceOpen={workspaceOpen} visible={tab === "terminal"} labels={labels} />
       }
       windowPanel={
         <WindowPane

@@ -853,6 +853,21 @@ export type FileResult = {
   truncated: boolean;
 };
 
+/** One entry of a Core directory listing; path is workspace-relative with forward slashes. */
+export type DirEntry = {
+  name: string;
+  path: string;
+  kind: "dir" | "file" | "symlink";
+  size?: number;
+};
+
+/** One level of the workspace tree; "" is the root and a listing is capped by Core. */
+export type DirListing = {
+  path: string;
+  entries: DirEntry[];
+  truncated: boolean;
+};
+
 export type GitFileStatus = {
   path: string;
   index: string;

@@ -1,4 +1,4 @@
-import type { FormEvent, ReactNode } from "react";
+import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { LSPDiagnostic, LSPStatus, RuntimeEvent, SubagentNode } from "../../types";
 import { Icon } from "../primitives/Icon";
 import { IconButton } from "../primitives/IconButton";
@@ -30,6 +30,8 @@ type Props = {
   busy: boolean;
   // The Task, Window and Checks panes; each loads and edits its own data.
   taskPanel: ReactNode;
+  filesPanel: ReactNode;
+  terminalPanel: ReactNode;
   windowPanel: ReactNode;
   checksPanel: ReactNode;
   labels: InspectorLabels;
@@ -52,7 +54,8 @@ type Props = {
 };
 
 // Inspector is the thread panel (Demo "Lumen Glass"): a compact segmented tab strip — Task ·
-// Window · Checks · Run — and a scrollable body of quiet sections. Legacy tab ids stay valid:
+// Files · Terminal · Window · Checks · Run — and a scrollable body of quiet sections. Legacy tab
+// ids stay valid:
 export function Inspector({
   tab,
   events,
@@ -74,6 +77,8 @@ export function Inspector({
   running,
   busy,
   taskPanel,
+  filesPanel,
+  terminalPanel,
   windowPanel,
   checksPanel,
   labels,
@@ -94,8 +99,17 @@ export function Inspector({
   onOpenSubagent,
   onRunShell,
 }: Props) {
+  // The terminal pane is mounted on first visit and then kept, so switching tabs does not kill a
+  // running command.
+  const [terminalMounted, setTerminalMounted] = useState(tab === "terminal");
+  useEffect(() => {
+    if (tab === "terminal") setTerminalMounted(true);
+  }, [tab]);
+
   const tabs: { value: InspectorTab; label: string }[] = [
     { value: "task", label: labels.task },
+    { value: "files", label: labels.files },
+    { value: "terminal", label: labels.terminal },
     { value: "window", label: labels.windowTab },
     { value: "checks", label: labels.checks },
     { value: "run", label: labels.run },
@@ -115,6 +129,12 @@ export function Inspector({
       </header>
       <div className="inspector-body">
         {tab === "task" && <div className="tp-pane">{taskPanel}</div>}
+        {tab === "files" && filesPanel}
+        {terminalMounted ? (
+          <div className="inspector-terminal" hidden={tab !== "terminal"}>
+            <Suspense fallback={<p className="tp-pane-muted files-note">{labels.terminalStarting}</p>}>{terminalPanel}</Suspense>
+          </div>
+        ) : null}
         {tab === "window" && windowPanel}
         {tab === "checks" && <div className="tp-pane">{checksPanel}</div>}
         {tab === "run" && (

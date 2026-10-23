@@ -103,6 +103,30 @@ The window background shows wherever the webview has not painted (launch, live r
 Go starts it from the system appearance (`appearance.go`); `lib/theme.ts` then sets it to the
 resolved theme's `--bg-window` through the Wails runtime, so the native colour cannot drift from CSS.
 
+## Inspector file tree and terminal
+
+The inspector's Files tab is a real directory tree of the open workspace, and the Terminal tab is a
+real login shell in it. Neither reads the filesystem in the frontend.
+
+- Core's repository service owns the listing: `ListDir(ctx, relative)` returns one level with each
+  entry's name, workspace-relative path, kind (`dir`/`file`/`symlink`) and size, directories first
+  and then case-insensitive name, `.git` omitted, at most 2000 entries with a `truncated` flag, and
+  a directory that resolves outside the workspace through a symlink is refused. `Engine.ListDir`
+  and `Engine.SessionListDir` (the session's worktree checkout) expose it; Desktop forwards them as
+  `App.ListDir` and `App.SessionListDir`.
+- `App.RevealInFinder(path)` accepts only a workspace-relative path whose parent lists in the
+  workspace and whose name is one of that listing's entries; it never reveals a path outside the
+  project.
+- The terminal is Desktop-native integration (`terminal.go`): `TerminalStart` opens `$SHELL -l`
+  (fallback `/bin/zsh`) with `TERM=xterm-256color` under `github.com/creack/pty` in the workspace,
+  `TerminalWrite`/`TerminalResize`/`TerminalClose` drive it, and at most `MaxTerminals` (8) shells
+  exist at once. Output is batched (~12 ms or 64 KiB) and emitted as base64 in the
+  `terminal:output` event, because pty bytes are not always valid UTF-8; `terminal:exit` carries the
+  exit code. The app closes every shell on shutdown and when the workspace changes.
+- The frontend keeps the xterm chunk out of the main bundle (`@xterm/xterm` + `@xterm/addon-fit`
+  load on the first visit to the tab), themes it from the CSS tokens, fits it on resize, and keeps
+  it mounted across inspector tab switches so a running command is not killed.
+
 ## Frontend architecture
 
 The detailed frontend decision and ownership model is documented in [Frontend Architecture](frontend-architecture.md).

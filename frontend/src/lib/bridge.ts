@@ -5,6 +5,7 @@ import type {
   SubagentModelMigration,
   DiscoveredModel,
   FileResult,
+  DirListing,
   GitActionResult,
   GitDiff,
   GitStatus,
@@ -67,8 +68,8 @@ import type {
 export type AppAPI = {
   PickWorkspace(): Promise<WorkspaceState>;
   OpenWorkspace(path: string): Promise<WorkspaceState>;
-  GetState(): Promise<WorkspaceState>;
   MissingDirectories(paths: string[]): Promise<string[]>;
+  GetState(): Promise<WorkspaceState>;
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   GetSession(sessionId: string): Promise<Session>;
   UpdateSessionUI(sessionId: string, patch: SessionUIPatch): Promise<Session>;
@@ -118,6 +119,13 @@ export type AppAPI = {
   AcceptCheck(sessionId: string, checkId: string): Promise<CheckResult>;
   SearchText(query: string, path: string, limit: number): Promise<SearchResult>;
   FindFiles(pattern: string, path: string, limit: number): Promise<FileResult>;
+  ListDir(path: string): Promise<DirListing>;
+  SessionListDir(sessionId: string, path: string): Promise<DirListing>;
+  RevealInFinder(path: string): Promise<void>;
+  TerminalStart(cwd: string, cols: number, rows: number): Promise<string>;
+  TerminalWrite(id: string, data: string): Promise<void>;
+  TerminalResize(id: string, cols: number, rows: number): Promise<void>;
+  TerminalClose(id: string): Promise<void>;
   GitStatus(): Promise<GitStatus>;
   SessionGitStatus(sessionId: string): Promise<GitStatus>;
   GitDiff(path: string, staged: boolean): Promise<GitDiff>;
@@ -197,6 +205,8 @@ export const bridge = {
   state: () => api().GetState(),
   pickWorkspace: () => api().PickWorkspace(),
   openWorkspace: (path: string) => api().OpenWorkspace(path),
+  /** The recent-project paths that are no longer a directory on this Mac. */
+  missingDirectories: (paths: string[]) => api().MissingDirectories(paths),
   listSessions: (limit = 100, offset = 0) => api().ListSessions(limit, offset),
   getSession: (sessionId: string) => api().GetSession(sessionId),
   updateSessionUI: (sessionId: string, patch: SessionUIPatch) => api().UpdateSessionUI(sessionId, patch),
@@ -205,8 +215,6 @@ export const bridge = {
   createSessionWithRuntime: (goal: string, paths: string[], runtimeKind: string, base = "HEAD") => api().CreateSessionWithRuntime(goal, paths, runtimeKind, base),
   sessionRuntime: (sessionId: string) => api().GetSessionRuntime(sessionId),
   inspectSessionWorktree: (sessionId: string) => api().InspectSessionWorktree(sessionId),
-  /** The recent-project paths that are no longer a directory on this Mac. */
-  missingDirectories: (paths: string[]) => api().MissingDirectories(paths),
   removeSessionWorktree: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().RemoveSessionWorktree(sessionId, cleanup),
   deleteSession: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().DeleteSession(sessionId, cleanup),
   worktreeConflicts: () => api().WorktreeConflicts(),
@@ -250,6 +258,13 @@ export const bridge = {
   acceptCheck: (sessionId: string, checkId: string) => api().AcceptCheck(sessionId, checkId),
   searchText: (query: string, path = "", limit = 200) => api().SearchText(query, path, limit),
   findFiles: (pattern: string, path = "", limit = 200) => api().FindFiles(pattern, path, limit),
+  listDir: (path = "") => api().ListDir(path),
+  sessionListDir: (sessionId: string, path = "") => api().SessionListDir(sessionId, path),
+  revealInFinder: (path: string) => api().RevealInFinder(path),
+  terminalStart: (cwd: string, cols: number, rows: number) => api().TerminalStart(cwd, cols, rows),
+  terminalWrite: (id: string, data: string) => api().TerminalWrite(id, data),
+  terminalResize: (id: string, cols: number, rows: number) => api().TerminalResize(id, cols, rows),
+  terminalClose: (id: string) => api().TerminalClose(id),
   gitStatus: () => api().GitStatus(),
   sessionGitStatus: (sessionId: string) => api().SessionGitStatus(sessionId),
   gitDiff: (path = "", staged = false) => api().GitDiff(path, staged),
@@ -338,6 +353,31 @@ export function onRuntimeEvent(callback: (event: RuntimeEvent) => void): () => v
     return maybeCancel as () => void;
   }
   return () => window.runtime?.EventsOff?.("runtime:event");
+}
+
+/**
+ * Terminal output and exit notices from the pty (terminal.go). Data is base64 because pty bytes
+ * are not always valid UTF-8.
+ */
+export type TerminalOutput = { id: string; data: string };
+export type TerminalExit = { id: string; code: number };
+
+function subscribe<T>(name: string, callback: (payload: T) => void): () => void {
+  const eventsOn = window.runtime?.EventsOn;
+  if (!eventsOn) return () => undefined;
+  const maybeCancel = eventsOn(name, (...args: unknown[]) => {
+    callback((args.length === 1 ? args[0] : args) as T);
+  });
+  if (typeof maybeCancel === "function") return maybeCancel as () => void;
+  return () => window.runtime?.EventsOff?.(name);
+}
+
+export function onTerminalOutput(callback: (event: TerminalOutput) => void): () => void {
+  return subscribe("terminal:output", callback);
+}
+
+export function onTerminalExit(callback: (event: TerminalExit) => void): () => void {
+  return subscribe("terminal:exit", callback);
 }
 
 /**

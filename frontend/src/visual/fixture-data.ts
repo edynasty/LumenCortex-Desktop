@@ -8,6 +8,7 @@ import type {
   Message,
   ConfigState,
   CredentialStatus,
+  DirListing,
   EffectivePrompt,
   ProviderCatalog,
   RuntimeEvent,
@@ -557,6 +558,61 @@ const visualReasoningFormats = (pkg: string) =>
   pkg === "anthropic-messages" ? ["", "adaptive"] : ["", "none", "reasoning-object", "reasoning-effort", "deepseek"];
 const visualEffortLevels = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
 
+// The Files pane's workspace tree: one level per call, ordered the way Core orders it.
+const visualDirs: Record<string, DirListing> = {
+  "": {
+    path: "",
+    truncated: false,
+    entries: [
+      { name: "docs", path: "docs", kind: "dir", size: 96 },
+      { name: "frontend", path: "frontend", kind: "dir", size: 128 },
+      { name: "internal", path: "internal", kind: "dir", size: 96 },
+      { name: ".gitignore", path: ".gitignore", kind: "file", size: 41 },
+      { name: "go.mod", path: "go.mod", kind: "file", size: 320 },
+      { name: "README.md", path: "README.md", kind: "file", size: 1820 },
+      { name: "release-link", path: "release-link", kind: "symlink", size: 9 },
+    ],
+  },
+  internal: {
+    path: "internal",
+    truncated: false,
+    entries: [
+      { name: "backend", path: "internal/backend", kind: "dir", size: 64 },
+      { name: "store", path: "internal/store", kind: "dir", size: 64 },
+    ],
+  },
+  "internal/backend": {
+    path: "internal/backend",
+    truncated: false,
+    entries: [
+      { name: "runtime.go", path: "internal/backend/runtime.go", kind: "file", size: 18432 },
+      { name: "worktree.go", path: "internal/backend/worktree.go", kind: "file", size: 9216 },
+    ],
+  },
+  frontend: {
+    path: "frontend",
+    truncated: false,
+    entries: [
+      { name: "src", path: "frontend/src", kind: "dir", size: 64 },
+      { name: "package.json", path: "frontend/package.json", kind: "file", size: 640 },
+    ],
+  },
+  "frontend/src": {
+    path: "frontend/src",
+    truncated: false,
+    entries: [
+      { name: "App.tsx", path: "frontend/src/App.tsx", kind: "file", size: 8192 },
+      { name: "logo.png", path: "frontend/src/logo.png", kind: "file", size: 4096 },
+      { name: "types.ts", path: "frontend/src/types.ts", kind: "file", size: 20480 },
+    ],
+  },
+};
+
+/** The visual harness's Core listing: the fixture tree, an empty directory for anything else. */
+export function visualDirListing(path: string): DirListing {
+  return visualDirs[path] ?? { path, entries: [], truncated: false };
+}
+
 /** Core answers for the configuration, Git, MCP, skills, Task State and checks surfaces. */
 export function visualAppStub() {
   return {
@@ -605,6 +661,14 @@ export function visualAppStub() {
     TestProviderConnection: async () => ({ ok: true, models: 2, message: "Connected" }),
     DiscoverProviderModels: async () => [{ id: "gpt-5.6" }, { id: "gpt-5.6-mini" }],
 
+    ListDir: async (path: string) => visualDirListing(path),
+    SessionListDir: async (_sessionId: string, path: string) => visualDirListing(path),
+    RevealInFinder: async () => undefined,
+    // The harness has no pty: a started terminal stays blank and a closed one is simply gone.
+    TerminalStart: async () => "term-visual",
+    TerminalWrite: async () => undefined,
+    TerminalResize: async () => undefined,
+    TerminalClose: async () => undefined,
     SessionGitStatus: async () => ({
       files: [
         { path: "frontend/src/components/provider/ProviderSettingsPanel.tsx", index: " ", worktree: "M" },

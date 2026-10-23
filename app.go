@@ -14,6 +14,10 @@ type App struct {
 	eventMu    sync.Mutex
 	stopEvents func()
 
+	// terminals owns every pty of this window (terminal.go); shutdown and a workspace change
+	// close them all.
+	terminals *terminalManager
+
 	menuMu     sync.Mutex
 	menuLocale string
 
@@ -25,6 +29,7 @@ type App struct {
 
 func NewApp() *App {
 	app := &App{backend: backend.New()}
+	app.terminals = newTerminalManager(app.emitTerminal)
 	app.activeRuns = app.countActiveRuns
 	app.askToQuit = app.confirmQuit
 	return app
@@ -36,6 +41,9 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) shutdown(context.Context) {
 	a.stopEventForwarder()
+	if a.terminals != nil {
+		a.terminals.CloseAll()
+	}
 	_ = a.backend.Close()
 }
 
@@ -83,9 +91,15 @@ func (a *App) PickWorkspace() (backend.WorkspaceState, error) {
 }
 
 func (a *App) OpenWorkspace(path string) (backend.WorkspaceState, error) {
+	previous := a.backend.WorkspacePath()
 	state, err := a.backend.OpenWorkspace(context.Background(), path)
 	if err != nil {
 		return backend.WorkspaceState{}, err
+	}
+	// A shell started in the old project must not outlive the switch: its cwd no longer belongs
+	// to the workspace the inspector shows.
+	if state.Workspace != previous && a.terminals != nil {
+		a.terminals.CloseAll()
 	}
 	a.startEventForwarder()
 	return state, nil
