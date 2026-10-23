@@ -29,9 +29,20 @@
 .project-menu-popover .project-menu-row .menu-item-body .project-menu-name {
   white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
 }
-.project-menu-copy {
+.project-menu-action {
   flex: none; display: grid; place-items: center; width: 30px; min-height: 30px; margin: 1px 0;
   border: none; border-radius: var(--r-md); background: transparent; color: var(--fg-3);
 }
-.project-menu-copy:hover, .project-menu-copy:focus-visible { background: var(--state-hover); color: var(--fg); }
-.project-menu-copy.is-copied { color: var(--accent-fg); }
+.project-menu-action:hover, .project-menu-action:focus-visible { background: var(--state-hover); color: var(--fg); }
+.project-menu-action.is-copied { color: var(--accent-fg); }
+/* Remove (×) shows on the row's hover or focus, like IntelliJ's recent list; a missing entry
+   keeps it visible, since removing it is the only thing left to do. */
+.project-menu-remove { opacity: 0; transition: opacity var(--dur-fast); }
+.project-menu-row:hover .project-menu-remove, .project-menu-row:focus-within .project-menu-remove,
+.project-menu-row.is-missing .project-menu-remove { opacity: 1; }
+/* A recent entry whose folder is gone: greyed and inert; the path stays readable for reference. */
+.project-menu-row.is-missing .menu-item { color: var(--fg-4); cursor: default; }
+.project-menu-row.is-missing .menu-item:hover { background: transparent; }
+.project-menu-row.is-missing .menu-item svg, .project-menu-row.is-missing .project-menu-name { color: var(--fg-4); }
+.project-menu-missing { color: var(--warn); }
+@media (prefers-reduced-motion: reduce) { .project-menu-remove { transition: none; } }

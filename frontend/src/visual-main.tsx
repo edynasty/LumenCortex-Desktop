@@ -18,7 +18,8 @@ localStorage.setItem("lcx-locale", params.get("locale") === "en" ? "en" : "zh-CN
 const theme = params.get("theme");
 if (theme === "light" || theme === "dark") localStorage.setItem("lcx-theme", theme);
 if (params.get("sidebar") === "collapsed") localStorage.setItem("lcx-layout", JSON.stringify({ collapsed: true }));
-localStorage.setItem("lcx-recent-projects", JSON.stringify(["/Users/demo/Projects/lumencortex", "/Users/demo/Projects/runtime"]));
+// The Archive entry is reported missing by the stub, so the greyed recent row is visible.
+localStorage.setItem("lcx-recent-projects", JSON.stringify(["/Users/demo/Projects/lumencortex", "/Users/demo/Projects/runtime", "/Users/demo/Archive/old-prototype"]));
 const app = visualApp(params.get("project") !== "none");
 // ?menu=native pretends the macOS menu bar is installed: the webview's own ⌘K ⌘, ⌘N ⌘B stand down.
 if (params.get("menu") === "native") app.SetMenuLocale = async () => true;

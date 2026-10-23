@@ -8,9 +8,14 @@
  * sizes itself to its content (min 280 px, capped near half the window) instead of the trigger.
  *
  * Keyboard: open with Enter/Space/ArrowDown/ArrowUp on the trigger; inside, ArrowUp/Down/Home/
- * End walk the project rows, ArrowRight reaches a row's copy-path action, Enter opens, Escape
- * closes and restores focus to the trigger, Tab closes and moves on. Focus is a roving
- * tabindex over `role="menuitemradio"` selects plus the copy `role="menuitem"` actions.
+ * End walk the project rows, ArrowRight reaches a row's copy-path action and then its remove
+ * action, Delete/Backspace removes the focused recent entry, Enter opens, Escape closes and
+ * restores focus to the trigger, Tab closes and moves on. Focus is a roving tabindex over
+ * `role="menuitemradio"` selects plus the copy and remove `role="menuitem"` actions.
+ *
+ * Like IntelliJ's recent projects, an entry whose folder is gone stays listed but greyed and
+ * inert, and every entry except the open project can be removed from the list (the folder is
+ * never touched).
  */
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -32,6 +37,10 @@ type Props = {
   onClose: () => void;
   workspace: string;
   recentProjects: string[];
+  /** Entries whose directory no longer exists. */
+  missingProjects?: string[];
+  /** Drops an entry from Desktop's recent list; absent means entries cannot be removed. */
+  onRemoveProject?: (path: string) => void;
   labels: AppCopy;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
@@ -44,16 +53,20 @@ export function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
 }
 
-export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace }: Props) {
+export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjects, missingProjects = [], onRemoveProject, labels, onPickWorkspace, onOpenWorkspace }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const copyRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const removeRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const copyTimer = useRef<number | null>(null);
+  const pendingFocus = useRef<number | null>(null);
   const [rovingIndex, setRovingIndex] = useState(0);
   const [copied, setCopied] = useState<CopyState>(null);
 
   const projects = recentProjects.slice(0, 8);
+  const missing = new Set(missingProjects);
   const rowCount = projects.length + 1; // project selects + the "open project" item
+  const removable = (path: string) => Boolean(onRemoveProject) && path !== workspace;
 
   const closeWithFocusOnTrigger = () => {
     triggerRef.current?.focus();
@@ -61,8 +74,16 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
   };
 
   const openProject = (path: string) => {
+    if (missing.has(path)) return;
     if (path !== workspace) onOpenWorkspace(path);
     closeWithFocusOnTrigger();
+  };
+
+  // Focus stays at the same position: the next entry moves up into it (or "Open project…").
+  const removeProject = (path: string, index: number) => {
+    if (!removable(path)) return;
+    pendingFocus.current = Math.min(index, projects.length - 1);
+    onRemoveProject?.(path);
   };
 
   const copyProjectPath = async (path: string) => {
@@ -134,6 +155,14 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
     if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
   }, []);
 
+  useLayoutEffect(() => {
+    const index = pendingFocus.current;
+    if (index === null) return;
+    pendingFocus.current = null;
+    setRovingIndex(index);
+    rowRefs.current[index]?.focus();
+  }, [projects.length]);
+
   const focusRow = (index: number) => {
     const next = ((index % rowCount) + rowCount) % rowCount;
     setRovingIndex(next);
@@ -160,24 +189,29 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
     const active = document.activeElement;
     const row = rowRefs.current.indexOf(active as HTMLButtonElement);
     const copyRow = copyRefs.current.indexOf(active as HTMLButtonElement);
-    if (row >= 0) {
-      switch (event.key) {
-        case "ArrowDown": event.preventDefault(); focusRow(row + 1); break;
-        case "ArrowUp": event.preventDefault(); focusRow(row - 1); break;
-        case "ArrowRight": event.preventDefault(); copyRefs.current[row]?.focus(); break;
-        case "Home": event.preventDefault(); focusRow(0); break;
-        case "End": event.preventDefault(); focusRow(rowCount - 1); break;
-      }
-      return;
+    const removeRow = removeRefs.current.indexOf(active as HTMLButtonElement);
+    const index = row >= 0 ? row : copyRow >= 0 ? copyRow : removeRow;
+    if (index < 0) return;
+    switch (event.key) {
+      case "ArrowDown": event.preventDefault(); focusRow(index + 1); return;
+      case "ArrowUp": event.preventDefault(); focusRow(index - 1); return;
+      case "Home": event.preventDefault(); focusRow(0); return;
+      case "End": event.preventDefault(); focusRow(rowCount - 1); return;
     }
-    if (copyRow >= 0) {
-      switch (event.key) {
-        case "ArrowDown": event.preventDefault(); focusRow(copyRow + 1); break;
-        case "ArrowUp": event.preventDefault(); focusRow(copyRow - 1); break;
-        case "ArrowLeft": event.preventDefault(); focusRow(copyRow); break;
-        case "Home": event.preventDefault(); focusRow(0); break;
-        case "End": event.preventDefault(); focusRow(rowCount - 1); break;
+    if (row >= 0) {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        copyRefs.current[row]?.focus();
+      } else if ((event.key === "Delete" || event.key === "Backspace") && row < projects.length) {
+        event.preventDefault();
+        removeProject(projects[row], row);
       }
+    } else if (copyRow >= 0) {
+      if (event.key === "ArrowLeft") { event.preventDefault(); focusRow(copyRow); }
+      if (event.key === "ArrowRight") { event.preventDefault(); removeRefs.current[copyRow]?.focus(); }
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      copyRefs.current[removeRow]?.focus();
     }
   };
 
@@ -197,23 +231,29 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
       {projects.length > 0 && <div className="menu-label">{labels.recentProjects}</div>}
       {projects.map((path, index) => {
         const activeProject = path === workspace;
+        const gone = missing.has(path);
         const copiedHere = copied?.path === path && copied.ok;
         return (
-          <div key={path} className="project-menu-row" role="presentation">
+          <div key={path} className={`project-menu-row${gone ? " is-missing" : ""}`} role="presentation">
             <button
               ref={(el) => { rowRefs.current[index] = el; }}
               type="button"
               role="menuitemradio"
               aria-checked={activeProject}
+              aria-disabled={gone || undefined}
+              aria-description={gone ? labels.projectMissing : undefined}
               tabIndex={rovingIndex === index ? 0 : -1}
               className="menu-item project-menu-item"
-              title={path}
+              title={gone ? `${labels.projectMissing}: ${path}` : path}
               onClick={() => openProject(path)}
             >
               <Icon name="project" size={15} />
               <span className="menu-item-body">
                 <span className="project-menu-name">{basename(path)}</span>
-                <span className="menu-item-sub project-menu-path"><PathLabel path={path} /></span>
+                <span className="menu-item-sub project-menu-path">
+                  {gone && <span className="project-menu-missing">{labels.projectMissing} · </span>}
+                  <PathLabel path={path} />
+                </span>
               </span>
               {activeProject && <Icon name="checkmark" size={14} className="menu-check" />}
             </button>
@@ -222,13 +262,27 @@ export function ProjectMenu({ open, triggerRef, onClose, workspace, recentProjec
               type="button"
               role="menuitem"
               tabIndex={-1}
-              className={`project-menu-copy${copiedHere ? " is-copied" : ""}`}
+              className={`project-menu-action${copiedHere ? " is-copied" : ""}`}
               title={labels.copyPath}
               aria-label={copiedHere ? labels.copiedPath : labels.copyPath}
               onClick={() => void copyProjectPath(path)}
             >
               <Icon name={copiedHere ? "checkmark" : "copy"} size={14} />
             </button>
+            {removable(path) && (
+              <button
+                ref={(el) => { removeRefs.current[index] = el; }}
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                className="project-menu-action project-menu-remove"
+                title={labels.removeRecentProject}
+                aria-label={`${labels.removeRecentProject}: ${basename(path)}`}
+                onClick={() => removeProject(path, index)}
+              >
+                <Icon name="close" size={14} />
+              </button>
+            )}
           </div>
         );
       })}

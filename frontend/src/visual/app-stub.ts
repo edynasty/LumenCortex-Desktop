@@ -241,6 +241,8 @@ export function visualApp(projectOpen: boolean): AppAPI {
   return {
     ...visualAppStub(),
     PickWorkspace: async () => { open = true; return state(open); },
+    // A recent entry under a removed folder is reported missing, so the greyed row can be seen.
+    MissingDirectories: async (paths) => paths.filter((path) => path.includes("/Archive/")),
     OpenWorkspace: async () => { open = true; return state(open); },
     GetState: async () => state(open),
     ListSessions: async (limit, offset) => sessions.slice(offset, offset + limit),

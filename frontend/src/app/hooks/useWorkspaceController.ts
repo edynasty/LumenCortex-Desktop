@@ -111,6 +111,38 @@ export function useWorkspaceController({ setError }: Options) {
     return () => window.removeEventListener("focus", reload);
   }, [refreshConfig]);
 
+  // Recent projects whose directory is gone (moved, deleted, unmounted volume) are greyed in the
+  // menus and offered for removal. Checked whenever the list changes and when the app regains
+  // focus, since a folder can disappear while the app is in the background.
+  const [missingProjects, setMissingProjects] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const check = () => {
+      if (recentProjects.length === 0) {
+        setMissingProjects([]);
+        return;
+      }
+      bridge.missingDirectories(recentProjects)
+        .then((missing) => { if (!cancelled) setMissingProjects(missing ?? []); })
+        .catch(() => undefined);
+    };
+    check();
+    window.addEventListener("focus", check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", check);
+    };
+  }, [recentProjects]);
+
+  // Removing a recent entry only edits Desktop's list; the directory itself is never touched.
+  const removeRecentProject = useCallback((path: string) => {
+    setRecentProjects((current) => {
+      const next = current.filter((item) => item !== path);
+      localStorage.setItem("lcx-recent-projects", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const pickWorkspace = useCallback(async (): Promise<boolean> => {
     setError("");
     setOpening(true);
@@ -174,6 +206,8 @@ export function useWorkspaceController({ setError }: Options) {
     state,
     setState,
     recentProjects,
+    missingProjects,
+    removeRecentProject,
     config,
     refreshConfig,
     trustWorkspace,

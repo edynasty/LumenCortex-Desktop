@@ -68,6 +68,7 @@ export type AppAPI = {
   PickWorkspace(): Promise<WorkspaceState>;
   OpenWorkspace(path: string): Promise<WorkspaceState>;
   GetState(): Promise<WorkspaceState>;
+  MissingDirectories(paths: string[]): Promise<string[]>;
   ListSessions(limit: number, offset: number): Promise<Session[]>;
   GetSession(sessionId: string): Promise<Session>;
   UpdateSessionUI(sessionId: string, patch: SessionUIPatch): Promise<Session>;
@@ -204,6 +205,8 @@ export const bridge = {
   createSessionWithRuntime: (goal: string, paths: string[], runtimeKind: string, base = "HEAD") => api().CreateSessionWithRuntime(goal, paths, runtimeKind, base),
   sessionRuntime: (sessionId: string) => api().GetSessionRuntime(sessionId),
   inspectSessionWorktree: (sessionId: string) => api().InspectSessionWorktree(sessionId),
+  /** The recent-project paths that are no longer a directory on this Mac. */
+  missingDirectories: (paths: string[]) => api().MissingDirectories(paths),
   removeSessionWorktree: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().RemoveSessionWorktree(sessionId, cleanup),
   deleteSession: (sessionId: string, cleanup: WorktreeCleanup = {}) => api().DeleteSession(sessionId, cleanup),
   worktreeConflicts: () => api().WorktreeConflicts(),

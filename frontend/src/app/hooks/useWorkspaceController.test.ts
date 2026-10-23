@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   trustWorkspace: vi.fn(),
   pickWorkspace: vi.fn(),
   openWorkspace: vi.fn(),
+  missingDirectories: vi.fn(),
 }));
 
 vi.mock("../../lib/bridge", () => ({
@@ -40,6 +41,23 @@ describe("useWorkspaceController", () => {
   beforeEach(() => {
     localStorage.clear();
     for (const mock of Object.values(mocks)) mock.mockReset();
+    mocks.missingDirectories.mockResolvedValue([]);
+  });
+
+  it("marks recent projects whose directory is gone and removes one from the list only", async () => {
+    localStorage.setItem("lcx-recent-projects", JSON.stringify(["/repo-a", "/gone", "/repo-c"]));
+    mocks.state.mockResolvedValue({ ...emptyState, workspace: "/repo-a" });
+    mocks.configState.mockImplementation(async () => configFor("/repo-a", "alpha/main"));
+    mocks.missingDirectories.mockImplementation(async (paths: string[]) => paths.filter((p) => p === "/gone"));
+
+    const { result } = renderHook(() => useWorkspaceController({ setError: vi.fn() }));
+    await waitFor(() => expect(result.current.missingProjects).toEqual(["/gone"]));
+
+    act(() => result.current.removeRecentProject("/gone"));
+    expect(result.current.recentProjects).toEqual(["/repo-a", "/repo-c"]);
+    expect(JSON.parse(localStorage.getItem("lcx-recent-projects") || "[]")).toEqual(["/repo-a", "/repo-c"]);
+    await waitFor(() => expect(result.current.missingProjects).toEqual([]));
+    expect(mocks.openWorkspace).not.toHaveBeenCalled();
   });
 
   it("tracks recent projects and reloads Core's configuration when the workspace changes", async () => {

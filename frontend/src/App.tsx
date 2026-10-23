@@ -41,7 +41,7 @@ export default function App() {
   const {
     state,
     setState,
-    recentProjects,
+    recentProjects, missingProjects, removeRecentProject,
     config,
     refreshConfig,
     trustWorkspace,
@@ -244,6 +244,7 @@ export default function App() {
       sessions={state.sessions}
       groups={sessionGroups}
       recentProjects={recentProjects}
+      missingProjects={missingProjects} onRemoveRecentProject={removeRecentProject}
       selectedSessionId={selected}
       runtimeState={health ? "online" : state.workspace ? "offline" : "ready"}
       health={health}

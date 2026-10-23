@@ -28,13 +28,18 @@ export type SidebarGroup = {
 
 export type RuntimeState = "ready" | "online" | "offline";
 
-function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace }: {
+type SwitcherProps = {
   workspace: string;
   recentProjects: string[];
+  /** Recent projects whose directory is gone; greyed in the menu and removable. */
+  missingProjects?: string[];
+  onRemoveRecentProject?: (path: string) => void;
   labels: AppCopy;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
-}) {
+};
+
+function ProjectSwitcher({ workspace, recentProjects, missingProjects = [], onRemoveRecentProject, labels, onPickWorkspace, onOpenWorkspace }: SwitcherProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const name = workspace ? basename(workspace) : labels.openProject;
@@ -71,6 +76,8 @@ function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, o
         onClose={() => setOpen(false)}
         workspace={workspace}
         recentProjects={recentProjects}
+        missingProjects={missingProjects}
+        onRemoveProject={onRemoveRecentProject}
         labels={labels}
         onPickWorkspace={onPickWorkspace}
         onOpenWorkspace={onOpenWorkspace}
@@ -79,20 +86,15 @@ function ProjectSwitcher({ workspace, recentProjects, labels, onPickWorkspace, o
   );
 }
 
-type Props = {
+type Props = SwitcherProps & {
   label: string;
-  workspace: string;
-  recentProjects: string[];
-  labels: AppCopy;
-  onPickWorkspace: () => void;
-  onOpenWorkspace: (path: string) => void;
   children: ReactNode;
 };
 
-export function Sidebar({ label, workspace, recentProjects, labels, onPickWorkspace, onOpenWorkspace, children }: Props) {
+export function Sidebar({ label, children, ...switcher }: Props) {
   return (
     <aside className="sidebar" aria-label={label}>
-      <ProjectSwitcher workspace={workspace} recentProjects={recentProjects} labels={labels} onPickWorkspace={onPickWorkspace} onOpenWorkspace={onOpenWorkspace} />
+      <ProjectSwitcher {...switcher} />
       <div className="sidebar-body">{children}</div>
     </aside>
   );

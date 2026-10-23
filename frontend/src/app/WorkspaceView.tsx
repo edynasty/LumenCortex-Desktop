@@ -36,6 +36,9 @@ type Props = {
   sessions: Session[];
   groups: SidebarGroup[];
   recentProjects: string[];
+  /** Recent projects whose directory no longer exists; greyed and removable. */
+  missingProjects: string[];
+  onRemoveRecentProject: (path: string) => void;
   selectedSessionId: string;
   runtimeState: RuntimeState;
   health?: Health;
@@ -191,6 +194,8 @@ export function WorkspaceView(props: Props) {
         <Welcome
           labels={labels}
           recentProjects={props.recentProjects}
+          missingProjects={props.missingProjects}
+          onRemoveRecentProject={props.onRemoveRecentProject}
           busy={props.busy}
           online={props.runtimeState !== "offline"}
           onPickWorkspace={props.onPickWorkspace}
@@ -216,6 +221,8 @@ export function WorkspaceView(props: Props) {
       workspace={workspace}
       groups={groups}
       recentProjects={props.recentProjects}
+      missingProjects={props.missingProjects}
+      onRemoveRecentProject={props.onRemoveRecentProject}
       selectedSessionId={props.selectedSessionId}
       attention={attention}
       worktrees={worktrees}

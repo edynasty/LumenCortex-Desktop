@@ -161,10 +161,22 @@
 .welcome-card h1 { font-size: var(--text-display); font-weight: 600; margin-top: 6px; }
 .welcome-card > p { color: var(--fg-3); line-height: 1.6; margin-bottom: 8px; }
 .welcome-recent { width: 100%; margin-top: 18px; text-align: left; display: flex; flex-direction: column; gap: 1px; }
-.welcome-project { display: grid; grid-template-columns: 18px auto minmax(0, 1fr); align-items: center; gap: 10px; height: 36px; padding: 0 10px; border: none; border-radius: var(--r-md); background: transparent; text-align: left; }
-.welcome-project:hover { background: var(--state-hover); }
+.welcome-project-row { position: relative; display: flex; align-items: center; }
+.welcome-project { flex: 1; min-width: 0; display: grid; grid-template-columns: 18px auto minmax(0, 1fr); align-items: center; gap: 10px; height: 36px; padding: 0 40px 0 10px; border: none; border-radius: var(--r-md); background: transparent; text-align: left; }
+.welcome-project:hover:not(:disabled) { background: var(--state-hover); }
 .welcome-project .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; font-size: var(--text-2xs); }
 .welcome-project svg { color: var(--fg-3); }
+/* Gone folder: greyed, inert; the × stays visible because removing it is all that is left. */
+.welcome-project-row.is-missing .welcome-project, .welcome-project-row.is-missing .welcome-project svg { color: var(--fg-4); cursor: default; }
+.welcome-project-remove {
+  position: absolute; right: 4px; display: grid; place-items: center; width: 28px; height: 28px;
+  border: none; border-radius: var(--r-md); background: transparent; color: var(--fg-3);
+  opacity: 0; transition: opacity var(--dur-fast);
+}
+.welcome-project-row:hover .welcome-project-remove, .welcome-project-row:focus-within .welcome-project-remove,
+.welcome-project-row.is-missing .welcome-project-remove { opacity: 1; }
+.welcome-project-remove:hover, .welcome-project-remove:focus-visible { background: var(--state-hover); color: var(--fg); }
+@media (prefers-reduced-motion: reduce) { .welcome-project-remove { transition: none; } }
 .welcome-foot { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: var(--text-2xs); color: var(--fg-3); }
 
 /* —— Narrow sheets —— */

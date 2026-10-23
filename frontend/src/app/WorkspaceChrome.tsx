@@ -40,6 +40,8 @@ type Props = {
   workspace: string;
   groups: SidebarGroup[];
   recentProjects: string[];
+  missingProjects: string[];
+  onRemoveRecentProject: (path: string) => void;
   selectedSessionId: string;
   attention: number;
   worktrees: number;
@@ -152,6 +154,8 @@ export function WorkspaceChrome(props: Props) {
       label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : page === "agents" ? labels.agentsPage : page === "plugins" ? labels.pluginsPage : labels.contextPage}
       workspace={props.workspace}
       recentProjects={props.recentProjects}
+      missingProjects={props.missingProjects}
+      onRemoveRecentProject={props.onRemoveRecentProject}
       labels={labels}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}

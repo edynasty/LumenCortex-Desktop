@@ -1,4 +1,5 @@
-/* No project open: the A1 identity, Open project, and the recent projects Core remembers. */
+/* No project open: the A1 identity, Open project, and the recent projects Desktop remembers.
+   A recent entry whose folder is gone is greyed and inert; any entry can be removed (×). */
 import type { AppCopy } from "../../lib/i18n/app-copy";
 import { AppIcon } from "../brand/A1Mark";
 import { Button } from "../primitives/Button";
@@ -7,6 +8,8 @@ import { Icon } from "../primitives/Icon";
 type Props = {
   labels: AppCopy;
   recentProjects: string[];
+  missingProjects: string[];
+  onRemoveRecentProject: (path: string) => void;
   busy: boolean;
   online: boolean;
   onPickWorkspace: () => void;
@@ -17,7 +20,7 @@ function basename(path: string) {
   return path.replace(/\\/g, "/").split("/").filter(Boolean).pop() || path;
 }
 
-export function Welcome({ labels, recentProjects, busy, online, onPickWorkspace, onOpenWorkspace }: Props) {
+export function Welcome({ labels, recentProjects, missingProjects, onRemoveRecentProject, busy, online, onPickWorkspace, onOpenWorkspace }: Props) {
   return (
     <div className="welcome">
       <div className="welcome-card">
@@ -30,13 +33,33 @@ export function Welcome({ labels, recentProjects, busy, online, onPickWorkspace,
         {recentProjects.length > 0 && (
           <div className="welcome-recent">
             <div className="menu-label">{labels.recentProjects}</div>
-            {recentProjects.slice(0, 8).map((path) => (
-              <button key={path} type="button" className="welcome-project" disabled={busy} title={path} onClick={() => onOpenWorkspace(path)}>
-                <Icon name="project" size={15} />
-                <span>{basename(path)}</span>
-                <span className="mono muted">{path}</span>
-              </button>
-            ))}
+            {recentProjects.slice(0, 8).map((path) => {
+              const gone = missingProjects.includes(path);
+              return (
+                <div key={path} className={`welcome-project-row${gone ? " is-missing" : ""}`}>
+                  <button
+                    type="button"
+                    className="welcome-project"
+                    disabled={busy || gone}
+                    title={gone ? `${labels.projectMissing}: ${path}` : path}
+                    onClick={() => onOpenWorkspace(path)}
+                  >
+                    <Icon name="project" size={15} />
+                    <span>{basename(path)}</span>
+                    <span className="mono muted">{gone ? `${labels.projectMissing} · ${path}` : path}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="welcome-project-remove"
+                    title={labels.removeRecentProject}
+                    aria-label={`${labels.removeRecentProject}: ${basename(path)}`}
+                    onClick={() => onRemoveRecentProject(path)}
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
         <p className="welcome-foot">

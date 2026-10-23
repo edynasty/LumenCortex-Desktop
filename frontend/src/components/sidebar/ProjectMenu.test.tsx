@@ -3,6 +3,7 @@
  * the per-row copy-path action with its accessible confirmation.
  */
 import { render, screen } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { copy } from "../../lib/i18n/app-copy";
@@ -130,5 +131,52 @@ describe("project switcher menu", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Path copied");
     expect(screen.getAllByRole("menuitem", { name: "Path copied" })).toHaveLength(1);
     expect(menu()).toBeInTheDocument(); // copying keeps the menu open
+  });
+
+  it("greys a gone folder, never opens it, and removes entries but not the open project", async () => {
+    const user = userEvent.setup();
+    const gone = "/Users/demo/Projects/deleted-repo";
+    const onOpenWorkspace = vi.fn();
+    function Harness() {
+      const [recent, setRecent] = useState([...PROJECTS, gone]);
+      return (
+        <Sidebar
+          label="Sidebar"
+          workspace={PROJECTS[0]}
+          recentProjects={recent}
+          missingProjects={[gone]}
+          onRemoveRecentProject={(path) => setRecent((list) => list.filter((item) => item !== path))}
+          labels={copy["en"]}
+          onPickWorkspace={noop}
+          onOpenWorkspace={onOpenWorkspace}
+        >
+          <div />
+        </Sidebar>
+      );
+    }
+    render(<Harness />);
+    await user.click(trigger());
+
+    const goneRow = rowByName(/deleted-repo/);
+    expect(goneRow).toHaveAttribute("aria-disabled", "true");
+    expect(goneRow).toHaveTextContent("Folder not found");
+    await user.click(goneRow);
+    expect(onOpenWorkspace).not.toHaveBeenCalled();
+    expect(menu()).toBeInTheDocument();
+
+    // The open project has no remove action; the other two do.
+    expect(screen.queryByRole("menuitem", { name: /Remove from recent projects: lumencortex$/ })).toBeNull();
+    await user.click(screen.getByRole("menuitem", { name: "Remove from recent projects: deleted-repo" }));
+    expect(screen.queryByRole("menuitemradio", { name: /deleted-repo/ })).toBeNull();
+
+    // Delete on a focused row removes it; focus stays at that position ("Open project…" now).
+    rowByName(/very-long-workspace/).focus();
+    await user.keyboard("{Delete}");
+    expect(screen.queryByRole("menuitemradio", { name: /very-long-workspace/ })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /Open project…/ })).toHaveFocus();
+    // Delete on the open project does nothing.
+    rowByName(/lumencortex/).focus();
+    await user.keyboard("{Delete}");
+    expect(rowByName(/lumencortex/)).toBeInTheDocument();
   });
 });
