@@ -16,6 +16,8 @@ type Props = {
   open: boolean;
   labels: AppCopy;
   locale: Locale;
+  /** The source the opening entry named; the dialog preselects it when Core runs it. */
+  initialSourceId?: string;
   onClose: () => void;
   // Called with the native session to open: the imported root, or the session an earlier import
   // wrote when the button says Open. The caller closes the dialog, refreshes the list and selects it.
@@ -31,11 +33,11 @@ type Scope = "workspace" | "all";
 // workspace (or all), preview one and import its visible history as native sessions. Core decides
 // everything the dialog shows; the dialog only chooses a source and a session and asks for the
 // import. A disabled import plugin leaves no source, so the dialog says where to enable it.
-export function OmpImportDialog({ open, labels, locale, onClose, onImported, onOpenPlugins }: Props) {
+export function OmpImportDialog({ open, labels, locale, initialSourceId, onClose, onImported, onOpenPlugins }: Props) {
   const [scope, setScope] = useState<Scope>("workspace");
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search.trim());
-  const omp = useOmpImport({ open, all: scope === "all", query });
+  const omp = useOmpImport({ open, all: scope === "all", query, initialSourceId });
   const alreadyImported = Boolean(omp.preview?.source.imported);
   const multipleSources = omp.sources.length > 1;
   const noSources = omp.sourcesState === "ready" && omp.sources.length === 0;

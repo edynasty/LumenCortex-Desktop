@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { copy } from "../../lib/i18n/app-copy";
+import type { PluginCatalogController } from "../plugins/usePluginCatalog";
 import { SettingsSheet } from "./SettingsSheet";
 
 vi.mock("../provider/ProviderSettingsPanel", () => ({
@@ -10,6 +11,15 @@ vi.mock("../provider/ProviderSettingsPanel", () => ({
 }));
 
 const noop = () => undefined;
+const plugins: PluginCatalogController = {
+  catalog: { apiVersion: 1, plugins: [] },
+  state: "ready",
+  error: "",
+  busyId: "",
+  toggleError: "",
+  reload: async () => undefined,
+  toggle: async () => undefined,
+};
 const baseProps: ComponentProps<typeof SettingsSheet> = {
   open: true,
   pane: "models",
@@ -33,6 +43,7 @@ const baseProps: ComponentProps<typeof SettingsSheet> = {
     },
   },
   trusting: false,
+  plugins,
   sessionId: "",
   runtime: { kind: "local", path: "/repo/demo" },
   onPaneChange: noop,

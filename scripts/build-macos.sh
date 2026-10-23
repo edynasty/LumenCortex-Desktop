@@ -10,9 +10,10 @@
 # Neither is a release; release artifacts come only from scripts/release-candidate.sh.
 #
 # The app version comes from wails.json info.productVersion (the single source of truth); it is
-# written into Info.plist by Wails and compiled into the binary with -ldflags. LCX_APP_VERSION and
-# LCX_APP_COMMIT override both for an isolated release build that extracted an exact commit. A build
-# of a working tree with uncommitted changes records its commit as <sha>-dirty.
+# written into Info.plist by Wails and compiled into the binary with -ldflags, together with the
+# commit and the UTC build time. LCX_APP_VERSION and LCX_APP_COMMIT override both for an isolated
+# release build that extracted an exact commit. A build of a working tree with uncommitted changes
+# records its commit as <sha>-dirty.
 #
 # Extra arguments are passed to `wails build` (for example -v 2). A caller-provided -ldflags
 # replaces the version injection.
@@ -67,7 +68,8 @@ has_ldflags=0
 for arg in "$@"; do [[ "$arg" == "-ldflags" ]] && has_ldflags=1; done
 build_args=("$@")
 if [[ "$has_ldflags" -eq 0 ]]; then
-  build_args=(-ldflags "-X main.appVersion=$version -X main.appCommit=$commit" "$@")
+  built_at="${LCX_APP_BUILT_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+  build_args=(-ldflags "-X main.appVersion=$version -X main.appCommit=$commit -X main.appBuiltAt=$built_at" "$@")
 fi
 
 # Wails builds into build/bin, the same bundle `wails dev` uses and empties on exit. Wails v2.16 can

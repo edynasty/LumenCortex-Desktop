@@ -1044,9 +1044,11 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
 });
 
 test.describe("OMP session import", () => {
-  test("an OMP session imports from the sidebar sheet and opens as a native thread", async ({ page }) => {
+  test("an OMP session imports from the rail plugin entry and opens as a native thread", async ({ page }) => {
     await open(page);
-    await page.getByRole("button", { name: "Import from OMP" }).click();
+    // The import left the threads sidebar: the plugin owns the entry, pinned in the rail.
+    await expect(page.locator(".sidebar").getByRole("button", { name: "Import sessions" })).toHaveCount(0);
+    await page.locator(".rail-plugins").getByRole("button", { name: "Import sessions" }).click();
     const sheet = page.locator(".omp-import-sheet");
     await expect(sheet).toBeVisible();
     // The default scope is this workspace, so another workspace's session is not listed.
@@ -1063,7 +1065,7 @@ test.describe("OMP session import", () => {
     await expect(page.locator(".notice-line").filter({ hasText: "OMP notice" })).toBeVisible();
     await expect(page.locator(".notice-line").filter({ hasText: "History imported from another runtime" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Import from OMP" }).click();
+    await page.locator(".rail-plugins").getByRole("button", { name: "Import sessions" }).click();
     await sheet.getByRole("button", { name: /Fix the parser bug/ }).click();
     await expect(sheet.getByText("Fix the parser bug in src/parse.go.")).toBeVisible();
     await expect(sheet.locator(".omp-safety")).toContainText("Hidden reasoning is not imported");
@@ -1077,11 +1079,66 @@ test.describe("OMP session import", () => {
 
   test("the OMP sheet stays usable at the narrow window width", async ({ page }) => {
     await open(page, "", 560);
+    // The rail rides in the sidebar drawer at this width; its plugin entry works the same.
     await page.getByRole("button", { name: /Toggle sidebar/ }).click();
-    await page.getByRole("button", { name: "Import from OMP" }).click();
+    await page.locator(".rail-plugins").getByRole("button", { name: "Import sessions" }).click();
     const sheet = page.locator(".omp-import-sheet");
     await sheet.getByRole("button", { name: /Fix the parser bug/ }).click();
     await expect(sheet.getByText("Fix the parser bug in src/parse.go.")).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Import", exact: true })).toBeVisible();
+  });
+});
+
+// The plugin surface (ADR-0012): Core's plugins in the rail and on their own page. The import
+// dialog is reached from the plugin's entry, not from the threads sidebar.
+test.describe("plugins", () => {
+  test("the Plugins page lists Core's plugins and runs their entry", async ({ page }) => {
+    await open(page);
+    await goToPage(page, /^Plugins/);
+    await expect(page.locator(".toolbar-title")).toContainText("Plugins");
+
+    const sidebar = page.locator(".sidebar");
+    await expect(sidebar.getByRole("button", { name: /OMP session import/ })).toBeVisible();
+    const detail = page.locator(".plugin-page");
+    await expect(detail.getByRole("heading", { name: "OMP session import" })).toBeVisible();
+    await expect(detail.getByText("1.0.0")).toBeVisible();
+    await expect(detail.getByText("session-import")).toBeVisible();
+
+    await detail.getByRole("button", { name: "Import sessions" }).click();
+    const sheet = page.locator(".omp-import-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("button", { name: /Fix the parser bug/ })).toBeVisible();
+  });
+
+  test("the toolbar switch hides the rail entry and the choice survives a reload", async ({ page }) => {
+    await open(page);
+    await goToPage(page, /^Plugins/);
+    await expect(page.locator(".rail-version")).toHaveText("v0.1.0");
+
+    const toggle = page.getByRole("switch", { name: "Show in toolbar" });
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect(page.locator(".rail-plugins")).toHaveCount(0);
+
+    await page.reload();
+    await page.locator(".lc-window").waitFor();
+    await expect(page.locator(".rail-plugins")).toHaveCount(0);
+
+    await goToPage(page, /^Plugins/);
+    await page.getByRole("switch", { name: "Show in toolbar" }).click();
+    await expect(page.locator(".rail-plugins").getByRole("button", { name: "Import sessions" })).toBeVisible();
+  });
+
+  test("the version label opens About with the build identity", async ({ page }) => {
+    await open(page);
+    await page.locator(".rail-version").click();
+    const sheet = page.locator(".settings-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByText("Desktop version")).toBeVisible();
+    await expect(sheet.getByText("v0.1.0")).toBeVisible();
+    await expect(sheet.getByText("v0.1.2")).toBeVisible();
+    await expect(sheet.getByText("darwin/arm64")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Copy version info" })).toBeVisible();
   });
 });

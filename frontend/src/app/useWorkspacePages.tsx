@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { useContextPage } from "../components/context/useContextPage";
+import type { PluginCatalogController } from "../components/plugins/usePluginCatalog";
+import { usePluginsPage } from "../components/plugins/usePluginsPage";
 import { useSourceControlPage } from "../components/scm/useSourceControlPage";
 import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
@@ -12,10 +14,16 @@ type Input = {
   sessions: Session[];
   labels: AppCopy;
   locale: Locale;
+  /** Core's plugin catalog, shared with the rail so enablement and pinning stay in step. */
+  plugins: PluginCatalogController;
   onSetRoute: (route: WorkspaceRoute) => void;
   onError: (message: string) => void;
   onWorktreeCleanupTargetChange: (target: WorktreeCleanupTarget | null) => void;
   onSidebarDrawerOpenChange: (open: boolean) => void;
+  /** Opens the import dialog on one plugin's source. */
+  onOpenImport: (sourceId: string) => void;
+  /** Settings → Plugins, where a plugin's failures and state file are reported. */
+  onOpenPluginSettings: () => void;
 };
 
 /**
@@ -52,7 +60,17 @@ export function useWorkspacePages(input: Input): { sidebar?: ReactNode; content?
     onCleanupWorktree: input.onWorktreeCleanupTargetChange,
   });
 
+  const plugins = usePluginsPage({
+    enabled: route.kind === "plugins",
+    workspace,
+    labels,
+    controller: input.plugins,
+    onOpenImport: input.onOpenImport,
+    onOpenSettings: input.onOpenPluginSettings,
+  });
+
   if (route.kind === "context") return context;
   if (route.kind === "scm") return sourceControl;
+  if (route.kind === "plugins") return plugins;
   return {};
 }

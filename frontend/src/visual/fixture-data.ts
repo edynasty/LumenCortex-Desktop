@@ -18,6 +18,7 @@ import type {
   TaskStateInfo,
   AgentCatalog,
   AgentEntry,
+  BuildInfo,
   ImportPreview,
   ImportSessionSummary,
   ImportSource,
@@ -44,6 +45,7 @@ export const visualPlugins: PluginInfo[] = [
       description: "Reads oh-my-pi (OMP) JSONL sessions read-only and imports their visible history, including subagent sessions.",
       apiVersion: 1,
       capabilities: ["session-import"],
+      icon: "import",
     },
     builtin: true,
     enabled: true,
@@ -51,6 +53,22 @@ export const visualPlugins: PluginInfo[] = [
     importSource: visualImportSources[0],
   },
 ];
+
+// The build identity GetBuildInfo reports: a released Desktop over a pinned Core module.
+export const visualBuildInfo: BuildInfo = {
+  app: "LumenCortex Desktop",
+  appVersion: "0.1.0",
+  commit: "0f6d9214c2ab7c1d5e8f3a9b6d4c2e1f0a9b8c7d",
+  commitSource: "ldflags",
+  builtAt: "2026-10-22T18:04:00Z",
+  coreModule: "github.com/edynasty/LumenCortex",
+  coreVersion: "v0.1.2",
+  coreLocal: false,
+  coreRuntimeVersion: "0.1.2-preview",
+  goVersion: "go1.24.3",
+  goos: "darwin",
+  goarch: "arm64",
+};
 
 export const visualOMPSessions: ImportSessionSummary[] = [
   {

@@ -8,9 +8,12 @@ import "./app-styles";
 
 // Visual QA entry: the production App over the in-memory Core in visual/app-stub.ts.
 // ?locale=en|zh-CN  ?theme=light|dark  ?project=none (welcome)  ?sidebar=collapsed
-// Each load starts from a clean preference state so screenshots are deterministic.
 const params = new URLSearchParams(window.location.search);
+// Each load starts from a clean preference state so screenshots are deterministic. The rail's
+// plugin visibility is the one preference a test reloads to verify it persisted, so it survives.
+const railPlugins = localStorage.getItem("lcx-rail-plugins");
 localStorage.clear();
+if (railPlugins) localStorage.setItem("lcx-rail-plugins", railPlugins);
 localStorage.setItem("lcx-locale", params.get("locale") === "en" ? "en" : "zh-CN");
 const theme = params.get("theme");
 if (theme === "light" || theme === "dark") localStorage.setItem("lcx-theme", theme);

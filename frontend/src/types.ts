@@ -124,6 +124,24 @@ export type Usage = {
   requests?: number;
 };
 
+// BuildInfo is what GetBuildInfo reports: the versions compiled into this binary (version.go).
+// The app version is the Desktop release (wails.json), not Core's runtime version.
+export type BuildInfo = {
+  app: string;
+  appVersion: string;
+  commit: string;
+  commitSource: string;
+  coreModule: string;
+  coreVersion: string;
+  coreLocal: boolean;
+  coreLocalPath?: string;
+  coreRuntimeVersion: string;
+  goVersion: string;
+  goos: string;
+  goarch: string;
+  builtAt?: string;
+};
+
 export type Health = {
   version: string;
   workspace: string;
@@ -979,6 +997,9 @@ export type PluginManifest = {
   description?: string;
   apiVersion: number;
   capabilities: string[];
+  // A short semantic icon name (e.g. "import"); Desktop maps it to a glyph and falls back to the
+  // generic plugin icon for unknown or absent names.
+  icon?: string;
 };
 
 export type PluginInfo = {

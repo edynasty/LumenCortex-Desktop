@@ -44,7 +44,7 @@ type Input = {
 
 /**
  * Page navigation, the Settings sheet, the command palette's actions and the app shortcuts
- * (⌘K palette, ⌘, settings, ⌘N new thread, ⌘1–3 pages) and the error toast's recovery action.
+ * (⌘K palette, ⌘, settings, ⌘N new thread, ⌘1–5 pages) and the error toast's recovery action.
  * ⌘B / ⌘I belong to the window shell.
  */
 export function useWorkspaceCommands(input: Input) {
@@ -72,6 +72,8 @@ export function useWorkspaceCommands(input: Input) {
       input.onSetRoute({ kind: "scm", checkout: lastCheckout.current });
     } else if (page === "agents") {
       input.onSetRoute({ kind: "agents" });
+    } else if (page === "plugins") {
+      input.onSetRoute({ kind: "plugins" });
     } else {
       input.onSetRoute({ kind: "context" });
     }
@@ -93,6 +95,7 @@ export function useWorkspaceCommands(input: Input) {
       action("page-context", "context", labels.contextPage, () => navigate("context"), "⌘2"),
       action("page-scm", "worktree", labels.sourceControl, () => navigate("scm"), "⌘3"),
       action("page-agents", "agents", labels.agentsPage, () => navigate("agents"), "⌘4"),
+      action("page-plugins", "plugin", labels.pluginsPage, () => navigate("plugins"), "⌘5"),
     ] : []),
     ...(current && route.kind === "thread"
       ? [action("changes", "changes", labels.changesView, () => input.onSetRoute({ kind: "review", sessionId: current.id }))]
@@ -148,6 +151,7 @@ export function useWorkspaceCommands(input: Input) {
       else if (key === "2" && hasProject) go("context");
       else if (key === "3" && hasProject) go("scm");
       else if (key === "4" && hasProject) go("agents");
+      else if (key === "5" && hasProject) go("plugins");
       else handled = false;
       if (handled) event.preventDefault();
     };

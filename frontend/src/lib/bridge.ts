@@ -27,6 +27,7 @@ import type {
   ImportSource,
   PluginCatalog,
   AgentConcurrency,
+  BuildInfo,
   ConfigState,
   CredentialStatus,
   EffectivePrompt,
@@ -163,6 +164,7 @@ export type AppAPI = {
   ImportSession(source: string, path: string): Promise<ImportResult>;
   Plugins(): Promise<PluginCatalog>;
   SetPluginEnabled(id: string, enabled: boolean): Promise<void>;
+  GetBuildInfo(): Promise<BuildInfo>;
   SaveAgent(globalDigest: string, agent: AgentEntry): Promise<AgentCatalog>;
   DeleteAgent(globalDigest: string, id: string): Promise<AgentCatalog>;
   DismissAgentImport(): Promise<AgentCatalog>;
@@ -292,6 +294,8 @@ export const bridge = {
   importSession: (source: string, path: string) => api().ImportSession(source, path),
   plugins: () => api().Plugins(),
   setPluginEnabled: (id: string, enabled: boolean) => api().SetPluginEnabled(id, enabled),
+  /** The versions compiled into this binary; no workspace needed. */
+  buildInfo: () => api().GetBuildInfo(),
   saveAgent: (globalDigest: string, agent: AgentEntry) => api().SaveAgent(globalDigest, agent),
   deleteAgent: (globalDigest: string, id: string) => api().DeleteAgent(globalDigest, id),
   dismissAgentImport: () => api().DismissAgentImport(),

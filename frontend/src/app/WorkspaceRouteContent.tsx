@@ -157,7 +157,7 @@ export function WorkspaceRouteContent({
 
   const configNotice = <ConfigWarnings labels={labels} warnings={config.warnings} trusting={trusting} hideDefaultLimit onTrust={onTrustWorkspace} />;
 
-  if (route.kind === "scm" || route.kind === "context") return <>{pageContent}</>;
+  if (route.kind === "scm" || route.kind === "context" || route.kind === "plugins") return <>{pageContent}</>;
 
   if (route.kind === "agents") {
     return (

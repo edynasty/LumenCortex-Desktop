@@ -102,6 +102,8 @@ export function WorkspaceTopbar({
     title = <h1>{labels.contextPage}</h1>;
   } else if (route.kind === "scm") {
     title = <h1>{labels.sourceControl}</h1>;
+  } else if (route.kind === "plugins") {
+    title = <h1>{labels.pluginsPage}</h1>;
   } else if (threadRoute) {
     const threadTitle = sessionUI(current).title;
     title = (

@@ -1,0 +1,45 @@
+/*
+ * Plugins page (ADR-0012). Reuses the settings pane's .pane/.pane-section/.pane-hint, base.css's
+ * .list-row/.switch/.badge and settings/plugins.css for the catalog metadata; only the page's
+ * navigation rows, hero and entry button are new.
+ */
+
+.plugin-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.plugin-nav-row { gap: 8px; }
+
+/* The lifecycle at a glance: quiet when stopped, the accent when registered, ok when running. */
+.plugin-state-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--fg-4); }
+.plugin-state-dot.is-registered { background: var(--accent); }
+.plugin-state-dot.is-running { background: var(--ok); }
+.plugin-state-dot.is-failed { background: var(--bad); }
+
+.plugin-page { gap: 18px; }
+
+.plugin-hero { display: flex; align-items: center; gap: 12px; }
+.plugin-hero-icon {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none;
+  border-radius: var(--r-lg); background: var(--accent-soft); color: var(--accent-fg);
+}
+.plugin-hero-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.plugin-hero-text h3 {
+  font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--weight-semibold);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* An entry ("功能入口"): one row that runs the plugin's primary action. */
+.plugin-entry {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
+  border: none; border-radius: var(--r-md); background: transparent; color: var(--fg-2);
+  box-shadow: inset 0 0 0 1px var(--line); text-align: left; font-size: var(--text-xs);
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.plugin-entry:hover:not(:disabled) { background: var(--state-hover); color: var(--fg); }
+.plugin-entry:disabled { opacity: .55; }
+.plugin-entry > svg { flex: none; color: var(--fg-3); }
+
+.link-btn {
+  border: none; padding: 0; background: transparent; color: var(--accent-fg);
+  font-size: var(--text-xs); text-decoration: underline; text-underline-offset: 2px;
+}
+.link-btn:hover { text-decoration-thickness: 2px; }

@@ -1,79 +1,36 @@
-import { useCallback, useEffect, useState } from "react";
-import { bridge } from "../../lib/bridge";
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
+import { PLUGIN_STATE_LABEL, PLUGIN_STATE_TONE } from "../../lib/plugins";
 import { formatRelative } from "../../lib/relative-time";
-import type { PluginCatalog, PluginInfo, PluginState } from "../../types";
 import { EmptyState } from "../primitives/EmptyState";
 import { Icon } from "../primitives/Icon";
 import { LoadingState } from "../primitives/LoadingState";
+import { usePluginCatalog, type PluginCatalogController } from "../plugins/usePluginCatalog";
 import "./plugins.css";
 
 const fill = (template: string, value: string) => template.replace("{value}", value);
 const fillCount = (template: string, count: number) => template.replace("{count}", String(count));
 
-const STATE_LABEL: Record<PluginState, keyof AppCopy> = {
-  registered: "pluginsStateRegistered",
-  running: "pluginsStateRunning",
-  disabled: "pluginsStateDisabled",
-  stopped: "pluginsStateStopped",
-  failed: "pluginsStateFailed",
-};
-
-// The shared badge tones: a failure reads as a problem, a running plugin as healthy.
-const STATE_TONE: Record<PluginState, string> = {
-  registered: "tone-accent",
-  running: "tone-ok",
-  disabled: "",
-  stopped: "",
-  failed: "tone-bad",
-};
-
-type LoadState = "loading" | "ready" | "error";
-
 // Plugins (ADR-0012): Core's in-process extensions with their enablement, lifecycle state and
 // failures. Enablement is global and Core applies it to the open Engine immediately, so a disabled
-// import source disappears from the import dialog as soon as this switch flips.
+// import source disappears from the import dialog as soon as this switch flips. The Settings sheet
+// renders PluginsList over the app's shared catalog, so the rail's pinned entries follow a toggle.
 export function PluginsPane({ labels, locale, onError }: {
   labels: AppCopy;
   locale: Locale;
   onError: (message: string) => void;
 }) {
-  const [catalog, setCatalog] = useState<PluginCatalog | null>(null);
-  const [state, setState] = useState<LoadState>("loading");
-  const [error, setError] = useState("");
-  const [busyId, setBusyId] = useState("");
-  const [toggleError, setToggleError] = useState("");
+  const controller = usePluginCatalog({ enabled: true, labels, onError });
+  return <PluginsList labels={labels} locale={locale} controller={controller} />;
+}
 
-  const load = useCallback(async () => {
-    try {
-      setCatalog(await bridge.plugins());
-      setState("ready");
-      setError("");
-    } catch (err) {
-      setCatalog(null);
-      setState("error");
-      setError(String(err));
-    }
-  }, []);
+export function PluginsList({ labels, locale, controller }: {
+  labels: AppCopy;
+  locale: Locale;
+  controller: PluginCatalogController;
+}) {
+  const { catalog, state, error, busyId, toggleError, toggle } = controller;
 
-  useEffect(() => { void load(); }, [load]);
-
-  // The switch writes first and re-reads: Core may refuse the change, and its state is the truth.
-  const toggle = useCallback(async (plugin: PluginInfo) => {
-    setBusyId(plugin.manifest.id);
-    setToggleError("");
-    try {
-      await bridge.setPluginEnabled(plugin.manifest.id, !plugin.enabled);
-      await load();
-    } catch (err) {
-      setToggleError(`${labels.pluginsToggleError}: ${String(err)}`);
-      onError(String(err));
-    } finally {
-      setBusyId("");
-    }
-  }, [labels.pluginsToggleError, load, onError]);
-
-  if (state === "loading") return <LoadingState label={labels.pluginsLoading} />;
+  if (state === "loading" || state === "idle") return <LoadingState label={labels.pluginsLoading} />;
   if (state === "error") {
     return <EmptyState icon={<Icon name="failed" size={18} />} title={labels.pluginsError} body={error} />;
   }
@@ -99,7 +56,7 @@ export function PluginsPane({ labels, locale, onError }: {
                   <strong>{manifest.name}</strong>
                   <span className="mono plugin-id">{manifest.id}</span>
                   {plugin.builtin && <span className="badge">{labels.pluginsBuiltin}</span>}
-                  <span className={`badge ${STATE_TONE[plugin.state]}`}>{labels[STATE_LABEL[plugin.state]] as string}</span>
+                  <span className={`badge ${PLUGIN_STATE_TONE[plugin.state]}`}>{labels[PLUGIN_STATE_LABEL[plugin.state]] as string}</span>
                 </span>
                 <button
                   type="button"

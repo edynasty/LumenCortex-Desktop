@@ -193,11 +193,15 @@ type OmpImportSheetOptions = {
   setRoute: (route: WorkspaceRoute) => void;
 };
 
-// The sheet's contract: whether it is open, how it is opened or closed, and the session to open
-// after an import.
+// The sheet's contract: whether it is open, which plugin's source it opens on, how it is opened or
+// closed, and the session to open after an import.
 export type OmpImportSheet = {
   open: boolean;
+  /** The source the opening entry named; the dialog preselects it when Core runs that source. */
+  sourceId: string;
   setOpen: (open: boolean) => void;
+  /** Opens on one plugin's import source (empty when Core reports none). */
+  openFor: (sourceId: string) => void;
   openSession: (sessionId: string) => Promise<void>;
 };
 
@@ -207,12 +211,18 @@ export type OmpImportSheet = {
 // sheet, because its list belongs to the previous workspace.
 export function useOmpImportSheet({ workspace, setWorkspaceState, setError, resetSessionRuntime, setRoute }: OmpImportSheetOptions): OmpImportSheet {
   const [open, setOpen] = useState(false);
+  const [sourceId, setSourceId] = useState("");
   const lastWorkspace = useRef(workspace);
   useEffect(() => {
     if (lastWorkspace.current === workspace) return;
     lastWorkspace.current = workspace;
     setOpen(false);
   }, [workspace]);
+
+  const openFor = useCallback((source: string) => {
+    setSourceId(source);
+    setOpen(true);
+  }, []);
 
   const openSession = useCallback(async (sessionId: string) => {
     setOpen(false);
@@ -225,5 +235,5 @@ export function useOmpImportSheet({ workspace, setWorkspaceState, setError, rese
     setRoute({ kind: "thread", sessionId });
   }, [resetSessionRuntime, setError, setRoute, setWorkspaceState]);
 
-  return { open, setOpen, openSession };
+  return { open, sourceId, setOpen, openFor, openSession };
 }

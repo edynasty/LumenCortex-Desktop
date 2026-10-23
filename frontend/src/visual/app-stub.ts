@@ -10,6 +10,7 @@ import {
   subagents,
   threadMessages,
   visualAppStub,
+  visualBuildInfo,
   visualImportSources,
   visualOMPPreview,
   visualOMPSessions,
@@ -374,6 +375,7 @@ export function visualApp(projectOpen: boolean): AppAPI {
       plugins: visualPlugins.map((plugin) => ({ ...plugin })),
       statePath: "/Users/demo/.config/lumencortex/plugins.json",
     }),
+    GetBuildInfo: async () => visualBuildInfo,
     SetPluginEnabled: async (id, enabled) => {
       const plugin = visualPlugins.find((row) => row.manifest.id === id);
       if (!plugin) throw `plugin not found: ${id}`;

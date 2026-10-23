@@ -57,12 +57,13 @@ function preview(patch: Partial<ImportPreview> = {}): ImportPreview {
   };
 }
 
-function renderDialog(onImported = vi.fn(), onClose = vi.fn(), onOpenPlugins = vi.fn()) {
+function renderDialog(onImported = vi.fn(), onClose = vi.fn(), onOpenPlugins = vi.fn(), initialSourceId?: string) {
   render(
     <OmpImportDialog
       open
       labels={labels}
       locale="en"
+      initialSourceId={initialSourceId}
       onClose={onClose}
       onImported={onImported}
       onOpenPlugins={onOpenPlugins}
@@ -175,6 +176,17 @@ describe("OmpImportDialog", () => {
     await user.click(picker);
     await user.click(screen.getByRole("option", { name: "Other" }));
     await waitFor(() => expect(mocks.importSessions).toHaveBeenLastCalledWith("other", { all: false, query: "", limit: 100 }));
+  });
+
+  it("opens on the source its plugin entry named", async () => {
+    const other: ImportSource = { id: "other", name: "Other", converter: 1 };
+    mocks.importSources.mockResolvedValue([omp, other]);
+    mocks.importSessions.mockResolvedValue([{ ...session, source: "other" }]);
+    renderDialog(vi.fn(), vi.fn(), vi.fn(), "other");
+
+    await waitFor(() => expect(mocks.importSessions).toHaveBeenCalledWith("other", { all: false, query: "", limit: 100 }));
+    // The named source is confirmed before the list is read: the first source never flashes.
+    expect(mocks.importSessions).not.toHaveBeenCalledWith("omp", expect.anything());
   });
 
   it("keeps the single-source title and shows no selector", async () => {

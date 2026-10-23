@@ -29,7 +29,7 @@ unnecessary for a self-contained per-user app.
 
 - Wails writes it into the bundle's `CFBundleShortVersionString` and `CFBundleVersion`.
 - `scripts/build-macos.sh` reads it and compiles it into the binary with
-  `-ldflags "-X main.appVersion=<version> -X main.appCommit=<sha>"`.
+  `-ldflags "-X main.appVersion=<version> -X main.appCommit=<sha> -X main.appBuiltAt=<UTC RFC 3339>"`.
 - The About box and `LumenCortex --version` show the same value, together with the Core module
   version from `runtime/debug.ReadBuildInfo`, Core's runtime version constant and the Go version.
 
@@ -49,9 +49,9 @@ and `scripts/verify-macos-bundle.sh` fails when the binary and Info.plist disagr
 "build/local/LumenCortex Desktop.app/Contents/MacOS/LumenCortex" --self-check
 ```
 
-`--version` prints one JSON object: `appVersion`, `commit`, `coreModule`, `coreVersion`,
-`coreLocal`/`coreLocalPath` (set when the build used a `replace`), `coreRuntimeVersion`,
-`goVersion`. `--self-check` additionally opens a Core Engine on a throwaway workspace with an
+`--version` prints one JSON object: `appVersion`, `commit`, `builtAt`, `coreModule`,
+`coreVersion`, `coreLocal`/`coreLocalPath` (set when the build used a `replace`),
+`coreRuntimeVersion`, `goVersion`, `goos`/`goarch`. `--self-check` additionally opens a Core Engine on a throwaway workspace with an
 isolated `HOME`, reports `Health()` and closes it; it exits non-zero on failure. Neither mode opens
 a window.
 

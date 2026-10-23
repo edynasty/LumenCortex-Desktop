@@ -32,6 +32,7 @@ import {
   Ellipsis,
   Eye,
   FileCode2,
+  FileInput,
   FileMinus2,
   FilePen,
   FilePlus2,
@@ -163,6 +164,8 @@ export const Icons = {
   mcp: Plug,
   /** An in-process plugin (ADR-0012): its catalog and enablement. */
   plugin: Puzzle,
+  /** A plugin's import entry (manifest icon name "import"). */
+  import: FileInput,
   skill: BookOpen,
   /** A compiled-in specialist the user may copy into the catalog. */
   preset: LayoutTemplate,

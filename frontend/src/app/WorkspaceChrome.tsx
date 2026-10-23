@@ -12,6 +12,7 @@ import type {
   Health,
   LSPDiagnostic,
   LSPStatus,
+  PluginInfo,
   RuntimeEvent,
   Session,
   SessionCheckpoint,
@@ -42,6 +43,8 @@ type Props = {
   selectedSessionId: string;
   attention: number;
   worktrees: number;
+  /** Core's plugins, for the rail's pinned entries. */
+  plugins: PluginInfo[];
   health?: Health;
   pressure: number;
   layout: LayoutPreference;
@@ -79,7 +82,8 @@ type Props = {
   onOpenProviders: () => void;
   onOpenPalette: () => void;
   onNewTask: () => void;
-  onImportOmp: () => void;
+  onOpenAbout: () => void;
+  onOpenImport: (sourceId: string) => void;
   onPickWorkspace: () => void;
   onOpenWorkspace: (path: string) => void;
   onRenameSession: (sessionId: string, title: string) => void;
@@ -127,6 +131,7 @@ export function WorkspaceChrome(props: Props) {
       settingsOpen={props.settingsOpen}
       attention={props.attention}
       worktrees={props.worktrees}
+      plugins={props.plugins}
       labels={labels}
       onNavigate={(next) => {
         closeDrawer();
@@ -136,12 +141,20 @@ export function WorkspaceChrome(props: Props) {
         closeDrawer();
         props.onOpenSettings();
       }}
+      onOpenAbout={() => {
+        closeDrawer();
+        props.onOpenAbout();
+      }}
+      onOpenImport={(sourceId) => {
+        closeDrawer();
+        props.onOpenImport(sourceId);
+      }}
     />
   );
 
   const sidebar = (
     <Sidebar
-      label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : page === "agents" ? labels.agentsPage : labels.contextPage}
+      label={page === "threads" ? labels.threadsPage : page === "scm" ? labels.sourceControl : page === "agents" ? labels.agentsPage : page === "plugins" ? labels.pluginsPage : labels.contextPage}
       workspace={props.workspace}
       recentProjects={props.recentProjects}
       labels={labels}
@@ -158,10 +171,6 @@ export function WorkspaceChrome(props: Props) {
           onNewTask={() => {
             closeDrawer();
             props.onNewTask();
-          }}
-          onImportOmp={() => {
-            closeDrawer();
-            props.onImportOmp();
           }}
           onSelectSession={(sessionId) => {
             closeDrawer();

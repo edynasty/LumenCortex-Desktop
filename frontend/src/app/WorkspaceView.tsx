@@ -1,13 +1,10 @@
-import { useMemo, type FormEvent, type ReactNode, type Ref } from "react";
-import { CommandPalette } from "../components/app-shell/CommandPalette";
+import { useMemo, type FormEvent, type Ref } from "react";
 import { Welcome } from "../components/app-shell/Welcome";
 import type { InspectorTab } from "../components/inspector/inspector-types";
-import { OmpImportDialog } from "../components/omp/OmpImportDialog";
 import type { OmpImportSheet } from "./hooks/useWorkspaceController";
-import { SettingsSheet } from "../components/settings/SettingsSheet";
 import type { RuntimeState, SidebarGroup } from "../components/sidebar/Sidebar";
 import type { WorktreeCleanupTarget } from "../components/worktree/WorktreeCleanupDialog";
-import { presentError } from "../lib/error-presentation";
+import { usePluginCatalog } from "../components/plugins/usePluginCatalog";
 import { sessionRuntime } from "../lib/session-runtime";
 import type { AppCopy, Locale } from "../lib/i18n/app-copy";
 import type { LayoutPreference } from "../lib/layout-preference";
@@ -21,7 +18,7 @@ import type { AgentCatalogController } from "./hooks/useAgentCatalog";
 import type { ConfiguredModelOption, ModelPickerOption } from "./model-selection";
 import { agentName } from "./agent-catalog";
 import { WorkspaceChrome } from "./WorkspaceChrome";
-import { WorkspaceOverlays } from "./WorkspaceOverlays";
+import { WorkspaceLayers } from "./WorkspaceLayers";
 import { WorkspaceRouteContent } from "./WorkspaceRouteContent";
 import { useWorkspacePages } from "./useWorkspacePages";
 import { useWorkspaceCommands, type SettingsState } from "./useWorkspaceCommands";
@@ -143,57 +140,48 @@ export function WorkspaceView(props: Props) {
   const selectedAgent = props.agents.selected;
 
   const { navigate, openSettings, closeSettings, paletteActions, recovery } = useWorkspaceCommands({ ...props, sessionIds });
-  const page = useWorkspacePages(props);
+  const plugins = usePluginCatalog({ enabled: Boolean(workspace), labels, onError: props.onError });
+  const page = useWorkspacePages({
+    ...props,
+    plugins,
+    onOpenImport: (sourceId) => props.ompImport.openFor(sourceId),
+    onOpenPluginSettings: () => openSettings("plugins"),
+  });
 
-  const overlays: ReactNode = (
-    <>
-      {settings.mounted && (
-        <SettingsSheet
-          open={settings.open}
-          pane={settings.pane}
-          locale={props.locale}
-          labels={labels}
-          themePreference={props.themePreference}
-          workspace={workspace}
-          config={props.config}
-          trusting={props.trusting}
-          health={props.health}
-          sessionId={current?.id || ""}
-          runtime={props.runtime}
-          onPaneChange={(pane) => props.onSettingsChange({ ...settings, pane })}
-          onClose={closeSettings}
-          onLocaleChange={props.onLocaleChange}
-          onThemePreferenceChange={props.onThemePreferenceChange}
-          onTrust={props.onTrustWorkspace}
-          onConfigChanged={props.onConfigChanged}
-          onError={props.onError}
-        />
-      )}
-      {props.paletteOpen && (
-        <CommandPalette
-          labels={labels}
-          groups={groups}
-          actions={paletteActions}
-          onOpenThread={(sessionId) => props.onSetRoute({ kind: "thread", sessionId })}
-          onClose={() => props.onPaletteOpenChange(false)}
-        />
-      )}
-      <WorkspaceOverlays
-        worktreeCleanupTarget={props.worktreeCleanupTarget}
-        error={presentError(labels, error)}
-        labels={labels}
-        onWorktreeCleanupClose={() => props.onWorktreeCleanupTargetChange(null)}
-        onWorktreeCleanupCompleted={props.onWorktreeCleanupCompleted}
-        errorActionLabel={recovery?.label}
-        onErrorAction={recovery?.run}
-        onClearError={props.onClearError}
-      />
-      <OmpImportDialog
-        open={props.ompImport.open} labels={labels} locale={props.locale}
-        onClose={() => props.ompImport.setOpen(false)} onImported={props.ompImport.openSession}
-        onOpenPlugins={() => { props.ompImport.setOpen(false); openSettings("plugins"); }}
-      />
-    </>
+  const overlays = (
+    <WorkspaceLayers
+      settings={settings}
+      paletteOpen={props.paletteOpen}
+      paletteActions={paletteActions}
+      groups={groups}
+      error={error}
+      recovery={recovery}
+      labels={labels}
+      locale={props.locale}
+      themePreference={props.themePreference}
+      workspace={workspace}
+      config={props.config}
+      trusting={props.trusting}
+      health={props.health}
+      plugins={plugins}
+      sessionId={current?.id || ""}
+      runtime={props.runtime}
+      ompImport={props.ompImport}
+      worktreeCleanupTarget={props.worktreeCleanupTarget}
+      onSettingsChange={props.onSettingsChange}
+      onCloseSettings={closeSettings}
+      onOpenSettings={openSettings}
+      onLocaleChange={props.onLocaleChange}
+      onThemePreferenceChange={props.onThemePreferenceChange}
+      onTrust={props.onTrustWorkspace}
+      onConfigChanged={props.onConfigChanged}
+      onError={props.onError}
+      onPaletteOpenChange={props.onPaletteOpenChange}
+      onSetRoute={props.onSetRoute}
+      onWorktreeCleanupTargetChange={props.onWorktreeCleanupTargetChange}
+      onWorktreeCleanupCompleted={props.onWorktreeCleanupCompleted}
+      onClearError={props.onClearError}
+    />
   );
 
   if (!workspace) {
@@ -231,6 +219,7 @@ export function WorkspaceView(props: Props) {
       selectedSessionId={props.selectedSessionId}
       attention={attention}
       worktrees={worktrees}
+      plugins={plugins.catalog?.plugins ?? []}
       health={props.health}
       pressure={props.pressure}
       layout={props.layout}
@@ -268,7 +257,8 @@ export function WorkspaceView(props: Props) {
       onOpenProviders={() => openSettings("models")}
       onOpenPalette={() => props.onPaletteOpenChange(true)}
       onNewTask={props.onNewTask}
-      onImportOmp={() => props.ompImport.setOpen(true)}
+      onOpenAbout={() => openSettings("about")}
+      onOpenImport={(sourceId) => props.ompImport.openFor(sourceId)}
       onPickWorkspace={props.onPickWorkspace}
       onOpenWorkspace={props.onOpenWorkspace}
       onRenameSession={props.onRenameSession}

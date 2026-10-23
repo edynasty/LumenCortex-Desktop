@@ -526,6 +526,13 @@ func (a *App) SetPluginEnabled(id string, enabled bool) error {
 	return a.backend.SetPluginEnabled(context.Background(), id, enabled)
 }
 
+// GetBuildInfo reports the versions compiled into this binary: the Desktop app version and commit,
+// the Core module (and whether it is a local replace), Core's runtime version, the toolchain and the
+// build time. It reads no workspace, so Settings → About works before a project is open.
+func (a *App) GetBuildInfo() buildInfo {
+	return currentBuildInfo()
+}
+
 // GetAgents returns Core's merged agent catalog: the four built-ins first, then the custom agents.
 // The retired Desktop agents.json is imported the first time this is read; the result rides along
 // so the page can report what the import skipped.

@@ -7,6 +7,7 @@
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
 import type { ThemePreference } from "../../lib/theme";
 import type { ConfigState, Health, SessionRuntime } from "../../types";
+import type { PluginCatalogController } from "../plugins/usePluginCatalog";
 import { ExtensionsWorkspace } from "../extensions/ExtensionsWorkspace";
 import { Icon } from "../primitives/Icon";
 import { IconButton } from "../primitives/IconButton";
@@ -14,7 +15,7 @@ import type { IconName } from "../primitives/icons";
 import { Modal } from "../primitives/Modal";
 import { ProviderSettingsPanel } from "../provider/ProviderSettingsPanel";
 import { extensionsLabels } from "./extensions-labels";
-import { PluginsPane } from "./PluginsPane";
+import { PluginsList } from "./PluginsPane";
 import { AboutPane, GeneralPane, WorkspacePane } from "./SettingsPanes";
 
 export type SettingsPane = "general" | "models" | "permissions" | "mcp" | "skills" | "plugins" | "workspace" | "about";
@@ -40,6 +41,8 @@ type Props = {
   config: ConfigState;
   trusting: boolean;
   health?: Health;
+  /** The app's plugin catalog, shared with the rail so enablement updates both. */
+  plugins: PluginCatalogController;
   sessionId: string;
   runtime: SessionRuntime;
   onPaneChange: (pane: SettingsPane) => void;
@@ -123,14 +126,14 @@ export function SettingsSheet(props: Props) {
             <p className="pane-intro">{labels.settingsNoProject}</p>
           ))}
           {pane === "plugins" && (workspace ? (
-            <PluginsPane locale={props.locale} labels={labels} onError={props.onError} />
+            <PluginsList locale={props.locale} labels={labels} controller={props.plugins} />
           ) : (
             <p className="pane-intro">{labels.settingsNoProject}</p>
           ))}
           {pane === "workspace" && (
             <WorkspacePane labels={labels} workspace={workspace} config={props.config} trusting={props.trusting} onTrust={props.onTrust} />
           )}
-          {pane === "about" && <AboutPane labels={labels} health={props.health} workspace={workspace} />}
+          {pane === "about" && <AboutPane labels={labels} locale={props.locale} health={props.health} workspace={workspace} onError={props.onError} />}
         </div>
       </div>
     </Modal>

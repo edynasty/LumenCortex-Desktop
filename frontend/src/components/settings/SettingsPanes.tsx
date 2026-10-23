@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { bridge } from "../../lib/bridge";
+import { buildRows, useBuildInfo, versionSummary } from "../../lib/build-info";
 import { coreErrorKey } from "../../lib/core-errors";
 import type { AppCopy, Locale } from "../../lib/i18n/app-copy";
 import type { ThemePreference } from "../../lib/theme";
@@ -203,7 +204,27 @@ export function WorkspacePane({ labels, workspace, config, trusting, onTrust }: 
   );
 }
 
-export function AboutPane({ labels, health, workspace }: { labels: AppCopy; health?: Health; workspace: string }) {
+export function AboutPane({ labels, locale, health, workspace, onError }: {
+  labels: AppCopy;
+  locale: Locale;
+  health?: Health;
+  workspace: string;
+  onError: (message: string) => void;
+}) {
+  const build = useBuildInfo();
+  const [copied, setCopied] = useState(false);
+  const rows = build
+    ? buildRows(build, labels, locale)
+    : [{ key: "app", label: labels.aboutVersion, value: "—" }];
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(versionSummary(build, labels, locale, workspace, health?.database ?? ""));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      onError(String(err));
+    }
+  };
   return (
     <div className="pane about-pane">
       <section className="about-hero">
@@ -214,10 +235,20 @@ export function AboutPane({ labels, health, workspace }: { labels: AppCopy; heal
         </div>
       </section>
       <section className="pane-section">
-        <div className="setting-row"><span>{labels.aboutVersion}</span><span className="mono muted">{health?.version || "—"}</span></div>
+        {rows.map((row) => (
+          <div key={row.key} className="setting-row">
+            <span>{row.label}</span>
+            <span className="mono muted">{row.value}</span>
+          </div>
+        ))}
         <div className="setting-row"><span>{labels.aboutWorkspace}</span><span className="mono muted">{workspace || "—"}</span></div>
         <div className="setting-row"><span>{labels.aboutDatabase}</span><span className="mono muted">{health?.database || "—"}</span></div>
       </section>
+      <div className="editor-actions">
+        <Button size="sm" variant="ghost" icon={<Icon name="copy" size={13} />} onClick={() => void copy()}>
+          {copied ? labels.aboutCopiedVersion : labels.aboutCopyVersion}
+        </Button>
+      </div>
       <section className="pane-section">
         <h4>{labels.aboutIdentity}</h4>
         <p className="pane-intro">{labels.aboutIdentityNote}</p>

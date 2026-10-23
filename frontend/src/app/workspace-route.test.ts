@@ -9,6 +9,7 @@ describe("workspace routes", () => {
     // A worktree selected in Source Control does not load that session's transcript.
     expect(routeSessionId({ kind: "scm", checkout: "s3" })).toBe("");
     expect(routeSessionId({ kind: "context" })).toBe("");
+    expect(routeSessionId({ kind: "plugins" })).toBe("");
   });
 
   it("maps every route to its rail page", () => {
@@ -19,7 +20,8 @@ describe("workspace routes", () => {
       { kind: "scm", checkout: "main" },
       { kind: "context" },
       { kind: "agents" },
+      { kind: "plugins" },
     ];
-    expect(routes.map(routePage)).toEqual(["threads", "threads", "threads", "scm", "context", "agents"]);
+    expect(routes.map(routePage)).toEqual(["threads", "threads", "threads", "scm", "context", "agents", "plugins"]);
   });
 });

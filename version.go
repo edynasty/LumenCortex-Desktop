@@ -22,6 +22,10 @@ var appVersion = "0.0.0-dev"
 // -ldflags "-X main.appCommit=<sha>". Without it the binary reports the Go VCS stamp, if any.
 var appCommit = ""
 
+// appBuiltAt is when the build ran, in UTC RFC 3339, injected by scripts/build-macos.sh with
+// -ldflags "-X main.appBuiltAt=<time>". Empty in `go run` and `go test` builds.
+var appBuiltAt = ""
+
 const coreModulePath = "github.com/edynasty/LumenCortex"
 
 // buildInfo is the JSON `--version` prints: which app, from which commit, over which Core.
@@ -30,6 +34,7 @@ type buildInfo struct {
 	AppVersion         string `json:"appVersion"`
 	Commit             string `json:"commit"`
 	CommitSource       string `json:"commitSource"`
+	BuiltAt            string `json:"builtAt,omitempty"`
 	CoreModule         string `json:"coreModule"`
 	CoreVersion        string `json:"coreVersion"`
 	CoreLocal          bool   `json:"coreLocal"`
@@ -49,6 +54,7 @@ func currentBuildInfo() buildInfo {
 		AppVersion:         appVersion,
 		Commit:             appCommit,
 		CommitSource:       "ldflags",
+		BuiltAt:            appBuiltAt,
 		CoreModule:         coreModulePath,
 		CoreVersion:        "unknown",
 		CoreRuntimeVersion: lcx.GoRuntimePreviewVersion,

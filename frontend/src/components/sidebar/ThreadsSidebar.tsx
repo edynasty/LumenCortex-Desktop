@@ -13,7 +13,6 @@ type Props = {
   locale: Locale;
   labels: AppCopy;
   onNewTask: () => void;
-  onImportOmp: () => void;
   onSelectSession: (sessionId: string) => void;
   onRenameSession: (sessionId: string, title: string) => void;
   onPinSession: (sessionId: string, pinned: boolean) => void;
@@ -37,7 +36,6 @@ export function ThreadsSidebar({
   locale,
   labels,
   onNewTask,
-  onImportOmp,
   onSelectSession,
   onRenameSession,
   onPinSession,
@@ -82,10 +80,6 @@ export function ThreadsSidebar({
           <Icon name="newThread" size={15} />
           <span className="list-row-main">{labels.newTask}</span>
           <kbd className="kbd">⌘N</kbd>
-        </button>
-        <button type="button" className="list-row" onClick={onImportOmp}>
-          <Icon name="history" size={15} />
-          <span className="list-row-main">{labels.ompImportEntry}</span>
         </button>
         <label className="search-field">
           <Icon name="search" size={13} />

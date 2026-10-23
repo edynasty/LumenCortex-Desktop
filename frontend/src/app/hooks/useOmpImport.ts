@@ -13,9 +13,11 @@ type Options = {
   open: boolean;
   all: boolean;
   query: string;
+  /** The source the opening entry named; absent opens on Core's first source. */
+  initialSourceId?: string;
 };
 
-export function useOmpImport({ open, all, query }: Options) {
+export function useOmpImport({ open, all, query, initialSourceId = "" }: Options) {
   const [sources, setSources] = useState<ImportSource[]>([]);
   const [sourcesState, setSourcesState] = useState<OmpLoadState>("idle");
   const [sourcesError, setSourcesError] = useState("");
@@ -35,10 +37,11 @@ export function useOmpImport({ open, all, query }: Options) {
   const listRequest = useRef(0);
   const previewRequest = useRef(0);
 
-  // Every opening starts clean; the sources and the list are read again below.
+  // Every opening starts clean; the sources and the list are read again below. An entry that named
+  // its source keeps it, so a second import plugin's button never opens on the first plugin's list.
   useEffect(() => {
     if (!open) return;
-    setSourceId("");
+    setSourceId(initialSourceId);
     setSessions([]);
     setListStatus("idle");
     setListError("");
@@ -75,7 +78,8 @@ export function useOmpImport({ open, all, query }: Options) {
 
   useEffect(() => {
     if (!open) return;
-    if (!sourceId) {
+    // An entry names its source before Core's list arrives: wait until Core confirms the source runs.
+    if (!sourceId || sourcesState !== "ready") {
       setSessions([]);
       setListStatus("idle");
       setListError("");
@@ -100,7 +104,7 @@ export function useOmpImport({ open, all, query }: Options) {
         setListError(String(err));
       },
     );
-  }, [open, sourceId, all, query]);
+  }, [open, sourceId, sourcesState, all, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,9 +161,12 @@ export function useOmpImport({ open, all, query }: Options) {
     [sources],
   );
 
-  // Until a source is chosen the list has nothing to show: while the sources are still being read
-  // it is loading, not empty, so the dialog never claims "no session found" before it asked.
-  const listState: OmpLoadState = sourceId ? listStatus : sourcesState === "loading" ? "loading" : "idle";
+  // Until a source is confirmed the list has nothing to show: while the sources are still being
+  // read it is loading, not empty, so the dialog never claims "no session found" before it asked.
+  const listState: OmpLoadState =
+    sourcesState === "loading" ? "loading"
+      : sourcesState === "ready" && sourceId ? listStatus
+        : "idle";
 
   return {
     sources,
