@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Skill } from "../../types";
+import type { SkillLabels } from "./extensions-types";
 import { SkillsPanel } from "./SkillsPanel";
 
 const mocks = vi.hoisted(() => ({
@@ -16,121 +17,272 @@ vi.mock("../../lib/bridge", () => ({
   bridge: mocks,
 }));
 
-const labels = {
+const labels: SkillLabels = {
   title: "Skills",
   add: "Add skill",
   empty: "No skills yet",
   globalScope: "Global",
   projectScope: "Project",
+  effectiveScope: "Effective",
   globalHint: "All projects",
   projectHint: "Current project",
-  inherited: "Inherited",
-  globalSource: "Global",
-  projectSource: "Project",
+  effectiveHint: "What a run sees",
   notLoaded: "Not loaded (workspace not trusted)",
   enabled: "Enabled",
   disabled: "Disabled",
   id: "Skill ID",
   content: "SKILL.md content",
   save: "Save",
+  saveAsCopy: "Save as LumenCortex copy",
+  saveAsCopyTitle: "Save as a LumenCortex copy?",
+  saveAsCopyBody: "It shadows the original.",
   delete: "Delete",
   deleteTitle: "Delete skill?",
   deleteBody: "Delete it",
   cancel: "Cancel",
   error: "Skill error",
+  linked: "Link",
+  readOnly: "Read-only",
+  shadowedBy: "Shadowed by",
+  overridesGlobal: "Overrides global",
+  path: "Path",
+  root: "Root",
+  realPath: "Real path",
+  readOnlyNote: "LumenCortex never modifies this skill.",
+  reachable: "enabled skills reach runs",
+  catalogHint: "Runs get a catalog and load the full skill on demand.",
+  select: "Select a skill to see its details",
 };
 
-const globalSkill: Skill = {
-  id: "go-backend",
-  name: "Go Backend",
-  description: "Go conventions",
+const lcGlobal: Skill = {
+  id: "go-runtime",
+  name: "Go Runtime",
+  description: "Backend runtime rules",
   scope: "global",
-  path: "/global/go-backend/SKILL.md",
+  source: "lumencortex",
+  root: "/home/.config/lumencortex/skills",
+  path: "/home/.config/lumencortex/skills/go-runtime/SKILL.md",
   enabled: true,
 };
 
-function setupScopes(project: Skill[] = []) {
-  const projectById = new Map(project.map((skill) => [skill.id, skill]));
-  const effective = [
-    ...[globalSkill].filter((skill) => !projectById.has(skill.id)),
-    ...project,
-  ];
+const agentsLinked: Skill = {
+  id: "company-deploy",
+  name: "Company deploy",
+  scope: "global",
+  source: "agents",
+  root: "/home/.agents/skills",
+  path: "/home/.agents/skills/company-deploy/SKILL.md",
+  linked: true,
+  realPath: "/home/src/shared-skills/company-deploy",
+  readOnly: true,
+  enabled: true,
+};
+
+const claudeDuplicate: Skill = {
+  id: "go-runtime",
+  name: "Go Runtime (Claude)",
+  scope: "global",
+  source: "claude",
+  root: "/home/.claude/skills",
+  path: "/home/.claude/skills/go-runtime/SKILL.md",
+  readOnly: true,
+  enabled: true,
+  shadowedBy: "global:lumencortex",
+};
+
+const brokenLink: Skill = {
+  id: "design-review",
+  name: "Design review",
+  scope: "global",
+  source: "agents",
+  root: "/home/.agents/skills",
+  path: "/home/.agents/skills/design-review/SKILL.md",
+  linked: true,
+  readOnly: true,
+  enabled: true,
+  error: "broken link: /home/src/design-review",
+};
+
+const projectOwned: Skill = {
+  id: "frontend-desktop",
+  name: "Desktop UI (project)",
+  description: "This repository's desktop rules",
+  scope: "project",
+  source: "lumencortex",
+  root: "/repo/.lumencortex/skills",
+  path: "/repo/.lumencortex/skills/frontend-desktop/SKILL.md",
+  enabled: true,
+  overridden: true,
+};
+
+const projectClaude: Skill = {
+  id: "docs-style",
+  name: "Docs style",
+  scope: "project",
+  source: "claude",
+  root: "/repo/.claude/skills",
+  path: "/repo/.claude/skills/docs-style/SKILL.md",
+  readOnly: true,
+  enabled: true,
+};
+
+function setupScopes(options: { global?: Skill[]; project?: Skill[]; effective?: Skill[] }) {
+  const global = options.global ?? [];
+  const project = options.project ?? [];
+  const effective = options.effective ?? [...global, ...project];
   mocks.skills.mockImplementation(async (scope: string) => {
-    if (scope === "global") return [globalSkill];
+    if (scope === "global") return global;
     if (scope === "project") return project;
     return effective;
   });
 }
 
+function renderPanel(options?: { trusted?: boolean; onError?: (message: string) => void }) {
+  return render(
+    <SkillsPanel
+      workspace="/repo"
+      trusted={options?.trusted ?? true}
+      labels={labels}
+      onError={options?.onError ?? (() => undefined)}
+    />
+  );
+}
+
+async function showScope(name: string) {
+  await userEvent.setup().click(screen.getByRole("radio", { name }));
+}
+
 describe("SkillsPanel", () => {
   beforeEach(() => {
     for (const mock of Object.values(mocks)) mock.mockReset();
-    setupScopes();
-    mocks.skillContent.mockResolvedValue("---\nname: Go Backend\n---\n\n# Instructions\n");
+    setupScopes({ global: [lcGlobal, agentsLinked] });
+    mocks.skillContent.mockResolvedValue("---\nname: Go Runtime\n---\n\n# Instructions\n");
     mocks.saveSkill.mockResolvedValue(undefined);
     mocks.deleteSkill.mockResolvedValue(undefined);
     mocks.setSkillEnabled.mockResolvedValue(undefined);
   });
 
-  it("loads effective global skill content as inherited in project scope", async () => {
-    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
+  it("shows each skill's source, scope and link badges with the resolved path", async () => {
+    renderPanel();
+    await showScope("Global");
 
-    expect(await screen.findByText("Go Backend")).toBeInTheDocument();
-    expect(await screen.findByDisplayValue(/name: Go Backend/)).toBeInTheDocument();
-    expect(screen.getByText("Inherited")).toBeInTheDocument();
-    expect(mocks.skillContent).toHaveBeenCalledWith("effective", "go-backend");
+    const linked = await screen.findByRole("button", { name: /Company deploy/ });
+    expect(within(linked).getByText(".agents")).toBeInTheDocument();
+    expect(within(linked).getByText("Link")).toBeInTheDocument();
+    expect(within(linked).getByText("Read-only")).toBeInTheDocument();
+    expect(within(linked).getByText("Global")).toBeInTheDocument();
+    expect(within(linked).getByTitle("/home/src/shared-skills/company-deploy")).toBeInTheDocument();
+
+    const owned = screen.getByRole("button", { name: /Go Runtime/ });
+    expect(within(owned).getByText("LumenCortex")).toBeInTheDocument();
+    expect(within(owned).queryByText("Read-only")).not.toBeInTheDocument();
   });
 
-  it("saves an inherited skill as a project override", async () => {
-    const user = userEvent.setup();
-    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
+  it("lists a shadowed duplicate dimmed and unselectable", async () => {
+    setupScopes({ global: [lcGlobal, claudeDuplicate] });
+    renderPanel();
+    await showScope("Global");
 
-    const editor = await screen.findByDisplayValue(/name: Go Backend/);
-    await user.clear(editor);
-    await user.type(editor, "---\nname: Project Go\n---\n\nProject rules");
-    await user.click(screen.getByRole("button", { name: "Save" }));
+    const shadowed = await screen.findByRole("button", { name: /Go Runtime \(Claude\)/ });
+    expect(shadowed).toHaveAttribute("aria-disabled", "true");
+    expect(shadowed).toHaveTextContent("Shadowed by global:lumencortex");
+
+    const before = mocks.skillContent.mock.calls.length;
+    await userEvent.setup().click(shadowed);
+    expect(mocks.skillContent.mock.calls.length).toBe(before);
+  });
+
+  it("shows a broken link as an error line and never opens it", async () => {
+    setupScopes({ global: [lcGlobal, brokenLink] });
+    renderPanel();
+    await showScope("Global");
+
+    const row = await screen.findByRole("button", { name: /Design review/ });
+    expect(row).toHaveAttribute("aria-disabled", "true");
+    expect(row).toHaveTextContent("broken link: /home/src/design-review");
+  });
+
+  it("toggles a read-only skill and offers no delete or edit", async () => {
+    setupScopes({ global: [agentsLinked] });
+    renderPanel();
+    await showScope("Global");
+
+    const editor = await screen.findByLabelText("SKILL.md content");
+    expect(editor).toHaveAttribute("readonly");
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Enabled" }));
+
+    await waitFor(() => {
+      expect(mocks.setSkillEnabled).toHaveBeenCalledWith("global", "company-deploy", false);
+    });
+  });
+
+  it("saves a read-only skill as a LumenCortex copy after confirming the shadowing", async () => {
+    setupScopes({ global: [agentsLinked] });
+    renderPanel();
+    await showScope("Global");
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Save as LumenCortex copy" }));
+    const dialog = await screen.findByRole("dialog", { name: "Save as a LumenCortex copy?" });
+    expect(dialog).toHaveTextContent("It shadows the original.");
+    await user.click(within(dialog).getByRole("button", { name: "Save as LumenCortex copy" }));
 
     await waitFor(() => {
       expect(mocks.saveSkill).toHaveBeenCalledWith(
-        "project",
-        "go-backend",
-        expect.stringContaining("Project Go")
+        "global",
+        "company-deploy",
+        expect.stringContaining("name: Go Runtime")
       );
     });
   });
 
-  it("toggles a project skill enabled state through the typed bridge", async () => {
-    const projectSkill = {
-      ...globalSkill,
-      scope: "project" as const,
-      path: "/repo/.lumencortex/skills/go-backend/SKILL.md",
-      enabled: true,
-    };
-    setupScopes([projectSkill]);
+  it("keeps edit, save and delete for a LumenCortex-owned skill", async () => {
+    setupScopes({ project: [projectOwned] });
+    renderPanel();
+
+    const editor = await screen.findByLabelText("SKILL.md content");
+    expect(editor).not.toHaveAttribute("readonly");
+    expect(screen.getByText("Overrides global")).toBeInTheDocument();
+
     const user = userEvent.setup();
-
-    render(<SkillsPanel workspace="/repo" trusted labels={labels} onError={() => undefined} />);
-
-    await screen.findByText("Go Backend");
-    await user.click(screen.getByRole("button", { name: "Enabled" }));
-
+    await user.clear(editor);
+    await user.type(editor, "---\nname: Project UI\n---\n");
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => {
-      expect(mocks.setSkillEnabled).toHaveBeenCalledWith("project", "go-backend", false);
+      expect(mocks.saveSkill).toHaveBeenCalledWith("project", "frontend-desktop", expect.stringContaining("Project UI"));
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete skill?" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(mocks.deleteSkill).toHaveBeenCalledWith("project", "frontend-desktop");
     });
   });
 
+  it("shows only winners in the effective view and counts what reaches a run", async () => {
+    setupScopes({
+      global: [lcGlobal, agentsLinked, claudeDuplicate],
+      project: [projectOwned],
+      effective: [lcGlobal, agentsLinked, projectOwned],
+    });
+    renderPanel();
+    await showScope("Effective");
+
+    expect(await screen.findByText("Overrides global")).toBeInTheDocument();
+    expect(screen.queryByText("Go Runtime (Claude)")).not.toBeInTheDocument();
+    const summary = document.querySelector(".skill-summary");
+    expect(summary).toHaveTextContent("3 enabled skills reach runs");
+    expect(summary).toHaveTextContent("Runs get a catalog");
+  });
+
   it("marks a project skill as not loaded while the workspace is untrusted", async () => {
-    const projectSkill: Skill = {
-      ...globalSkill,
-      scope: "project",
-      path: "/repo/.lumencortex/skills/go-backend/SKILL.md",
-    };
-    setupScopes([projectSkill]);
-    mocks.skillContent.mockResolvedValue("---\nname: Go Backend\n---\n");
+    setupScopes({ project: [projectClaude] });
+    renderPanel({ trusted: false });
 
-    render(<SkillsPanel workspace="/repo" trusted={false} labels={labels} onError={() => undefined} />);
-
-    expect(await screen.findByText("Go Backend")).toBeInTheDocument();
+    expect(await screen.findByText("Docs style")).toBeInTheDocument();
     // The catalogue row and the editor both say the skill is not loaded.
     expect(screen.getAllByText("Not loaded (workspace not trusted)").length).toBeGreaterThan(1);
   });

@@ -25,6 +25,13 @@ import type {
   PluginInfo,
 } from "../types";
 import { cancelVisualSubtree, startVisualTask, taskSession } from "./task-fixture";
+import {
+  visualDeleteSkill,
+  visualSaveSkill,
+  visualSetSkillEnabled,
+  visualSkillContent,
+  visualSkillList,
+} from "./skill-fixture";
 
 export const workspace = "/Users/demo/Projects/lumencortex";
 
@@ -363,37 +370,6 @@ const reviewDiff = [
   "     <div className=\"provider-settings\">",
 ].join("\n");
 
-const visualSkills = [
-  {
-    id: "frontend-desktop",
-    name: "Desktop UI",
-    description: "Desktop interaction and visual standards",
-    scope: "project" as const,
-    path: ".lumencortex/skills/frontend-desktop/SKILL.md",
-    enabled: true,
-    bytes: 612,
-  },
-  {
-    id: "go-runtime",
-    name: "Go Runtime",
-    description: "Backend runtime implementation rules",
-    scope: "global" as const,
-    path: "~/.config/lumencortex/skills/go-runtime/SKILL.md",
-    enabled: true,
-    bytes: 488,
-  },
-];
-
-const visualSkillContent =
-  "---\n" +
-  "name: Desktop UI\n" +
-  "description: Keep LumenCortex dense, calm, and desktop-native.\n" +
-  "---\n\n" +
-  "# Instructions\n\n" +
-  "- Prefer compact controls and stable panel geometry.\n" +
-  "- Keep responsive navigation reachable at narrow widths.\n" +
-  "- Add visual regression coverage for interaction states.\n";
-
 const visualMCPConfig = {
   id: "filesystem",
   name: "Filesystem Tools",
@@ -701,16 +677,11 @@ export function visualAppStub() {
     StopMCP: async () => undefined,
     RefreshMCPTools: async () => undefined,
 
-    GetSkills: async (scope) =>
-      scope === "global"
-        ? visualSkills.filter((skill) => skill.scope === "global")
-        : scope === "project"
-          ? visualSkills.filter((skill) => skill.scope === "project")
-          : visualSkills,
-    GetSkillContent: async () => visualSkillContent,
-    SaveSkill: async () => undefined,
-    DeleteSkill: async () => undefined,
-    SetSkillEnabled: async () => undefined,
+    GetSkills: async (scope) => visualSkillList(scope),
+    GetSkillContent: async (scope, id) => visualSkillContent(scope, id),
+    SaveSkill: async (scope, id, content) => visualSaveSkill(scope, id, content),
+    DeleteSkill: async (scope, id) => visualDeleteSkill(scope, id),
+    SetSkillEnabled: async (scope, id, enabled) => visualSetSkillEnabled(scope, id, enabled),
     GetToolPermissions: async () => ({ disabled: ["shell"] }),
     SaveToolPermissions: async (value) => value,
     GetAgents: async () => visualAgentCatalog(),

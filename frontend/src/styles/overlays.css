@@ -173,4 +173,5 @@
   .settings-nav h2 { display: none; }
   .settings-nav-item { justify-content: center; padding: 0; font-size: 0; }
   .provider-layout { grid-template-columns: minmax(0, 1fr); }
+  .provider-layout.skill-layout { grid-template-columns: minmax(0, 1fr); }
 }

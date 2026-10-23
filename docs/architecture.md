@@ -183,3 +183,24 @@ from its catalog), and an unsaved draft says that the panel describes the saved 
 Wails APIs: `GetAgents`, `SaveAgent`, `DeleteAgent`, `MigrateSubagentModel`, `GetEffectivePrompt`
 (`internal/backend/agents.go`, `internal/backend/prompt.go`), with typed bridge methods in
 `frontend/src/lib/bridge.ts`.
+
+## Skills
+
+Core discovers skills from LumenCortex's own roots and the cross-agent conventions (ADR-0015):
+`<GlobalDir>/skills`, `~/.agents/skills` and `~/.claude/skills` globally, and
+`<workspace>/.lumencortex/skills`, `.agents/skills` and `.claude/skills` for the project. The first
+root of a scope that has an id provides it; the others are listed with `shadowedBy` and never reach
+a run. Foreign roots are read in place: a skill in another tool's directory, or a linked one, is
+`readOnly`, and saving or deleting writes only LumenCortex's own root. Enablement lives in
+`skills-state.json` per scope and works for every skill.
+
+Desktop's Skills pane (Settings → Skills, `frontend/src/components/extensions/SkillsPanel.tsx`)
+lists a scope exactly as Core reports it — source, scope, link and read-only badges, shadowed
+duplicates and broken links — and has an Effective view of the winners a run receives. A read-only
+skill can be toggled and saved as a LumenCortex copy after a confirmation that the copy shadows the
+original; only LumenCortex-owned skills are edited and deleted in place. Runs get a catalog of id,
+name and description and load a body with `read_skill`, so the pane counts the enabled skills that
+reach a run instead of implying their text is always in the prompt.
+
+Wails APIs: `GetSkills`, `GetSkillContent`, `SaveSkill`, `DeleteSkill`, `SetSkillEnabled`
+(`internal/backend/skills.go`), with typed bridge methods in `frontend/src/lib/bridge.ts`.

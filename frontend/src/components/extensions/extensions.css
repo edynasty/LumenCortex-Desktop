@@ -38,6 +38,31 @@
 
 /* Skill markdown body editor. */
 .extensions-content { min-height: 300px; font-family: var(--font-mono); font-size: var(--mono-size); line-height: 1.55; }
+/* A foreign or linked skill: Core's content, not the user's to change here. */
+.extensions-content.is-readonly { background: var(--surface-sunken); color: var(--fg-2); }
+
+/* Skills: the effective summary above the list. */
+.skill-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0 0 12px; font-size: var(--text-2xs); color: var(--fg-3); }
+.skill-summary strong { color: var(--fg); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
+.skill-summary-hint { min-width: 0; }
+
+/* Skills: the list needs room for a source badge and a conflict line. */
+.provider-layout.skill-layout { grid-template-columns: 220px minmax(0, 1fr); }
+.skill-row-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-row-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; line-height: 1.5; }
+.skill-badge { height: 16px; padding: 0 6px; font-size: var(--text-3xs); gap: 3px; }
+.skill-row-desc { display: block; font-size: var(--text-2xs); color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-row-conflict, .skill-row-error { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: var(--text-2xs); overflow-wrap: anywhere; }
+.skill-row-conflict { color: var(--fg-3); }
+.skill-row-error { color: var(--bad); }
+.skill-row-error > svg { flex: none; }
+/* A shadowed duplicate or a broken link: listed so the conflict is visible, never opened. */
+.skill-row.is-blocked { opacity: 0.62; }
+.skill-row.is-blocked:hover { background: transparent; }
+.skill-row.is-blocked .run-dot { background: var(--fg-4); }
+
+.skill-description { margin: 0; font-size: var(--text-xs); color: var(--fg-2); line-height: 1.5; }
+.skill-paths dd { overflow-wrap: anywhere; }
 
 /* Fields and the select fill their form column. */
 .extensions-editor .input, .extensions-editor .desktop-select-trigger { width: 100%; }

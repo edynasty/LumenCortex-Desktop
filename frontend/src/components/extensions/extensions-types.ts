@@ -1,3 +1,43 @@
+/** Labels of the Skills pane: discovery (source, scope, links), conflicts and the editor. */
+export type SkillLabels = {
+  title: string;
+  add: string;
+  empty: string;
+  globalScope: string;
+  projectScope: string;
+  effectiveScope: string;
+  globalHint: string;
+  projectHint: string;
+  effectiveHint: string;
+  /** Shown on a project skill while the workspace is untrusted (ADR-0013). */
+  notLoaded: string;
+  enabled: string;
+  disabled: string;
+  id: string;
+  content: string;
+  save: string;
+  saveAsCopy: string;
+  saveAsCopyTitle: string;
+  saveAsCopyBody: string;
+  delete: string;
+  deleteTitle: string;
+  deleteBody: string;
+  cancel: string;
+  error: string;
+  linked: string;
+  readOnly: string;
+  shadowedBy: string;
+  overridesGlobal: string;
+  path: string;
+  root: string;
+  realPath: string;
+  readOnlyNote: string;
+  /** Rendered after the count: "3 enabled skills reach runs". */
+  reachable: string;
+  catalogHint: string;
+  select: string;
+};
+
 export type ExtensionsLabels = {
   title: string;
   subtitle: string;
@@ -54,8 +94,6 @@ export type ExtensionsLabels = {
   permissionFromOverride: string;
   markReadOnly: string;
   clearOverride: string;
-  /** Shown on a project skill while the workspace is untrusted. */
-  skillNotLoaded: string;
   mcpTab: string;
   skillsTab: string;
   permissionsTab: string;
@@ -72,9 +110,26 @@ export type ExtensionsLabels = {
   skillEmpty: string;
   skillGlobalHint: string;
   skillProjectHint: string;
+  skillEffectiveScope: string;
+  skillEffectiveHint: string;
+  skillNotLoaded: string;
   skillId: string;
   skillContent: string;
+  skillSaveAsCopy: string;
+  skillSaveAsCopyTitle: string;
+  skillSaveAsCopyBody: string;
   skillDeleteTitle: string;
   skillDeleteBody: string;
   skillError: string;
+  skillLinked: string;
+  skillReadOnly: string;
+  skillShadowedBy: string;
+  skillOverridesGlobal: string;
+  skillPath: string;
+  skillRoot: string;
+  skillRealPath: string;
+  skillReadOnlyNote: string;
+  skillReachable: string;
+  skillCatalogHint: string;
+  skillSelect: string;
 };

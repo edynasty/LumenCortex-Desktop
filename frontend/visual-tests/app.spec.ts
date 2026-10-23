@@ -1043,6 +1043,36 @@ test.describe("provider pane: protocol and direct-input API keys", () => {
 
 });
 
+test.describe("skills pane: discovered sources and conflicts", () => {
+  test("Settings → Skills shows source, scope, link, read-only and conflict badges", async ({ page }) => {
+    await open(page, "", 1440);
+    await openThread(page, "Provider settings refactor");
+    await page.keyboard.press("ControlOrMeta+k");
+    await page.keyboard.type("Settings");
+    await page.keyboard.press("Enter");
+    const pane = page.getByRole("dialog", { name: "Settings" });
+    await pane.getByRole("button", { name: "Skills", exact: true }).click();
+
+    const list = pane.locator(".skill-list");
+    // The project scope: this repository's own skill plus the linked .agents skill.
+    await expect(list.locator(".skill-badge", { hasText: "LumenCortex" }).first()).toBeVisible();
+    await expect(list.locator(".skill-badge", { hasText: ".agents" }).first()).toBeVisible();
+    await expect(list.locator(".skill-badge", { hasText: "Link" }).first()).toBeVisible();
+    await expect(list.locator(".skill-badge", { hasText: "Read-only" }).first()).toBeVisible();
+
+    // The global scope: the same-id .claude duplicate is shadowed, and one link is broken.
+    await pane.getByRole("radio", { name: "Global" }).click();
+    await expect(list.locator(".skill-badge", { hasText: ".claude" }).first()).toBeVisible();
+    await expect(list.getByText("Shadowed by global:lumencortex")).toBeVisible();
+    await expect(list.getByText(/broken link/)).toBeVisible();
+
+    // The effective view is the winner set; the project entry overrides the global one.
+    await pane.getByRole("radio", { name: "Effective" }).click();
+    await expect(list.getByText("Overrides global")).toBeVisible();
+    expect(await clippedControls(page)).toEqual([]);
+  });
+});
+
 test.describe("OMP session import", () => {
   test("an OMP session imports from the rail plugin entry and opens as a native thread", async ({ page }) => {
     await open(page);

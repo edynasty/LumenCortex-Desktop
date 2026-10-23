@@ -17,16 +17,22 @@ type Options = {
   onError: (message: string) => void;
 };
 
+/**
+ * The Skills pane's state. A scope lists every skill Core discovered there, including the ones a
+ * higher root or the project scope shadows; "effective" lists only the winners a run may use
+ * (ADR-0015). Every mutation goes to Core through the typed bridge.
+ */
 export function useSkillsController({ workspace, trusted, onError }: Options) {
   const [effective, setEffective] = useState<Skill[]>([]);
   const [globalSkills, setGlobalSkills] = useState<Skill[]>([]);
   const [projectSkills, setProjectSkills] = useState<Skill[]>([]);
-  const [scope, setScope] = useState<Exclude<SkillScope, "effective">>("project");
+  const [view, setView] = useState<SkillScope>("project");
   const [selectedId, setSelectedId] = useState("");
   const [draftId, setDraftId] = useState("");
   const [content, setContent] = useState(template);
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!workspace) {
@@ -44,40 +50,45 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
       setEffective(nextEffective);
       setGlobalSkills(nextGlobal);
       setProjectSkills(nextProject);
-      setSelectedId((current) =>
-        current && nextEffective.some((skill) => skill.id === current)
-          ? current
-          : nextEffective[0]?.id || ""
-      );
     } catch (err) {
       onError(String(err));
     }
-  }, [onError, trusted, workspace]);
+  }, [onError, workspace]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const scopedSkills = scope === "global" ? globalSkills : projectSkills;
-  const selectedEffective = useMemo(
-    () => effective.find((skill) => skill.id === selectedId),
-    [effective, selectedId]
+  const skills = useMemo(
+    () => (view === "effective" ? effective : view === "global" ? globalSkills : projectSkills),
+    [effective, globalSkills, projectSkills, view]
   );
-  const selectedScoped = useMemo(
-    () => scopedSkills.find((skill) => skill.id === selectedId),
-    [scopedSkills, selectedId]
+  const selected = useMemo(() => skills.find((skill) => skill.id === selectedId) ?? null, [skills, selectedId]);
+  /** A skill Core writes: LumenCortex's own root, not a link. Everything else is read-only. */
+  const editable = Boolean(selected && !selected.readOnly && !selected.error);
+  const canToggle = Boolean(selected && !selected.error && !selected.shadowedBy);
+  /** How many skills a run of this workspace actually receives (trusted project roots only). */
+  const reachable = useMemo(
+    () => effective.filter((skill) => skill.enabled && !skill.error && (trusted || skill.scope === "global")).length,
+    [effective, trusted]
   );
-  const inherited = Boolean(selectedId && selectedEffective && !selectedScoped);
-  const enabled = selectedScoped?.enabled ?? selectedEffective?.enabled ?? true;
 
+  // A view switch or a mutation can leave the selection pointing at a row that is gone or that
+  // cannot be opened (a shadowed skill has no content through Core).
   useEffect(() => {
-    if (!selectedId) return;
-    const sourceScope: SkillScope = selectedScoped ? scope : "effective";
+    if (selectedId && skills.some((skill) => skill.id === selectedId)) return;
+    const first = skills.find((skill) => !skill.shadowedBy && !skill.error);
+    if (first?.id !== selectedId) setSelectedId(first?.id ?? "");
+  }, [selectedId, skills]);
+
+  const loadId = selected?.id ?? "";
+  useEffect(() => {
+    if (!loadId) return;
     let cancelled = false;
-    bridge.skillContent(sourceScope, selectedId)
+    bridge.skillContent(view, loadId)
       .then((next) => {
         if (!cancelled) {
-          setDraftId(selectedId);
+          setDraftId(loadId);
           setContent(next);
         }
       })
@@ -87,7 +98,7 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
     return () => {
       cancelled = true;
     };
-  }, [onError, scope, selectedId, selectedScoped]);
+  }, [loadId, onError, view]);
 
   function beginNew() {
     setSelectedId("");
@@ -96,11 +107,12 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
   }
 
   async function save() {
-    const id = (selectedId || draftId).trim();
-    if (!id || !content.trim() || busy) return;
+    const target = selected ? selected.scope : view;
+    const id = (selected?.id ?? draftId).trim();
+    if (target === "effective" || !id || !content.trim() || busy || (selected && !editable)) return;
     setBusy(true);
     try {
-      await bridge.saveSkill(scope, id, content);
+      await bridge.saveSkill(target, id, content);
       await refresh();
       setSelectedId(id);
     } catch (err) {
@@ -110,11 +122,27 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
     }
   }
 
-  async function remove() {
-    if (!selectedId || !selectedScoped || busy) return;
+  /** Copy a foreign skill into the scope's LumenCortex root; the copy then shadows the original. */
+  async function saveAsCopy() {
+    if (!selected || busy) return;
     setBusy(true);
     try {
-      await bridge.deleteSkill(scope, selectedId);
+      await bridge.saveSkill(selected.scope, selected.id, content);
+      setCopyOpen(false);
+      await refresh();
+      setSelectedId(selected.id);
+    } catch (err) {
+      onError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    if (!selected || !editable || busy) return;
+    setBusy(true);
+    try {
+      await bridge.deleteSkill(selected.scope, selected.id);
       setDeleteOpen(false);
       setSelectedId("");
       await refresh();
@@ -126,12 +154,10 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
   }
 
   async function toggleEnabled() {
-    if (!selectedId || !selectedEffective || busy) return;
-    if (scope === "global" && !selectedScoped) return;
-    const currentEnabled = selectedScoped?.enabled ?? selectedEffective.enabled;
+    if (!selected || !canToggle || busy) return;
     setBusy(true);
     try {
-      await bridge.setSkillEnabled(scope, selectedId, !currentEnabled);
+      await bridge.setSkillEnabled(selected.scope, selected.id, !selected.enabled);
       await refresh();
     } catch (err) {
       onError(String(err));
@@ -142,10 +168,12 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
 
   return {
     effective,
-    scope,
-    setScope,
+    skills,
+    view,
+    setView,
     selectedId,
     setSelectedId,
+    selected,
     draftId,
     setDraftId,
     content,
@@ -153,12 +181,14 @@ export function useSkillsController({ workspace, trusted, onError }: Options) {
     busy,
     deleteOpen,
     setDeleteOpen,
-    selectedEffective,
-    selectedScoped,
-    inherited,
-    enabled,
+    copyOpen,
+    setCopyOpen,
+    editable,
+    canToggle,
+    reachable,
     beginNew,
     save,
+    saveAsCopy,
     remove,
     toggleEnabled,
   };

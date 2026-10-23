@@ -1,5 +1,6 @@
 import type { SessionRuntime } from "../../types";
 import { RuntimeIdentity } from "../runtime/RuntimeIdentity";
+import { skillLabels } from "../settings/extensions-labels";
 import type { ExtensionsLabels } from "./extensions-types";
 import { MCPWorkspacePanel } from "./MCPWorkspacePanel";
 import { SkillsPanel } from "./SkillsPanel";
@@ -56,30 +57,8 @@ export function ExtensionsWorkspace({
         <SkillsPanel
           workspace={workspace}
           trusted={trusted}
+          labels={skillLabels(labels)}
           onError={onError}
-          labels={{
-            title: labels.skills,
-            add: labels.skillAdd,
-            empty: labels.skillEmpty,
-            globalScope: labels.globalScope,
-            projectScope: labels.projectScope,
-            globalHint: labels.skillGlobalHint,
-            projectHint: labels.skillProjectHint,
-            inherited: labels.inherited,
-            globalSource: labels.globalSource,
-            projectSource: labels.projectSource,
-            notLoaded: labels.skillNotLoaded,
-            enabled: labels.enabled,
-            disabled: labels.disabled,
-            id: labels.skillId,
-            content: labels.skillContent,
-            save: labels.save,
-            delete: labels.delete,
-            deleteTitle: labels.skillDeleteTitle,
-            deleteBody: labels.skillDeleteBody,
-            cancel: labels.cancel,
-            error: labels.skillError,
-          }}
         />
       ) : (
         <ToolPermissionsPanel

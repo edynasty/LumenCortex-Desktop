@@ -4,14 +4,24 @@ export type ToolPermissions = {
 
 export type SkillScope = "global" | "project" | "effective";
 
+/** The directory convention a skill was found in (Core's skills.Source* constants). */
+export type SkillSource = "lumencortex" | "agents" | "claude";
+
+/** One skill Core discovered (ADR-0015). `readOnly` is a foreign root or a linked directory. */
 export type Skill = {
   id: string;
   name: string;
   description?: string;
   scope: "global" | "project";
+  source: SkillSource;
+  root: string;
   path: string;
+  linked?: boolean;
+  realPath?: string;
+  readOnly?: boolean;
   enabled: boolean;
   overridden?: boolean;
+  shadowedBy?: string;
   bytes?: number;
   error?: string;
 };

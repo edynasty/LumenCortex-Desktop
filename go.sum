@@ -6,6 +6,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/edynasty/LumenCortex v0.1.2 h1:USwiidybRuxQ9ATBuNmVcnxLgWqBhPkzVpp/5so5+rg=
 github.com/edynasty/LumenCortex v0.1.2/go.mod h1:Iy6poIju1w9chnAZCdGQEojZsjVifJy+oy99UhIU9X0=
+github.com/edynasty/LumenCortex v0.1.3 h1:fOxcfB3MJoJRzhwqPRntxFBc9C7o4jInNLFzNt7Zl7Y=
+github.com/edynasty/LumenCortex v0.1.3/go.mod h1:Iy6poIju1w9chnAZCdGQEojZsjVifJy+oy99UhIU9X0=
 github.com/go-ole/go-ole v1.3.0 h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=
 github.com/go-ole/go-ole v1.3.0/go.mod h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=
 github.com/godbus/dbus/v5 v5.1.0 h1:4KLkAxT3aOY8Li4FRJe/KvhoNFFxo0m6fNuFUO8QJUk=

@@ -1,4 +1,4 @@
-import type { ExtensionsLabels } from "../extensions/extensions-types";
+import type { ExtensionsLabels, SkillLabels } from "../extensions/extensions-types";
 import type { AppCopy } from "../../lib/i18n/app-copy";
 
 /** Maps the app copy onto the MCP / Skills / Permissions panes' labels. */
@@ -57,7 +57,6 @@ export function extensionsLabels(labels: AppCopy): ExtensionsLabels {
     permissionFromOverride: labels.mcpPermissionFromOverride,
     markReadOnly: labels.mcpMarkReadOnly,
     clearOverride: labels.mcpClearOverride,
-    skillNotLoaded: labels.skillNotLoaded,
     mcpTab: labels.mcpTab,
     skillsTab: labels.skillsTab,
     permissionsTab: labels.permissionsTab,
@@ -74,10 +73,67 @@ export function extensionsLabels(labels: AppCopy): ExtensionsLabels {
     skillEmpty: labels.skillEmpty,
     skillGlobalHint: labels.skillGlobalHint,
     skillProjectHint: labels.skillProjectHint,
+    skillEffectiveScope: labels.skillEffectiveScope,
+    skillEffectiveHint: labels.skillEffectiveHint,
+    skillNotLoaded: labels.skillNotLoaded,
     skillId: labels.skillId,
     skillContent: labels.skillContent,
+    skillSaveAsCopy: labels.skillSaveAsCopy,
+    skillSaveAsCopyTitle: labels.skillSaveAsCopyTitle,
+    skillSaveAsCopyBody: labels.skillSaveAsCopyBody,
     skillDeleteTitle: labels.skillDeleteTitle,
     skillDeleteBody: labels.skillDeleteBody,
     skillError: labels.skillError,
+    skillLinked: labels.skillLinked,
+    skillReadOnly: labels.skillReadOnly,
+    skillShadowedBy: labels.skillShadowedBy,
+    skillOverridesGlobal: labels.skillOverridesGlobal,
+    skillPath: labels.skillPath,
+    skillRoot: labels.skillRoot,
+    skillRealPath: labels.skillRealPath,
+    skillReadOnlyNote: labels.skillReadOnlyNote,
+    skillReachable: labels.skillReachable,
+    skillCatalogHint: labels.skillCatalogHint,
+    skillSelect: labels.skillSelect,
+  };
+}
+
+/** The Skills pane's labels, taken from the extensions sheet's prefixed fields. */
+export function skillLabels(labels: ExtensionsLabels): SkillLabels {
+  return {
+    title: labels.skills,
+    add: labels.skillAdd,
+    empty: labels.skillEmpty,
+    globalScope: labels.globalScope,
+    projectScope: labels.projectScope,
+    effectiveScope: labels.skillEffectiveScope,
+    globalHint: labels.skillGlobalHint,
+    projectHint: labels.skillProjectHint,
+    effectiveHint: labels.skillEffectiveHint,
+    notLoaded: labels.skillNotLoaded,
+    enabled: labels.enabled,
+    disabled: labels.disabled,
+    id: labels.skillId,
+    content: labels.skillContent,
+    save: labels.save,
+    saveAsCopy: labels.skillSaveAsCopy,
+    saveAsCopyTitle: labels.skillSaveAsCopyTitle,
+    saveAsCopyBody: labels.skillSaveAsCopyBody,
+    delete: labels.delete,
+    deleteTitle: labels.skillDeleteTitle,
+    deleteBody: labels.skillDeleteBody,
+    cancel: labels.cancel,
+    error: labels.skillError,
+    linked: labels.skillLinked,
+    readOnly: labels.skillReadOnly,
+    shadowedBy: labels.skillShadowedBy,
+    overridesGlobal: labels.skillOverridesGlobal,
+    path: labels.skillPath,
+    root: labels.skillRoot,
+    realPath: labels.skillRealPath,
+    readOnlyNote: labels.skillReadOnlyNote,
+    reachable: labels.skillReachable,
+    catalogHint: labels.skillCatalogHint,
+    select: labels.skillSelect,
   };
 }
