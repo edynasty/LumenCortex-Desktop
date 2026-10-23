@@ -2,8 +2,11 @@
 /*
  * Generates the LumenCortex macOS application icon from the approved A1 masters:
  *
- *   build/appicon.svg        glass master  -> build/appicon.png (1024) and iconset sizes >= 256
- *   build/appicon-small.svg  small master  -> iconset sizes <= 128 (legible at 16-32 px)
+ *   build/appicon.svg        glass master  -> build/appicon.png (1024) and iconset sizes >= 64
+ *   build/appicon-small.svg  small master  -> iconset sizes <= 32 (Finder lists, menus)
+ *
+ * The Dock draws the 64-256 px members, so those are the glass mark the About page and the
+ * welcome screen show; the flat silhouette is kept only where the glass detail turns to mush.
  *
  * Renders each member with the same Chromium (Playwright) the visual tests use, because a
  * browser is the only renderer here that composites the SVG masters pixel-exactly (gradients,
@@ -32,8 +35,8 @@ const ICONSET = [
   ["icon_16x16.png", 16, "small"],
   ["icon_16x16@2x.png", 32, "small"],
   ["icon_32x32.png", 32, "small"],
-  ["icon_32x32@2x.png", 64, "small"],
-  ["icon_128x128.png", 128, "small"],
+  ["icon_32x32@2x.png", 64, "glass"],
+  ["icon_128x128.png", 128, "glass"],
   ["icon_128x128@2x.png", 256, "glass"],
   ["icon_256x256.png", 256, "glass"],
   ["icon_256x256@2x.png", 512, "glass"],

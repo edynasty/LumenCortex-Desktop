@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!--
-    LumenCortex macOS app icon — small-size master (sizes <= 128 px: Dock at 16-64 px,
-    Finder, cmd-tab). Same squircle tile and brand blue as appicon.svg, but the mark is
+    LumenCortex macOS app icon — small-size master (sizes <= 32 px: Finder lists, menus;
+    the Dock uses the glass master). Same squircle tile and brand blue as appicon.svg, but the mark is
     the flat A1 silhouette (the approved a1-flat.svg path) in the accent gradient,
     scaled up ~5% and with the glow and rim removed: at 16-32 px the glass material
     turns to mush and strokes halo, while the flat silhouette keeps the identity legible.
